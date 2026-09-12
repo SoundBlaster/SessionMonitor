@@ -14,6 +14,12 @@ SWIFTLINT_VERSION ?= 0.63.3
 FSD ?= fsd-ios
 ACTIONLINT ?= actionlint
 CLI_PRODUCT ?= codex-monitor
+BENCHMARK_SOURCE ?=
+BENCHMARK_SINCE ?=
+BENCHMARK_UNTIL ?=
+BENCHMARK_OUTPUT ?= .build/performance/$(RUN_ID)
+BENCHMARK_REPETITIONS ?= 3
+BENCHMARK_IDLE_SECONDS ?= 30
 PROJECT ?= Apps/MonitorMac/MonitorMac.xcodeproj
 SCHEME ?= MonitorMac
 CONFIGURATION ?= Debug
@@ -36,10 +42,10 @@ endif
 
 .PHONY: help doctor generate guard-package guard-app lint-version resolve build-cli test-core build-mcp
 .PHONY: lint-core lint lint-architecture build-macos test-macos check-core check archive
-.PHONY: ci lint-ci test-architecture test-cli
+.PHONY: ci lint-ci test-architecture test-cli build-cli-release benchmark
 
 help:
-	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate build-macos build-mcp test-macos lint lint-architecture check archive' 'ci lint-ci test-architecture'
+	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate build-macos build-mcp test-macos lint lint-architecture check archive' 'ci lint-ci test-architecture build-cli-release benchmark'
 
 generate:
 	@test -f Apps/MonitorMac/Local.xcconfig || printf '%s\n' '// Local signing overrides (not committed).' 'CODE_SIGN_IDENTITY = -' > Apps/MonitorMac/Local.xcconfig
@@ -67,6 +73,18 @@ resolve: guard-package
 build-cli: guard-package
 	$(SWIFT) build $(SWIFT_FLAGS) --configuration debug --product "$(CLI_PRODUCT)"
 
+build-cli-release: guard-package
+	$(SWIFT) build $(SWIFT_FLAGS) --configuration release --product "$(CLI_PRODUCT)"
+
+# Explicit source/window; independent copies and benchmark databases stay in .build.
+benchmark:
+	@test -n "$(BENCHMARK_SOURCE)" -a -n "$(BENCHMARK_SINCE)" -a -n "$(BENCHMARK_UNTIL)" || { echo 'Set BENCHMARK_SOURCE, BENCHMARK_SINCE and BENCHMARK_UNTIL.' >&2; exit 2; }
+	$(MAKE) build-cli-release
+	python3 scripts/performance/baseline.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration release --show-bin-path)/$(CLI_PRODUCT)" \
+		--source "$(BENCHMARK_SOURCE)" --output "$(BENCHMARK_OUTPUT)" --configuration release \
+		--since "$(BENCHMARK_SINCE)" --until "$(BENCHMARK_UNTIL)" \
+		--repetitions "$(BENCHMARK_REPETITIONS)" --idle-seconds "$(BENCHMARK_IDLE_SECONDS)"
+
 test-core: guard-package
 	$(SWIFT) test $(SWIFT_FLAGS)
 
@@ -74,6 +92,7 @@ test-core: guard-package
 test-cli: guard-package
 	python3 scripts/tests/watch-cli-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
 	python3 scripts/tests/snapshot-cli-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
+	python3 scripts/tests/performance-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
 
 lint-core: lint-version
 	$(SWIFTLINT) lint --strict --force-exclude --config .swiftlint.yml Sources Tests

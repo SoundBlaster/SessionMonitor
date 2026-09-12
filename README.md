@@ -146,6 +146,14 @@ Watermark относится к committed index, а не к завершению
 продолжает обращаться к своему файлу. Ошибка observation оставляет предыдущий GUI report
 видимым и сообщается пользователю; повторное открытие окна создаёт новый stream.
 
+## Performance baseline
+
+[SM-105: результаты на реальном архиве](docs/performance/2026-09-12.md): 155 files / 1.18 GiB,
+median fresh import 12.47 s, unchanged 0.09 s / 0 bytes. Append 752 bytes занимает
+0.36 s, но читает 357,981,808 bytes с SHA256 prefix verification; delta-only I/O пока нет.
+Audit parity: 6,340 requests и все шесть token totals. [Команда и методика](docs/performance/README.md).
+`make benchmark` использует отдельные копии/БД; в CI запускается только synthetic smoke.
+
 ## Проверка результата
 
 SM-104: 52 core tests проверяют versioned snapshot, atomic watermark/report, coverage,

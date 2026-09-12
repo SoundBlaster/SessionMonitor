@@ -18,7 +18,7 @@ SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/S
 SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3), merge `f366308`.
 SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
 **Последний реализованный пункт: SM-104 (включая SM-705), доставка — [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).**
-**Следующая задача: SM-105 — performance baseline на реальном архиве.**
+**Активная задача: SM-105 — baseline измерен; delta-only append остаётся невыполненным.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -128,9 +128,21 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   Ограничения: один native marker poll/second на consumer; промежуточные commits могут объединяться;
   marker описывает index commit, не полноту scan. Замена файла БД требует reopen runtime.
   Доставка: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
-  Стадия при записи 2026-09-12 12:50 UTC — PR открыт для CI/review;
-  фактический merge и required checks подтверждаются в GitHub.
+  PR merged 2026-09-12, commit `79b4259`, после зелёного required CI на `281bd58`.
 - [ ] **SM-105** — Зафиксировать performance baseline на реальном архиве.
+  Статус: частично выполнено (2026-09-12). [Baseline и методика](docs/performance/2026-09-12.md)
+  доставляются через [PR #6](https://github.com/SoundBlaster/SessionMonitor/pull/6):
+  release, 155 files / 1,271,886,559 bytes, три повторения.
+  Median fresh / unchanged / append: 12.47 / 0.09 / 0.36 s; unchanged — 0 bytes.
+  Peak RSS max: 270.92 / 12.56 / 356.23 MiB; DB/WAL/SHM — 4,894,720 bytes.
+  Watch idle CPU ниже разрешения 0.01 s за 30 s; один observer — около 0.033% одного core.
+  Повторный Python audit: 6,340 requests, все token totals совпали; append/full report parity подтверждена.
+  Добавлены `make benchmark`, isolated copy, native time/ps metrics и synthetic CI smoke.
+  Остаток: append 752 bytes читает 357,981,808 bytes для проверки старого prefix.
+  Delta-only criterion не выполнен; `[ ]` сохранён, recovery invariant не ослаблен.
+  Local `make ci`: 52 core + 8 app/model tests и три process harnesses passed.
+  Стадия при записи 2026-09-12 13:33 UTC — PR открыт для CI/review;
+  фактические required checks и merge подтверждаются в GitHub.
   Измерить first/incremental import, bytes read, peak memory, размер БД и idle CPU.
   Готово, когда повторное обновление читает только изменения, а audit parity сохраняется.
 
