@@ -10,6 +10,7 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 - Persistent checkpoints: неизменённые файлы пропускаются без чтения тела, append продолжает decoder после restart.
 - GRDB/SQLite: records, diagnostics и checkpoint фиксируются одной транзакцией; WAL и один importer на БД.
 - CLI `import` и `report`: text/JSON, период `[since, until)`, общие и посессионные суммы.
+- CLI `watch`: native FSEvents, bounded debounce, retry/reconciliation и pause/resume/stop.
 - Input/cache/output и optional cache-write/reasoning/total counters. Unknown не превращается в ноль.
 - SpecificationCore для coverage policy; SpecificationKit `@ObservedSatisfies` в GUI.
 - Native split navigation, фильтр по session ID/model, inspector и независимое состояние окон.
@@ -21,7 +22,7 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 `xcode-tools` через XcodeMCPWrapper broker. Проверены 43 доступных tools и успешные
 `XcodeListWindows`, `XcodeListSchemes`, `GetTestList`. Выбирать workspace tab и scheme
 перед `BuildProject`, `RunProject`, `RunAllTests` и debugger operations.
-`SessionMonitor-Package` — Swift package с 33 core tests; GUI и 6 GUI/model tests
+`SessionMonitor-Package` — Swift package с 44 core tests; GUI и 6 GUI/model tests
 находятся в `Apps/MonitorMac/MonitorMac.xcodeproj`, схема `MonitorMac`.
 XcodeBuildMCP CLI остаётся дополнительным build path; это отдельный инструмент.
 
@@ -30,7 +31,8 @@ XcodeBuildMCP CLI остаётся дополнительным build path; эт
 Runtime dependencies разрешаются через SwiftPM; локальная compatibility dependency описана ниже.
 
 ```sh
-make check-core           # Swift CLI build, SwiftLint, 33 core tests
+make check-core           # Swift CLI build, SwiftLint, 44 core tests и CLI process smoke
+make test-cli             # CLI signals/backpressure smoke после build-cli; Python 3 standard library
 make build-mcp            # GUI build через XcodeBuildMCP CLI
 make test-macos           # xcodebuild + 6 GUI/model tests
 make lint-architecture    # FSD strict architecture gate
@@ -57,6 +59,7 @@ macros в Xcode можно передать `XCODEBUILD_FLAGS=`.
 ```sh
 swift run codex-monitor import ~/.codex/sessions
 swift run codex-monitor import ~/.codex/sessions --rescan  # Принудительно пересобрать снимки
+swift run codex-monitor watch ~/.codex/sessions
 swift run codex-monitor report --since 2026-09-05T05:27:20Z --until 2026-09-12T05:27:20Z
 swift run codex-monitor report --json
 open .build/xcode/Build/Products/Debug/SessionMonitor.app
@@ -83,7 +86,41 @@ Directory import рекурсивно выбирает `*.jsonl` и несжат
 перечитывается от последнего newline, когда файл меняется. В SQLite сохраняется
 только нормализованное состояние decoder, без raw prompts и tool outputs.
 
+## Watch
+
+`watch DIRECTORY` регистрирует FSEvents до первого import. События объединяются в
+окно 250 ms (`--debounce-milliseconds 1...60000`); новые события не продлевают его
+бесконечно. Каждое обновление сверяет всё дерево через incremental importer.
+Dropped/coalesced events также вызывают reconciliation, без принудительного чтения
+тел неизменённых файлов. События во время импорта сохраняют запрос на следующий проход.
+
+Команда выводит JSON status lines с `phase`, `completedImports`, `lastImport` и
+ошибкой при recovery. `SIGUSR1` ставит watch на паузу и дожидается текущего import;
+после статуса `paused` новый import не начинается. `SIGUSR2` возобновляет работу
+с обязательной сверкой дерева. `Ctrl-C`/`SIGINT` и `SIGTERM` отменяют importer,
+дожидаются cleanup и закрывают stream. При stdout backpressure завершение ждёт
+вывода не более 250 ms после остановки watcher; последние status lines могут быть отброшены.
+
+Root должен существовать при запуске. Наблюдение за его parent позволяет заметить
+rename/delete/recreate; недоступность root, занятый importer или меняющийся во время
+чтения файл дают явный `recovering` и повтор с backoff 1 → 2 → … → 30 s.
+БД должна оставаться доступной при перемещении sources. Её файлы, WAL/SHM и import lock
+исключены из discovery и обычных событий, даже если БД названа `usage.jsonl`.
+Hidden entries и неподдерживаемые файлы не вызывают обычный refresh.
+
+Swift API: `try await monitor.watch(directory)` возвращает `SessionWatch` с
+`updates` (один consumer, latest status), `status`, `pause()`, `resume()` и `stop()`.
+Владелец обязан вызвать `await stop()` либо ожидать `waitUntilStopped()` в задаче,
+чья отмена остановит watcher. Query observation между CLI/GUI и единственный
+watch owner на весь срок процесса относятся к SM-104; текущий lock защищает каждый import.
+
 ## Проверка результата
+
+SM-103: полный `make ci` прошёл — 44 core tests, 6 app/model tests, builds,
+SwiftLint/FSD positive+negative, locked dependencies и CLI process smoke.
+Native tests покрывают append, pause/resume, root recreation, physical paths после
+удаления и исключение собственных DB writes. Process smoke проверяет сигналы,
+accounting после resume и заполненный stdout pipe. Evidence — `.build/sm103-ci.log`.
 
 SM-102: `make check-core` прошёл с 33 tests и нулём SwiftLint violations. Восемь новых
 lifecycle tests проверяют rename, rotation с разным порядком paths, copytruncate,
@@ -127,7 +164,7 @@ Canonical `token_usage_record` учитываются только при под
 источникам, даже когда суммы CLI ограничены периодом. Unknown record types видны в
 диагностике, в том числе ещё не интерпретируемые metadata variants.
 
-Импорт запускается явно; FSEvents watch ещё не реализован. Незавершённая последняя
+Обновление запускается через `import` или CLI `watch`; GUI watch controls ещё не подключены. Незавершённая последняя
 строка учитывается после её завершения newline. БД хранит последний наблюдённый snapshot
 каждого source path: отсутствие path при следующем import его не удаляет, а замена
 файла по тому же path пересобирает этот snapshot. Это не история всех поколений файла.
@@ -143,7 +180,7 @@ prefix digest и неподдерживаемый checkpoint вызывают п
 
 Приоритеты, следующие задачи и отметки выполнения ведутся в [ROADMAP.md](ROADMAP.md).
 Правила работы по плану обязательны и описаны в [CONTRIBUTING.md](CONTRIBUTING.md)
-и [AGENTS.md](AGENTS.md). Python используется только для reference audit, не как app runtime.
+и [AGENTS.md](AGENTS.md). Python используется для reference audit и process test harness, не как app runtime.
 
 Все новые изменения проходят через отдельную ветку и PR в `main` с обязательным
 GitHub check `CI`. Workflow, runner, fixed tooling и воспроизведение описаны в

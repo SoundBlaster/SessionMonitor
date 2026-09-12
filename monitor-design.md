@@ -217,6 +217,27 @@ root change или сомнительном checkpoint выполняется re
 явно проверенные механизмы; наличие GRDB ValueObservation само по себе не является
 доказательством, что внешний writer автоматически обновит открытый экран.
 
+В SM-103 `SessionWatch` владеет stream и отдельной от importer actor state machine.
+Stream регистрируется до initial scan; один native callback batch даёт одно уведомление.
+Первое событие открывает ограниченное debounce window, новые события не отодвигают
+его конец. Pending/re-attach flags сохраняются при текущем import. Любое обновление
+использует full-tree incremental reconciliation, включая dropped/coalesced events.
+Ошибки сохраняют pending state, переоткрывают stream и повторяют попытку с backoff 1–30 s.
+
+Наблюдение за parent замечает удаление и восстановление logical root. Фильтр хранит
+physical paths через `realpath`, включая ещё отсутствующие descendants существующего
+ancestor: Foundation может сокращать `/private/var` только пока entry существует.
+Discovery заново читает metadata root и исключает собственные DB/WAL/SHM/lock paths.
+Pause прекращает запуск новых imports и ждёт текущий; resume всегда сверяет дерево.
+Stop отменяет конкретную import task, ждёт её завершение и выполняет Stop/Invalidate/Release.
+Generation tokens отбрасывают queued callbacks и timers предыдущего stream.
+
+CLI `watch` выводит bounded latest status stream как JSON lines; signals управляют
+pause/resume/stop. Cancellable nonblocking stdout и 250 ms drain deadline позволяют
+завершиться при открытом, но переполненном downstream pipe. Swift runtime остаётся
+нативным; Python standard library используется только в process test harness.
+GUI controls, query snapshots и межпроцессный watch owner не входят в SM-103 (см. SM-104).
+
 Rollouts читаются локально и не изменяются. В БД достаточно чисел, идентификаторов,
 классов событий и source pointers; полные prompts, tool outputs, credentials и
 содержимое `auth.json` не нужны. Для сопоставления повторов допустим локальный
