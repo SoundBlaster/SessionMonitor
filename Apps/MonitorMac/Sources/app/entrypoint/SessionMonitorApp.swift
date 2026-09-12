@@ -8,6 +8,7 @@ struct SessionMonitorApp: App {
     @NSApplicationDelegateAdaptor(AppLifecycleDelegate.self) private var appDelegate
     private let runtimeLoader: SessionMonitorRuntimeLoader
     @State private var menuModel: MenuSummaryModel
+    @State private var reportScope: ReportScopeModel
     @State private var watchController: AppWatchController
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
 
@@ -15,21 +16,24 @@ struct SessionMonitorApp: App {
         let loader = SessionMonitorRuntimeLoader()
         runtimeLoader = loader
         let watch = AppWatchController { directory in try await loader.watch(directory) }
+        let scope = ReportScopeModel()
+        _reportScope = State(initialValue: scope)
         _watchController = State(initialValue: watch)
-        _menuModel = State(initialValue: MenuSummaryModel {
+        _menuModel = State(initialValue: MenuSummaryModel(queryStreamFactory: { query in
             let runtime = try await loader.load()
-            return await runtime.snapshots(query: try UsageQuery())
-        })
+            return await runtime.snapshots(query: query)
+        }))
         appDelegate.shutdown = { await watch.shutdown() }
     }
 
     var body: some Scene {
         WindowGroup("SessionMonitor", id: "session-explorer") {
-            SessionMonitorWindow(runtimeLoader: runtimeLoader)
+            SessionMonitorWindow(runtimeLoader: runtimeLoader, reportScope: reportScope)
         }
         .defaultSize(width: 1120, height: 760)
         MenuBarExtra("SessionMonitor", systemImage: "chart.bar.xaxis", isInserted: $showMenuBarExtra) {
-            AppMenuHost(model: menuModel, watch: watchController, runtimeLoader: runtimeLoader)
+            AppMenuHost(model: menuModel, watch: watchController, reportScope: reportScope,
+                        runtimeLoader: runtimeLoader)
         }
         .menuBarExtraStyle(.window)
         Settings { MonitorSettingsPage() }
@@ -40,19 +44,27 @@ struct SessionMonitorApp: App {
 /// model, navigation and SpecificationKit provider independently.
 private struct SessionMonitorWindow: View {
     @State private var model: SessionExplorerModel
+    let reportScope: ReportScopeModel
+    @Environment(\.scenePhase) private var scenePhase
 
-    init(runtimeLoader: SessionMonitorRuntimeLoader) {
+    init(runtimeLoader: SessionMonitorRuntimeLoader, reportScope: ReportScopeModel) {
+        self.reportScope = reportScope
         _model = State(initialValue: SessionExplorerModel {
             try await runtimeLoader.load()
         })
     }
 
     var body: some View {
-        SessionExplorerPage(model: model)
+        SessionExplorerPage(model: model, reportScope: reportScope)
             .frame(minWidth: 760, minHeight: 520)
-            .task {
-                await model.loadIfNeeded()
-                await model.observe()
+            .task(id: reportScope.observationID) {
+                let query = reportScope.query
+                await model.loadIfNeeded(query: query)
+                guard !Task.isCancelled else { return }
+                await model.observe(query: query)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { reportScope.refreshRelativePeriod() }
             }
     }
 }

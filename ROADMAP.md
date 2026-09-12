@@ -23,8 +23,9 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
 **SM-201 доставлена через [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8), merge `44929b4`.**
 **SM-203 доставлена через [PR #12](https://github.com/SoundBlaster/SessionMonitor/pull/12),
 merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
-**SM-202 завершена локально и проходит delivery через [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10)
-(2026-09-12). Следующая feature-задача: SM-301.**
+**SM-202 доставлена через [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10),
+merge `3f13b93` (2026-09-12).**
+**SM-301 реализована и проверена; доставка идёт через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13). Следующая задача после merge — SM-302.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
@@ -212,7 +213,23 @@ merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
 
 ## 3. Аналитический GUI и диагностика
 
-- [ ] **SM-301** — Выбор периода/timezone и согласованные фильтры CLI/GUI.
+- [x] **SM-301** — Выбор периода/timezone и согласованные фильтры CLI/GUI.
+  Выполнено локально 2026-09-12 в ветке `feat/sm-301-period-timezone`.
+  CLI `report` и `snapshot` разделяют parsing/validation абсолютного `[since, until)`
+  и IANA timezone; `snapshot` сохраняет canonical query, coverage и watermark,
+  а совместимый `report --json` — прежний bare report. GUI предлагает All Time, Today,
+  Last 7 Days и Last 30 Days в UTC или текущей local timezone; calendar bounds учитывают DST,
+  выбор сохраняется и применяется одновременно к окнам и menu bar. Одинаковые queries
+  разделяют upstream observation, разные изолированы; смена query при том же watermark
+  заменяет totals и отвергает поздние события прежнего query. App-owned one-shot task
+  пересчитывает relative period в следующую полночь выбранной зоны без polling и открытого окна.
+  Sidebar search остаётся
+  presentation-only filter и явно так обозначен.
+  Проверено: `make check` passed — core/CLI process tests, 32 GUI tests, signed Xcode build,
+  SwiftLint и FSD gates. Live pass на реальном archive подтвердил persistence,
+  полный popover и смену Today UTC (3 sessions / 1,718 requests / 243,404,024 input)
+  на Europe/Moscow (8 / 2,001 / 279,495,889) с обеими полуночными границами.
+  Доставка: [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13).
   Готово, когда одна выборка даёт одинаковые суммы и coverage во всех интерфейсах,
   а export JSON сохраняет период, фильтры и watermark.
 - [ ] **SM-302** — Названия сессий, provenance и дерево parent/subagent/fork.

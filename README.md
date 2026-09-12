@@ -63,6 +63,7 @@ swift run codex-monitor import ~/.codex/sessions
 swift run codex-monitor import ~/.codex/sessions --rescan  # Принудительно пересобрать снимки
 swift run codex-monitor watch ~/.codex/sessions
 swift run codex-monitor report --since 2026-09-05T05:27:20Z --until 2026-09-12T05:27:20Z
+swift run codex-monitor report --since 2026-09-11T21:00:00Z --until 2026-09-12T21:00:00Z --time-zone Europe/Moscow
 swift run codex-monitor report --json
 swift run codex-monitor snapshot --follow --time-zone Europe/Moscow
 open .build/xcode/Build/Products/Debug/SessionMonitor.app
@@ -127,7 +128,10 @@ Symlink к БД не создаёт отдельного владельца; loc
 `codex-monitor snapshot` выводит один JSON object, `snapshot --follow` — initial snapshot
 и последующие изменения как JSON lines. Команда только читает index и не запускает importer.
 Доступны `--since`, `--until`, `--time-zone` и `--database`; период остаётся абсолютным
-`[since, until)`, timezone служит presentation metadata. `report --json` сохраняет прежний формат.
+`[since, until)`, timestamps требуют явный ISO 8601 offset, а IANA timezone сохраняется
+как presentation metadata. По умолчанию используется UTC. `report` и `snapshot` разделяют
+parser и validation этих параметров. `report --json` сохраняет прежний bare `UsageReport` для совместимости,
+а canonical export с `query`, coverage и watermark выдаёт `snapshot`.
 
 Контракт schema version 1 содержит `query`, `report`, `coverage` и `watermark`.
 Coverage различает empty/partial/complete cache fields у canonical requests; это не
@@ -136,6 +140,11 @@ Watermark содержит database UUID, монотонный commit revision �
 Он обновляется атомарно с каждым изменённым source snapshot/checkpoint, включая diagnostics;
 unchanged imports его не продвигают. У мигрированной БД revision начинается с 0 и дата неизвестна,
 даже если прежние records уже есть. Source timestamps не используются как commit time.
+
+GUI предлагает All Time, Today, Last 7 Days и Last 30 Days в UTC или текущей local
+timezone. Calendar periods выравниваются по полуночи выбранной зоны, включая DST,
+и сохраняются между запусками. Один app-owned scope применяется к окнам и menu bar;
+поиск в sidebar только сужает видимый список и не меняет accounting totals.
 
 GUI и Swift API `monitor.snapshots(query:)` используют тот же контракт: SQLite/GRDB
 раз в секунду читает только marker, а полный отчёт вычисляет при изменении. Все поля
@@ -152,15 +161,16 @@ Watermark относится к committed index, а не к завершению
 
 ## Menu bar
 
-Значок SessionMonitor открывает компактную панель: весь импортированный
-период (UTC), input/output tokens, известный cached input, cache coverage и время
+Значок SessionMonitor открывает компактную панель: выбранный в приложении
+период/timezone, input/output tokens, известный cached input, cache coverage и время
 последнего commit в индексе (локальное время). Unknown cache остаётся unknown;
 cached input не прибавляется к input повторно. Время индекса не доказывает свежесть logs.
 
-Окна и панель используют один поток общего default snapshot. Открытие панели не
-запускает importer, rescan или дополнительный polling stream, пока окно уже наблюдает БД.
-При отсутствии подписчиков поток отменяется; повторное открытие читает текущую БД.
-Фильтры и навигация каждого окна независимы, сводка всегда относится ко всему периоду.
+Окна и панель используют один upstream stream на одинаковый `UsageQuery`. Открытие панели
+не запускает importer, rescan или дополнительный polling stream, пока окно уже наблюдает
+тот же query. Разные queries изолированы; при отсутствии подписчиков их stream отменяется.
+Повторное открытие читает текущую БД. Навигация и sidebar search каждого окна независимы,
+а accounting scope общий для приложения.
 После ошибки сохраняется последний snapshot с предупреждением; повторное открытие
 панели повторяет подписку. Ошибки не подменяются нулевыми totals.
 

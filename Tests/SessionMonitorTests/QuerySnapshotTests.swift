@@ -128,6 +128,62 @@ struct QuerySnapshotTests {
         let invalid = Data(#"{"since":100,"until":99,"timeZoneIdentifier":"UTC"}"#.utf8)
         #expect(throws: (any Error).self) { try JSONDecoder().decode(UsageQuery.self, from: invalid) }
     }
+
+    @Test func periodPresetsResolveUTCWindowsAndRemainCodable() throws {
+        let reference = try instant("2026-09-12T14:30:00Z")
+        let today = try UsagePeriodPreset.today.resolve(referenceDate: reference, timeZoneIdentifier: "UTC")
+        let todayStart = try instant("2026-09-12T00:00:00Z")
+        let nextDay = try instant("2026-09-13T00:00:00Z")
+        #expect(today.since == todayStart)
+        #expect(today.until == nextDay)
+        #expect(today.timeZoneIdentifier == "UTC")
+
+        let sevenDays = try UsagePeriodPreset.lastSevenDays.resolve(
+            referenceDate: reference, timeZoneIdentifier: "UTC"
+        )
+        let sevenDaysStart = try instant("2026-09-06T00:00:00Z")
+        #expect(sevenDays.since == sevenDaysStart)
+        #expect(sevenDays.until == today.until)
+        let thirtyDays = try UsagePeriodPreset.lastThirtyDays.resolve(
+            referenceDate: reference, timeZoneIdentifier: "UTC"
+        )
+        let thirtyDaysStart = try instant("2026-08-14T00:00:00Z")
+        #expect(thirtyDays.since == thirtyDaysStart)
+        #expect(thirtyDays.until == today.until)
+
+        let all = try UsagePeriodPreset.all.resolve(referenceDate: reference, timeZoneIdentifier: "UTC")
+        #expect(all.since == nil)
+        #expect(all.until == nil)
+        let encoded = try JSONEncoder().encode(UsagePeriodPreset.lastSevenDays)
+        #expect(try JSONDecoder().decode(UsagePeriodPreset.self, from: encoded) == .lastSevenDays)
+        #expect(Set([today, sevenDays, thirtyDays, all]).count == 4)
+    }
+
+    @Test func berlinTodayUsesDSTSafeSpringAndFallCalendarWindows() throws {
+        let spring = try UsagePeriodPreset.today.resolve(
+            referenceDate: try instant("2026-03-29T12:00:00Z"),
+            timeZoneIdentifier: "Europe/Berlin"
+        )
+        let springStart = try instant("2026-03-28T23:00:00Z")
+        let springEnd = try instant("2026-03-29T22:00:00Z")
+        #expect(spring.since == springStart)
+        #expect(spring.until == springEnd)
+        #expect(springEnd.timeIntervalSince(springStart) == 23 * 60 * 60)
+
+        let fall = try UsagePeriodPreset.today.resolve(
+            referenceDate: try instant("2026-10-25T12:00:00Z"),
+            timeZoneIdentifier: "Europe/Berlin"
+        )
+        let fallStart = try instant("2026-10-24T22:00:00Z")
+        let fallEnd = try instant("2026-10-25T23:00:00Z")
+        #expect(fall.since == fallStart)
+        #expect(fall.until == fallEnd)
+        #expect(fallEnd.timeIntervalSince(fallStart) == 25 * 60 * 60)
+    }
+}
+
+private func instant(_ value: String) throws -> Date {
+    try Date.ISO8601FormatStyle().parse(value)
 }
 
 private struct SnapshotFixture {

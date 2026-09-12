@@ -3,6 +3,9 @@ import SwiftUI
 
 struct MenuSummaryPage: View {
     let model: MenuSummaryModel
+    var query = menuPageDefaultUsageQuery()
+    var scopeLabel = "All Time · UTC"
+    var reportScope: ReportScopeModel?
     var watch = MenuWatchPresentation()
     var actions: MenuSummaryActions?
 
@@ -10,6 +13,10 @@ struct MenuSummaryPage: View {
         VStack(alignment: .leading, spacing: 14) {
             Label("SessionMonitor", systemImage: "chart.bar.xaxis")
                 .font(.headline)
+            if let reportScope {
+                ReportScopeControls(model: reportScope)
+                    .controlSize(.small)
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Label(watch.title, systemImage: watch.symbol)
                 Text(watch.directory ?? "No folder selected.")
@@ -20,7 +27,7 @@ struct MenuSummaryPage: View {
                 }
             }
             Divider()
-            if let snapshot = model.snapshot {
+            if let snapshot = model.snapshot, snapshot.query == query {
                 summary(snapshot)
             } else if model.errorMessage == nil {
                 HStack {
@@ -33,7 +40,7 @@ struct MenuSummaryPage: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .lineLimit(4).help(error)
-                if model.snapshot != nil {
+                if model.snapshot?.query == query {
                     Text("Showing the last available report.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -43,7 +50,7 @@ struct MenuSummaryPage: View {
         .padding(18)
         .frame(width: 340, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
-        .task { await model.observe() }
+        .task(id: query) { await model.observe(query: query) }
     }
 
     private func controls(_ actions: MenuSummaryActions) -> some View {
@@ -76,7 +83,7 @@ struct MenuSummaryPage: View {
 
     private func summary(_ snapshot: UsageSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("All imported time · \(snapshot.query.timeZoneIdentifier)")
+            Text(scopeLabel)
                 .font(.subheadline).foregroundStyle(.secondary)
             if snapshot.report.totals.requests == 0 {
                 Text("No canonical usage yet")
@@ -109,5 +116,13 @@ struct MenuSummaryPage: View {
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .monospacedDigit()
+    }
+}
+
+private func menuPageDefaultUsageQuery() -> UsageQuery {
+    do {
+        return try UsageQuery()
+    } catch {
+        preconditionFailure("The built-in UTC query must be valid: \(error)")
     }
 }

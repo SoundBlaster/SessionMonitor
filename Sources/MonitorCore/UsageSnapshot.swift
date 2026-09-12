@@ -1,7 +1,7 @@
 import Foundation
 
 /// Absolute half-open interval. Timezone is presentation metadata, never a second date conversion.
-public struct UsageQuery: Codable, Equatable, Sendable {
+public struct UsageQuery: Codable, Equatable, Hashable, Sendable {
     public let since: Date?
     public let until: Date?
     public let timeZoneIdentifier: String

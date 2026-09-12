@@ -44,13 +44,13 @@ extension MonitorCommand {
     struct Report: AsyncParsableCommand {
         static let configuration = CommandConfiguration(abstract: "Show globally deduplicated canonical usage.")
         @OptionGroup var options: DatabaseOptions
-        @Option(help: "Inclusive ISO 8601 start timestamp.") var since: String?
-        @Option(help: "Exclusive ISO 8601 end timestamp.") var until: String?
+        @OptionGroup var queryOptions: UsageQueryOptions
         @Flag(help: "Emit structured JSON.") var json = false
 
         mutating func run() async throws {
             let runtime = try options.runtime()
-            let report = try await runtime.report(since: parseDate(since), until: parseDate(until))
+            let snapshot = try await runtime.snapshot(query: queryOptions.query())
+            let report = snapshot.report
             if json {
                 try printJSON(report)
             } else {
@@ -65,15 +65,6 @@ extension MonitorCommand {
                     print("  \(key): \(report.diagnostics[key, default: 0])")
                 }
             }
-        }
-
-        private func parseDate(_ value: String?) throws -> Date? {
-            guard let value else { return nil }
-            if let date = try? Date.ISO8601FormatStyle(includingFractionalSeconds: true).parse(value) { return date }
-            guard let date = try? Date.ISO8601FormatStyle().parse(value) else {
-                throw ValidationError("Invalid ISO 8601 timestamp: \(value)")
-            }
-            return date
         }
     }
 }

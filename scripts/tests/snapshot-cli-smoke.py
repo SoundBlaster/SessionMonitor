@@ -27,6 +27,13 @@ def command(binary, database, *args, success=True):
     assert b"Another importer" in result.stderr, result.stderr
 
 
+def rejected_query(binary, database, *args, message):
+    result = subprocess.run([str(binary), *args, "--database", str(database)],
+                            capture_output=True, timeout=10)
+    assert result.returncode != 0, "Invalid query unexpectedly succeeded"
+    assert message.encode() in result.stderr, result.stderr.decode(errors="replace")
+
+
 class Observer:
     def __init__(self, binary, database, errors):
         self.process = subprocess.Popen(
@@ -99,7 +106,23 @@ def run(binary):
                 assert first["report"]["totals"]["requests"] == 1
                 assert first["coverage"]["cache"] == "complete"
                 assert first["schemaVersion"] == 1
+                assert first["query"]["timeZoneIdentifier"] == "UTC"
                 assert first["watermark"]["revision"] > empty["watermark"]["revision"]
+                query = ("--since", "1970-01-01T00:01:42Z",
+                         "--until", "1970-01-01T00:01:43Z",
+                         "--time-zone", "Europe/Moscow")
+                filtered = command(binary, database, "snapshot", *query)
+                filtered_report = command(binary, database, "report", "--json", *query)
+                assert filtered["query"]["timeZoneIdentifier"] == "Europe/Moscow"
+                assert filtered["report"] == filtered_report
+                assert filtered_report["totals"]["requests"] == 1
+                excluded = command(binary, database, "snapshot", "--until", "1970-01-01T00:01:42Z")
+                assert excluded["report"]["totals"]["requests"] == 0
+                rejected_query(binary, database, "snapshot", "--time-zone", "invalid/timezone",
+                               message="Invalid time zone identifier: invalid/timezone")
+                rejected_query(binary, database, "report", "--since", "1970-01-01T00:01:42Z",
+                               "--until", "1970-01-01T00:01:42Z",
+                               message="The --since timestamp must precede --until.")
                 command(binary, database, "import", str(root))
                 unchanged = command(binary, database, "snapshot")
                 assert unchanged == first

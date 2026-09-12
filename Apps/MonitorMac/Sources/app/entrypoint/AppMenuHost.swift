@@ -5,21 +5,24 @@ import SwiftUI
 struct AppMenuHost: View {
     let model: MenuSummaryModel
     let watch: AppWatchController
+    let reportScope: ReportScopeModel
     let runtimeLoader: SessionMonitorRuntimeLoader
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        MenuSummaryPage(model: model, watch: presentation, actions: MenuSummaryActions(
+        MenuSummaryPage(model: model, query: reportScope.query, scopeLabel: reportScope.compactLabel,
+                        reportScope: reportScope, watch: presentation, actions: MenuSummaryActions(
             openWindow: {
                 NSApp.activate()
                 openWindow(id: "session-explorer")
             },
             refresh: {
                 Task {
-                    await model.refresh {
+                    let query = reportScope.query
+                    await model.refresh(query: query) {
                         let runtime = try await runtimeLoader.load()
-                        return try await runtime.snapshot(query: UsageQuery())
+                        return try await runtime.snapshot(query: query)
                     }
                 }
             },

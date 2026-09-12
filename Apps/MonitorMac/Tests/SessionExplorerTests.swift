@@ -119,6 +119,38 @@ final class SessionExplorerTests: XCTestCase {
         XCTAssertEqual(model.report.sessions.count, 1)
     }
 
+    func testQueryChangeAtSameWatermarkReplacesReportAndRejectsLateOldQuery() async throws {
+        let original = report([session("all", model: "model-a")])
+        let runtime = StubExplorerRuntime(report: original)
+        let model = SessionExplorerModel { runtime }
+        let allTime = try UsageQuery()
+        await model.loadIfNeeded(query: allTime)
+        let observation = Task { await model.observe(query: allTime) }
+        defer { observation.cancel() }
+        for _ in 0..<100 where await runtime.observerCount == 0 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        let period = try UsageQuery(
+            since: Date(timeIntervalSince1970: 100),
+            until: Date(timeIntervalSince1970: 200),
+            timeZoneIdentifier: "Europe/Moscow"
+        )
+        let selected = report([session("period", model: "model-b")])
+        await runtime.replaceReportWithoutAdvancingWatermark(selected)
+        await model.loadIfNeeded(query: period)
+
+        XCTAssertEqual(model.query, period)
+        XCTAssertEqual(model.snapshot?.query, period)
+        XCTAssertEqual(model.report, selected)
+        XCTAssertEqual(model.selectedSession?.id, "period")
+
+        await runtime.yield(report([session("stale", model: "model-c")]), query: allTime, revision: 10)
+        try await Task.sleep(for: .milliseconds(20))
+        XCTAssertEqual(model.query, period)
+        XCTAssertEqual(model.report, selected)
+    }
+
     func testObservedWritesUpdateReportPreserveFilterAndPublishCoverage() async throws {
         let runtime = StubExplorerRuntime(report: report([session("one", model: "model-a")]))
         let model = SessionExplorerModel { runtime }
@@ -194,11 +226,16 @@ final class SessionExplorerTests: XCTestCase {
 }
 
 private actor StubExplorerRuntime: SessionExplorerRuntime {
+    private struct Observer {
+        let query: UsageQuery
+        let continuation: AsyncThrowingStream<UsageSnapshot, Error>.Continuation
+    }
+
     private var storedReport: UsageReport
     private var importFailure = false
     private var reportFailure = false
     private var revision: Int64 = 0
-    private var observers: [UUID: AsyncThrowingStream<UsageSnapshot, Error>.Continuation] = [:]
+    private var observers: [UUID: Observer] = [:]
     var observerCount: Int { observers.count }
 
     init(report: UsageReport) {
@@ -208,9 +245,20 @@ private actor StubExplorerRuntime: SessionExplorerRuntime {
     func replaceReport(_ report: UsageReport) {
         storedReport = report
         revision += 1
-        if let value = try? snapshot(query: UsageQuery()) {
-            for observer in observers.values { observer.yield(value) }
+        for observer in observers.values {
+            if let value = try? snapshot(query: observer.query) {
+                observer.continuation.yield(value)
+            }
         }
+    }
+    func replaceReportWithoutAdvancingWatermark(_ report: UsageReport) { storedReport = report }
+    func yield(_ report: UsageReport, query: UsageQuery, revision: Int64) {
+        let value = UsageSnapshot(
+            query: query,
+            watermark: QueryWatermark(databaseID: "fixture", revision: revision, committedAt: Date()),
+            report: report
+        )
+        for observer in observers.values { observer.continuation.yield(value) }
     }
     func failImports() { importFailure = true }
     func failReports(_ value: Bool) { reportFailure = value }
@@ -232,7 +280,7 @@ private actor StubExplorerRuntime: SessionExplorerRuntime {
             let identifier = UUID()
             do {
                 continuation.yield(try snapshot(query: query))
-                observers[identifier] = continuation
+                observers[identifier] = Observer(query: query, continuation: continuation)
                 continuation.onTermination = { [weak self] _ in
                     Task { await self?.removeObserver(identifier) }
                 }

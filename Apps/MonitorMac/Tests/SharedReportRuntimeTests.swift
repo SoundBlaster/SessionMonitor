@@ -5,15 +5,19 @@ import XCTest
 
 @MainActor
 final class SharedReportRuntimeTests: XCTestCase {
-    func testDefaultSubscribersShareSourceCacheLatestAndRestartAfterLastCancellation() async throws {
+    func testMatchingNondefaultSubscribersShareSourceCacheLatestAndRestartAfterLastCancellation() async throws {
         let source = StubSharedRuntime()
         let runtime = SharedReportRuntime(runtime: source)
-        let query = try UsageQuery()
+        let query = try UsageQuery(
+            since: Date(timeIntervalSince1970: 100),
+            until: Date(timeIntervalSince1970: 200),
+            timeZoneIdentifier: "Europe/Moscow"
+        )
 
         let firstRecorder = SnapshotRecorder()
         let first = consume(await runtime.snapshots(query: query), into: firstRecorder)
         try await eventually { await source.snapshotsCalls == 1 }
-        let initial = try fixtureSnapshot(revision: 1)
+        let initial = fixtureSnapshot(query: query, revision: 1)
         await source.yield(initial, connection: 1)
         try await eventually { await firstRecorder.values.count == 1 }
 
@@ -29,7 +33,7 @@ final class SharedReportRuntimeTests: XCTestCase {
         let terminationsAfterFirstCancellation = await source.terminations
         XCTAssertEqual(terminationsAfterFirstCancellation, 0)
 
-        let update = try fixtureSnapshot(revision: 2)
+        let update = fixtureSnapshot(query: query, revision: 2)
         await source.yield(update, connection: 1)
         try await eventually { await secondRecorder.values == [initial, update] }
 
@@ -40,7 +44,7 @@ final class SharedReportRuntimeTests: XCTestCase {
         let reopenedRecorder = SnapshotRecorder()
         let reopened = consume(await runtime.snapshots(query: query), into: reopenedRecorder)
         try await eventually { await source.snapshotsCalls == 2 }
-        let reopenedValue = try fixtureSnapshot(revision: 3)
+        let reopenedValue = fixtureSnapshot(query: query, revision: 3)
         await source.yield(reopenedValue, connection: 2)
         try await eventually { await reopenedRecorder.values == [reopenedValue] }
         reopened.cancel()
@@ -51,6 +55,49 @@ final class SharedReportRuntimeTests: XCTestCase {
         XCTAssertEqual(calls.imports, 0)
         XCTAssertEqual(calls.snapshotReads, 0)
         XCTAssertEqual(calls.snapshotStreams, 2)
+    }
+
+    func testDistinctQueriesOwnIndependentSourcesAndCleanup() async throws {
+        let source = StubSharedRuntime()
+        let runtime = SharedReportRuntime(runtime: source)
+        let utc = try UsageQuery(since: Date(timeIntervalSince1970: 100),
+                                 until: Date(timeIntervalSince1970: 200))
+        let moscow = try UsageQuery(since: Date(timeIntervalSince1970: 100),
+                                    until: Date(timeIntervalSince1970: 200),
+                                    timeZoneIdentifier: "Europe/Moscow")
+        let utcRecorder = SnapshotRecorder()
+        let moscowRecorder = SnapshotRecorder()
+        let utcConsumer = consume(await runtime.snapshots(query: utc), into: utcRecorder)
+        let moscowConsumer = consume(await runtime.snapshots(query: moscow), into: moscowRecorder)
+        try await eventually { await source.snapshotsCalls == 2 }
+
+        let utcSnapshot = fixtureSnapshot(query: utc, revision: 1)
+        let moscowSnapshot = fixtureSnapshot(query: moscow, revision: 1)
+        await source.yield(utcSnapshot, connection: 1)
+        await source.yield(moscowSnapshot, connection: 2)
+        try await eventually { await utcRecorder.values == [utcSnapshot] }
+        try await eventually { await moscowRecorder.values == [moscowSnapshot] }
+
+        utcConsumer.cancel()
+        await utcConsumer.value
+        try await eventually { await source.terminations == 1 }
+
+        let moscowUpdate = fixtureSnapshot(query: moscow, revision: 2)
+        await source.yield(moscowUpdate, connection: 2)
+        try await eventually { await moscowRecorder.values == [moscowSnapshot, moscowUpdate] }
+
+        let reopenedUTCRecorder = SnapshotRecorder()
+        let reopenedUTC = consume(await runtime.snapshots(query: utc), into: reopenedUTCRecorder)
+        try await eventually { await source.snapshotsCalls == 3 }
+        let reopenedUTCSnapshot = fixtureSnapshot(query: utc, revision: 2)
+        await source.yield(reopenedUTCSnapshot, connection: 3)
+        try await eventually { await reopenedUTCRecorder.values == [reopenedUTCSnapshot] }
+
+        moscowConsumer.cancel()
+        reopenedUTC.cancel()
+        await moscowConsumer.value
+        await reopenedUTC.value
+        try await eventually { await source.terminations == 3 }
     }
 
     func testUnderlyingErrorPropagatesToEverySubscriberWithoutImporting() async throws {
@@ -90,9 +137,9 @@ final class SharedReportRuntimeTests: XCTestCase {
         }
     }
 
-    private func fixtureSnapshot(revision: Int64) throws -> UsageSnapshot {
+    private func fixtureSnapshot(query: UsageQuery, revision: Int64) -> UsageSnapshot {
         UsageSnapshot(
-            query: try UsageQuery(),
+            query: query,
             watermark: QueryWatermark(databaseID: "fixture", revision: revision, committedAt: Date()),
             report: UsageReport(
                 totals: UsageTotals(requests: revision, inputTokens: revision * 10),
