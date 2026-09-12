@@ -208,7 +208,8 @@ CLI читает существующий snapshot с watermark; попытка 
 `importerBusy`. SM-104 удерживает flock на весь lifecycle SessionWatch, включая pause
 и recovery. Внутренние imports используют этот lease; stop сначала join/cancel worker,
 затем release. Descriptor имеет close-on-exec, release идемпотентен, файл lock не удаляется.
-Database path канонизируется до выбора sidecar lock, включая symlink aliases.
+Перед выбором sidecar lock файл БД открывается с O_CREAT без truncation, затем
+канонизируется realpath. Это учитывает и dangling symlink при первом запуске.
 WAL setup и migrations сериализованы отдельным коротким setup lock: новый reader может
 открыть БД при работающем watch. После process death ОС освобождает оба flock.
 

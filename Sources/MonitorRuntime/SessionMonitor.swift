@@ -16,9 +16,8 @@ public actor SessionMonitor {
     private let databaseURL: URL
 
     public init(databaseURL: URL = SessionMonitor.defaultDatabaseURL) throws {
-        let canonical = URL(fileURLWithPath: FileEventFilter.physicalPath(databaseURL))
-        self.databaseURL = canonical
-        store = try UsageStore(url: canonical)
+        store = try UsageStore(url: databaseURL)
+        self.databaseURL = store.databaseURL
     }
 
     /// Each changed source commits its records and checkpoint together; unchanged bodies are not read.

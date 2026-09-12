@@ -5,10 +5,11 @@ import MonitorCore
 
 public final class UsageStore: Sendable {
     private let database: DatabaseQueue
+    public let databaseURL: URL
 
     public init(url: URL) throws {
-        let url = url.resolvingSymlinksInPath()
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let url = try DatabaseSetupLock.prepareDatabaseURL(url)
+        databaseURL = url
         let setup = try DatabaseSetupLock(url: url.appendingPathExtension("setup-lock"))
         defer { setup.release() }
         var configuration = Configuration()

@@ -120,11 +120,11 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   CLI `snapshot --follow` и GUI observation читают external commits без нового importer.
   Watch удерживает canonical DB lease до cleanup, в том числе на pause/recovery;
   setup/migration сериализованы отдельно, symlink не обходит ownership, SIGKILL освобождает flock.
-  Проверено: `make ci` — 51 core + 8 app/model tests, builds, SwiftLint/FSD и оба process harness.
+  Проверено: `make ci` — 52 core + 8 app/model tests, builds, SwiftLint/FSD и оба process harness.
   [Process tests](scripts/tests/snapshot-cli-smoke.py) покрывают external writes, idle suppression,
   concurrent first-open migrations, busy owner, alias и process death; GUI также читает commit
   отдельного SQLite process. [Atomic tests](Tests/SessionMonitorTests/QuerySnapshotTests.swift)
-  сверяют totals с watermark при concurrent writes. Evidence: `.build/sm104-ci-final.log`.
+  сверяют totals с watermark при concurrent writes. Evidence: `.build/sm104-ci-review.log`.
   Ограничения: один native marker poll/second на consumer; промежуточные commits могут объединяться;
   marker описывает index commit, не полноту scan. Замена файла БД требует reopen runtime.
   Доставка: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).

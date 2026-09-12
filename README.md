@@ -23,7 +23,7 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 `xcode-tools` через XcodeMCPWrapper broker. Проверены 43 доступных tools и успешные
 `XcodeListWindows`, `XcodeListSchemes`, `GetTestList`. Выбирать workspace tab и scheme
 перед `BuildProject`, `RunProject`, `RunAllTests` и debugger operations.
-`SessionMonitor-Package` — Swift package с 51 core tests; GUI и 8 GUI/model tests
+`SessionMonitor-Package` — Swift package с 52 core tests; GUI и 8 GUI/model tests
 находятся в `Apps/MonitorMac/MonitorMac.xcodeproj`, схема `MonitorMac`.
 XcodeBuildMCP CLI остаётся дополнительным build path; это отдельный инструмент.
 
@@ -32,7 +32,7 @@ XcodeBuildMCP CLI остаётся дополнительным build path; эт
 Runtime dependencies разрешаются через SwiftPM; локальная compatibility dependency описана ниже.
 
 ```sh
-make check-core           # Swift CLI build, SwiftLint, 51 core tests и CLI process smoke
+make check-core           # Swift CLI build, SwiftLint, 52 core tests и CLI process smoke
 make test-cli             # CLI signals/backpressure smoke после build-cli; Python 3 standard library
 make build-mcp            # GUI build через XcodeBuildMCP CLI
 make test-macos           # xcodebuild + 8 GUI/model tests
@@ -148,11 +148,11 @@ Watermark относится к committed index, а не к завершению
 
 ## Проверка результата
 
-SM-104: 51 core tests проверяют versioned snapshot, atomic watermark/report, coverage,
+SM-104: 52 core tests проверяют versioned snapshot, atomic watermark/report, coverage,
 rollback и importer ownership; process harness — external writes, concurrent migrations,
 idle suppression, symlink и SIGKILL recovery. 8 app/model tests включают GUI observation
 записи отдельного процесса. Исправлена повторная линковка static packages в hosted tests
-(SM-705), которая вызывала crash GRDB. Evidence: `.build/sm104-ci-final.log`.
+(SM-705), которая вызывала crash GRDB. Evidence: `.build/sm104-ci-review.log`.
 
 
 SM-103: полный `make ci` прошёл — 44 core tests, 6 app/model tests, builds,

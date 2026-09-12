@@ -60,9 +60,12 @@ def run(binary):
     with tempfile.TemporaryDirectory(prefix="sessionmonitor-snapshot-") as temporary:
         base = Path(temporary)
         database = base / "usage.sqlite"
+        first_alias = base / "first-alias.sqlite"
+        first_alias.symlink_to(database)
         # Independent first-open clients must agree on one migrated database identity.
-        clients = [subprocess.Popen([str(binary), "snapshot", "--database", str(database)],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE) for _ in range(6)]
+        clients = [subprocess.Popen([str(binary), "snapshot", "--database",
+                                     str(first_alias if index == 0 else database)],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE) for index in range(6)]
         try:
             initial = []
             for client in clients:
@@ -71,6 +74,7 @@ def run(binary):
                 initial.append(json.loads(output))
             assert len({item["watermark"]["databaseID"] for item in initial}) == 1
             assert all(item["watermark"]["revision"] == 0 for item in initial)
+            assert not Path(str(first_alias) + ".setup-lock").exists()
         finally:
             for client in clients:
                 if client.poll() is None:
@@ -100,7 +104,7 @@ def run(binary):
                 unchanged = command(binary, database, "snapshot")
                 assert unchanged == first
                 assert not observer.pending and not observer.selector.select(timeout=1.2), "Idle duplicate snapshot"
-                watch = WatchProcess(binary, root, database, errors)
+                watch = WatchProcess(binary, root, first_alias, errors)
                 watch.wait_status("watching")
                 command(binary, database, "watch", str(root), success=False)
                 alias = base / "alias.sqlite"

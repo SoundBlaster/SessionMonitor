@@ -26,6 +26,24 @@ struct ImportOwnershipTests {
         }
     }
 
+    @Test func danglingDatabaseSymlinkUsesTargetOwnershipOnFirstOpen() async throws {
+        let fixture = try OwnershipFixture()
+        defer { fixture.remove() }
+        let alias = fixture.directory.appending(path: "alias.sqlite")
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: fixture.database)
+        #expect(!FileManager.default.fileExists(atPath: fixture.database.path))
+        let owner = try SessionMonitor(databaseURL: alias)
+        let other = try SessionMonitor(databaseURL: fixture.database)
+        let watch = try await owner.watch(fixture.root)
+        await watch.pause()
+        await expectImporterBusy { _ = try await other.watch(fixture.root) }
+        await expectImporterBusy { _ = try await other.importDirectory(fixture.root) }
+        await watch.stop()
+        _ = try await other.importDirectory(fixture.root)
+        #expect(!FileManager.default.fileExists(atPath: alias.path + ".import-lock"))
+        #expect(!FileManager.default.fileExists(atPath: alias.path + ".setup-lock"))
+    }
+
     @Test func databaseSymlinkCannotBypassWatchOwnership() async throws {
         let fixture = try OwnershipFixture()
         defer { fixture.remove() }
