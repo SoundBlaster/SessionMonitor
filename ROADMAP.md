@@ -18,7 +18,7 @@ GitHub CI и ruleset для `main` включены.
 SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2), merge `bbddb26`.
 SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3), merge `f366308`.
 SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
-**Последний реализованный пункт: SM-104 (включая SM-705), доставка — [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).**
+SM-104 (включая SM-705) доставлена через [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
 **SM-105 доставлена через [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7), merge `af7faa2`.**
 **SM-201 реализована и проверена локально; доставка — [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8). Следующая задача: SM-202.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
