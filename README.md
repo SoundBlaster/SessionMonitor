@@ -15,6 +15,7 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 - Input/cache/output и optional cache-write/reasoning/total counters. Unknown не превращается в ноль.
 - SpecificationCore для coverage policy; SpecificationKit `@ObservedSatisfies` в GUI.
 - Native split navigation, фильтр по session ID/model, inspector и независимое состояние окон.
+- MenuBarExtra: read-only сводка tokens, cache coverage, периода и времени обновления индекса.
 - SwiftLint, FSD architecture lint, Makefile, XcodeGen и подписанная development app.
 
 ## Сборка и запуск
@@ -23,7 +24,7 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 `xcode-tools` через XcodeMCPWrapper broker. Проверены 43 доступных tools и успешные
 `XcodeListWindows`, `XcodeListSchemes`, `GetTestList`. Выбирать workspace tab и scheme
 перед `BuildProject`, `RunProject`, `RunAllTests` и debugger operations.
-`SessionMonitor-Package` — Swift package с 52 core tests; GUI и 8 GUI/model tests
+`SessionMonitor-Package` — Swift package с 54 core tests; GUI и 15 GUI/model/render tests
 находятся в `Apps/MonitorMac/MonitorMac.xcodeproj`, схема `MonitorMac`.
 XcodeBuildMCP CLI остаётся дополнительным build path; это отдельный инструмент.
 
@@ -32,10 +33,10 @@ XcodeBuildMCP CLI остаётся дополнительным build path; эт
 Runtime dependencies разрешаются через SwiftPM; локальная compatibility dependency описана ниже.
 
 ```sh
-make check-core           # Swift CLI build, SwiftLint, 52 core tests и CLI process smoke
+make check-core           # Swift CLI build, SwiftLint, 54 core tests и CLI process smoke
 make test-cli             # CLI signals/backpressure smoke после build-cli; Python 3 standard library
 make build-mcp            # GUI build через XcodeBuildMCP CLI
-make test-macos           # xcodebuild + 8 GUI/model tests
+make test-macos           # xcodebuild + 15 GUI/model/render tests
 make lint-architecture    # FSD strict architecture gate
 make check                # Полный последовательный набор локальных проверок
 make ci                   # Те же native gates, locked packages и ad-hoc signing
@@ -148,6 +149,24 @@ Watermark относится к committed index, а не к завершению
 Замена файла самой БД требует закрыть и вновь открыть runtime; открытая SQLite connection
 продолжает обращаться к своему файлу. Ошибка observation оставляет предыдущий GUI report
 видимым и сообщается пользователю; повторное открытие окна создаёт новый stream.
+
+## Menu bar
+
+Значок SessionMonitor открывает компактную read-only панель: весь импортированный
+период (UTC), input/output tokens, известный cached input, cache coverage и время
+последнего commit в индексе (локальное время). Unknown cache остаётся unknown;
+cached input не прибавляется к input повторно. Время индекса не доказывает свежесть logs.
+
+Окна и панель используют один поток общего default snapshot. Открытие панели не
+запускает importer, rescan или дополнительный polling stream, пока окно уже наблюдает БД.
+При отсутствии подписчиков поток отменяется; повторное открытие читает текущую БД.
+Фильтры и навигация каждого окна независимы, сводка всегда относится ко всему периоду.
+После ошибки сохраняется последний snapshot с предупреждением; повторное открытие
+панели повторяет подписку. Ошибки не подменяются нулевыми totals.
+
+Watch пока не управляется из GUI; состояние внешнего CLI-watch неизвестно и так
+обозначено в панели. Действия, настройки и полный lifecycle относятся к SM-202.
+Bundle IDs: `ru.egormerkushev.SessionMonitor` и `ru.egormerkushev.SessionMonitor.Tests`.
 
 ## Performance baseline
 

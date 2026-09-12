@@ -9,7 +9,8 @@
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
 SM-105 переводит рост той же identity на append-only чтение хвоста. SM-103 добавляет
-CLI/native watch; GUI watch controls, menu bar, WidgetKit, TUI и адаптация ещё не реализованы.
+CLI/native watch; SM-201 добавляет read-only menu bar. GUI watch controls, WidgetKit,
+TUI и адаптация ещё не реализованы.
 GitHub repository подключён; `main` отслеживает `origin/main`.
 Первый commit с реализацией создан (SM-702).
 SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1), merge `de7e328`;
@@ -18,8 +19,8 @@ SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/S
 SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3), merge `f366308`.
 SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
 **Последний реализованный пункт: SM-104 (включая SM-705), доставка — [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).**
-**SM-105 реализована и проверена локально; доставка — [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7), CI/review.**
-**Следующая задача: SM-201 — MenuBarExtra.**
+**SM-105 доставлена через [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7), merge `af7faa2`.**
+**SM-201 реализована и проверена локально; доставка через PR/CI. Следующая задача: SM-202.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -157,7 +158,16 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
 
 ## 2. Menu bar
 
-- [ ] **SM-201** — Добавить MenuBarExtra со статусом watch и краткой сводкой.
+- [x] **SM-201** — Добавить MenuBarExtra со статусом watch и краткой сводкой.
+  Выполнено и проверено локально (2026-09-12). Read-only панель на общем UsageSnapshot contract;
+  GUI watch ещё не запущен, статус внешнего watcher неизвестен. Управление — SM-202.
+  SharedReportRuntime разделяет default stream между окнами и панелью; навигация per-window.
+  Loading/empty/error, tokens, cache coverage и время commit индекса без обещания source freshness.
+  Bundle IDs по указанию пользователя: `ru.egormerkushev.SessionMonitor` / `.Tests`.
+  `make lint lint-architecture test-macos`: 15 GUI/model/render tests passed, SwiftLint/FSD passed.
+  Native build passed; пустая menu-панель проверена визуально, populated fixture проверен в окне.
+  Native ImageRenderer: empty/partial/complete панели с большими totals проверены визуально.
+  Полный actions/lifecycle visual pass — SM-202.
   Зависит от SM-104. Показать период, расход, cache coverage и свежесть общего snapshot;
   открытие панели не запускает новый importer или полный rescan.
 - [ ] **SM-202** — Действия и lifecycle menu bar.
