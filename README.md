@@ -21,7 +21,7 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 `xcode-tools` через XcodeMCPWrapper broker. Проверены 43 доступных tools и успешные
 `XcodeListWindows`, `XcodeListSchemes`, `GetTestList`. Выбирать workspace tab и scheme
 перед `BuildProject`, `RunProject`, `RunAllTests` и debugger operations.
-`SessionMonitor-Package` — Swift package с 25 core tests; GUI и 6 GUI/model tests
+`SessionMonitor-Package` — Swift package с 33 core tests; GUI и 6 GUI/model tests
 находятся в `Apps/MonitorMac/MonitorMac.xcodeproj`, схема `MonitorMac`.
 XcodeBuildMCP CLI остаётся дополнительным build path; это отдельный инструмент.
 
@@ -30,7 +30,7 @@ XcodeBuildMCP CLI остаётся дополнительным build path; эт
 Runtime dependencies разрешаются через SwiftPM; локальная compatibility dependency описана ниже.
 
 ```sh
-make check-core           # Swift CLI build, SwiftLint, 25 core tests
+make check-core           # Swift CLI build, SwiftLint, 33 core tests
 make build-mcp            # GUI build через XcodeBuildMCP CLI
 make test-macos           # xcodebuild + 6 GUI/model tests
 make lint-architecture    # FSD strict architecture gate
@@ -67,6 +67,9 @@ CLI и GUI по умолчанию используют одну БД:
 CLI поддерживает `--database PATH`; переменная `SESSIONMONITOR_DATABASE` позволяет
 обоим интерфейсам использовать отдельную БД для проверки. Архивные rollouts можно
 импортировать отдельным запуском из `~/.codex/archived_sessions`.
+Directory import рекурсивно выбирает `*.jsonl` и несжатые числовые архивы
+`*.jsonl.1`, `*.jsonl.2` и т. п. Hidden files/directories, `*.jsonl.bak` и
+сжатые `*.jsonl.gz` не выбираются; декомпрессия не реализована.
 
 Повторный `import` использует checkpoint по каждому source path. JSON summary содержит
 `ioMetrics`: фактически прочитанные bytes и количество skipped/resumed/rescanned files.
@@ -81,6 +84,12 @@ CLI поддерживает `--database PATH`; переменная `SESSIONMON
 только нормализованное состояние decoder, без raw prompts и tool outputs.
 
 ## Проверка результата
+
+SM-102: `make check-core` прошёл с 33 tests и нулём SwiftLint violations. Восемь новых
+lifecycle tests проверяют rename, rotation с разным порядком paths, copytruncate,
+numeric archive discovery, redelivery/conflicts, ownership reset и retention.
+Повторный CLI import прежних 155 файлов снова прочитал 0 bytes.
+Локальное evidence — `.build/sm102-verification.json`; app baseline приведён ниже.
 
 SM-101: прошли 25 core tests, SwiftLint и 6 GUI/model tests; CLI и app собраны.
 Fixtures проверяют append/restart, UTF-8 и oversized tails, ownership, конфликты,
@@ -119,9 +128,15 @@ Canonical `token_usage_record` учитываются только при под
 диагностике, в том числе ещё не интерпретируемые metadata variants.
 
 Импорт запускается явно; FSEvents watch ещё не реализован. Незавершённая последняя
-строка учитывается после её завершения newline. Снимки ранее импортированных, затем удалённых
-файлов остаются в БД; это хранилище наблюдённых данных, не зеркало папки. При ошибке в
-середине импорта уже завершённые файлы сохраняются; текущий файл меняется атомарно.
+строка учитывается после её завершения newline. БД хранит последний наблюдённый snapshot
+каждого source path: отсутствие path при следующем import его не удаляет, а замена
+файла по тому же path пересобирает этот snapshot. Это не история всех поколений файла.
+При rotation/copytruncate прежние записи сохраняются, если архив тоже импортирован.
+Rename/copy создаёт ещё один source snapshot; canonical response IDs не удваивают
+суммы, а duplicate/conflict diagnostics отражают все наблюдённые копии. Diagnostics
+старого path, включая partial tail, остаются его последним наблюдённым состоянием.
+При ошибке в середине импорта уже завершённые файлы сохраняются;
+текущий файл меняется атомарно.
 Если файл изменился прямо во время чтения, import сообщает ошибку и сохраняет прежний
 checkpoint; следующий запуск повторяет попытку. Truncation, replacement, несовпадение
 prefix digest и неподдерживаемый checkpoint вызывают полный rescan этого источника.

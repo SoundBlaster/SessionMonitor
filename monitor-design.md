@@ -189,6 +189,16 @@ compare-and-swap по прежнему blob не позволяет stale batch 
 `partialTails` — текущее состояние хвоста, остальные source diagnostics на append
 накапливаются. `--rescan` принудительно пересобирает выбранные source snapshots.
 
+SM-102 уточняет recovery contract. Directory scan выбирает обычные `*.jsonl` и
+несжатые archives `*.jsonl.[0-9]+`; hidden и compressed files не импортируются.
+Rename/copy получает отдельный snapshot по новому path, canonical dedup остаётся
+глобальным. Отсутствующий path не удаляется: его diagnostics описывают последнее
+наблюдение, поэтому старый partial tail после rename может остаться в отчёте.
+Replacement/truncation пересобирает snapshot этого path и сбрасывает ownership/model
+context; без нового metadata/native-turn evidence usage не наследует старую ownership.
+При rotation старое поколение сохраняется через импорт archive. Хранилище не является
+immutable журналом всех версий файла, а транзакции по-прежнему ограничены одним source.
+
 Runtime сериализует ingest внутри процесса, а межпроцессный lock на конкретное
 хранилище разрешает только одному importer/watch одновременно менять index.
 SQLite transactions/WAL отвечают за согласованность и параллельное чтение.

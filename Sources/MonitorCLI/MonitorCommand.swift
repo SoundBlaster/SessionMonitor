@@ -28,7 +28,7 @@ extension MonitorCommand {
             abstract: "Incrementally import JSONL files with atomic checkpoints."
         )
         @OptionGroup var options: DatabaseOptions
-        @Argument(help: "A JSONL file or directory, recursively scanned. The source is read only.")
+        @Argument(help: "Read-only JSONL file or recursive directory; includes *.jsonl and numeric *.jsonl.N archives.")
         var path: String
         @Flag(help: "Rebuild selected sources from the beginning, ignoring saved checkpoints.")
         var rescan = false
