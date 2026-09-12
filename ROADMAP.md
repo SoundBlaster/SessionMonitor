@@ -9,7 +9,7 @@
 Первая версия CLI + GUI реализована и проверена. Импорт пока перечитывает выбранные
 файлы целиком; watch, menu bar, WidgetKit, TUI и адаптация ещё не реализованы.
 GitHub repository подключён; `main` отслеживает `origin/main`.
-Активная задача: SM-702 — первый scoped commit с реализацией и push по запросу пользователя.
+Первый commit с реализацией создан (SM-702). Активной implementation-задачи сейчас нет.
 **Следующая задача: SM-101 — persistent incremental checkpoints.**
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -157,13 +157,13 @@ GitHub repository подключён; `main` отслеживает `origin/main
 - [ ] **SM-701** — Передать SpecificationCore fix upstream и вернуть remote SwiftPM dependency.
   Готово после доступного исправленного upstream revision/release и повторной integration verification;
   до этого локальный patch остаётся с provenance и regression test.
-- [ ] **SM-702** — Первый scoped commit и подключение выбранного Git remote.
-  Статус: в работе. Пользователь запросил push; подготовить и проверить состав коммита с реализацией.
-  Частично выполнено 2026-09-12: `origin` — [SoundBlaster/SessionMonitor](https://github.com/SoundBlaster/SessionMonitor),
-  локальная `main` отслеживает `origin/main`; сохранён initial commit `74242a0` с [MIT License](LICENSE).
-  Проверено: fetch, совпадение HEAD и origin/main, upstream tracking; локальные файлы сохранены.
-  Осталось: первый scoped commit с реализацией проекта. Локальные данные/ключи/build artifacts
-  исключаются; commit и publication следуют текущим указаниям пользователя.
+- [x] **SM-702** — Первый scoped commit и подключение выбранного Git remote.
+  Готово 2026-09-12: [commit 9473271](https://github.com/SoundBlaster/SessionMonitor/commit/9473271622011f2ae80027df5c74230adb11ead8)
+  содержит CLI/app, tests, build tooling, dependency patch и документацию.
+  `origin` — [SoundBlaster/SessionMonitor](https://github.com/SoundBlaster/SessionMonitor),
+  `main` отслеживает `origin/main`; initial commit `74242a0` с [MIT License](LICENSE) сохранён.
+  Проверено: состав 78 добавленных файлов, `git diff --cached --check`, исключение audit outputs,
+  личных plot labels и signing overrides. Build/test evidence — baseline SM-008/SM-009.
 - [ ] **SM-703** — Distribution packaging CLI/app/widget, notices, signing, notarization и обновления.
   Готово, когда выбранный способ доставки проверен на чистой установке с сохранением данных;
   Apple Development build сам по себе не подтверждает distribution readiness.
