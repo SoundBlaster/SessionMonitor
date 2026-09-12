@@ -18,7 +18,7 @@ SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/S
 SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3), merge `f366308`.
 SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
 **Последний реализованный пункт: SM-104 (включая SM-705), доставка — [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).**
-**SM-105 реализована и проверена локально; доставка append-only оптимизации — PR/CI.**
+**SM-105 реализована и проверена локально; доставка — [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7), CI/review.**
 **Следующая задача: SM-201 — MenuBarExtra.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
@@ -147,6 +147,8 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   Три append запуска читают ровно 752 bytes, median 0.02 s; unchanged — 0 bytes / 0.02 s.
   Fresh median 6.13 s; audit 6,340 requests и полный rebuild совпадают.
   Новый `make check-core`: 54 core tests, SwiftLint и три process harnesses passed.
+  Доставка оптимизации: [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7).
+  Стадия при записи 2026-09-12 14:12 UTC: открыт, required CI/review; merge проверяется в GitHub.
   Исторический `make ci` для PR #6: 52 core + 8 app/model tests и три process harnesses passed.
   PR #6 merged 2026-09-12, commit `2b48beb`; эти цифры относятся к прежней реализации.
   Измерить first/incremental import, bytes read, peak memory, размер БД и idle CPU.
