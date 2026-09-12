@@ -23,7 +23,8 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
 **SM-201 доставлена через [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8), merge `44929b4`. Следующая задача: SM-202.**
 **SM-203 доставлена через [PR #12](https://github.com/SoundBlaster/SessionMonitor/pull/12),
 merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
-**Активная задача: SM-202 — в работе (2026-09-12), действия и lifecycle menu bar.**
+**Активная задача: SM-202 — [draft PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10)
+(2026-09-12), ожидает live UI verification на разблокированном Mac; не merged.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
@@ -186,6 +187,7 @@ merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
   real-runtime test подтверждает release importer lock после shutdown paused watch.
   Render empty/partial/complete проверен; live actions/lifecycle пока не проверены:
   UI automation сообщила о заблокированном Mac. До разблокировки merge не выполняется.
+  [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10) — draft на момент записи.
   Зависит от SM-201. Open window, refresh, pause/resume, settings, quit;
   закрытие окна сохраняет watch, удаление значка не закрывает открытое окно,
   а Quit корректно завершает runtime. Проверить визуально и тестами состояний.
