@@ -14,7 +14,7 @@ GitHub repository подключён; `main` отслеживает `origin/main
 Первый commit с реализацией создан (SM-702).
 SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1), merge `de7e328`;
 GitHub CI и ruleset для `main` включены.
-**Текущая доставка: SM-101 реализована и проверена локально; подготовка PR.**
+**Текущая доставка: SM-101 реализована и проверена локально; [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2) открыт, ожидает CI/review.**
 **Следующая задача: SM-102 — восстановление импорта при изменениях файлов.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
@@ -80,7 +80,8 @@ GitHub CI и ruleset для `main` включены.
   На копии прежней БД: миграция 155 sources, повторный import — 155 skipped/0 bytes,
   точная parity недельного audit. [Локальное evidence](.build/sm101-verification.json).
   Ограничение: изменённый prefix проверяется полным SHA256 read (оптимизация — SM-105).
-  Стадия доставки: ветка `feat/sm-101-incremental-checkpoints`, подготовка PR; ещё не в `main`.
+  Стадия доставки: [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2) открыт,
+  ожидает обязательный CI/review; ещё не в `main`.
 - [ ] **SM-102** — Восстанавливать импорт при rotation, truncation и замене файла.
   Зависит от SM-101. Готово, когда смена identity/содержимого вызывает нужный rescan,
   а переименование или повторная доставка canonical records не удваивают суммы.
