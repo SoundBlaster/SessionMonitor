@@ -1,0 +1,41 @@
+# macOS, Python and Swift build artifacts
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+.build/
+.swiftpm/
+DerivedData/
+*.xcresult
+*.xcarchive
+xcuserdata/
+*.xcuserstate
+.fsd-ios-tooling/
+/Apps/MonitorMac/Local.xcconfig
+/Apps/MonitorMac/MonitorMac.xcodeproj/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.import-lock
+
+# Personal audit outputs kept locally at the repository root
+# One-off plotting script also contains personal session labels.
+/plot_audit.py
+/*.csv
+/ccusage-daily.json
+/ccusage-stderr.txt
+/report.md
+/run-summary.txt
+/settings-snapshot.json
+/summary.json
+/verification.json
+/request-timelines.png
+/usage-overview.png
+
+# Research snapshots and local skill backup
+/ResearchReferences/
+/orchestrator-before-20260912/
+
+# Logs of the disposable quality-gate verification fixture
+/quality-starter/verification.json
+/quality-starter/verification.log

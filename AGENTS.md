@@ -1,0 +1,66 @@
+# SessionMonitor: инструкции агентам
+
+## Обязательный workflow
+
+Основной план и единственный список статусов — [ROADMAP.md](ROADMAP.md).
+Пользователь требует выполнять работу по нему и отмечать завершённое в файле.
+
+1. Перед реализацией прочитать текущую точку ROADMAP, нужный пункт, его зависимости
+   и [CONTRIBUTING.md](CONTRIBUTING.md); проверить Git status и фактическое состояние кода.
+2. Следовать указанному приоритету. При команде «продолжай» без нового scope брать
+   следующую доступную задачу из ROADMAP. Если пользователь меняет приоритет или
+   добавляет требование, сначала отразить это в плане, затем выполнять работу.
+3. Перед изменениями обозначить ID задачи, поставить `Статус: в работе` и обновить
+   текущую точку. Не заводить параллельный backlog или отдельный файл статусов.
+4. Выполнять задачу до её критерия готовности; запускать проверки, соответствующие
+   изменению. `[x]` ставить только после реализации и успешной необходимой проверки.
+5. В том же наборе изменений обновить ROADMAP: дата, краткий результат, evidence,
+   оставшиеся ограничения. Для частичного результата сохранить `[ ]` и описать остаток;
+   для блокировки указать причину и условие продолжения. Синхронизировать текущую точку.
+6. Перед финальным ответом проверить согласованность кода, ROADMAP и пользовательских
+   docs. В ответе назвать затронутые IDs, результат, проверки и следующий пункт.
+
+Сохранять IDs завершённых задач. Новый defect/follow-up получает отдельный ID.
+Архитектурные объяснения находятся в [monitor-design.md](monitor-design.md),
+решения по библиотекам — в [dogfooding-plan.md](dogfooding-plan.md).
+Эти документы ссылаются на ROADMAP за актуальным статусом.
+
+## Технические границы
+
+- Swift/SPM shared core для CLI/GUI/TUI; SwiftUI macOS app. Общие accounting rules
+  и query contracts не дублировать между интерфейсами.
+- SpecificationCore — domain policies, SpecificationKit — reactive GUI features,
+  FSD — Pages First. NavigationSplitViewKit используется как reference behavior.
+- Apple SDK/standard library и проверенные OSS — первый выбор для стандартной
+  инфраструктуры. Собственный код сосредоточен на Codex semantics и интеграции.
+- Сохранять ownership/dedup, unknown values, provenance и atomic storage.
+  Не суммировать mirrored counters и не объявлять высокий cache hit доказательством экономии.
+- Локальные raw logs, audit outputs, signing overrides и build artifacts остаются
+  вне Git. Изменения dependency snapshot сопровождать provenance и regression evidence.
+- Canonical Xcode project definition — `Apps/MonitorMac/project.yml`;
+  `make generate` создаёт `.xcodeproj`. Сохранять оба Package.resolved.
+
+## Инструменты и проверки
+
+Основной интерфейс работы с открытым Xcode — MCP `xcode-tools`.
+Сначала определить текущий workspace tab, scheme и destination через discovery.
+`SessionMonitor-Package` — core/package, `MonitorMac` — app/GUI; не смешивать test results.
+Использовать BuildProject, RunProject, RunSomeTests/RunAllTests и debugger tools по задаче.
+XcodeBuildMCP CLI — отдельный дополнительный путь; `swift`, `xcodebuild` и Makefile сохраняются.
+
+Core changes: `make check-core`. GUI changes: SwiftLint/FSD и подходящие app build/tests.
+Общие integration changes: `make check` либо соответствующие MCP/CLI checks с тем же scope.
+Documentation-only: проверить ссылки, IDs, статусы и формат; повторная сборка без
+изменений кода не требуется. Не повторять уже зелёные проверки без новой причины.
+
+Shell commands в этом workspace выполнять с префиксом `rtk`; для raw command — `rtk proxy`.
+Учитывать [локальные правила RTK](/Users/egor/.codex/RTK.md) на машине пользователя.
+Сохранять пользовательские uncommitted changes. Commit, push, PR и release выполняются
+в пределах действующих указаний пользователя, а не автоматически из-за записи в плане.
+
+## Делегирование
+
+Этот файл сам по себе не требует subagents. При разрешённом делегировании применять
+Parallel Subagent Orchestrator: ограниченная задача, явное владение файлами,
+event-aware waits. Основной агент отвечает за интеграцию и обновление ROADMAP.
+При завершении этапа оставлять в текущей точке достаточно контекста для продолжения.

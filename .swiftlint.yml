@@ -1,0 +1,15 @@
+# SwiftLint 0.63.3; Makefile supplies paths to avoid duplicate traversal.
+# Default rules plus a small set of correctness-oriented rules.
+excluded:
+  - .build
+  - DerivedData
+  - .fsd-ios-tooling
+  - Vendor
+  - Dependencies
+  - ResearchReferences
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - force_unwrapping
+  - unused_optional_binding
+reporter: xcode

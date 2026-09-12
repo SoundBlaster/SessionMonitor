@@ -1,0 +1,69 @@
+name: MonitorMac
+options:
+  minimumXcodeGenVersion: 2.46.0
+  deploymentTarget:
+    macOS: "15.0"
+packages:
+  SessionMonitorCore:
+    path: ../..
+  SpecificationKit:
+    url: https://github.com/SoundBlaster/SpecificationKit
+    exactVersion: 4.0.0
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    GENERATE_INFOPLIST_FILE: YES
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 0.1.0
+configFiles:
+  Debug: Local.xcconfig
+  Release: Local.xcconfig
+targets:
+  MonitorMac:
+    type: application
+    platform: macOS
+    sources: [Sources]
+    settings:
+      base:
+        PRODUCT_NAME: SessionMonitor
+        PRODUCT_MODULE_NAME: SessionMonitor
+        PRODUCT_BUNDLE_IDENTIFIER: com.soundblaster.SessionMonitor
+        INFOPLIST_KEY_CFBundleDisplayName: SessionMonitor
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        ENABLE_APP_SANDBOX: NO
+    dependencies:
+      - package: SessionMonitorCore
+        product: MonitorCore
+      - package: SessionMonitorCore
+        product: MonitorRuntime
+      - package: SessionMonitorCore
+        product: MonitorPolicies
+      - package: SpecificationKit
+  MonitorMacTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [Tests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.soundblaster.SessionMonitor.Tests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SessionMonitor.app/Contents/MacOS/SessionMonitor"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+    dependencies:
+      - target: MonitorMac
+      - package: SessionMonitorCore
+        product: MonitorCore
+      - package: SessionMonitorCore
+        product: MonitorRuntime
+      - package: SessionMonitorCore
+        product: MonitorPolicies
+      - package: SpecificationKit
+schemes:
+  MonitorMac:
+    build:
+      targets:
+        MonitorMac: all
+    test:
+      targets: [MonitorMacTests]

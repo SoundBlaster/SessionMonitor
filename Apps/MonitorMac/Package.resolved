@@ -1,0 +1,41 @@
+{
+  "pins": [
+    {
+      "identity": "grdb.swift",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/groue/GRDB.swift",
+      "state": {
+        "revision": "b83108d10f42680d78f23fe4d4d80fc88dab3212",
+        "version": "7.11.1"
+      }
+    },
+    {
+      "identity": "specificationkit",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/SoundBlaster/SpecificationKit",
+      "state": {
+        "revision": "330fa5d34215aa92f1cd33d174e4b76c4d27664f",
+        "version": "4.0.0"
+      }
+    },
+    {
+      "identity": "swift-argument-parser",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/apple/swift-argument-parser",
+      "state": {
+        "revision": "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+        "version": "1.8.2"
+      }
+    },
+    {
+      "identity": "swift-syntax",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/swiftlang/swift-syntax",
+      "state": {
+        "revision": "2bc86522d115234d1f588efe2bcb4ce4be8f8b82",
+        "version": "510.0.3"
+      }
+    }
+  ],
+  "version": 2
+}
