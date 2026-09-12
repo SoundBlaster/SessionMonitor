@@ -21,6 +21,8 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
 SM-104 (включая SM-705) доставлена через [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
 **SM-105 доставлена через [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7), merge `af7faa2`.**
 **SM-201 доставлена через [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8), merge `44929b4`. Следующая задача: SM-202.**
+**SM-203 выполнена локально (2026-09-12): единое видимое product name `SessionMonitor`;
+доставка через PR ожидает GitHub CI.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
@@ -179,6 +181,15 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
   Зависит от SM-201. Open window, refresh, pause/resume, settings, quit;
   закрытие окна сохраняет watch, удаление значка не закрывает открытое окно,
   а Quit корректно завершает runtime. Проверить визуально и тестами состояний.
+- [x] **SM-203** — Использовать SessionMonitor как единое видимое marketing name.
+  `SessionMonitor` должно быть названием приложения, главного окна, menu bar и Settings.
+  `Session Explorer` остаётся названием функциональной области в документации, а `MonitorMac` —
+  внутренним именем Xcode project/target/scheme и не показывается пользователю.
+  Готово, когда заголовок окна не меняется на `Session Explorer` или model name, bundle metadata
+  сохраняет `SessionMonitor`, а main/empty/selected-session состояния проверены визуально.
+  Выполнено локально 2026-09-12: navigation title статичен, `CFBundleDisplayName/CFBundleName`
+  остаются `SessionMonitor`. `make generate lint lint-architecture test-macos` passed (15 tests);
+  native empty и selected-session states проверены через accessibility tree и screenshots.
 
 ## 3. Аналитический GUI и диагностика
 
