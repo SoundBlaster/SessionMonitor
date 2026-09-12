@@ -20,7 +20,9 @@ SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/S
 SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
 SM-104 (включая SM-705) доставлена через [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
 **SM-105 доставлена через [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7), merge `af7faa2`.**
-**SM-201 реализована и проверена локально; доставка — [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8). Следующая задача: SM-202.**
+**SM-201 доставлена через [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8), merge `44929b4`. Следующая задача: SM-202.**
+По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
+внутри приложения — график сессий с настраиваемым порогом. Реализация запланирована.
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -195,6 +197,27 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
 - [ ] **SM-305** — Определить и реализовать поддерживаемую legacy usage семантику.
   Fixtures должны покрыть cumulative deltas/resets, late/reversed mirrors и fork replay.
   Готово, когда estimates явно отделены от canonical records и не создают двойного учёта.
+- [ ] **SM-306** — Показывать cache hit % каждой сессии в sidebar.
+  Зависит от SM-104. Использовать totals сессии из текущего общего snapshot:
+  `cached input tokens / input tokens × 100`, без усреднения процентов отдельных requests.
+  При partial/unknown cache или нулевом input показывать «—» с объяснением coverage,
+  а не 0%. Процент соответствует той же сессии и периоду, что detail view.
+  Готово, когда значения обновляются вместе со snapshot, совпадают с detail/CLI,
+  а длинные названия и проценты не обрезаются в узком sidebar; есть tests и visual check.
+- [ ] **SM-307** — Внутренний виджет с графиком cache hit по сессиям и порогом в Settings.
+  Зависит от SM-306/SM-202. Компактный Swift Charts block в Session Explorer;
+  точное место выбрать и проверить в существующем layout при реализации.
+  Один элемент графика соответствует одной сессии текущей выборки, значение — cache hit %.
+  Основная палитра монохромная; красный акцент только для известного процента строго ниже нормы.
+  Unknown/partial/zero-input обозначать нейтрально и отдельно от низкого cache hit.
+  Settings: минимальный допустимый cache hit в диапазоне 0–100%, сохранение между запусками
+  и немедленная переоценка графика без reimport/rescan; начальное значение определить при реализации.
+  Показать порог на графике, значение и статус в подписи/tooltip; цвет не единственный сигнал.
+  Выбор сессии на графике открывает её detail. Domain policy использовать совместно через
+  SpecificationCore, реактивные GUI decisions — SpecificationKit; данные брать из общего snapshot.
+  Это виджет внутри окна приложения, отдельный от системного WidgetKit в SM-401/SM-402.
+  Готово, когда проверены значения ниже/равно/выше порога, invalid Settings, сохранение настройки,
+  unknown/empty states и live updates; layout читается в light/dark mode и при большом числе сессий.
 
 ## 4. Системные macOS widgets
 
