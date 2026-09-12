@@ -124,7 +124,9 @@ XcodeBuildMCP CLI и нативные `swift`/`xcodebuild` остаются до
 `make check-core` и `make ci` также выполняют `make test-cli`: Python 3 standard-library
 harness запускает собранный Swift CLI на synthetic sources и проверяет pause/resume,
 SIGINT/SIGTERM, accounting и cleanup при полном stdout pipe. Отдельный `make test-cli`
-предполагает выполненный `make build-cli`. Python не входит в app runtime.
+предполагает выполненный `make build-cli`. Snapshot harness дополнительно проверяет external
+commits, отсутствие idle emissions, concurrent migration, single-owner watch и SIGKILL recovery.
+GUI tests включают SQLite writer в отдельном `/usr/bin/python3` process; Python не входит в app runtime.
 
 ## Реализация и reuse
 

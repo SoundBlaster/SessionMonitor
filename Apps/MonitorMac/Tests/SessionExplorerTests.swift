@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import MonitorCore
+import MonitorRuntime
 import XCTest
 @testable import SessionMonitor
 
@@ -118,6 +119,61 @@ final class SessionExplorerTests: XCTestCase {
         XCTAssertEqual(model.report.sessions.count, 1)
     }
 
+    func testObservedWritesUpdateReportPreserveFilterAndPublishCoverage() async throws {
+        let runtime = StubExplorerRuntime(report: report([session("one", model: "model-a")]))
+        let model = SessionExplorerModel { runtime }
+        await model.loadIfNeeded()
+        model.setFilter("model-a")
+        let observation = Task { await model.observe() }
+        defer { observation.cancel() }
+        for _ in 0..<100 where await runtime.observerCount == 0 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let count = await runtime.observerCount
+        XCTAssertEqual(count, 1)
+        await runtime.replaceReport(report([session("one", model: "model-a", unknownCacheRequests: 1)]))
+        for _ in 0..<100 where model.report.totals.unknownCacheRequests == 0 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertEqual(model.filter, "model-a")
+        XCTAssertEqual(model.selectedSession?.id, "one")
+        XCTAssertEqual(model.snapshot?.coverage.cache, .partial)
+        XCTAssertEqual(model.contextProvider.currentContext().displayedTotals.unknownCacheRequests, 1)
+        observation.cancel()
+        await observation.value
+    }
+
+    func testGUIObservesExternalProcessCommit() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let database = directory.appending(path: "usage.sqlite")
+        let runtime = try MonitorRuntime.SessionMonitor(databaseURL: database)
+        let model = SessionExplorerModel { runtime }
+        await model.loadIfNeeded()
+        let observation = Task { await model.observe() }
+        defer { observation.cancel() }
+        // A separate SQLite process publishes diagnostics and the marker in the same transaction.
+        // The CLI process harness separately verifies that production imports publish this marker.
+        let writer = Process()
+        writer.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        writer.arguments = ["-c", """
+            import sqlite3, sys, time
+            with sqlite3.connect(sys.argv[1]) as db:
+                db.execute("INSERT INTO source_diagnostics VALUES ('fixture', 'partialTails', 1)")
+                db.execute("UPDATE query_watermark SET revision = revision + 1, committed_at = ?", (time.time(),))
+            """, database.path]
+        try writer.run()
+        writer.waitUntilExit()
+        XCTAssertEqual(writer.terminationStatus, 0)
+        for _ in 0..<200 where model.report.diagnostics["partialTails"] != 1 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertEqual(model.report.diagnostics["partialTails"], 1)
+        XCTAssertEqual(model.snapshot?.watermark.revision, 1)
+        observation.cancel()
+        await observation.value
+    }
+
     private func session(_ id: String, model: String, unknownCacheRequests: Int64 = 0) -> SessionSummary {
         SessionSummary(id: id, model: model, totals: UsageTotals(
             requests: 1, inputTokens: 100, cachedInputTokens: 60,
@@ -141,12 +197,21 @@ private actor StubExplorerRuntime: SessionExplorerRuntime {
     private var storedReport: UsageReport
     private var importFailure = false
     private var reportFailure = false
+    private var revision: Int64 = 0
+    private var observers: [UUID: AsyncThrowingStream<UsageSnapshot, Error>.Continuation] = [:]
+    var observerCount: Int { observers.count }
 
     init(report: UsageReport) {
         storedReport = report
     }
 
-    func replaceReport(_ report: UsageReport) { storedReport = report }
+    func replaceReport(_ report: UsageReport) {
+        storedReport = report
+        revision += 1
+        if let value = try? snapshot(query: UsageQuery()) {
+            for observer in observers.values { observer.yield(value) }
+        }
+    }
     func failImports() { importFailure = true }
     func failReports(_ value: Bool) { reportFailure = value }
 
@@ -155,10 +220,27 @@ private actor StubExplorerRuntime: SessionExplorerRuntime {
         return ImportSummary(files: 1, records: 1, diagnostics: [:])
     }
 
-    func report(since: Date?, until: Date?) throws -> UsageReport {
+    func snapshot(query: UsageQuery) throws -> UsageSnapshot {
         if reportFailure { throw StubFailure.reportFailed }
-        return storedReport
+        return UsageSnapshot(query: query,
+                             watermark: QueryWatermark(databaseID: "fixture", revision: revision, committedAt: Date()),
+                             report: storedReport)
     }
+
+    func snapshots(query: UsageQuery) -> AsyncThrowingStream<UsageSnapshot, Error> {
+        AsyncThrowingStream { continuation in
+            let identifier = UUID()
+            do {
+                continuation.yield(try snapshot(query: query))
+                observers[identifier] = continuation
+                continuation.onTermination = { [weak self] _ in
+                    Task { await self?.removeObserver(identifier) }
+                }
+            } catch { continuation.finish(throwing: error) }
+        }
+    }
+
+    private func removeObserver(_ identifier: UUID) { observers[identifier] = nil }
 
     private enum StubFailure: LocalizedError {
         case importFailed

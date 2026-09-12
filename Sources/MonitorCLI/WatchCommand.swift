@@ -62,7 +62,7 @@ extension MonitorCommand {
 }
 
 /// Nonblocking pipe writes keep a slow consumer from preventing signal-driven shutdown.
-private final class WatchOutput: Sendable {
+final class WatchOutput: Sendable {
     private let previousFlags: Int32
 
     init() throws {
@@ -95,7 +95,7 @@ private final class WatchOutput: Sendable {
 }
 
 /// CLI-only signal dispositions; restored after the event sources are cancelled.
-private final class WatchSignals {
+final class WatchSignals {
     private var sources: [DispatchSourceSignal] = []
     private var previous: [(Int32, sig_t?)] = []
 

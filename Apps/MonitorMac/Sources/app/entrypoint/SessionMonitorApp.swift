@@ -28,7 +28,10 @@ private struct SessionMonitorWindow: View {
     var body: some View {
         SessionExplorerPage(model: model)
             .frame(minWidth: 760, minHeight: 520)
-            .task { await model.loadIfNeeded() }
+            .task {
+                await model.loadIfNeeded()
+                await model.observe()
+            }
     }
 }
 

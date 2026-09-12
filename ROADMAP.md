@@ -16,8 +16,9 @@ SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/S
 GitHub CI и ruleset для `main` включены.
 SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2), merge `bbddb26`.
 SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3), merge `f366308`.
-**Последний реализованный пункт: SM-103, доставка — [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4).**
-**Следующая задача: SM-104 — observable snapshots и координация процессов.**
+SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
+**Последний реализованный пункт: SM-104 (включая исправление SM-705); локальные gates пройдены, PR готовится.**
+**Следующая задача: SM-105 — performance baseline на реальном архиве.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -111,12 +112,22 @@ SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/S
   Ограничения: первоначальный root должен существовать; БД должна оставаться доступной;
   multi-process watch ownership и GUI query observation — SM-104. Prefix read policy SM-101 сохранена.
   Доставка: [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4).
-  Стадия при записи 2026-09-12 12:19 UTC — PR открыт для CI/review;
-  фактический merge и результаты required checks подтверждаются в GitHub.
-- [ ] **SM-104** — Общий observable query snapshot и координация CLI/GUI между процессами.
-  Зависит от SM-103. Snapshot содержит schema version, период/timezone, coverage и watermark.
-  Готово, когда GUI видит external writes, два клиента не создают двух importers,
-  а завершение процесса освобождает lock; это подтверждено process tests.
+  PR merged 2026-09-12, commit `14d7be5`, после зелёного required CI на `4f81184`.
+- [x] **SM-104** — Общий observable query snapshot и координация CLI/GUI между процессами.
+  Готово 2026-09-12: [UsageSnapshot](Sources/MonitorCore/UsageSnapshot.swift) schema v1,
+  absolute period/timezone, cache coverage и durable UUID/revision/commit-time watermark.
+  Atomic GRDB snapshot, revision check раз в секунду, bounded/cancellable stream;
+  CLI `snapshot --follow` и GUI observation читают external commits без нового importer.
+  Watch удерживает canonical DB lease до cleanup, в том числе на pause/recovery;
+  setup/migration сериализованы отдельно, symlink не обходит ownership, SIGKILL освобождает flock.
+  Проверено: `make ci` — 51 core + 8 app/model tests, builds, SwiftLint/FSD и оба process harness.
+  [Process tests](scripts/tests/snapshot-cli-smoke.py) покрывают external writes, idle suppression,
+  concurrent first-open migrations, busy owner, alias и process death; GUI также читает commit
+  отдельного SQLite process. [Atomic tests](Tests/SessionMonitorTests/QuerySnapshotTests.swift)
+  сверяют totals с watermark при concurrent writes. Evidence: `.build/sm104-ci-final.log`.
+  Ограничения: один native marker poll/second на consumer; промежуточные commits могут объединяться;
+  marker описывает index commit, не полноту scan. Замена файла БД требует reopen runtime.
+  Доставка: ветка `feat/sm-104-observable-snapshots`, PR готовится; required CI ожидается.
 - [ ] **SM-105** — Зафиксировать performance baseline на реальном архиве.
   Измерить first/incremental import, bytes read, peak memory, размер БД и idle CPU.
   Готово, когда повторное обновление читает только изменения, а audit parity сохраняется.
@@ -215,6 +226,13 @@ SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/S
   и проверен через API: PR + required `CI` от GitHub Actions, strict checks, no bypass,
   запрет удаления/force push. Workflow и правила адаптированы из FSD и зафиксированы в AGENTS/CONTRIBUTING.
   Стадия доставки: PR #1 merged 2026-09-12, commit `de7e328`, после зелёного required CI.
+
+- [x] **SM-705** — Устранить повторную линковку static packages в hosted app tests.
+  Выявлено и исправлено 2026-09-12 при проверке SM-104: test target использует symbols
+  host app вместо второй копии GRDB/runtime; [project.yml](Apps/MonitorMac/project.yml).
+  До исправления реальный runtime test завершался GRDB thread precondition crash.
+  После исправления `make test-macos` — 8 tests passed, включая external-process GUI observation;
+  локальное evidence `.build/sm104-app.log`. Доставляется совместно с SM-104 через PR.
 
 ## Evidence и границы
 
