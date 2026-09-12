@@ -131,7 +131,8 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   PR merged 2026-09-12, commit `79b4259`, после зелёного required CI на `281bd58`.
 - [ ] **SM-105** — Зафиксировать performance baseline на реальном архиве.
   Статус: частично выполнено (2026-09-12). [Baseline и методика](docs/performance/2026-09-12.md)
-  доставляются через отдельный PR: release, 155 files / 1,271,886,559 bytes, три повторения.
+  доставляются через [PR #6](https://github.com/SoundBlaster/SessionMonitor/pull/6):
+  release, 155 files / 1,271,886,559 bytes, три повторения.
   Median fresh / unchanged / append: 12.47 / 0.09 / 0.36 s; unchanged — 0 bytes.
   Peak RSS max: 270.92 / 12.56 / 356.23 MiB; DB/WAL/SHM — 4,894,720 bytes.
   Watch idle CPU ниже разрешения 0.01 s за 30 s; один observer — около 0.033% одного core.
@@ -139,6 +140,9 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   Добавлены `make benchmark`, isolated copy, native time/ps metrics и synthetic CI smoke.
   Остаток: append 752 bytes читает 357,981,808 bytes для проверки старого prefix.
   Delta-only criterion не выполнен; `[ ]` сохранён, recovery invariant не ослаблен.
+  Local `make ci`: 52 core + 8 app/model tests и три process harnesses passed.
+  Стадия при записи 2026-09-12 13:33 UTC — PR открыт для CI/review;
+  фактические required checks и merge подтверждаются в GitHub.
   Измерить first/incremental import, bytes read, peak memory, размер БД и idle CPU.
   Готово, когда повторное обновление читает только изменения, а audit parity сохраняется.
 
