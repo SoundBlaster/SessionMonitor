@@ -34,6 +34,8 @@ make build-mcp            # GUI build через XcodeBuildMCP CLI
 make test-macos           # xcodebuild + 6 GUI/model tests
 make lint-architecture    # FSD strict architecture gate
 make check                # Полный последовательный набор локальных проверок
+make ci                   # Те же native gates, locked packages и ad-hoc signing
+make lint-ci              # Проверка GitHub workflow (нужен actionlint)
 ```
 
 `make generate` создаёт `Apps/MonitorMac/MonitorMac.xcodeproj` из versioned `project.yml`.
@@ -104,6 +106,10 @@ Canonical `token_usage_record` учитываются только при под
 Приоритеты, следующие задачи и отметки выполнения ведутся в [ROADMAP.md](ROADMAP.md).
 Правила работы по плану обязательны и описаны в [CONTRIBUTING.md](CONTRIBUTING.md)
 и [AGENTS.md](AGENTS.md). Python используется только для reference audit, не как app runtime.
+
+Все новые изменения проходят через отдельную ветку и PR в `main` с обязательным
+GitHub check `CI`. Workflow, runner, fixed tooling и воспроизведение описаны в
+[CONTRIBUTING.md](CONTRIBUTING.md#github-actions).
 
 ## Dogfooding и compatibility
 

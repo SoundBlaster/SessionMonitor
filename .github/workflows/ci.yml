@@ -1,0 +1,93 @@
+name: Quality
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  workflow:
+    name: Workflow lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Install pinned actionlint
+        run: bash scripts/ci/install-tools.sh workflow
+      - name: Validate workflows and shell scripts
+        run: |
+          make lint-ci ACTIONLINT=.build/ci-tools/bin/actionlint
+          shellcheck scripts/ci/*.sh
+
+  native:
+    name: Native checks
+    # Official preview label: https://github.com/actions/runner-images/issues/14404
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+      GIT_TERMINAL_PROMPT: 0
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Identify toolchain
+        id: toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          echo "build=$(xcodebuild -version | tail -n 1 | tr ' ' '-')" >> "$GITHUB_OUTPUT"
+      - name: Restore dependency downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            .build/repositories
+            .build/xcode/SourcePackages
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.build }}-${{ hashFiles('Package.resolved', 'Apps/MonitorMac/Package.resolved', '**/Package.swift') }}
+      - name: Install pinned native tools
+        run: |
+          bash scripts/ci/install-tools.sh native
+          echo "$PWD/.build/ci-tools/bin" >> "$GITHUB_PATH"
+      - name: Run shared quality gates
+        run: |
+          mkdir -p .build/quality
+          make ci 2>&1 | tee .build/quality/ci.log
+      - name: Preserve results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .build/quality/
+          if-no-files-found: warn
+          retention-days: 7
+
+  ci:
+    name: CI
+    if: ${{ always() }}
+    needs: [workflow, native]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every gate to succeed
+        env:
+          WORKFLOW_RESULT: ${{ needs.workflow.result }}
+          NATIVE_RESULT: ${{ needs.native.result }}
+        run: |
+          test "$WORKFLOW_RESULT" = success
+          test "$NATIVE_RESULT" = success

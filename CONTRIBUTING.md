@@ -25,6 +25,70 @@
 не следует представлять их как вновь выполненные. Git/PR/publication workflow определяется
 текущими указаниями владельца проекта; чекбокс в плане не заменяет эти указания.
 
+## Только через pull requests
+
+Начиная с SM-704, каждая задача, включая docs/CI/ROADMAP, выполняется в отдельной
+ветке от актуальной `origin/main`, например `feat/sm-101-incremental-checkpoints`.
+Коммиты отправляются в эту ветку, затем открывается PR в `main` по
+[шаблону](.github/PULL_REQUEST_TEMPLATE.md). Прямые push в `main` запрещены.
+
+Merge выполняется через PR после успешного обязательного check `CI` на текущей
+ревизии, актуализации относительно `main` и разрешения review threads.
+Не обходить проверки через admin bypass, force push, `[skip ci]` или выключение защиты.
+При падении CI исправлять причину в ветке PR. Указания владельца о review/merge
+соблюдаются независимо от зелёного CI.
+
+ROADMAP хранит результат задачи, evidence и ссылку/стадию PR. Реализация с зелёными
+проверками в открытом PR ещё не означает, что она находится в `main`.
+Изменения статуса также проходят через PR.
+
+[Ruleset](.github/main-ruleset.json) задаёт PR requirement, обязательный `CI`,
+запрет удаления/force push и отсутствие bypass actors, включая admin bypass.
+Число обязательных внешних approvals — 0: владелец может merge свой PR после CI;
+запрошенные review threads всё равно должны быть разрешены. Требование дополнительных
+reviewers можно добавить отдельно. Фактические настройки проверяются через GitHub API.
+
+## GitHub Actions
+
+[Quality workflow](.github/workflows/ci.yml) выполняется на каждом PR в `main`,
+на push после merge и при ручном запуске. Фильтров по имени ветки/путям нет.
+Новая ревизия отменяет устаревший run; итоговый `CI` успешен только при успехе
+обоих jobs, включая отсутствие skipped/cancelled обязательных gates.
+
+| Job | Runner и проверки |
+| --- | --- |
+| Workflow lint | `ubuntu-24.04`, actionlint и ShellCheck для CI scripts |
+| Native checks | `xcode-27`, `make ci`: CLI build, app build, SwiftLint, FSD positive/negative, core и app/model tests |
+| CI | Итоговый required check для всех обязательных jobs |
+
+Native runner использует Xcode 27/Swift 6.4, соответствующий текущему development
+baseline. Образ пока preview: beta revision может меняться, фактическая версия
+выводится в log, cache key включает Xcode build и оба lock files. См.
+[официальное описание runner](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md).
+Другие toolchains не считаются проверенными этим gate.
+
+[Installer](scripts/ci/install-tools.sh) закрепляет SwiftLint 0.63.3, XcodeGen 2.46.0,
+fsd-ios 0.4.0, actionlint 1.7.12 и SHA256 официальных release archives.
+GitHub Actions закреплены по commit SHA. Permissions — `contents: read`;
+PR code не получает credentials для push или Apple Developer secrets.
+Dependencies загружаются из lock files; CI не переписывает pins.
+Ad-hoc signing не обращается к Developer account и не меняет локальный `Local.xcconfig`.
+Distribution signing/notarization проверяются отдельно на этапе SM-703.
+
+Локальное воспроизведение на macOS arm64:
+
+```sh
+rtk proxy bash scripts/ci/install-tools.sh native
+rtk proxy bash scripts/ci/install-tools.sh workflow
+rtk proxy make lint-ci ACTIONLINT=.build/ci-tools/bin/actionlint
+rtk proxy make ci SWIFTLINT="$PWD/.build/ci-tools/bin/swiftlint" XCODEGEN="$PWD/.build/ci-tools/bin/xcodegen" FSD="$PWD/.build/ci-tools/bin/fsd-ios"
+```
+
+ShellCheck выполняется Linux job; при наличии локального `shellcheck` также запустить
+`rtk proxy shellcheck scripts/ci/*.sh`. Installer пишет только в `.build/ci-tools`.
+Log и `.xcresult` сохраняются artifact `native-results-*` на 7 дней, в том числе при failure.
+Персональный audit не запускается в CI; используются versioned synthetic fixtures.
+
 ## Сборка и quality gates
 
 Настройка toolchain, dependencies и локальной подписи описана в [README](README.md).
@@ -37,6 +101,7 @@ Build entry points находятся в [Makefile](Makefile); Xcode project г�
 | Core, decoder, store, CLI, policies | `make check-core`; fixtures для изменённой семантики |
 | GUI/menu bar | `make lint lint-architecture`; app build и затронутые tests, visual verification изменённого UI |
 | Общая интеграция, package graph, signing | `make check` или эквивалентный проверенный scope через Xcode MCP + CLI |
+| CI/workflow | `make lint-ci`, ShellCheck, `make ci` и реальный GitHub Actions run |
 | WidgetKit/TUI на следующих этапах | Дополнить gates для новых targets/runtime и отразить их в ROADMAP/Makefile |
 | Только документация | Проверить локальные ссылки, уникальность IDs, статусы, Markdown и отсутствие противоречий |
 

@@ -9,8 +9,11 @@
 Первая версия CLI + GUI реализована и проверена. Импорт пока перечитывает выбранные
 файлы целиком; watch, menu bar, WidgetKit, TUI и адаптация ещё не реализованы.
 GitHub repository подключён; `main` отслеживает `origin/main`.
-Первый commit с реализацией создан (SM-702). Активной implementation-задачи сейчас нет.
-**Следующая задача: SM-101 — persistent incremental checkpoints.**
+Первый commit с реализацией создан (SM-702).
+SM-704 реализована в [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1);
+первый GitHub CI прошёл, ruleset для `main` включён. Доставка CI workflow в `main` ожидает merge PR.
+**Следующая задача: SM-101 — persistent incremental checkpoints, после merge PR #1.**
+Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
 и доставку, которые можно выполнять по необходимости. Изменение приоритетов
@@ -167,6 +170,15 @@ GitHub repository подключён; `main` отслеживает `origin/main
 - [ ] **SM-703** — Distribution packaging CLI/app/widget, notices, signing, notarization и обновления.
   Готово, когда выбранный способ доставки проверен на чистой установке с сохранением данных;
   Apple Development build сам по себе не подтверждает distribution readiness.
+- [x] **SM-704** — Настроить GitHub CI и обязательный PR workflow до следующих feature tasks.
+  Готово 2026-09-12: [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1),
+  [успешный CI run](https://github.com/SoundBlaster/SessionMonitor/actions/runs/34689399991)
+  на `8eec9fc`: Workflow lint/ShellCheck, CLI/app builds, SwiftLint/FSD positive+negative,
+  12 core и 6 app/model tests, locked packages и ad-hoc signing. Локальный `make ci` также прошёл.
+  [Ruleset 23038107](https://github.com/SoundBlaster/SessionMonitor/rules/23038107) включён
+  и проверен через API: PR + required `CI` от GitHub Actions, strict checks, no bypass,
+  запрет удаления/force push. Workflow и правила адаптированы из FSD и зафиксированы в AGENTS/CONTRIBUTING.
+  Стадия доставки: PR открыт; актуальный required check проверяется перед merge.
 
 ## Evidence и границы
 
