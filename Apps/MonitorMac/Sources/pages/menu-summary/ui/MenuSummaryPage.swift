@@ -12,7 +12,7 @@ struct MenuSummaryPage: View {
                 .font(.headline)
             VStack(alignment: .leading, spacing: 4) {
                 Label(watch.title, systemImage: watch.symbol)
-                Text(watch.directory ?? "External watch status is unavailable.")
+                Text(watch.directory ?? "No folder selected.")
                     .font(.caption).foregroundStyle(.secondary)
                     .lineLimit(2).truncationMode(.middle)
                 if let error = watch.error {

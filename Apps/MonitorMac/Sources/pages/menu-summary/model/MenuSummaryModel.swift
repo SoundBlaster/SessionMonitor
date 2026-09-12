@@ -26,6 +26,8 @@ final class MenuSummaryModel {
             let value = try await factory()
             apply(value)
             errorMessage = nil
+        } catch is CancellationError {
+            // Cancellation does not invalidate the last available report.
         } catch {
             errorMessage = "Could not refresh the report. \(error.localizedDescription)"
         }

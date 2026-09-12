@@ -14,6 +14,9 @@ final class MenuSummaryTests: XCTestCase {
         await model.refresh { value }
         XCTAssertEqual(model.snapshot, value)
         XCTAssertFalse(model.isRefreshing)
+        await model.refresh { throw CancellationError() }
+        XCTAssertEqual(model.snapshot, value)
+        XCTAssertNil(model.errorMessage)
         await model.refresh { throw FixtureError.disconnected }
         XCTAssertEqual(model.snapshot, value)
         XCTAssertNotNil(model.errorMessage)
