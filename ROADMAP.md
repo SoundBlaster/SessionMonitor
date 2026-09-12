@@ -16,7 +16,7 @@ SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/S
 GitHub CI и ruleset для `main` включены.
 SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2), merge `bbddb26`.
 SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3), merge `f366308`.
-**Последний реализованный пункт: SM-103; подготовка PR.**
+**Последний реализованный пункт: SM-103, доставка — [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4).**
 **Следующая задача: SM-104 — observable snapshots и координация процессов.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
@@ -110,7 +110,9 @@ SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/S
   in-flight events, retries, cancellation и stale callbacks. Локальное evidence: `.build/sm103-ci.log`.
   Ограничения: первоначальный root должен существовать; БД должна оставаться доступной;
   multi-process watch ownership и GUI query observation — SM-104. Prefix read policy SM-101 сохранена.
-  Стадия доставки: ветка `feat/sm-103-fsevents-watch`, подготовка PR; ещё не в `main`.
+  Доставка: [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4).
+  Стадия при записи 2026-09-12 12:19 UTC — PR открыт для CI/review;
+  фактический merge и результаты required checks подтверждаются в GitHub.
 - [ ] **SM-104** — Общий observable query snapshot и координация CLI/GUI между процессами.
   Зависит от SM-103. Snapshot содержит schema version, период/timezone, coverage и watermark.
   Готово, когда GUI видит external writes, два клиента не создают двух importers,
