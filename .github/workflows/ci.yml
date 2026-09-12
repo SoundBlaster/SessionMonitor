@@ -36,6 +36,7 @@ jobs:
 
   native:
     name: Native checks
+    # Official preview label: https://github.com/actions/runner-images/issues/14404
     runs-on: xcode-27
     timeout-minutes: 30
     env:
