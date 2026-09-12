@@ -9,8 +9,8 @@
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
 SM-105 переводит рост той же identity на append-only чтение хвоста. SM-103 добавляет
-CLI/native watch; SM-201 добавляет read-only menu bar. GUI watch controls реализуются
-в SM-202; WidgetKit, TUI и адаптация ещё не реализованы.
+CLI/native watch; SM-201 добавляет read-only menu bar, SM-202 — app-owned watch controls
+и lifecycle. WidgetKit, TUI и адаптация ещё не реализованы.
 GitHub repository подключён; `main` отслеживает `origin/main`.
 Первый commit с реализацией создан (SM-702).
 SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1), merge `de7e328`;
@@ -20,11 +20,11 @@ SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/S
 SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
 SM-104 (включая SM-705) доставлена через [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
 **SM-105 доставлена через [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7), merge `af7faa2`.**
-**SM-201 доставлена через [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8), merge `44929b4`. Следующая задача: SM-202.**
+**SM-201 доставлена через [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8), merge `44929b4`.**
 **SM-203 доставлена через [PR #12](https://github.com/SoundBlaster/SessionMonitor/pull/12),
 merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
-**Активная задача: SM-202 — [draft PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10)
-(2026-09-12), ожидает live UI verification на разблокированном Mac; не merged.**
+**SM-202 завершена локально и проходит delivery через [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10)
+(2026-09-12). Следующая feature-задача: SM-301.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
@@ -179,18 +179,17 @@ merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
   Стадия при записи 2026-09-12 14:35 UTC: открыт для CI/review; merge проверяется в GitHub.
   Зависит от SM-104. Показать период, расход, cache coverage и свежесть общего snapshot;
   открытие панели не запускает новый importer или полный rescan.
-- [ ] **SM-202** — Действия и lifecycle menu bar.
-  Статус: реализация готова к review (2026-09-12); задача остаётся открытой до live UI pass.
+- [x] **SM-202** — Действия и lifecycle menu bar.
+  Реализация и verification завершены 2026-09-12.
   App-owned watch с выбором папки, pause/resume/stop; Refresh читает snapshot,
   Settings управляют значком, стандартный Quit ожидает остановку runtime, включая pending start.
   Evidence: `make generate lint lint-architecture test-macos` passed, 25 GUI tests;
+  controller tests покрывают start, duplicate start, pause/resume/stop, stale status и pending shutdown,
   real-runtime test подтверждает release importer lock после shutdown paused watch.
-  Render empty/partial/complete проверен. Live pass подтвердил Settings toggle и исправленный layout,
-  сохранение процесса после закрытия всех окон, повторное открытие WindowGroup и стандартный Quit.
-  Остался action pass внутри menu-extra: UI bridge не предоставляет macOS status items, а ограниченный
-  keyboard traversal не открыл панель. Нужен один ручной клик по значку перед продолжением automation;
-  до проверки Watch Folder/Pause/Resume/Stop/Refresh/Open Window задача и PR остаются незавершёнными.
-  [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10) — draft на момент записи.
+  Render empty/partial/complete проверен. Live pass на подписанном build подтвердил menu-extra,
+  Refresh без запуска importer, Open Window с единым marketing name, Settings toggle и layout,
+  сохранение процесса после закрытия всех окон, повторное открытие WindowGroup и стандартный Quit
+  с exit code 0. Доставка: [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10).
   Зависит от SM-201. Open window, refresh, pause/resume, settings, quit;
   закрытие окна сохраняет watch, удаление значка не закрывает открытое окно,
   а Quit корректно завершает runtime. Проверить визуально и тестами состояний.
@@ -205,6 +204,11 @@ merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
   native empty и selected-session states проверены через accessibility tree и screenshots.
   Доставка: [PR #12](https://github.com/SoundBlaster/SessionMonitor/pull/12); стадия при записи —
   required CI passed на `ff519a8`, review/merge ещё не завершены.
+- [ ] **SM-204** — Устранить AppKit reentrant `NSTableView` warnings на macOS beta.
+  Обнаружено в live SM-202 pass 2026-09-12 при обновлении и открытии Session Explorer:
+  AppKit сообщает, что reentrant operation в table delegate станет assert в будущей версии.
+  Готово, когда причина локализована до собственного update/navigation кода или upstream SwiftUI,
+  повторяемый сценарий не пишет warning, а selection, refresh и multi-window tests остаются зелёными.
 
 ## 3. Аналитический GUI и диагностика
 
