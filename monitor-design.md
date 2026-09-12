@@ -175,14 +175,15 @@ Token counts хранятся целыми Int64 с проверкой неко�
 проценты вычисляются при формировании отчёта. DTO для передачи между задачами
 проектируются как Sendable value types.
 
-Реализация SM-101 хранит versioned checkpoint: identity открытого файла
-(device/inode/birth time), size, mtime/ctime, byte offset последнего newline,
-абсолютный номер строки, SHA256 завершённого префикса и нормализованный ownership/model
-context. Неполная строка остаётся в source; её содержимое в checkpoint не копируется.
-При неизменных метаданных body не читается. Для изменённого файла прежний префикс
-пока перечитывается для проверки digest, затем decoder продолжает с durable offset.
-Это incremental decoding, но ещё не delta-only I/O для растущих файлов (SM-105).
-Несовместимый checkpoint, truncation, новая identity или изменённый prefix дают rescan.
+SM-105 использует checkpoint v2: identity открытого файла (device/inode/birth time),
+size, mtime/ctime, byte offset последнего newline, абсолютный номер строки и
+нормализованный ownership/model context. Неполная строка остаётся в source;
+её содержимое в checkpoint не копируется. При неизменных метаданных body не читается.
+Рост той же identity считается append-only: decoder читает от durable offset без
+проверки старого prefix, в том числе после перезапуска. Поэтому rewrite-plus-growth
+требует явного `--rescan`; это принятый scope, а не гарантия filesystem или producer.
+Несовместимый checkpoint (включая v1), truncation, новая identity или изменение
+metadata без роста дают полный rescan.
 Проверки descriptor metadata до и после чтения отклоняют изменившийся snapshot.
 GRDB transaction одновременно сохраняет записи, diagnostics и новый checkpoint;
 compare-and-swap по прежнему blob не позволяет stale batch затереть более новый.

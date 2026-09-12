@@ -8,7 +8,7 @@
 
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
-Для проверки изменённого файла пока перечитывается старый prefix. SM-103 добавляет
+SM-105 переводит рост той же identity на append-only чтение хвоста. SM-103 добавляет
 CLI/native watch; GUI watch controls, menu bar, WidgetKit, TUI и адаптация ещё не реализованы.
 GitHub repository подключён; `main` отслеживает `origin/main`.
 Первый commit с реализацией создан (SM-702).
@@ -18,7 +18,7 @@ SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/S
 SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3), merge `f366308`.
 SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
 **Последний реализованный пункт: SM-104 (включая SM-705), доставка — [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).**
-**Активная задача: SM-105 — baseline измерен; delta-only append остаётся невыполненным.**
+**Активная задача: SM-105 — в работе: delta-only append для растущего файла с той же identity.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -82,7 +82,7 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   append, UTF-8/oversized tails, ownership и изменившийся snapshot.
   На копии прежней БД: миграция 155 sources, повторный import — 155 skipped/0 bytes,
   точная parity недельного audit. [Локальное evidence](.build/sm101-verification.json).
-  Ограничение: изменённый prefix проверяется полным SHA256 read (оптимизация — SM-105).
+  Первоначально prefix проверялся полным SHA256 read; SM-105 меняет контракт на append-only.
   Стадия доставки: [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2) merged
   2026-09-12, commit `bbddb26`, после [зелёного CI](https://github.com/SoundBlaster/SessionMonitor/actions/runs/34691036600)
   на `9bc822c` (25 core + 6 app/model tests, все quality gates).
@@ -130,21 +130,24 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   Доставка: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
   PR merged 2026-09-12, commit `79b4259`, после зелёного required CI на `281bd58`.
 - [ ] **SM-105** — Зафиксировать performance baseline на реальном архиве.
-  Статус: частично выполнено (2026-09-12). [Baseline и методика](docs/performance/2026-09-12.md)
-  доставляются через [PR #6](https://github.com/SoundBlaster/SessionMonitor/pull/6):
+  Статус: в работе (2026-09-12). По решению пользователя рост той же identity считается append-only;
+  rewrite-plus-growth требует явного `--rescan`. [Baseline и методика](docs/performance/2026-09-12.md)
+  доставлены через [PR #6](https://github.com/SoundBlaster/SessionMonitor/pull/6):
   release, 155 files / 1,271,886,559 bytes, три повторения.
   Median fresh / unchanged / append: 12.47 / 0.09 / 0.36 s; unchanged — 0 bytes.
   Peak RSS max: 270.92 / 12.56 / 356.23 MiB; DB/WAL/SHM — 4,894,720 bytes.
   Watch idle CPU ниже разрешения 0.01 s за 30 s; один observer — около 0.033% одного core.
   Повторный Python audit: 6,340 requests, все token totals совпали; append/full report parity подтверждена.
   Добавлены `make benchmark`, isolated copy, native time/ps metrics и synthetic CI smoke.
-  Остаток: append 752 bytes читает 357,981,808 bytes для проверки старого prefix.
-  Delta-only criterion не выполнен; `[ ]` сохранён, recovery invariant не ослаблен.
+  Исходный baseline: append 752 bytes читал 357,981,808 bytes для проверки prefix.
+  Новая реализация: checkpoint v2, resume при росте; same-size change/shrink/replacement дают rescan.
+  Rewrite-plus-growth вне автоматического recovery: `--rescan` восстанавливает snapshot.
+  Проверки и повторный real-archive baseline — в работе.
   Local `make ci`: 52 core + 8 app/model tests и три process harnesses passed.
-  Стадия при записи 2026-09-12 13:33 UTC — PR открыт для CI/review;
-  фактические required checks и merge подтверждаются в GitHub.
+  PR #6 merged 2026-09-12, commit `2b48beb`; эти цифры относятся к прежней реализации.
   Измерить first/incremental import, bytes read, peak memory, размер БД и idle CPU.
-  Готово, когда повторное обновление читает только изменения, а audit parity сохраняется.
+  Готово, когда append-only обновление читает только хвост (включая прежнюю partial line),
+  а audit parity сохраняется. Scope уточнён пользователем 2026-09-12.
 
 ## 2. Menu bar
 

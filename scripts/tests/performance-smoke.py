@@ -45,7 +45,7 @@ def run(binary):
         check(result['unchanged']['samples'][0]['import']['ioMetrics']['bytesRead'] == 0, 'Expected zero reads')
         check(result['first']['samples'][0]['peak_rss_bytes'] > 0, 'Missing RSS measurement')
         check(result['append']['samples'][0]['import']['ioMetrics']['bytesRead']
-              > result['append']['fixture']['appended_bytes'], 'Expected verified prefix reads')
+              == result['append']['fixture']['appended_bytes'], 'Expected delta-only append reads')
         check(hashlib.sha256(fixture.read_bytes()).digest() == before, 'Original fixture was mutated')
         reject_corrupt_metrics(binary, repository, source, base)
     print('Performance harness smoke passed: isolated copy, native metrics, audit and incremental parity')

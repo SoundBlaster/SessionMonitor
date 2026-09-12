@@ -1,4 +1,3 @@
-import CryptoKit
 import Foundation
 import MonitorCore
 
@@ -14,23 +13,20 @@ public struct RolloutDecoder: Sendable {
         let previous = checkpoint.flatMap { try? JSONDecoder().decode(DecoderCheckpoint.self, from: $0) }
         var cursor = JSONLCursor()
         var state = DecodeState()
-        var hasher = SHA256()
         var mode = SourceImportMode.replaced
         if let previous, previous.isUsable(for: source.version) {
             if previous.version == source.version, let checkpoint {
                 try source.validateSnapshot()
                 return SourceImport(rollout: ParsedRollout(), checkpoint: checkpoint, mode: .unchanged, bytesRead: 0)
             }
-            hasher = try source.hashPrefix(through: previous.cursor.offset)
-            if Data(hasher.finalize()) == previous.prefixDigest {
+            // Growth of the same file is treated as append-only; --rescan repairs prefix rewrites.
+            if source.version.size > previous.version.size {
                 cursor = previous.cursor
                 state.context = previous.state
                 mode = .appended
-            } else {
-                hasher = SHA256()
             }
         }
-        let progress = try JSONLReader().read(source, from: cursor, hasher: hasher) { data, line in
+        let progress = try JSONLReader().read(source, from: cursor) { data, line in
             guard let data else {
                 state.result.diagnostics["oversizedLines", default: 0] += 1
                 return
@@ -40,23 +36,21 @@ public struct RolloutDecoder: Sendable {
         if progress.partialTail { state.result.diagnostics["partialTails"] = 1 }
         try source.validateSnapshot()
         let next = DecoderCheckpoint(version: source.version, cursor: progress.cursor,
-                                     state: state.context, prefixDigest: progress.prefixDigest)
+                                     state: state.context)
         return SourceImport(rollout: state.result, checkpoint: try JSONEncoder().encode(next),
                             mode: mode, bytesRead: source.bytesRead)
     }
 }
 
 private struct DecoderCheckpoint: Codable {
-    var schemaVersion = 1
+    var schemaVersion = 2
     let version: RolloutFileVersion
     let cursor: JSONLCursor
     let state: DecoderContext
-    let prefixDigest: Data
 
     func isUsable(for current: RolloutFileVersion) -> Bool {
-        schemaVersion == 1 && version.identity == current.identity && current.size >= version.size
+        schemaVersion == 2 && version.identity == current.identity && current.size >= version.size
             && cursor.offset <= version.size && cursor.line >= 0 && UInt64(cursor.line) <= cursor.offset
-            && prefixDigest.count == 32
     }
 }
 

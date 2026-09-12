@@ -39,7 +39,8 @@ Run without competing builds to reduce scheduler and I/O interference.
 3. **Append:** append one synthetic owned request outside the audit period to the
    largest copied file ending in a newline. Each already-imported database processes
    the same delta. Other files must be skipped. Record delta size and actual bytes
-   read separately, including old-prefix SHA256 verification.
+   read separately. For the append-only fixture ending in a newline, require bytes read
+   to equal the appended byte count.
 4. **Parity:** run the existing `audit_codex.py` on the same private corpus and period.
    Compare request count and all six token totals. Unknown cache/optional totals
    cannot be silently converted to zero to claim parity. The window report must be
@@ -76,11 +77,17 @@ measurements are explicit local runs and never an automatic CI input.
 
 ## Current correctness boundary
 
-The existing decoder rereads a changed file's old committed prefix to validate its
-SHA256. Therefore unchanged import is zero-body-read, but append is **not** delta-only
-I/O. The benchmark explicitly records `append.reads_only_delta`; a false result must
-remain visible in ROADMAP. Replacing verification with an assumption that file growth
-means append-only would miss rewrite-plus-growth and violate accounting recovery.
+The decoder treats growth of the same file identity as append-only and resumes at
+the last complete newline. A pre-existing partial line is reread along with the new
+bytes; only newline-aligned append is strictly delta-only. Unchanged files read zero
+body bytes. Replacement, shrink, changed metadata without growth, and unsupported
+checkpoints trigger full import. Version 1 checkpoints rebuild once into version 2.
+
+Rewriting earlier bytes while growing the same file is outside this contract and
+is not detected automatically. Use `import DIRECTORY --rescan` after edits or restore.
+This is an explicit product assumption, not an append-only guarantee from macOS or
+Codex. The baseline records `append.reads_only_delta` and verifies full rebuild parity
+for the supported append-only workload. The original run below predates this change.
 
 ## Recorded runs
 

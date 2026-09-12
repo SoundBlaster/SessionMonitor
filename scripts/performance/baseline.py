@@ -182,6 +182,8 @@ def run(args):
         destination = output / f'append-{index}.json'
         measurement = timed([binary, 'import', root, '--database', database], destination)
         measurement['import'] = json.loads(destination.read_text())
+        require(measurement['import']['ioMetrics']['bytesRead'] == append['appended_bytes'],
+                'Append read more than the appended bytes')
         require(measurement['import']['ioMetrics']['filesResumed'] == 1, 'Append did not resume exactly one file')
         require(measurement['import']['ioMetrics']['filesSkipped'] == corpus['files']-1, 'Append reread unrelated files')
         after = report(binary, database)

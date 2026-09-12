@@ -81,12 +81,15 @@ Directory import рекурсивно выбирает `*.jsonl` и несжат
 `records` и `diagnostics` описывают только этот запуск; общие суммы и diagnostics
 хранящегося набора возвращает `report`. При unchanged import `records` равен 0.
 
-Изменённый файл проверяется по identity, size и SHA256 уже обработанного префикса.
-При append заново декодируются только новые завершённые строки, но проверка SHA256
-пока читает старый префикс целиком. Это сохраняет корректность при rewrite + growth;
-оптимизация такого I/O остаётся в SM-105. Partial tail остаётся в исходном файле и
-перечитывается от последнего newline, когда файл меняется. В SQLite сохраняется
-только нормализованное состояние decoder, без raw prompts и tool outputs.
+При росте файла с той же identity importer считает его append-only и читает только
+хвост от последнего обработанного newline, в том числе после перезапуска. Partial
+строка перечитывается целиком вместе с новыми bytes; raw tail не сохраняется в SQLite.
+Неизменённый файл читает 0 bytes. Замена, уменьшение и изменение metadata без роста
+вызывают полный rescan. Checkpoint v1 при первом обновлении пересобирается в v2.
+
+Перезапись старых строк одновременно с ростом файла автоматически не обнаруживается.
+После ручного редактирования или восстановления логов используйте `import DIRECTORY --rescan`.
+В SQLite сохраняется только нормализованное состояние decoder, без raw prompts и tool outputs.
 
 ## Watch
 
@@ -150,7 +153,8 @@ Watermark относится к committed index, а не к завершению
 
 [SM-105: результаты на реальном архиве](docs/performance/2026-09-12.md): 155 files / 1.18 GiB,
 median fresh import 12.47 s, unchanged 0.09 s / 0 bytes. Append 752 bytes занимает
-0.36 s, но читает 357,981,808 bytes с SHA256 prefix verification; delta-only I/O пока нет.
+0.36 s и читает 357,981,808 bytes в исходном baseline до append-оптимизации.
+Текущий decoder использует append-only контракт, описанный выше; старые цифры не являются новым замером.
 Audit parity: 6,340 requests и все шесть token totals. [Команда и методика](docs/performance/README.md).
 `make benchmark` использует отдельные копии/БД; в CI запускается только synthetic smoke.
 
@@ -222,8 +226,8 @@ Rename/copy создаёт ещё один source snapshot; canonical response I
 При ошибке в середине импорта уже завершённые файлы сохраняются;
 текущий файл меняется атомарно.
 Если файл изменился прямо во время чтения, import сообщает ошибку и сохраняет прежний
-checkpoint; следующий запуск повторяет попытку. Truncation, replacement, несовпадение
-prefix digest и неподдерживаемый checkpoint вызывают полный rescan этого источника.
+checkpoint; следующий запуск повторяет попытку. Truncation, replacement, изменение
+metadata без роста и неподдерживаемый checkpoint вызывают полный rescan этого источника.
 
 Приоритеты, следующие задачи и отметки выполнения ведутся в [ROADMAP.md](ROADMAP.md).
 Правила работы по плану обязательны и описаны в [CONTRIBUTING.md](CONTRIBUTING.md)
