@@ -25,6 +25,24 @@ final class MenuSummaryTests: XCTestCase {
         XCTAssertEqual(subscriptions, 0)
     }
 
+    func testRefreshAcceptsSameWatermarkForANewQuery() async throws {
+        let source = SnapshotStreamStub()
+        let model = MenuSummaryModel { await source.makeStream() }
+        let allTime = try UsageQuery()
+        let period = try UsageQuery(
+            since: Date(timeIntervalSince1970: 100),
+            until: Date(timeIntervalSince1970: 200),
+            timeZoneIdentifier: "Europe/Moscow"
+        )
+        let allSnapshot = try snapshot(databaseID: "scope", revision: 4, inputTokens: 40, query: allTime)
+        let periodSnapshot = try snapshot(databaseID: "scope", revision: 4, inputTokens: 10, query: period)
+        await model.refresh(query: allTime) { allSnapshot }
+        await model.refresh(query: period) { periodSnapshot }
+
+        XCTAssertEqual(model.snapshot?.query, period)
+        XCTAssertEqual(model.snapshot?.report.totals.inputTokens, 10)
+    }
+
     func testSummaryRendersEmptyPartialAndCompleteCoverage() async throws {
         for state in ["empty", "partial", "complete"] {
             let source = SnapshotStreamStub()
@@ -145,9 +163,14 @@ final class MenuSummaryTests: XCTestCase {
         XCTAssertEqual(model.errorMessage, "Could not read the index. Fixture stream disconnected")
     }
 
-    private func snapshot(databaseID: String, revision: Int64, inputTokens: Int64) throws -> UsageSnapshot {
+    private func snapshot(
+        databaseID: String,
+        revision: Int64,
+        inputTokens: Int64,
+        query: UsageQuery? = nil
+    ) throws -> UsageSnapshot {
         UsageSnapshot(
-            query: try UsageQuery(),
+            query: try query ?? UsageQuery(),
             watermark: QueryWatermark(
                 databaseID: databaseID,
                 revision: revision,

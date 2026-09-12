@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SessionExplorerPage: View {
     @Bindable var model: SessionExplorerModel
+    @Bindable var reportScope: ReportScopeModel
 
     var body: some View {
         NavigationSplitView(columnVisibility: $model.navigation.columnVisibility) {
@@ -33,6 +34,7 @@ struct SessionExplorerPage: View {
                 }
                 .keyboardShortcut("r")
                 .disabled(model.isBusy)
+                ReportScopeControls(model: reportScope)
                 Button("Show Inspector", systemImage: "sidebar.right") {
                     model.navigation.showsInspector.toggle()
                 }
@@ -51,7 +53,7 @@ struct SessionExplorerPage: View {
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("All imported sessions")
+                Text(reportScope.title)
                     .font(.headline)
                 HStack {
                     compactTotal("Sessions", value: Int64(model.report.sessions.count))
@@ -63,7 +65,7 @@ struct SessionExplorerPage: View {
                     Spacer()
                     compactTotal("Output tokens", value: model.report.totals.outputTokens)
                 }
-                Text("Totals include every imported session, regardless of the filter.")
+                Text("Totals use the selected period. Search only narrows this list.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

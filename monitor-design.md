@@ -382,11 +382,16 @@ WidgetKit extension и FSD layer `widgets` — разные
 
 ### Menu bar
 
-SM-201 реализует read-only панель на UsageSnapshot. `SharedReportRuntime` в app layer
-разделяет один default-query stream между окнами и menu bar, кэширует последнее значение
-и отменяет upstream после последней подписки. Навигация и SpecificationKit providers
-остаются per-window. Model панели получает только stream factory без import/watch API.
-Период сейчас All imported time / UTC; cache coverage берётся из общего query contract.
+SM-201 реализует read-only панель на UsageSnapshot. После SM-301 `SharedReportRuntime`
+в app layer разделяет один upstream stream для каждого равного `UsageQuery` между окнами
+и menu bar, кэширует последнее значение и отменяет upstream после последней подписки.
+Разные queries изолированы. Навигация и SpecificationKit providers остаются per-window.
+Model панели получает только query-aware stream factory без import/watch API.
+App-owned report scope предлагает All Time, Today, Last 7 Days и Last 30 Days в UTC
+или текущей local timezone и сохраняет выбор. Calendar ranges выравниваются по полуночи
+выбранной зоны с half-open семантикой и корректным DST. Sidebar search остаётся
+presentation filter: он не меняет accounting totals или canonical query.
+Cache coverage берётся из общего query contract.
 SM-202 добавляет app-owned `AppWatchController`: выбранная через NSOpenPanel папка
 запускается явно, один handle и один status consumer живут независимо от окон.
 Панель получает presentation и actions из app layer; внешний CLI watcher не публикует phase в БД.
@@ -411,8 +416,8 @@ watch с debounce; для этого не нужны LLM calls или часты
 В `App` используется overload MenuBarExtra с `isInserted` binding рядом с WindowGroup.
 Видимость сохраняется как пользовательская настройка. Закрытие основного окна
 сохраняет watch, в том числе при скрытом значке; удаление значка не закрывает окна.
-Quit завершает работу и освобождает importer lock. Open Window открывает Session Explorer;
-routing к выбранному периоду/сессии остаётся будущим расширением.
+Quit завершает работу и освобождает importer lock. Open Window открывает Session Explorer
+с текущим app-owned period/timezone. Routing к выбранной сессии остаётся будущим расширением.
 
 ### Системные widgets
 

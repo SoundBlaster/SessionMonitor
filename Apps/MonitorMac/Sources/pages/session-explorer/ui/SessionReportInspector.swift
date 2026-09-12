@@ -6,8 +6,21 @@ struct SessionReportInspector: View {
 
     var body: some View {
         Form {
+            Section("Report scope") {
+                LabeledContent("Timezone", value: model.query.timeZoneIdentifier)
+                LabeledContent("From") {
+                    queryBoundary(model.query.since, fallback: "Beginning of imported history")
+                }
+                LabeledContent("Until") {
+                    queryBoundary(model.query.until, fallback: "No upper bound")
+                }
+                Text("The period is absolute and half-open: the start is included and the end is excluded.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Report coverage") {
-                Text("All imported sessions")
+                Text("Selected period")
                     .font(.headline)
                 Text("Canonical records are counted. Legacy token_count entries are not included.")
                     .foregroundStyle(.secondary)
@@ -55,5 +68,20 @@ struct SessionReportInspector: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    @ViewBuilder
+    private func queryBoundary(_ date: Date?, fallback: String) -> some View {
+        if let date {
+            Text(date.formatted(queryDateFormat)).monospacedDigit()
+        } else {
+            Text(fallback).foregroundStyle(.secondary)
+        }
+    }
+
+    private var queryDateFormat: Date.FormatStyle {
+        var format = Date.FormatStyle(date: .abbreviated, time: .shortened)
+        format.timeZone = TimeZone(identifier: model.query.timeZoneIdentifier) ?? .gmt
+        return format
     }
 }

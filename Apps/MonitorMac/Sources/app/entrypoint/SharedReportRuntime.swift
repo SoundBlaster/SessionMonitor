@@ -1,13 +1,17 @@
 import Foundation
 import MonitorCore
 
-/// Shares the default report observation across windows and the menu without owning imports.
+/// Shares report observations per full query across windows and the menu without owning imports.
 actor SharedReportRuntime: SessionExplorerRuntime {
+    private struct QueryObservation {
+        let generation: UUID
+        var observers: [UUID: AsyncThrowingStream<UsageSnapshot, Error>.Continuation]
+        var task: Task<Void, Never>?
+        var latest: UsageSnapshot?
+    }
+
     private let runtime: any SessionExplorerRuntime
-    private var observers: [UUID: AsyncThrowingStream<UsageSnapshot, Error>.Continuation] = [:]
-    private var observation: Task<Void, Never>?
-    private var generation = UUID()
-    private var latest: UsageSnapshot?
+    private var observations: [UsageQuery: QueryObservation] = [:]
 
     init(runtime: any SessionExplorerRuntime) { self.runtime = runtime }
 
@@ -20,63 +24,73 @@ actor SharedReportRuntime: SessionExplorerRuntime {
     }
 
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
-        // Nondefault queries retain their own stream until period selection is shared in SM-301.
-        guard query.since == nil, query.until == nil, query.timeZoneIdentifier == "UTC" else {
-            return await runtime.snapshots(query: query)
-        }
         let id = UUID()
         let (stream, continuation) = AsyncThrowingStream<UsageSnapshot, Error>.makeStream(
             bufferingPolicy: .bufferingNewest(1)
         )
-        observers[id] = continuation
-        if let latest { continuation.yield(latest) }
-        continuation.onTermination = { [weak self] _ in
-            Task { await self?.removeObserver(id) }
+        let generation: UUID
+        if var observation = observations[query] {
+            generation = observation.generation
+            observation.observers[id] = continuation
+            if let latest = observation.latest { continuation.yield(latest) }
+            observations[query] = observation
+        } else {
+            generation = UUID()
+            observations[query] = QueryObservation(
+                generation: generation,
+                observers: [id: continuation],
+                task: nil,
+                latest: nil
+            )
         }
-        if observation == nil {
-            let generation = generation
+        continuation.onTermination = { [weak self] _ in
+            Task { await self?.removeObserver(id, query: query, generation: generation) }
+        }
+        if observations[query]?.task == nil {
             let runtime = runtime
-            observation = Task { [weak self] in
+            let task = Task { [weak self] in
                 let source = await runtime.snapshots(query: query)
                 do {
                     for try await value in source {
                         guard !Task.isCancelled else { break }
-                        await self?.publish(value, generation: generation)
+                        await self?.publish(value, query: query, generation: generation)
                     }
-                    await self?.finish(generation: generation, error: nil)
+                    await self?.finish(query: query, generation: generation, error: nil)
                 } catch {
-                    await self?.finish(generation: generation, error: error)
+                    await self?.finish(query: query, generation: generation, error: error)
                 }
             }
+            observations[query]?.task = task
         }
         return stream
     }
 
-    private func publish(_ value: UsageSnapshot, generation: UUID) {
-        guard generation == self.generation else { return }
-        latest = value
-        for observer in observers.values { observer.yield(value) }
+    private func publish(_ value: UsageSnapshot, query: UsageQuery, generation: UUID) {
+        guard var observation = observations[query], observation.generation == generation else { return }
+        observation.latest = value
+        observations[query] = observation
+        for observer in observation.observers.values { observer.yield(value) }
     }
 
-    private func finish(generation: UUID, error: (any Error)?) {
-        guard generation == self.generation else { return }
-        let completed = Array(observers.values)
-        reset()
+    private func finish(query: UsageQuery, generation: UUID, error: (any Error)?) {
+        guard let observation = observations[query], observation.generation == generation else { return }
+        observations[query] = nil
+        let completed = Array(observation.observers.values)
         for observer in completed { observer.finish(throwing: error) }
     }
 
-    private func removeObserver(_ id: UUID) {
-        observers[id] = nil
-        if observers.isEmpty { reset() }
+    private func removeObserver(_ id: UUID, query: UsageQuery, generation: UUID) {
+        guard var observation = observations[query], observation.generation == generation else { return }
+        observation.observers[id] = nil
+        guard observation.observers.isEmpty else {
+            observations[query] = observation
+            return
+        }
+        observations[query] = nil
+        observation.task?.cancel()
     }
 
-    private func reset() {
-        observation?.cancel()
-        observation = nil
-        generation = UUID()
-        latest = nil
-        observers.removeAll()
+    deinit {
+        for observation in observations.values { observation.task?.cancel() }
     }
-
-    deinit { observation?.cancel() }
 }

@@ -22,6 +22,7 @@ final class SessionExplorerModel {
 
     private(set) var snapshot: UsageSnapshot?
     private(set) var report: UsageReport
+    private(set) var query: UsageQuery
     private(set) var activity: Activity = .idle
     private(set) var errorMessage: String?
     private(set) var importSummary: ImportSummary?
@@ -33,11 +34,12 @@ final class SessionExplorerModel {
     @ObservationIgnored let contextProvider: SessionReportContextProvider
     @ObservationIgnored private let runtimeFactory: @Sendable () async throws -> any SessionExplorerRuntime
     @ObservationIgnored private var runtime: (any SessionExplorerRuntime)?
-    @ObservationIgnored private var didLoad = false
+    @ObservationIgnored private var loadedQuery: UsageQuery?
 
     init(runtimeFactory: @escaping @Sendable () async throws -> any SessionExplorerRuntime) {
         let empty = UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:])
         report = empty
+        query = defaultUsageQuery()
         contextProvider = SessionReportContextProvider(
             snapshot: SessionReportSnapshot(report: empty, selectedSessionID: nil)
         )
@@ -69,20 +71,24 @@ final class SessionExplorerModel {
         publishSnapshot()
     }
 
-    func loadIfNeeded() async {
-        guard !didLoad else { return }
-        didLoad = true
+    func loadIfNeeded(query requestedQuery: UsageQuery? = nil) async {
+        let requestedQuery = requestedQuery ?? query
+        activate(requestedQuery)
+        guard loadedQuery != requestedQuery else { return }
+        loadedQuery = requestedQuery
         await refresh()
     }
 
     /// Owned by the window task; closing the window cancels the underlying observation.
-    func observe() async {
+    func observe(query requestedQuery: UsageQuery? = nil) async {
+        let requestedQuery = requestedQuery ?? query
+        activate(requestedQuery)
         do {
             let runtime = try await resolvedRuntime()
-            let stream = await runtime.snapshots(query: try UsageQuery())
+            let stream = await runtime.snapshots(query: requestedQuery)
             for try await snapshot in stream {
                 guard !Task.isCancelled else { return }
-                apply(snapshot)
+                apply(snapshot, expectedQuery: requestedQuery)
             }
         } catch is CancellationError {
             // Window lifetime ended.
@@ -99,8 +105,9 @@ final class SessionExplorerModel {
         defer { activity = .idle }
         do {
             let runtime = try await resolvedRuntime()
-            let snapshot = try await runtime.snapshot(query: UsageQuery())
-            apply(snapshot)
+            let requestedQuery = query
+            let snapshot = try await runtime.snapshot(query: requestedQuery)
+            apply(snapshot, expectedQuery: requestedQuery)
         } catch {
             errorMessage = "Could not load the report. \(error.localizedDescription)"
         }
@@ -119,10 +126,11 @@ final class SessionExplorerModel {
         do {
             let runtime = try await resolvedRuntime()
             let summary = try await runtime.importDirectory(directory)
-            let snapshot = try await runtime.snapshot(query: UsageQuery())
+            let requestedQuery = query
+            let snapshot = try await runtime.snapshot(query: requestedQuery)
             importSummary = summary
             importedDirectory = directory
-            apply(snapshot)
+            apply(snapshot, expectedQuery: requestedQuery)
         } catch {
             errorMessage = "Could not import \(directory.lastPathComponent). \(error.localizedDescription)"
         }
@@ -139,8 +147,20 @@ final class SessionExplorerModel {
         return runtime
     }
 
-    private func apply(_ newSnapshot: UsageSnapshot) {
-        if let snapshot, snapshot.watermark.databaseID == newSnapshot.watermark.databaseID,
+    private func activate(_ requestedQuery: UsageQuery) {
+        guard query != requestedQuery else { return }
+        query = requestedQuery
+        snapshot = nil
+        report = UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:])
+        navigation.reconcile(with: [])
+        lastUpdated = nil
+        publishSnapshot()
+    }
+
+    private func apply(_ newSnapshot: UsageSnapshot, expectedQuery: UsageQuery) {
+        guard query == expectedQuery, newSnapshot.query == expectedQuery else { return }
+        if let snapshot, snapshot.query == newSnapshot.query,
+           snapshot.watermark.databaseID == newSnapshot.watermark.databaseID,
            snapshot.watermark.revision >= newSnapshot.watermark.revision { return }
         snapshot = newSnapshot
         report = newSnapshot.report
@@ -154,5 +174,13 @@ final class SessionExplorerModel {
             report: report,
             selectedSessionID: navigation.selectedSessionID
         ))
+    }
+}
+
+private func defaultUsageQuery() -> UsageQuery {
+    do {
+        return try UsageQuery()
+    } catch {
+        preconditionFailure("The built-in UTC query must be valid: \(error)")
     }
 }
