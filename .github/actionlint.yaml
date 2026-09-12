@@ -1,0 +1,4 @@
+# Verified GitHub-hosted preview label; not a private/self-hosted runner.
+self-hosted-runner:
+  labels:
+    - xcode-27

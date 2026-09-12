@@ -25,6 +25,26 @@
 решения по библиотекам — в [dogfooding-plan.md](dogfooding-plan.md).
 Эти документы ссылаются на ROADMAP за актуальным статусом.
 
+## Обязательные PR и GitHub CI
+
+Все новые задачи, включая документацию, workflow и обновление ROADMAP, выполняются
+в отдельной ветке и доставляются только через PR в `main`. Прямой push в `main`
+запрещён. Перед началом создать ветку от актуальной `origin/main`; указать ID задачи
+в PR и использовать [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md).
+
+Перед merge должны пройти обязательный GitHub check `CI` на текущей ревизии PR,
+необходимые локальные проверки и разрешение review threads. Branch должен быть
+актуален относительно `main`. Не применять `--admin`, force push в `main`,
+`[skip ci]`, временное отключение ruleset или обход checks для доставки изменений.
+Если CI упал — исправить причину в той же ветке и дождаться нового результата.
+Явные указания пользователя о review/merge остаются приоритетными.
+
+GitHub enforcement описан в [.github/main-ruleset.json](.github/main-ruleset.json),
+проверки — в [.github/workflows/ci.yml](.github/workflows/ci.yml).
+Не считать наличие этих файлов доказательством включённой защиты: изменения
+ruleset проверять через GitHub API. Статус реализации в ROADMAP дополнять ссылкой
+и стадией PR; merge подтверждать отдельно, не выдавать открытый PR за доставленный `main`.
+
 ## Технические границы
 
 - Swift/SPM shared core для CLI/GUI/TUI; SwiftUI macOS app. Общие accounting rules
@@ -50,8 +70,11 @@ XcodeBuildMCP CLI — отдельный дополнительный путь; 
 
 Core changes: `make check-core`. GUI changes: SwiftLint/FSD и подходящие app build/tests.
 Общие integration changes: `make check` либо соответствующие MCP/CLI checks с тем же scope.
+GitHub native gate запускает `make ci`: тот же `check` с locked dependencies,
+ad-hoc signing и проверкой lock files. `make lint-ci` проверяет Actions через actionlint.
 Documentation-only: проверить ссылки, IDs, статусы и формат; повторная сборка без
-изменений кода не требуется. Не повторять уже зелёные проверки без новой причины.
+изменений кода локально не требуется; обязательный GitHub CI выполняется для каждого PR.
+Не повторять уже зелёные локальные проверки без новой причины.
 
 Shell commands в этом workspace выполнять с префиксом `rtk`; для raw command — `rtk proxy`.
 Учитывать [локальные правила RTK](/Users/egor/.codex/RTK.md) на машине пользователя.

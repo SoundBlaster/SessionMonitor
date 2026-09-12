@@ -5,6 +5,12 @@
 Текущие результаты первой CLI/app сборки и тестов — в [README](README.md).
 План и статусы задач — в [ROADMAP.md](ROADMAP.md), обязательный workflow — в [CONTRIBUTING.md](CONTRIBUTING.md).
 
+GitHub delivery выполняется строго через PR. Активные CI entry points:
+[Quality workflow](.github/workflows/ci.yml), `make ci`, `make lint-ci` и
+[main ruleset](.github/main-ruleset.json). Общие Makefile gates и PR/main triggers
+адаптированы из [FSD template](https://github.com/SoundBlaster/FSD/tree/v0.4.0/templates/fsd-ios);
+ветки Codex проходят те же проверки. Настройка и фактическая верификация — SM-704.
+
 ## Правило выбора реализации
 
 Для стандартной задачи сначала использовать Apple SDK/Swift standard library,

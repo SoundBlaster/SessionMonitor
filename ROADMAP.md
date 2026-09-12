@@ -9,8 +9,10 @@
 Первая версия CLI + GUI реализована и проверена. Импорт пока перечитывает выбранные
 файлы целиком; watch, menu bar, WidgetKit, TUI и адаптация ещё не реализованы.
 GitHub repository подключён; `main` отслеживает `origin/main`.
-Первый commit с реализацией создан (SM-702). Активной implementation-задачи сейчас нет.
-**Следующая задача: SM-101 — persistent incremental checkpoints.**
+Первый commit с реализацией создан (SM-702).
+**Активная задача: SM-704 — GitHub CI и обязательный PR workflow.**
+**Следующая задача: SM-101 — persistent incremental checkpoints, после SM-704.**
+Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
 и доставку, которые можно выполнять по необходимости. Изменение приоритетов
@@ -167,6 +169,11 @@ GitHub repository подключён; `main` отслеживает `origin/main
 - [ ] **SM-703** — Distribution packaging CLI/app/widget, notices, signing, notarization и обновления.
   Готово, когда выбранный способ доставки проверен на чистой установке с сохранением данных;
   Apple Development build сам по себе не подтверждает distribution readiness.
+- [ ] **SM-704** — Настроить GitHub CI и обязательный PR workflow до следующих feature tasks.
+  Статус: в работе. Приоритет пользователя от 2026-09-12; ветка `ci/sm-704-pr-quality-gates`.
+  Использовать подходящие patterns из FSD. Готово, когда PR запускает lint, architecture gate,
+  CLI/core и native app tests; обязательные checks и PR enforcement включены для `main`,
+  правила отражены в AGENTS/CONTRIBUTING, а первый CI run подтверждён на GitHub.
 
 ## Evidence и границы
 

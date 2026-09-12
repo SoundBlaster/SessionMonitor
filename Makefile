@@ -2,6 +2,7 @@
 SHELL := /bin/sh
 
 SWIFT ?= xcrun swift
+SWIFT_FLAGS ?=
 XCODEBUILD ?= xcodebuild
 # The pinned SpecificationCore/Kit macro implementations are trusted for these builds.
 # Matches XcodeBuildMCP's per-build behavior; does not alter global Xcode settings.
@@ -11,6 +12,7 @@ XCODEBUILDMCP ?= xcodebuildmcp
 SWIFTLINT ?= swiftlint
 SWIFTLINT_VERSION ?= 0.63.3
 FSD ?= fsd-ios
+ACTIONLINT ?= actionlint
 CLI_PRODUCT ?= codex-monitor
 PROJECT ?= Apps/MonitorMac/MonitorMac.xcodeproj
 SCHEME ?= MonitorMac
@@ -34,9 +36,10 @@ endif
 
 .PHONY: help doctor generate guard-package guard-app lint-version resolve build-cli test-core build-mcp
 .PHONY: lint-core lint lint-architecture build-macos test-macos check-core check archive
+.PHONY: ci lint-ci test-architecture
 
 help:
-	@printf '%s\n' 'doctor resolve build-cli test-core lint-core check-core' 'generate build-macos build-mcp test-macos lint lint-architecture check archive'
+	@printf '%s\n' 'doctor resolve build-cli test-core lint-core check-core' 'generate build-macos build-mcp test-macos lint lint-architecture check archive' 'ci lint-ci test-architecture'
 
 generate:
 	@test -f Apps/MonitorMac/Local.xcconfig || printf '%s\n' '// Local signing overrides (not committed).' 'CODE_SIGN_IDENTITY = -' > Apps/MonitorMac/Local.xcconfig
@@ -62,10 +65,10 @@ resolve: guard-package
 	$(SWIFT) package resolve
 
 build-cli: guard-package
-	$(SWIFT) build --configuration debug --product "$(CLI_PRODUCT)"
+	$(SWIFT) build $(SWIFT_FLAGS) --configuration debug --product "$(CLI_PRODUCT)"
 
 test-core: guard-package
-	$(SWIFT) test
+	$(SWIFT) test $(SWIFT_FLAGS)
 
 lint-core: lint-version
 	$(SWIFTLINT) lint --strict --force-exclude --config .swiftlint.yml Sources Tests
@@ -75,6 +78,13 @@ lint: lint-version
 
 lint-architecture:
 	$(FSD) lint --config .fsd-ios.yml --strict --architecture
+
+test-architecture:
+	FSD="$(FSD)" bash scripts/ci/check-fsd-boundary.sh
+
+lint-ci:
+	$(ACTIONLINT) -color
+	bash -n scripts/ci/install-tools.sh scripts/ci/check-fsd-boundary.sh
 
 build-macos: guard-app
 	$(XCODEBUILD) $(XCODEBUILD_FLAGS) -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIGURATION)" -destination "$(DESTINATION)" -derivedDataPath "$(DERIVED_DATA)" $(SIGNING_ARGS) build
@@ -97,8 +107,17 @@ check:
 	$(MAKE) build-macos
 	$(MAKE) lint
 	$(MAKE) lint-architecture
+	$(MAKE) test-architecture
 	$(MAKE) test-core
 	$(MAKE) test-macos
+
+# Same native gates as local check; ad-hoc signing needs no Developer credentials.
+# Explicit flags override Local.xcconfig without changing the developer's file.
+ci:
+	$(MAKE) check SWIFT_FLAGS="--force-resolved-versions" \
+		XCODEBUILD_FLAGS="$(XCODEBUILD_FLAGS) -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution" \
+		SIGNING_ARGS="CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM="
+	git diff --exit-code -- Package.resolved Apps/MonitorMac/Package.resolved
 
 # Local archive only. Export, notarization and publication are separate workflows.
 archive: guard-app
