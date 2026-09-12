@@ -15,7 +15,7 @@ GitHub repository подключён; `main` отслеживает `origin/main
 SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1), merge `de7e328`;
 GitHub CI и ruleset для `main` включены.
 SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2), merge `bbddb26`.
-**Текущая доставка: SM-102 реализована и проверена локально; подготовка PR.**
+**Последний реализованный пункт: SM-102, доставка — [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3).**
 **Следующая задача: SM-103 — FSEvents watch.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
@@ -94,7 +94,9 @@ SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/S
   155 sources — 0 bytes. [Локальное evidence](.build/sm102-verification.json).
   Ограничения: compressed archives не выбираются; missing paths сохраняют свои последние
   diagnostics. Старое поколение заменённого path сохраняется, если archive тоже импортирован.
-  Стадия доставки: ветка `feat/sm-102-source-recovery`, подготовка PR; ещё не в `main`.
+  Доставка: [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3).
+  Стадия при записи 2026-09-12 11:38 UTC — PR открыт для CI/review;
+  фактический merge и результаты required checks подтверждаются в GitHub.
 - [ ] **SM-103** — Добавить FSEvents watch с debounce, recovery и cancellation.
   Зависит от SM-102. Готово, когда append обновляет БД, dropped/coalesced events
   восстанавливаются через reconciliation, pause/resume имеет явную семантику.
