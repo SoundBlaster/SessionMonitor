@@ -38,29 +38,78 @@ public final class UsageStore: Sendable {
                     FROM source_records GROUP BY response HAVING COUNT(DISTINCT fingerprint) = 1;
                 """)
         }
+        migrator.registerMigration("source-checkpoints-v1") { database in
+            try database.execute(sql: """
+                CREATE TABLE source_checkpoints (
+                    source TEXT PRIMARY KEY NOT NULL, checkpoint BLOB NOT NULL
+                )
+                """)
+        }
         try migrator.migrate(database)
     }
 
     /// Replaces one complete source snapshot atomically; duplicate IDs remain globally idempotent.
     public func replace(source: String, rollout: ParsedRollout) throws {
         try database.write { database in
-            try database.execute(sql: "DELETE FROM source_records WHERE source = ?", arguments: [source])
-            try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ?", arguments: [source])
-            for record in rollout.records {
-                let fingerprint = try Self.fingerprint(record)
-                try database.execute(sql: """
-                    INSERT INTO source_records VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, arguments: [
-                        source, record.sourceLine, record.responseID, record.sessionID, record.turnID,
-                        record.timestamp.timeIntervalSince1970, record.model, record.inputTokens,
-                        record.cachedInputTokens, record.outputTokens, fingerprint,
-                        record.cacheWriteInputTokens, record.reasoningOutputTokens, record.totalTokens
-                    ])
+            try Self.clear(source: source, database: database)
+            try Self.insert(rollout, source: source, database: database)
+            try database.execute(sql: "DELETE FROM source_checkpoints WHERE source = ?", arguments: [source])
+        }
+    }
+
+    public func checkpoint(source: String) throws -> Data? {
+        try database.read { database in try Self.checkpoint(source: source, database: database) }
+    }
+
+    /// Events, diagnostics and decoder progress commit together. Stale retries cannot overwrite newer data.
+    public func apply(source: String, update: SourceImport, expectedCheckpoint: Data?) throws {
+        try database.write { database in
+            let current = try Self.checkpoint(source: source, database: database)
+            guard current == expectedCheckpoint else { throw CheckpointWriteError.staleCheckpoint }
+            if update.mode == .unchanged { return }
+            if update.mode == .replaced {
+                try Self.clear(source: source, database: database)
+            } else if current == nil {
+                throw CheckpointWriteError.staleCheckpoint
             }
-            for (kind, count) in rollout.diagnostics {
-                try database.execute(sql: "INSERT INTO source_diagnostics VALUES (?, ?, ?)",
-                                     arguments: [source, kind, count])
-            }
+            // partialTails describes the current tail; all other diagnostics accumulate on append.
+            try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ? AND kind = 'partialTails'",
+                                 arguments: [source])
+            try Self.insert(update.rollout, source: source, database: database)
+            try database.execute(sql: """
+                INSERT INTO source_checkpoints VALUES (?, ?)
+                ON CONFLICT(source) DO UPDATE SET checkpoint = excluded.checkpoint
+                """, arguments: [source, update.checkpoint])
+        }
+    }
+
+    private static func checkpoint(source: String, database: Database) throws -> Data? {
+        try Data.fetchOne(database, sql: "SELECT checkpoint FROM source_checkpoints WHERE source = ?",
+                          arguments: [source])
+    }
+
+    private static func clear(source: String, database: Database) throws {
+        try database.execute(sql: "DELETE FROM source_records WHERE source = ?", arguments: [source])
+        try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ?", arguments: [source])
+    }
+
+    private static func insert(_ rollout: ParsedRollout, source: String, database: Database) throws {
+        for record in rollout.records {
+            let fingerprint = try Self.fingerprint(record)
+            try database.execute(sql: """
+                INSERT INTO source_records VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, arguments: [
+                    source, record.sourceLine, record.responseID, record.sessionID, record.turnID,
+                    record.timestamp.timeIntervalSince1970, record.model, record.inputTokens,
+                    record.cachedInputTokens, record.outputTokens, fingerprint,
+                    record.cacheWriteInputTokens, record.reasoningOutputTokens, record.totalTokens
+                ])
+        }
+        for (kind, count) in rollout.diagnostics {
+            try database.execute(sql: """
+                INSERT INTO source_diagnostics VALUES (?, ?, ?)
+                ON CONFLICT(source, kind) DO UPDATE SET count = count + excluded.count
+                """, arguments: [source, kind, count])
         }
     }
 
@@ -129,4 +178,8 @@ public final class UsageStore: Sendable {
         encoder.outputFormatting = [.sortedKeys]
         return SHA256.hash(data: try encoder.encode(copy)).map { String(format: "%02x", $0) }.joined()
     }
+}
+
+public enum CheckpointWriteError: Error {
+    case staleCheckpoint
 }

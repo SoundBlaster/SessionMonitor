@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import MonitorCore
 
@@ -5,18 +6,66 @@ public struct RolloutDecoder: Sendable {
     public init() {}
 
     public func parse(_ url: URL) throws -> ParsedRollout {
+        try parseIncrementally(url).rollout
+    }
+
+    public func parseIncrementally(_ url: URL, checkpoint: Data? = nil) throws -> SourceImport {
+        let source = try RolloutFile(url: url)
+        let previous = checkpoint.flatMap { try? JSONDecoder().decode(DecoderCheckpoint.self, from: $0) }
+        var cursor = JSONLCursor()
         var state = DecodeState()
-        let partialTail = try JSONLReader().read(url) { data, line in
-            if line.isMultiple(of: 1_024) { try Task.checkCancellation() }
+        var hasher = SHA256()
+        var mode = SourceImportMode.replaced
+        if let previous, previous.isUsable(for: source.version) {
+            if previous.version == source.version, let checkpoint {
+                try source.validateSnapshot()
+                return SourceImport(rollout: ParsedRollout(), checkpoint: checkpoint, mode: .unchanged, bytesRead: 0)
+            }
+            hasher = try source.hashPrefix(through: previous.cursor.offset)
+            if Data(hasher.finalize()) == previous.prefixDigest {
+                cursor = previous.cursor
+                state.context = previous.state
+                mode = .appended
+            } else {
+                hasher = SHA256()
+            }
+        }
+        let progress = try JSONLReader().read(source, from: cursor, hasher: hasher) { data, line in
             guard let data else {
                 state.result.diagnostics["oversizedLines", default: 0] += 1
                 return
             }
             state.consume(data, line: line)
         }
-        if partialTail { state.result.diagnostics["partialTails", default: 0] += 1 }
-        return state.result
+        if progress.partialTail { state.result.diagnostics["partialTails"] = 1 }
+        try source.validateSnapshot()
+        let next = DecoderCheckpoint(version: source.version, cursor: progress.cursor,
+                                     state: state.context, prefixDigest: progress.prefixDigest)
+        return SourceImport(rollout: state.result, checkpoint: try JSONEncoder().encode(next),
+                            mode: mode, bytesRead: source.bytesRead)
     }
+}
+
+private struct DecoderCheckpoint: Codable {
+    var schemaVersion = 1
+    let version: RolloutFileVersion
+    let cursor: JSONLCursor
+    let state: DecoderContext
+    let prefixDigest: Data
+
+    func isUsable(for current: RolloutFileVersion) -> Bool {
+        schemaVersion == 1 && version.identity == current.identity && current.size >= version.size
+            && cursor.offset <= version.size && cursor.line >= 0 && UInt64(cursor.line) <= cursor.offset
+            && prefixDigest.count == 32
+    }
+}
+
+/// Normalized accounting context only. Raw unfinished lines remain in the source file.
+private struct DecoderContext: Codable {
+    var sessionID: String?
+    var created: Date?
+    var nativeTurns = Set<String>()
+    var models: [String: String] = [:]
 }
 
 private struct Header: Decodable {
@@ -75,20 +124,14 @@ private struct Usage: Decodable {
 
 private struct DecodeState {
     var result = ParsedRollout()
-    var sessionID: String?
-    var created: Date?
-    var nativeTurns = Set<String>()
-    var models: [String: String] = [:]
+    var context = DecoderContext()
     let decoder = JSONDecoder()
 
     mutating func consume(_ data: Data, line: Int) {
         do {
             let header = try decoder.decode(Header.self, from: data)
             if header.type == "session_meta" {
-                sessionID = nil
-                created = nil
-                nativeTurns.removeAll()
-                models.removeAll()
+                context = DecoderContext()
             }
             guard ["session_meta", "turn_context", "event_msg", "token_usage_record"].contains(header.type)
             else {
@@ -107,17 +150,17 @@ private struct DecodeState {
     mutating func process(_ event: Envelope, line: Int) throws {
         let payload = event.payload
         if event.type == "session_meta" {
-            sessionID = payload.id
-            created = try parseDate(payload.timestamp ?? event.timestamp)
-            nativeTurns.removeAll()
-            models.removeAll()
+            context.sessionID = payload.id
+            context.created = try parseDate(payload.timestamp ?? event.timestamp)
+            context.nativeTurns.removeAll()
+            context.models.removeAll()
         } else if event.type == "turn_context", let turn = payload.turnID {
-            models[turn] = payload.model
+            context.models[turn] = payload.model
         } else if event.type == "event_msg", payload.type == "task_started", let turn = payload.turnID {
-            nativeTurns.remove(turn)
-            if let started = payload.startedAt, let created,
+            context.nativeTurns.remove(turn)
+            if let started = payload.startedAt, let created = context.created,
                Double(started) >= floor(created.timeIntervalSince1970), !isSynthetic(turn) {
-                nativeTurns.insert(turn)
+                context.nativeTurns.insert(turn)
             }
         } else if event.type == "event_msg", payload.type == "token_count" {
             result.diagnostics["legacySnapshotsNotCounted", default: 0] += 1
@@ -127,8 +170,8 @@ private struct DecodeState {
     }
 
     mutating func append(_ payload: Payload, timestamp: String, line: Int) throws {
-        guard let sessionID, let created, payload.threadID == sessionID,
-              let turn = payload.turnID, nativeTurns.contains(turn) else {
+        guard let sessionID = context.sessionID, let created = context.created, payload.threadID == sessionID,
+              let turn = payload.turnID, context.nativeTurns.contains(turn) else {
             result.diagnostics["unownedOrUnprovenRecords", default: 0] += 1
             return
         }
@@ -144,7 +187,7 @@ private struct DecodeState {
         }
         result.records.append(UsageRecord(
             responseID: response, sessionID: sessionID, turnID: turn, timestamp: date,
-            model: models[turn] ?? "unknown", inputTokens: usage.input,
+            model: context.models[turn] ?? "unknown", inputTokens: usage.input,
             cachedInputTokens: usage.cached, outputTokens: usage.output, sourceLine: line,
             cacheWriteInputTokens: usage.cacheWrite, reasoningOutputTokens: usage.reasoning, totalTokens: usage.total
         ))

@@ -20,21 +20,37 @@ public actor SessionMonitor {
         store = try UsageStore(url: databaseURL)
     }
 
-    /// Full rescan on explicit request. Source snapshots commit separately; no background polling.
+    /// Each changed source commits its records and checkpoint together; unchanged bodies are not read.
     public func importDirectory(_ directory: URL) throws -> ImportSummary {
+        try importDirectory(directory, rescan: false)
+    }
+
+    public func importDirectory(_ directory: URL, rescan: Bool) throws -> ImportSummary {
         let lock = try ImportLock(url: databaseURL.appendingPathExtension("import-lock"))
         defer { lock.release() }
         let paths = try sourceFiles(directory)
         var records = 0
         var diagnostics: [String: Int64] = [:]
+        var ioMetrics = ImportIO()
         for path in paths {
             try Task.checkCancellation()
-            let rollout = try RolloutDecoder().parse(path)
-            try store.replace(source: path.resolvingSymlinksInPath().path, rollout: rollout)
-            records += rollout.records.count
-            for (key, count) in rollout.diagnostics { diagnostics[key, default: 0] += count }
+            let source = path.resolvingSymlinksInPath().path
+            let previous = try store.checkpoint(source: source)
+            let update = try RolloutDecoder().parseIncrementally(path, checkpoint: rescan ? nil : previous)
+            try Task.checkCancellation()
+            if update.mode != .unchanged {
+                try store.apply(source: source, update: update, expectedCheckpoint: previous)
+            }
+            records += update.rollout.records.count
+            for (key, count) in update.rollout.diagnostics { diagnostics[key, default: 0] += count }
+            ioMetrics.bytesRead += update.bytesRead
+            switch update.mode {
+            case .unchanged: ioMetrics.filesSkipped += 1
+            case .appended: ioMetrics.filesResumed += 1
+            case .replaced: ioMetrics.filesRescanned += 1
+            }
         }
-        return ImportSummary(files: paths.count, records: records, diagnostics: diagnostics)
+        return ImportSummary(files: paths.count, records: records, diagnostics: diagnostics, ioMetrics: ioMetrics)
     }
 
     public func report(since: Date? = nil, until: Date? = nil) throws -> UsageReport {
