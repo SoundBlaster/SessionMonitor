@@ -5,28 +5,34 @@ import SwiftUI
 
 @main
 struct SessionMonitorApp: App {
+    @NSApplicationDelegateAdaptor(AppLifecycleDelegate.self) private var appDelegate
     private let runtimeLoader: SessionMonitorRuntimeLoader
     @State private var menuModel: MenuSummaryModel
+    @State private var watchController: AppWatchController
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
 
     init() {
         let loader = SessionMonitorRuntimeLoader()
         runtimeLoader = loader
+        let watch = AppWatchController { directory in try await loader.watch(directory) }
+        _watchController = State(initialValue: watch)
         _menuModel = State(initialValue: MenuSummaryModel {
             let runtime = try await loader.load()
             return await runtime.snapshots(query: try UsageQuery())
         })
+        appDelegate.shutdown = { await watch.shutdown() }
     }
 
     var body: some Scene {
-        WindowGroup("SessionMonitor") {
+        WindowGroup("SessionMonitor", id: "session-explorer") {
             SessionMonitorWindow(runtimeLoader: runtimeLoader)
         }
         .defaultSize(width: 1120, height: 760)
         MenuBarExtra("SessionMonitor", systemImage: "chart.bar.xaxis", isInserted: $showMenuBarExtra) {
-            MenuSummaryPage(model: menuModel)
+            AppMenuHost(model: menuModel, watch: watchController, runtimeLoader: runtimeLoader)
         }
         .menuBarExtraStyle(.window)
+        Settings { MonitorSettingsPage() }
     }
 }
 
@@ -52,14 +58,24 @@ private struct SessionMonitorWindow: View {
 }
 
 /// Database setup, like imports and queries, is performed away from MainActor.
-private actor SessionMonitorRuntimeLoader {
+actor SessionMonitorRuntimeLoader {
     private var runtime: SharedReportRuntime?
+    private var databaseRuntime: MonitorRuntime.SessionMonitor?
+
+    private func database() throws -> MonitorRuntime.SessionMonitor {
+        if let databaseRuntime { return databaseRuntime }
+        let value = try MonitorRuntime.SessionMonitor(databaseURL: MonitorRuntime.SessionMonitor.defaultDatabaseURL)
+        databaseRuntime = value
+        return value
+    }
+
+    func watch(_ directory: URL) async throws -> SessionWatch {
+        try await database().watch(directory)
+    }
 
     func load() throws -> SharedReportRuntime {
         if let runtime { return runtime }
-        let databaseRuntime = try MonitorRuntime.SessionMonitor(
-            databaseURL: MonitorRuntime.SessionMonitor.defaultDatabaseURL
-        )
+        let databaseRuntime = try database()
         let runtime = SharedReportRuntime(runtime: databaseRuntime)
         self.runtime = runtime
         return runtime

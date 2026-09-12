@@ -7,6 +7,21 @@ import XCTest
 
 @MainActor
 final class MenuSummaryTests: XCTestCase {
+    func testRefreshUpdatesSnapshotAndFailurePreservesPreviousValue() async throws {
+        let source = SnapshotStreamStub()
+        let model = MenuSummaryModel { await source.makeStream() }
+        let value = try snapshot(databaseID: "refresh", revision: 4, inputTokens: 40)
+        await model.refresh { value }
+        XCTAssertEqual(model.snapshot, value)
+        XCTAssertFalse(model.isRefreshing)
+        await model.refresh { throw FixtureError.disconnected }
+        XCTAssertEqual(model.snapshot, value)
+        XCTAssertNotNil(model.errorMessage)
+        XCTAssertFalse(model.isRefreshing)
+        let subscriptions = await source.callCount
+        XCTAssertEqual(subscriptions, 0)
+    }
+
     func testSummaryRendersEmptyPartialAndCompleteCoverage() async throws {
         for state in ["empty", "partial", "complete"] {
             let source = SnapshotStreamStub()
@@ -24,7 +39,12 @@ final class MenuSummaryTests: XCTestCase {
                 report: UsageReport(totals: totals, sessions: [], diagnostics: [:])
             ))
             try await eventually { model.snapshot != nil }
-            let renderer = ImageRenderer(content: MenuSummaryPage(model: model)
+            let noop: () -> Void = {}
+            let actions = MenuSummaryActions(openWindow: noop, refresh: noop, startWatch: noop,
+                                             togglePause: noop, stopWatch: noop, openSettings: noop, quit: noop)
+            let watch = MenuWatchPresentation(title: state == "empty" ? "Watch not started" : "Watching",
+                                              symbol: "folder", isRunning: state != "empty")
+            let renderer = ImageRenderer(content: MenuSummaryPage(model: model, watch: watch, actions: actions)
                 .background(.white).environment(\.colorScheme, .light))
             renderer.scale = 2
             let image = try XCTUnwrap(renderer.nsImage)

@@ -9,8 +9,8 @@
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
 SM-105 переводит рост той же identity на append-only чтение хвоста. SM-103 добавляет
-CLI/native watch; SM-201 добавляет read-only menu bar. GUI watch controls, WidgetKit,
-TUI и адаптация ещё не реализованы.
+CLI/native watch; SM-201 добавляет read-only menu bar. GUI watch controls реализуются
+в SM-202; WidgetKit, TUI и адаптация ещё не реализованы.
 GitHub repository подключён; `main` отслеживает `origin/main`.
 Первый commit с реализацией создан (SM-702).
 SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1), merge `de7e328`;
@@ -21,8 +21,9 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
 SM-104 (включая SM-705) доставлена через [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
 **SM-105 доставлена через [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7), merge `af7faa2`.**
 **SM-201 доставлена через [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8), merge `44929b4`. Следующая задача: SM-202.**
-**SM-203 выполнена локально (2026-09-12): единое видимое product name `SessionMonitor`;
-[PR #12](https://github.com/SoundBlaster/SessionMonitor/pull/12) прошёл required CI и ожидает merge.**
+**SM-203 доставлена через [PR #12](https://github.com/SoundBlaster/SessionMonitor/pull/12),
+merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
+**Активная задача: SM-202 — в работе (2026-09-12), действия и lifecycle menu bar.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
@@ -178,6 +179,13 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
   Зависит от SM-104. Показать период, расход, cache coverage и свежесть общего snapshot;
   открытие панели не запускает новый importer или полный rescan.
 - [ ] **SM-202** — Действия и lifecycle menu bar.
+  Статус: реализация готова к review (2026-09-12); задача остаётся открытой до live UI pass.
+  App-owned watch с выбором папки, pause/resume/stop; Refresh читает snapshot,
+  Settings управляют значком, стандартный Quit ожидает остановку runtime, включая pending start.
+  Evidence: `make generate lint lint-architecture test-macos` passed, 25 GUI tests;
+  real-runtime test подтверждает release importer lock после shutdown paused watch.
+  Render empty/partial/complete проверен; live actions/lifecycle пока не проверены:
+  UI automation сообщила о заблокированном Mac. До разблокировки merge не выполняется.
   Зависит от SM-201. Open window, refresh, pause/resume, settings, quit;
   закрытие окна сохраняет watch, удаление значка не закрывает открытое окно,
   а Quit корректно завершает runtime. Проверить визуально и тестами состояний.
