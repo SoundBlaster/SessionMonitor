@@ -20,7 +20,7 @@ SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/S
 SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
 **Последний реализованный пункт: SM-104 (включая SM-705), доставка — [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).**
 **SM-105 доставлена через [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7), merge `af7faa2`.**
-**SM-201 реализована и проверена локально; доставка через PR/CI. Следующая задача: SM-202.**
+**SM-201 реализована и проверена локально; доставка — [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8). Следующая задача: SM-202.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -168,6 +168,8 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   Native build passed; пустая menu-панель проверена визуально, populated fixture проверен в окне.
   Native ImageRenderer: empty/partial/complete панели с большими totals проверены визуально.
   Полный actions/lifecycle visual pass — SM-202.
+  Доставка: [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8).
+  Стадия при записи 2026-09-12 14:35 UTC: открыт для CI/review; merge проверяется в GitHub.
   Зависит от SM-104. Показать период, расход, cache coverage и свежесть общего snapshot;
   открытие панели не запускает новый importer или полный rescan.
 - [ ] **SM-202** — Действия и lifecycle menu bar.
