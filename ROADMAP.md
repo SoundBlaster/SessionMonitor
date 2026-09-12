@@ -22,7 +22,8 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
 **SM-105 доставлена через [PR #7](https://github.com/SoundBlaster/SessionMonitor/pull/7), merge `af7faa2`.**
 **SM-201 доставлена через [PR #8](https://github.com/SoundBlaster/SessionMonitor/pull/8), merge `44929b4`. Следующая задача: SM-202.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
-внутри приложения — график сессий с настраиваемым порогом. Реализация запланирована.
+внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
+дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -218,6 +219,37 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
   Это виджет внутри окна приложения, отдельный от системного WidgetKit в SM-401/SM-402.
   Готово, когда проверены значения ниже/равно/выше порога, invalid Settings, сохранение настройки,
   unknown/empty states и live updates; layout читается в light/dark mode и при большом числе сессий.
+- [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
+  Зависит от SM-104/SM-301/SM-302/SM-303/SM-304. Для выбранного интервала показывать model responses,
+  input/cached/uncached/output tokens, cache hit и breakdown по thread, model и типу tool event;
+  parent и subagents учитывать совместно и отдельно без изменения canonical total.
+  Детектировать высокий абсолютный расход и темп responses/tokens, концентрацию расхода в нескольких
+  threads, repetitive polling/wait density, uncached bursts и резкое ухудшение cache hit. Высокий
+  cache hit сам по себе не означает низкий расход или экономию: finding должен учитывать абсолютные
+  tokens, число responses и повторяемость действий. `wait`, process wait/`write_stdin`, `wait_threads`,
+  `clock.sleep`, shell и goal continuations классифицировать раздельно; unknown tool/version не
+  подменять нулём. Нормальное длительное event-aware ожидание должно быть negative case.
+  Пороговые значения делать настраиваемыми или выводить из сопоставимого baseline/cohort, сохраняя
+  evidence pointers, confidence, coverage/unknown reason и основание срабатывания; единичный дневной
+  пример не становится hard-coded нормой.
+  Production source для server usage snapshots — наблюдаемые usage-limit events в импортируемых
+  Codex rollouts. Версионированный source adapter сохраняет в SQLite event timestamp, limit/window ID,
+  duration, used percent, `resetsAt`, source/event identity и schema provenance; повторный импорт
+  дедуплицирует snapshot. Приложение не создаёт сетевой polling лимитов. Unsupported schema даёт
+  diagnostic и unknown coverage, а отсутствие такого события остаётся unknown.
+  Server usage snapshots показывать как отдельный вспомогательный ряд: delta процента интерпретировать
+  только внутри одного limit/window ID и `resetsAt`. При смене границы обозначать discontinuity и не
+  приписывать разницу одному дню.
+  Готово, когда GUI и CLI объясняют аномалию до конкретных threads/models/tool events и временного
+  участка, а fixtures покрывают: большой расход при высоком cache hit, один dominant thread,
+  polling storm, первый request, compaction, обычное длительное ожидание с прогрессом, uncached spike,
+  partial/unknown telemetry, parent/subagent и duplicate/fork replay без двойного учёта, а также смену
+  `resetsAt`. Проверить на обезличенном примере 2026-09-12: 2 328 responses, 286,6 млн input,
+  277,0 млн cached, 9,53 млн uncached, 1,34 млн output, 96,67% cache hit, top-3 threads
+  около 70%, model breakdown, 1 107 wait/polling, 857 shell и 10 `clock.sleep`; изменение server
+  indicator 82% → 89% при смене `resetsAt` должно дать discontinuity, а не дневной расход 7 п.п.
+  Integration test прогоняет обезличенный production-captured rollout через обычный import, проверяет
+  provenance/dedup, сохранение после restart и одинаковый auxiliary series в CLI и GUI.
 
 ## 4. Системные macOS widgets
 
