@@ -1,4 +1,3 @@
-import CryptoKit
 import Darwin
 import Foundation
 
@@ -49,18 +48,6 @@ final class RolloutFile {
         }
         bytesRead += UInt64(data.count)
         return data
-    }
-
-    func hashPrefix(through offset: UInt64) throws -> SHA256 {
-        try handle.seek(toOffset: 0)
-        var hasher = SHA256()
-        var remaining = offset
-        while remaining > 0 {
-            let data = try read(upToCount: Int(min(remaining, 64 * 1_024)))
-            hasher.update(data: data)
-            remaining -= UInt64(data.count)
-        }
-        return hasher
     }
 
     func validateSnapshot() throws {

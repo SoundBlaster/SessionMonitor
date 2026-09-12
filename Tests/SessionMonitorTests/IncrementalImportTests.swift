@@ -43,7 +43,7 @@ struct IncrementalImportTests {
         let report = try await restarted.report()
         #expect(update.records == 1)
         #expect(update.ioMetrics.filesResumed == 1)
-        #expect(update.ioMetrics.bytesRead >= UInt64(appended.utf8.count))
+        #expect(update.ioMetrics.bytesRead == UInt64(appended.utf8.count))
         #expect(report.totals.requests == 2)
         #expect(report.totals.unknownCacheRequests == 1)
         #expect(report.sessions.first?.model == "fixture-model")
@@ -77,7 +77,9 @@ struct IncrementalImportTests {
         #expect(try await runtime.report().totals.requests == 0)
         try fixture.append(Data(bytes.dropFirst(split).dropLast()))
         let restarted = try SessionMonitor(databaseURL: fixture.database)
-        _ = try await restarted.importDirectory(fixture.file)
+        let partial = try await restarted.importDirectory(fixture.file)
+        #expect(partial.ioMetrics.filesResumed == 1)
+        #expect(partial.ioMetrics.bytesRead == UInt64(bytes.count - 1))
         #expect(try await restarted.report().totals.requests == 0)
         #expect(try await restarted.report().diagnostics["partialTails"] == 1)
         try fixture.append("\n")
@@ -85,6 +87,7 @@ struct IncrementalImportTests {
             fixture.file, checkpoint: store.checkpoint(source: fixture.source)
         )
         #expect(completed.mode == .appended)
+        #expect(completed.bytesRead == UInt64(bytes.count))
         #expect(completed.rollout.records.first?.sourceLine == 4)
         _ = try await restarted.importDirectory(fixture.file)
         let report = try await restarted.report()
@@ -151,6 +154,36 @@ struct IncrementalImportTests {
         #expect(report == (try fixture.fullReport()))
     }
 
+    @Test func rewriteAndGrowthRequiresExplicitRescanUnderAppendOnlyAssumption() async throws {
+        let fixture = try IncrementalFixture()
+        defer { fixture.remove() }
+        let original = fixture.native + fixture.record()
+        try fixture.write(original)
+        let runtime = try SessionMonitor(databaseURL: fixture.database)
+        _ = try await runtime.importDirectory(fixture.file)
+        let appended = fixture.record(id: "R2")
+        let rewritten = original.replacingOccurrences(of: "\"input_tokens\":100", with: "\"input_tokens\":200")
+        // Do not backdate mtime: macOS may move birth time too, changing source identity.
+        let writer = try FileHandle(forWritingTo: fixture.file)
+        try writer.write(contentsOf: Data((rewritten + appended).utf8))
+        try writer.close()
+        let restarted = try SessionMonitor(databaseURL: fixture.database)
+        let update = try await restarted.importDirectory(fixture.file)
+        #expect(update.ioMetrics.filesResumed == 1)
+        #expect(update.ioMetrics.filesRescanned == 0)
+        #expect(update.ioMetrics.bytesRead == UInt64(appended.utf8.count))
+        let stale = try await restarted.report()
+        let full = try fixture.fullReport()
+        #expect(stale.totals.requests == 2)
+        #expect(stale.totals.inputTokens == 200)
+        #expect(full.totals.inputTokens == 300)
+        #expect(stale != full)
+        let rebuilt = try await restarted.importDirectory(fixture.file, rescan: true)
+        #expect(rebuilt.ioMetrics.filesRescanned == 1)
+        #expect(rebuilt.ioMetrics.filesResumed == 0)
+        #expect(try await restarted.report() == full)
+    }
+
     @Test(arguments: RecoveryChange.allCases)
     func changedSourcesRescanAndMatchFullParse(change: RecoveryChange) async throws {
         let fixture = try IncrementalFixture()
@@ -164,7 +197,6 @@ struct IncrementalImportTests {
         case .identity: try fixture.write(modified)
         case .shrink: try fixture.overwrite(fixture.native + fixture.record(input: "200"))
         case .sameSize: try fixture.overwrite(modified)
-        case .rewriteAndGrowth: try fixture.overwrite(modified + fixture.record(id: "R3"))
         }
         let update = try await runtime.importDirectory(fixture.file)
         #expect(update.ioMetrics.filesRescanned == 1)
@@ -173,140 +205,11 @@ struct IncrementalImportTests {
     }
 }
 
-struct IncrementalStoreTests {
-    @Test(arguments: [false, true])
-    func mutationDuringReadRejectsSnapshotAndAllowsRecovery(truncate: Bool) throws {
-        let fixture = try IncrementalFixture()
-        defer { fixture.remove() }
-        try fixture.write(fixture.native + fixture.record())
-        let initial = try RolloutDecoder().parseIncrementally(fixture.file)
-        let store = try UsageStore(url: fixture.database)
-        try store.apply(source: fixture.source, update: initial, expectedCheckpoint: nil)
-        let before = try store.report(since: nil, until: nil)
-        let reading = try RolloutFile(url: fixture.file)
-        _ = try reading.read(upToCount: 32)
-        if truncate {
-            try fixture.overwrite(fixture.native)
-        } else {
-            try fixture.append(fixture.legacy + fixture.record(id: "R2"))
-        }
-        #expect(throws: RolloutReadError.self) { try reading.validateSnapshot() }
-        #expect(try store.checkpoint(source: fixture.source) == initial.checkpoint)
-        #expect(try store.report(since: nil, until: nil) == before)
-        let recovered = try RolloutDecoder().parseIncrementally(fixture.file, checkpoint: initial.checkpoint)
-        try store.apply(source: fixture.source, update: recovered, expectedCheckpoint: initial.checkpoint)
-        #expect(try store.report(since: nil, until: nil) == fixture.fullReport())
-    }
-
-    @Test func explicitRescanRebuildsAnUnchangedSource() async throws {
-        let fixture = try IncrementalFixture()
-        defer { fixture.remove() }
-        try fixture.write(fixture.native + fixture.record())
-        let runtime = try SessionMonitor(databaseURL: fixture.database)
-        _ = try await runtime.importDirectory(fixture.file)
-        let before = try await runtime.report()
-        let forced = try await runtime.importDirectory(fixture.file, rescan: true)
-        #expect(forced.ioMetrics.filesRescanned == 1)
-        #expect(forced.ioMetrics.filesSkipped == 0)
-        #expect(forced.ioMetrics.bytesRead > 0)
-        #expect(try await runtime.report() == before)
-    }
-
-    @Test(arguments: [false, true])
-    func failedBatchRollsBackRecordsDiagnosticsAndCheckpoint(replacement: Bool) throws {
-        let fixture = try IncrementalFixture()
-        defer { fixture.remove() }
-        try fixture.write(fixture.native + fixture.record())
-        let decoder = RolloutDecoder()
-        let initial = try decoder.parseIncrementally(fixture.file)
-        let store = try UsageStore(url: fixture.database)
-        try store.apply(source: fixture.source, update: initial, expectedCheckpoint: nil)
-        let before = try store.report(since: nil, until: nil)
-        if replacement {
-            try fixture.write(fixture.native + fixture.legacy + fixture.record(id: "R2"))
-        } else {
-            try fixture.append(fixture.legacy + fixture.record(id: "R2"))
-        }
-        let update = try decoder.parseIncrementally(fixture.file, checkpoint: initial.checkpoint)
-        #expect(update.mode == (replacement ? .replaced : .appended))
-        var invalid = update.rollout
-        invalid.records.append(try #require(invalid.records.first))
-        let failed = SourceImport(rollout: invalid, checkpoint: update.checkpoint,
-                                  mode: update.mode, bytesRead: update.bytesRead)
-        #expect(throws: (any Error).self) {
-            try store.apply(source: fixture.source, update: failed, expectedCheckpoint: initial.checkpoint)
-        }
-        #expect(try store.checkpoint(source: fixture.source) == initial.checkpoint)
-        #expect(try store.report(since: nil, until: nil) == before)
-    }
-
-    @Test func staleCheckpointRejectsOtherwiseValidUniqueRows() throws {
-        let fixture = try IncrementalFixture()
-        defer { fixture.remove() }
-        try fixture.write(fixture.native + fixture.record())
-        let decoder = RolloutDecoder()
-        let first = try decoder.parseIncrementally(fixture.file)
-        let store = try UsageStore(url: fixture.database)
-        try store.apply(source: fixture.source, update: first, expectedCheckpoint: nil)
-        try fixture.append(fixture.record(id: "R2"))
-        let second = try decoder.parseIncrementally(fixture.file, checkpoint: first.checkpoint)
-        try store.apply(source: fixture.source, update: second, expectedCheckpoint: first.checkpoint)
-        let before = try store.report(since: nil, until: nil)
-        try fixture.append(fixture.record(id: "R3"))
-        let third = try decoder.parseIncrementally(fixture.file, checkpoint: second.checkpoint)
-        #expect(throws: (any Error).self) {
-            try store.apply(source: fixture.source, update: third, expectedCheckpoint: first.checkpoint)
-        }
-        #expect(try store.checkpoint(source: fixture.source) == second.checkpoint)
-        #expect(try store.report(since: nil, until: nil) == before)
-        try store.apply(source: fixture.source, update: third, expectedCheckpoint: second.checkpoint)
-        #expect(try store.report(since: nil, until: nil).totals.requests == 3)
-    }
-
-    @Test(arguments: [false, true])
-    func invalidStoredCheckpointForcesReplacement(unknownVersion: Bool) async throws {
-        let fixture = try IncrementalFixture()
-        defer { fixture.remove() }
-        try fixture.write(fixture.native + fixture.record())
-        let initial = try RolloutDecoder().parseIncrementally(fixture.file)
-        var object = try #require(JSONSerialization.jsonObject(with: initial.checkpoint) as? [String: Any])
-        object["schemaVersion"] = 999
-        let invalid = unknownVersion ? try JSONSerialization.data(withJSONObject: object) : Data("invalid".utf8)
-        let store = try UsageStore(url: fixture.database)
-        try store.apply(source: fixture.source, update: SourceImport(
-            rollout: initial.rollout, checkpoint: invalid, mode: .replaced, bytesRead: initial.bytesRead
-        ), expectedCheckpoint: nil)
-        let runtime = try SessionMonitor(databaseURL: fixture.database)
-        let result = try await runtime.importDirectory(fixture.file)
-        #expect(result.ioMetrics.filesRescanned == 1)
-        #expect(try store.checkpoint(source: fixture.source) != invalid)
-        #expect(try await runtime.report() == fixture.fullReport())
-    }
-
-    @Test func legacyReplacementClearsCheckpointAndReimportsWithoutDuplicates() async throws {
-        let fixture = try IncrementalFixture()
-        defer { fixture.remove() }
-        try fixture.write(fixture.native + fixture.record())
-        let store = try UsageStore(url: fixture.database)
-        let initial = try RolloutDecoder().parseIncrementally(fixture.file)
-        try store.apply(source: fixture.source, update: initial, expectedCheckpoint: nil)
-        try store.replace(source: fixture.source, rollout: initial.rollout)
-        #expect(try store.checkpoint(source: fixture.source) == nil)
-        let runtime = try SessionMonitor(databaseURL: fixture.database)
-        let update = try await runtime.importDirectory(fixture.file)
-        #expect(update.ioMetrics.filesRescanned == 1)
-        #expect(try store.checkpoint(source: fixture.source) != nil)
-        let report = try await runtime.report()
-        #expect(report.totals.requests == 1)
-        #expect(report.diagnostics["duplicateRecords", default: 0] == 0)
-    }
-}
-
 enum RecoveryChange: CaseIterable, Sendable {
-    case identity, shrink, sameSize, rewriteAndGrowth
+    case identity, shrink, sameSize
 }
 
-private struct IncrementalFixture {
+struct IncrementalFixture {
     let directory: URL
     var file: URL { directory.appending(path: "rollout.jsonl") }
     var database: URL { directory.appending(path: "usage.sqlite") }
