@@ -185,8 +185,11 @@ merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
   Settings управляют значком, стандартный Quit ожидает остановку runtime, включая pending start.
   Evidence: `make generate lint lint-architecture test-macos` passed, 25 GUI tests;
   real-runtime test подтверждает release importer lock после shutdown paused watch.
-  Render empty/partial/complete проверен; live actions/lifecycle пока не проверены:
-  UI automation сообщила о заблокированном Mac. До разблокировки merge не выполняется.
+  Render empty/partial/complete проверен. Live pass подтвердил Settings toggle и исправленный layout,
+  сохранение процесса после закрытия всех окон, повторное открытие WindowGroup и стандартный Quit.
+  Остался action pass внутри menu-extra: UI bridge не предоставляет macOS status items, а ограниченный
+  keyboard traversal не открыл панель. Нужен один ручной клик по значку перед продолжением automation;
+  до проверки Watch Folder/Pause/Resume/Stop/Refresh/Open Window задача и PR остаются незавершёнными.
   [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10) — draft на момент записи.
   Зависит от SM-201. Open window, refresh, pause/resume, settings, quit;
   закрытие окна сохраняет watch, удаление значка не закрывает открытое окно,
