@@ -14,8 +14,9 @@ GitHub repository подключён; `main` отслеживает `origin/main
 Первый commit с реализацией создан (SM-702).
 SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1), merge `de7e328`;
 GitHub CI и ruleset для `main` включены.
-**Текущая доставка: SM-101 реализована и проверена локально; [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2) открыт, ожидает CI/review.**
-**Следующая задача: SM-102 — восстановление импорта при изменениях файлов.**
+SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2), merge `bbddb26`.
+**Последний реализованный пункт: SM-102, доставка — [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3).**
+**Следующая задача: SM-103 — FSEvents watch.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -80,11 +81,22 @@ GitHub CI и ruleset для `main` включены.
   На копии прежней БД: миграция 155 sources, повторный import — 155 skipped/0 bytes,
   точная parity недельного audit. [Локальное evidence](.build/sm101-verification.json).
   Ограничение: изменённый prefix проверяется полным SHA256 read (оптимизация — SM-105).
-  Стадия доставки: [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2) открыт,
-  ожидает обязательный CI/review; ещё не в `main`.
-- [ ] **SM-102** — Восстанавливать импорт при rotation, truncation и замене файла.
-  Зависит от SM-101. Готово, когда смена identity/содержимого вызывает нужный rescan,
-  а переименование или повторная доставка canonical records не удваивают суммы.
+  Стадия доставки: [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2) merged
+  2026-09-12, commit `bbddb26`, после [зелёного CI](https://github.com/SoundBlaster/SessionMonitor/actions/runs/34691036600)
+  на `9bc822c` (25 core + 6 app/model tests, все quality gates).
+- [x] **SM-102** — Восстанавливать импорт при rotation, truncation и замене файла.
+  Готово 2026-09-12: directory scan включает `*.jsonl.[0-9]+` через native Swift Regex;
+  закреплён recovery/retention contract для последних snapshots наблюдённых paths.
+  [Восемь lifecycle tests](Tests/SessionMonitorTests/SourceRecoveryTests.swift) проверяют
+  rename/restart/append, rotation в обоих порядках paths, copytruncate, discovery,
+  redelivery/conflicts, сброс ownership и partial-tail/removed-source history.
+  `make check-core` — 33 tests и ноль SwiftLint violations; CLI help и повторный import
+  155 sources — 0 bytes. [Локальное evidence](.build/sm102-verification.json).
+  Ограничения: compressed archives не выбираются; missing paths сохраняют свои последние
+  diagnostics. Старое поколение заменённого path сохраняется, если archive тоже импортирован.
+  Доставка: [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3).
+  Стадия при записи 2026-09-12 11:38 UTC — PR открыт для CI/review;
+  фактический merge и результаты required checks подтверждаются в GitHub.
 - [ ] **SM-103** — Добавить FSEvents watch с debounce, recovery и cancellation.
   Зависит от SM-102. Готово, когда append обновляет БД, dropped/coalesced events
   восстанавливаются через reconciliation, pause/resume имеет явную семантику.

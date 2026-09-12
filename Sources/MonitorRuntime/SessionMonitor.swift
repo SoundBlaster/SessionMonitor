@@ -68,11 +68,17 @@ public actor SessionMonitor {
             errorHandler: { _, error in scanError = error; return false }
         ) else { throw MonitorError.notDirectory }
         var paths: [URL] = []
-        for case let url as URL in enumerator where url.pathExtension == "jsonl" {
+        for case let url as URL in enumerator where isRolloutFilename(url) {
             if try url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true { paths.append(url) }
         }
         if let scanError { throw scanError }
         return paths.sorted { $0.path < $1.path }
+    }
+
+    private func isRolloutFilename(_ url: URL) -> Bool {
+        url.pathExtension == "jsonl"
+            || (url.deletingPathExtension().pathExtension == "jsonl"
+                && url.pathExtension.wholeMatch(of: /[0-9]+/) != nil)
     }
 }
 
