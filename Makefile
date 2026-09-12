@@ -36,10 +36,10 @@ endif
 
 .PHONY: help doctor generate guard-package guard-app lint-version resolve build-cli test-core build-mcp
 .PHONY: lint-core lint lint-architecture build-macos test-macos check-core check archive
-.PHONY: ci lint-ci test-architecture
+.PHONY: ci lint-ci test-architecture test-cli
 
 help:
-	@printf '%s\n' 'doctor resolve build-cli test-core lint-core check-core' 'generate build-macos build-mcp test-macos lint lint-architecture check archive' 'ci lint-ci test-architecture'
+	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate build-macos build-mcp test-macos lint lint-architecture check archive' 'ci lint-ci test-architecture'
 
 generate:
 	@test -f Apps/MonitorMac/Local.xcconfig || printf '%s\n' '// Local signing overrides (not committed).' 'CODE_SIGN_IDENTITY = -' > Apps/MonitorMac/Local.xcconfig
@@ -69,6 +69,10 @@ build-cli: guard-package
 
 test-core: guard-package
 	$(SWIFT) test $(SWIFT_FLAGS)
+
+# check/check-core build the executable first; this harness exercises real process signals.
+test-cli: guard-package
+	python3 scripts/tests/watch-cli-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
 
 lint-core: lint-version
 	$(SWIFTLINT) lint --strict --force-exclude --config .swiftlint.yml Sources Tests
@@ -101,6 +105,7 @@ check-core:
 	$(MAKE) build-cli
 	$(MAKE) lint-core
 	$(MAKE) test-core
+	$(MAKE) test-cli
 
 check:
 	$(MAKE) build-cli
@@ -109,6 +114,7 @@ check:
 	$(MAKE) lint-architecture
 	$(MAKE) test-architecture
 	$(MAKE) test-core
+	$(MAKE) test-cli
 	$(MAKE) test-macos
 
 # Same native gates as local check; ad-hoc signing needs no Developer credentials.

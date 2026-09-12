@@ -58,7 +58,7 @@ reviewers можно добавить отдельно. Фактические �
 | Job | Runner и проверки |
 | --- | --- |
 | Workflow lint | `ubuntu-24.04`, actionlint и ShellCheck для CI scripts |
-| Native checks | `xcode-27`, `make ci`: CLI build, app build, SwiftLint, FSD positive/negative, core и app/model tests |
+| Native checks | `xcode-27`, `make ci`: CLI/app builds, SwiftLint, FSD positive/negative, core/app tests и CLI process smoke |
 | CI | Итоговый required check для всех обязательных jobs |
 
 Native runner использует Xcode 27/Swift 6.4, соответствующий текущему development
@@ -98,7 +98,7 @@ Build entry points находятся в [Makefile](Makefile); Xcode project г�
 
 | Изменение | Проверка |
 | --- | --- |
-| Core, decoder, store, CLI, policies | `make check-core`; fixtures для изменённой семантики |
+| Core, decoder, store, CLI, policies | `make check-core`; fixtures и CLI process smoke для изменённой семантики |
 | GUI/menu bar | `make lint lint-architecture`; app build и затронутые tests, visual verification изменённого UI |
 | Общая интеграция, package graph, signing | `make check` или эквивалентный проверенный scope через Xcode MCP + CLI |
 | CI/workflow | `make lint-ci`, ShellCheck, `make ci` и реальный GitHub Actions run |
@@ -120,6 +120,11 @@ XcodeBuildMCP CLI и нативные `swift`/`xcodebuild` остаются до
 
 На рабочей машине пользователя shell commands запускаются через `rtk`
 (`rtk proxy` для прямого вызова); пути и локальные overrides берутся из окружения.
+
+`make check-core` и `make ci` также выполняют `make test-cli`: Python 3 standard-library
+harness запускает собранный Swift CLI на synthetic sources и проверяет pause/resume,
+SIGINT/SIGTERM, accounting и cleanup при полном stdout pipe. Отдельный `make test-cli`
+предполагает выполненный `make build-cli`. Python не входит в app runtime.
 
 ## Реализация и reuse
 

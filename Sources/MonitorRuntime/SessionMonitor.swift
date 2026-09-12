@@ -26,9 +26,14 @@ public actor SessionMonitor {
     }
 
     public func importDirectory(_ directory: URL, rescan: Bool) throws -> ImportSummary {
+        try importSources(directory, rescan: rescan, directoryOnly: false)
+    }
+
+    private func importSources(_ directory: URL, rescan: Bool, directoryOnly: Bool) throws -> ImportSummary {
+        try Task.checkCancellation()
         let lock = try ImportLock(url: databaseURL.appendingPathExtension("import-lock"))
         defer { lock.release() }
-        let paths = try sourceFiles(directory)
+        let paths = try sourceFiles(directory, directoryOnly: directoryOnly)
         var records = 0
         var diagnostics: [String: Int64] = [:]
         var ioMetrics = ImportIO()
@@ -58,9 +63,33 @@ public actor SessionMonitor {
         return try store.report(since: since, until: until)
     }
 
-    private func sourceFiles(_ root: URL) throws -> [URL] {
+    public func watch(_ directory: URL, options: WatchOptions = WatchOptions()) async throws -> SessionWatch {
+        try Task.checkCancellation()
+        let root = directory.resolvingSymlinksInPath().standardizedFileURL
+        guard try root.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true else {
+            throw WatchError.directoryRequired
+        }
+        let source = FSEventsSource(root: root, excludedPaths: databaseSourcePaths)
+        let watch = try SessionWatch(source: source, options: options) {
+            try await self.importSources(root, rescan: false, directoryOnly: true)
+        }
+        try await watch.start()
+        if Task.isCancelled {
+            await watch.stop()
+            throw CancellationError()
+        }
+        return watch
+    }
+
+    private func sourceFiles(_ root: URL, directoryOnly: Bool) throws -> [URL] {
+        var root = root
+        root.removeAllCachedResourceValues()
+        let excluded = databaseSourcePaths
         let values = try root.resourceValues(forKeys: [.isRegularFileKey, .isDirectoryKey])
-        if values.isRegularFile == true { return [root] }
+        if values.isRegularFile == true {
+            guard !directoryOnly else { throw WatchError.directoryRequired }
+            return excluded.contains(root.resolvingSymlinksInPath().path) ? [] : [root]
+        }
         guard values.isDirectory == true else { throw MonitorError.notDirectory }
         var scanError: Error?
         guard let enumerator = FileManager.default.enumerator(
@@ -68,7 +97,10 @@ public actor SessionMonitor {
             errorHandler: { _, error in scanError = error; return false }
         ) else { throw MonitorError.notDirectory }
         var paths: [URL] = []
-        for case let url as URL in enumerator where isRolloutFilename(url) {
+        for case let url as URL in enumerator {
+            try Task.checkCancellation()
+            guard isRolloutFilename(url) else { continue }
+            guard !excluded.contains(url.resolvingSymlinksInPath().path) else { continue }
             if try url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true { paths.append(url) }
         }
         if let scanError { throw scanError }
@@ -79,6 +111,11 @@ public actor SessionMonitor {
         url.pathExtension == "jsonl"
             || (url.deletingPathExtension().pathExtension == "jsonl"
                 && url.pathExtension.wholeMatch(of: /[0-9]+/) != nil)
+    }
+
+    private var databaseSourcePaths: Set<String> {
+        let path = databaseURL.resolvingSymlinksInPath().standardizedFileURL.path
+        return [path, path + "-wal", path + "-shm", path + ".import-lock"]
     }
 }
 

@@ -8,15 +8,16 @@
 
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
-Для проверки изменённого файла пока перечитывается старый prefix; watch, menu bar,
-WidgetKit, TUI и адаптация ещё не реализованы.
+Для проверки изменённого файла пока перечитывается старый prefix. SM-103 добавляет
+CLI/native watch; GUI watch controls, menu bar, WidgetKit, TUI и адаптация ещё не реализованы.
 GitHub repository подключён; `main` отслеживает `origin/main`.
 Первый commit с реализацией создан (SM-702).
 SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1), merge `de7e328`;
 GitHub CI и ruleset для `main` включены.
 SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2), merge `bbddb26`.
-**Последний реализованный пункт: SM-102, доставка — [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3).**
-**Следующая задача: SM-103 — FSEvents watch.**
+SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3), merge `f366308`.
+**Последний реализованный пункт: SM-103, доставка — [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4).**
+**Следующая задача: SM-104 — observable snapshots и координация процессов.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -95,11 +96,23 @@ SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/S
   Ограничения: compressed archives не выбираются; missing paths сохраняют свои последние
   diagnostics. Старое поколение заменённого path сохраняется, если archive тоже импортирован.
   Доставка: [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3).
-  Стадия при записи 2026-09-12 11:38 UTC — PR открыт для CI/review;
+  PR merged 2026-09-12, commit `f366308`, после [зелёного CI](https://github.com/SoundBlaster/SessionMonitor/actions/runs/34691595544).
+- [x] **SM-103** — Добавить FSEvents watch с debounce, recovery и cancellation.
+  Готово 2026-09-12: native parent-directory stream, physical-path filtering,
+  bounded debounce, sticky reconciliation и retry 1–30 s; [SessionWatch](Sources/MonitorRuntime/SessionWatch.swift).
+  Pause дожидается active import, resume всегда сверяет дерево, stop/cancellation
+  отменяет importer и закрывает stream. CLI `watch` поддерживает SIGUSR1/SIGUSR2/SIGINT/SIGTERM,
+  JSON status lines и завершение при backpressure stdout.
+  Проверено: полный `make ci` — 44 core и 6 app/model tests, builds, SwiftLint/FSD,
+  locked dependencies, [CLI process smoke](scripts/tests/watch-cli-smoke.py).
+  [Native tests](Tests/SessionMonitorTests/NativeWatchTests.swift) покрывают реальные FSEvents,
+  root rename/recreate, pause/resume и собственные DB writes; deterministic tests — dropped flags,
+  in-flight events, retries, cancellation и stale callbacks. Локальное evidence: `.build/sm103-ci.log`.
+  Ограничения: первоначальный root должен существовать; БД должна оставаться доступной;
+  multi-process watch ownership и GUI query observation — SM-104. Prefix read policy SM-101 сохранена.
+  Доставка: [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4).
+  Стадия при записи 2026-09-12 12:19 UTC — PR открыт для CI/review;
   фактический merge и результаты required checks подтверждаются в GitHub.
-- [ ] **SM-103** — Добавить FSEvents watch с debounce, recovery и cancellation.
-  Зависит от SM-102. Готово, когда append обновляет БД, dropped/coalesced events
-  восстанавливаются через reconciliation, pause/resume имеет явную семантику.
 - [ ] **SM-104** — Общий observable query snapshot и координация CLI/GUI между процессами.
   Зависит от SM-103. Snapshot содержит schema version, период/timezone, coverage и watermark.
   Готово, когда GUI видит external writes, два клиента не создают двух importers,
