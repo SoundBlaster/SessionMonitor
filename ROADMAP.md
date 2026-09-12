@@ -17,7 +17,7 @@ GitHub CI и ruleset для `main` включены.
 SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/SessionMonitor/pull/2), merge `bbddb26`.
 SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3), merge `f366308`.
 SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
-**Последний реализованный пункт: SM-104 (включая исправление SM-705); локальные gates пройдены, PR готовится.**
+**Последний реализованный пункт: SM-104 (включая SM-705), доставка — [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).**
 **Следующая задача: SM-105 — performance baseline на реальном архиве.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
@@ -127,7 +127,9 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   сверяют totals с watermark при concurrent writes. Evidence: `.build/sm104-ci-final.log`.
   Ограничения: один native marker poll/second на consumer; промежуточные commits могут объединяться;
   marker описывает index commit, не полноту scan. Замена файла БД требует reopen runtime.
-  Доставка: ветка `feat/sm-104-observable-snapshots`, PR готовится; required CI ожидается.
+  Доставка: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
+  Стадия при записи 2026-09-12 12:50 UTC — PR открыт для CI/review;
+  фактический merge и required checks подтверждаются в GitHub.
 - [ ] **SM-105** — Зафиксировать performance baseline на реальном архиве.
   Измерить first/incremental import, bytes read, peak memory, размер БД и idle CPU.
   Готово, когда повторное обновление читает только изменения, а audit parity сохраняется.
@@ -232,7 +234,7 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   host app вместо второй копии GRDB/runtime; [project.yml](Apps/MonitorMac/project.yml).
   До исправления реальный runtime test завершался GRDB thread precondition crash.
   После исправления `make test-macos` — 8 tests passed, включая external-process GUI observation;
-  локальное evidence `.build/sm104-app.log`. Доставляется совместно с SM-104 через PR.
+  локальное evidence `.build/sm104-app.log`. Доставка совместно с SM-104: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
 
 ## Evidence и границы
 
