@@ -20,6 +20,11 @@ MAPPING = {'requests': 'requests', 'inputTokens': 'input_tokens', 'cachedInputTo
            'reasoningOutputTokens': 'reasoning_output_tokens', 'totalTokens': 'total_tokens'}
 
 
+def require(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
 def write_json(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
@@ -154,8 +159,8 @@ def run(args):
             measurement['import'] = json.loads(destination.read_text())
             samples.append(measurement)
             if name == 'unchanged':
-                assert measurement['import']['ioMetrics']['bytesRead'] == 0, 'Unchanged body was read'
-                assert measurement['import']['ioMetrics']['filesSkipped'] == corpus['files']
+                require(measurement['import']['ioMetrics']['bytesRead'] == 0, 'Unchanged body was read')
+                require(measurement['import']['ioMetrics']['filesSkipped'] == corpus['files'], 'Unchanged files not skipped')
         print(f'Import repetition {index+1}/{args.repetitions} complete', flush=True)
     baseline = report(binary, databases[-1])
     window = report(binary, databases[-1], args.since, args.until)
@@ -177,17 +182,17 @@ def run(args):
         destination = output / f'append-{index}.json'
         measurement = timed([binary, 'import', root, '--database', database], destination)
         measurement['import'] = json.loads(destination.read_text())
-        assert measurement['import']['ioMetrics']['filesResumed'] == 1
-        assert measurement['import']['ioMetrics']['filesSkipped'] == corpus['files']-1
+        require(measurement['import']['ioMetrics']['filesResumed'] == 1, 'Append did not resume exactly one file')
+        require(measurement['import']['ioMetrics']['filesSkipped'] == corpus['files']-1, 'Append reread unrelated files')
         after = report(binary, database)
-        assert after['totals']['requests'] == baseline['totals']['requests']+1
-        assert after['totals']['inputTokens'] == baseline['totals']['inputTokens']+100
-        assert report(binary, database, args.since, args.until) == window
+        require(after['totals']['requests'] == baseline['totals']['requests']+1, 'Unexpected appended request count')
+        require(after['totals']['inputTokens'] == baseline['totals']['inputTokens']+100, 'Unexpected appended input count')
+        require(report(binary, database, args.since, args.until) == window, 'Append changed the audit window')
         appended.append(measurement)
     # Independent complete decode must match every incremental report field, not only total input.
     rebuilt = output / 'rebuild.sqlite'
     timed([binary, 'import', root, '--database', rebuilt], output / 'rebuild.json')
-    assert report(binary, rebuilt) == report(binary, databases[-1]), 'Incremental/full report mismatch'
+    require(report(binary, rebuilt) == report(binary, databases[-1]), 'Incremental/full report mismatch')
     print('Audit and append/full-rebuild parity passed; sampling idle CPU', flush=True)
     idle_watch = idle(binary, root, databases[-1], output, args.idle_seconds, combined=False)
     idle_combined = idle(binary, root, databases[-1], output, args.idle_seconds, combined=True)

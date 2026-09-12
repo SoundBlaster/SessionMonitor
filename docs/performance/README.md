@@ -69,7 +69,9 @@ or detailed audit as CI artifacts.
 `make test-cli` runs `scripts/tests/performance-smoke.py` against a tiny synthetic
 corpus. It executes the same harness, validates native measurements, audit and
 incremental/full parity, and verifies the original input is unchanged. Its short
-idle window is a correctness smoke test, not a performance result. Real archive
+idle window is a correctness smoke test, not a performance result. The smoke runs
+the harness with optimized Python and verifies that intentionally corrupted I/O metrics
+are rejected without publishing a successful baseline. Runtime checks remain active under `-O`. Real archive
 measurements are explicit local runs and never an automatic CI input.
 
 ## Current correctness boundary
