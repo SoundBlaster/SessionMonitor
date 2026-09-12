@@ -9,6 +9,7 @@ public actor SessionWatch {
     private let continuation: AsyncStream<WatchStatus>.Continuation
     private let source: any FileEventSource
     private let importer: @Sendable () async throws -> ImportSummary
+    private let lease: ImportLock?
     private let options: WatchOptions
     private var retryDelay: Duration
     private var worker: Task<Void, Never>?
@@ -22,9 +23,10 @@ public actor SessionWatch {
     private var closed = false
     private var stopWaiters: [CheckedContinuation<Void, Never>] = []
 
-    init(source: any FileEventSource, options: WatchOptions,
+    init(source: any FileEventSource, options: WatchOptions, lease: ImportLock? = nil,
          importer: @escaping @Sendable () async throws -> ImportSummary) throws {
         try options.validate()
+        self.lease = lease
         self.source = source
         self.options = options
         self.importer = importer
@@ -70,6 +72,7 @@ public actor SessionWatch {
         worker?.cancel()
         await worker?.value
         worker = nil
+        lease?.release()
         closed = true
         publish(.stopped)
         continuation.finish()
@@ -187,6 +190,12 @@ public actor SessionWatch {
         timer?.cancel()
         worker?.cancel()
         source.stop()
+        let worker = worker
+        let lease = lease
+        Task {
+            await worker?.value
+            lease?.release()
+        }
         continuation.finish()
     }
 }

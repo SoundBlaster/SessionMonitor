@@ -11,6 +11,7 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 - GRDB/SQLite: records, diagnostics и checkpoint фиксируются одной транзакцией; WAL и один importer на БД.
 - CLI `import` и `report`: text/JSON, период `[since, until)`, общие и посессионные суммы.
 - CLI `watch`: native FSEvents, bounded debounce, retry/reconciliation и pause/resume/stop.
+- Versioned `snapshot` / `snapshot --follow`: общие query metadata и live updates в GUI от external commits.
 - Input/cache/output и optional cache-write/reasoning/total counters. Unknown не превращается в ноль.
 - SpecificationCore для coverage policy; SpecificationKit `@ObservedSatisfies` в GUI.
 - Native split navigation, фильтр по session ID/model, inspector и независимое состояние окон.
@@ -22,7 +23,7 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 `xcode-tools` через XcodeMCPWrapper broker. Проверены 43 доступных tools и успешные
 `XcodeListWindows`, `XcodeListSchemes`, `GetTestList`. Выбирать workspace tab и scheme
 перед `BuildProject`, `RunProject`, `RunAllTests` и debugger operations.
-`SessionMonitor-Package` — Swift package с 44 core tests; GUI и 6 GUI/model tests
+`SessionMonitor-Package` — Swift package с 52 core tests; GUI и 8 GUI/model tests
 находятся в `Apps/MonitorMac/MonitorMac.xcodeproj`, схема `MonitorMac`.
 XcodeBuildMCP CLI остаётся дополнительным build path; это отдельный инструмент.
 
@@ -31,10 +32,10 @@ XcodeBuildMCP CLI остаётся дополнительным build path; эт
 Runtime dependencies разрешаются через SwiftPM; локальная compatibility dependency описана ниже.
 
 ```sh
-make check-core           # Swift CLI build, SwiftLint, 44 core tests и CLI process smoke
+make check-core           # Swift CLI build, SwiftLint, 52 core tests и CLI process smoke
 make test-cli             # CLI signals/backpressure smoke после build-cli; Python 3 standard library
 make build-mcp            # GUI build через XcodeBuildMCP CLI
-make test-macos           # xcodebuild + 6 GUI/model tests
+make test-macos           # xcodebuild + 8 GUI/model tests
 make lint-architecture    # FSD strict architecture gate
 make check                # Полный последовательный набор локальных проверок
 make ci                   # Те же native gates, locked packages и ad-hoc signing
@@ -62,6 +63,7 @@ swift run codex-monitor import ~/.codex/sessions --rescan  # Принудите�
 swift run codex-monitor watch ~/.codex/sessions
 swift run codex-monitor report --since 2026-09-05T05:27:20Z --until 2026-09-12T05:27:20Z
 swift run codex-monitor report --json
+swift run codex-monitor snapshot --follow --time-zone Europe/Moscow
 open .build/xcode/Build/Products/Debug/SessionMonitor.app
 ```
 
@@ -102,19 +104,56 @@ Dropped/coalesced events также вызывают reconciliation, без пр
 вывода не более 250 ms после остановки watcher; последние status lines могут быть отброшены.
 
 Root должен существовать при запуске. Наблюдение за его parent позволяет заметить
-rename/delete/recreate; недоступность root, занятый importer или меняющийся во время
+rename/delete/recreate; недоступность root или меняющийся во время
 чтения файл дают явный `recovering` и повтор с backoff 1 → 2 → … → 30 s.
-БД должна оставаться доступной при перемещении sources. Её файлы, WAL/SHM и import lock
+БД должна оставаться доступной при перемещении sources. Её файлы, WAL/SHM, import/setup locks
 исключены из discovery и обычных событий, даже если БД названа `usage.jsonl`.
 Hidden entries и неподдерживаемые файлы не вызывают обычный refresh.
 
 Swift API: `try await monitor.watch(directory)` возвращает `SessionWatch` с
 `updates` (один consumer, latest status), `status`, `pause()`, `resume()` и `stop()`.
 Владелец обязан вызвать `await stop()` либо ожидать `waitUntilStopped()` в задаче,
-чья отмена остановит watcher. Query observation между CLI/GUI и единственный
-watch owner на весь срок процесса относятся к SM-104; текущий lock защищает каждый import.
+чья отмена остановит watcher. Watch удерживает DB lock всё время, включая pause/recovery;
+второй watch или одноразовый import получает `importerBusy`. Читатели продолжают работать.
+Lock освобождается после завершения importer, а при аварии/SIGKILL — операционной системой.
+Symlink к БД не создаёт отдельного владельца; lock files не удаляются при release.
+
+## Observable snapshots
+
+`codex-monitor snapshot` выводит один JSON object, `snapshot --follow` — initial snapshot
+и последующие изменения как JSON lines. Команда только читает index и не запускает importer.
+Доступны `--since`, `--until`, `--time-zone` и `--database`; период остаётся абсолютным
+`[since, until)`, timezone служит presentation metadata. `report --json` сохраняет прежний формат.
+
+Контракт schema version 1 содержит `query`, `report`, `coverage` и `watermark`.
+Coverage различает empty/partial/complete cache fields у canonical requests; это не
+оценка полноты всего архива. Diagnostics относятся ко всем импортированным sources.
+Watermark содержит database UUID, монотонный commit revision и optional committed-at.
+Он обновляется атомарно с каждым изменённым source snapshot/checkpoint, включая diagnostics;
+unchanged imports его не продвигают. У мигрированной БД revision начинается с 0 и дата неизвестна,
+даже если прежние records уже есть. Source timestamps не используются как commit time.
+
+GUI и Swift API `monitor.snapshots(query:)` используют тот же контракт: SQLite/GRDB
+раз в секунду читает только marker, а полный отчёт вычисляет при изменении. Все поля
+snapshot читаются в одной транзакции. Это также видит commits других CLI/GUI процессов:
+обычный GRDB ValueObservation сам по себе external writes не наблюдает. Stream хранит
+последнее значение, может объединять промежуточные commits и прекращает работу при отмене
+consumer task. Окна GUI владеют своими tasks; фильтр и selection сохраняются при обновлениях.
+
+Watermark относится к committed index, а не к завершению полного directory scan или
+свежести raw logs. Прямые SQL writes без marker не входят в поддерживаемый write API.
+Замена файла самой БД требует закрыть и вновь открыть runtime; открытая SQLite connection
+продолжает обращаться к своему файлу. Ошибка observation оставляет предыдущий GUI report
+видимым и сообщается пользователю; повторное открытие окна создаёт новый stream.
 
 ## Проверка результата
+
+SM-104: 52 core tests проверяют versioned snapshot, atomic watermark/report, coverage,
+rollback и importer ownership; process harness — external writes, concurrent migrations,
+idle suppression, symlink и SIGKILL recovery. 8 app/model tests включают GUI observation
+записи отдельного процесса. Исправлена повторная линковка static packages в hosted tests
+(SM-705), которая вызывала crash GRDB. Evidence: `.build/sm104-ci-review.log`.
+
 
 SM-103: полный `make ci` прошёл — 44 core tests, 6 app/model tests, builds,
 SwiftLint/FSD positive+negative, locked dependencies и CLI process smoke.

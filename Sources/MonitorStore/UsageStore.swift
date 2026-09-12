@@ -5,13 +5,21 @@ import MonitorCore
 
 public final class UsageStore: Sendable {
     private let database: DatabaseQueue
+    public let databaseURL: URL
 
     public init(url: URL) throws {
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let url = try DatabaseSetupLock.prepareDatabaseURL(url)
+        databaseURL = url
+        let setup = try DatabaseSetupLock(url: url.appendingPathExtension("setup-lock"))
+        defer { setup.release() }
         var configuration = Configuration()
         configuration.busyMode = .timeout(5)
         database = try DatabaseQueue(path: url.path, configuration: configuration)
         try database.writeWithoutTransaction { try $0.execute(sql: "PRAGMA journal_mode=WAL") }
+        try Self.migrator().migrate(database)
+    }
+
+    private static func migrator() -> DatabaseMigrator {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("canonical-v1") { database in
             try database.execute(sql: """
@@ -45,7 +53,18 @@ public final class UsageStore: Sendable {
                 )
                 """)
         }
-        try migrator.migrate(database)
+        migrator.registerMigration("query-watermark-v1") { database in
+            try database.execute(sql: """
+                CREATE TABLE query_watermark (
+                    singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+                    database_id TEXT NOT NULL, revision INTEGER NOT NULL,
+                    committed_at REAL
+                )
+                """)
+            try database.execute(sql: "INSERT INTO query_watermark VALUES (1, ?, 0, NULL)",
+                                 arguments: [UUID().uuidString])
+        }
+        return migrator
     }
 
     /// Replaces one complete source snapshot atomically; duplicate IDs remain globally idempotent.
@@ -54,6 +73,7 @@ public final class UsageStore: Sendable {
             try Self.clear(source: source, database: database)
             try Self.insert(rollout, source: source, database: database)
             try database.execute(sql: "DELETE FROM source_checkpoints WHERE source = ?", arguments: [source])
+            try Self.advanceWatermark(database)
         }
     }
 
@@ -80,6 +100,7 @@ public final class UsageStore: Sendable {
                 INSERT INTO source_checkpoints VALUES (?, ?)
                 ON CONFLICT(source) DO UPDATE SET checkpoint = excluded.checkpoint
                 """, arguments: [source, update.checkpoint])
+            try Self.advanceWatermark(database)
         }
     }
 
@@ -114,24 +135,48 @@ public final class UsageStore: Sendable {
     }
 
     public func report(since: Date?, until: Date?) throws -> UsageReport {
+        try database.read { try Self.report($0, since: since, until: until) }
+    }
+
+    /// Watermark and all report queries share one SQLite read transaction.
+    /// A previous watermark must come from this same query; changed queries require an initial fetch.
+    public func snapshot(query: UsageQuery, after previous: QueryWatermark? = nil) throws -> UsageSnapshot? {
         try database.read { database in
-            let predicate = "(? IS NULL OR timestamp >= ?) AND (? IS NULL OR timestamp < ?)"
-            let start = since?.timeIntervalSince1970
-            let end = until?.timeIntervalSince1970
-            let arguments: StatementArguments = [start, start, end, end]
-            let totalsRow = try Row.fetchOne(database, sql: """
-                SELECT \(Self.aggregates) FROM confirmed WHERE \(predicate)
-                """, arguments: arguments)
-            let sessions = try Row.fetchAll(database, sql: """
-                SELECT session, CASE WHEN COUNT(DISTINCT model) = 1 THEN MIN(model) ELSE 'mixed' END AS model,
-                \(Self.aggregates) FROM confirmed WHERE \(predicate)
-                GROUP BY session ORDER BY inputs DESC, session ASC
-                """, arguments: arguments).map { row in
-                    SessionSummary(id: row["session"], model: row["model"], totals: Self.totals(row))
-                }
-            return UsageReport(totals: totalsRow.map(Self.totals) ?? UsageTotals(),
-                               sessions: sessions, diagnostics: try Self.diagnostics(database))
+            guard let row = try Row.fetchOne(database, sql: "SELECT * FROM query_watermark WHERE singleton = 1") else {
+                throw DatabaseError(resultCode: .SQLITE_CORRUPT, message: "Missing query watermark")
+            }
+            let committed: Double? = row["committed_at"]
+            let watermark = QueryWatermark(databaseID: row["database_id"], revision: row["revision"],
+                                           committedAt: committed.map(Date.init(timeIntervalSince1970:)))
+            guard watermark != previous else { return nil }
+            return UsageSnapshot(query: query, watermark: watermark,
+                                 report: try Self.report(database, since: query.since, until: query.until))
         }
+    }
+
+    private static func advanceWatermark(_ database: Database) throws {
+        try database.execute(sql: """
+            UPDATE query_watermark SET revision = revision + 1, committed_at = ? WHERE singleton = 1
+            """, arguments: [Date().timeIntervalSince1970])
+    }
+
+    private static func report(_ database: Database, since: Date?, until: Date?) throws -> UsageReport {
+        let predicate = "(? IS NULL OR timestamp >= ?) AND (? IS NULL OR timestamp < ?)"
+        let start = since?.timeIntervalSince1970
+        let end = until?.timeIntervalSince1970
+        let arguments: StatementArguments = [start, start, end, end]
+        let totalsRow = try Row.fetchOne(database, sql: """
+            SELECT \(Self.aggregates) FROM confirmed WHERE \(predicate)
+            """, arguments: arguments)
+        let sessions = try Row.fetchAll(database, sql: """
+            SELECT session, CASE WHEN COUNT(DISTINCT model) = 1 THEN MIN(model) ELSE 'mixed' END AS model,
+            \(Self.aggregates) FROM confirmed WHERE \(predicate)
+            GROUP BY session ORDER BY inputs DESC, session ASC
+            """, arguments: arguments).map { row in
+                SessionSummary(id: row["session"], model: row["model"], totals: Self.totals(row))
+            }
+        return UsageReport(totals: totalsRow.map(Self.totals) ?? UsageTotals(),
+                           sessions: sessions, diagnostics: try Self.diagnostics(database))
     }
 
     private static let aggregates = """

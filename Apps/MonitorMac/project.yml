@@ -51,15 +51,11 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.soundblaster.SessionMonitor.Tests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SessionMonitor.app/Contents/MacOS/SessionMonitor"
         BUNDLE_LOADER: "$(TEST_HOST)"
+    # Hosted tests resolve package symbols from the app; relinking static packages
+    # duplicates GRDB's queue identity and causes runtime thread precondition failures.
     dependencies:
       - target: MonitorMac
-      - package: SessionMonitorCore
-        product: MonitorCore
-      - package: SessionMonitorCore
-        product: MonitorRuntime
-      - package: SessionMonitorCore
-        product: MonitorPolicies
-      - package: SpecificationKit
+
 schemes:
   MonitorMac:
     build:

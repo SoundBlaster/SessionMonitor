@@ -204,9 +204,39 @@ Runtime сериализует ingest внутри процесса, а межп
 SQLite transactions/WAL отвечают за согласованность и параллельное чтение.
 Один Swift actor не заменяет межпроцессный lock. GUI и CLI используют один
 настраиваемый store path и проверяют schema compatibility. При занятом importer
-CLI может читать существующий snapshot с watermark и сообщить, кто обновляет БД.
-Migrations тоже требуют исключительного владения; runtime не запускает их
-параллельно в нескольких clients.
+CLI читает существующий snapshot с watermark; попытка создать второго importer даёт
+`importerBusy`. SM-104 удерживает flock на весь lifecycle SessionWatch, включая pause
+и recovery. Внутренние imports используют этот lease; stop сначала join/cancel worker,
+затем release. Descriptor имеет close-on-exec, release идемпотентен, файл lock не удаляется.
+Перед выбором sidecar lock файл БД открывается с O_CREAT без truncation, затем
+канонизируется realpath. Это учитывает и dangling symlink при первом запуске.
+WAL setup и migrations сериализованы отдельным коротким setup lock: новый reader может
+открыть БД при работающем watch. После process death ОС освобождает оба flock.
+
+SM-104 предоставляет Codable `UsageQuery` / `UsageSnapshot` в MonitorCore и общий runtime
+API `snapshot(query:)` / `snapshots(query:)`. Schema version 1 включает absolute half-open
+period, timezone identifier, canonical report, cache coverage (empty/partial/complete)
+и `QueryWatermark` (database UUID, revision, optional committed-at). Diagnostics имеют
+all-imported-sources scope. Revision продвигается в transaction records/diagnostics/checkpoint,
+в том числе при historical correction; unchanged source не продвигает revision.
+Миграция existing index даёт revision 0 без выдуманного timestamp. Report и marker читаются
+в одной GRDB DatabaseQueue.read transaction. Marker показывает commit index, не scan completion.
+
+GRDB 7.11.1 ValueObservation не отслеживает external processes (pinned документация:
+`GRDB/Documentation.docc/DatabaseSharing.md`, раздел Cross-Process Database Observation).
+Поэтому каждый consumer проверяет одну metadata row раз в секунду и только при новом
+marker вычисляет агрегаты. Это bounded native polling без raw log reads; промежуточные
+commits могут объединяться, AsyncThrowingStream хранит последнее значение. Cancellation
+останавливает task; errors завершают stream с сохранением последнего GUI report. GUI window
+владеет observation через SwiftUI .task; обновление проходит через тот же SpecificationKit
+provider с сохранением фильтра и reconciliation selection. SQL writes вне UsageStore без
+marker не поддерживаются. Замена SQLite-файла требует reopen runtime; это не source rotation.
+CLI `snapshot --follow` использует тот же stream и не приобретает importer lease.
+
+Verification SM-104: contract/atomic-read tests используют независимые GRDB connections;
+process smoke проверяет external commits, idle suppression, concurrent first migrations,
+watch contention/paused ownership, symlink alias и SIGKILL recovery. GUI test читает commit
+от отдельного SQLite process; production marker publication проверяется CLI harness.
 
 FSEvents служит уведомлением о возможных изменениях. Debounce объединяет bursts,
 затем importer проверяет file identity/size и читает новые bytes. При lost events,

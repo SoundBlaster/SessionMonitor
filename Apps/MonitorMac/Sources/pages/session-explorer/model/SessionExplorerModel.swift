@@ -5,7 +5,8 @@ import Observation
 
 protocol SessionExplorerRuntime: Sendable {
     func importDirectory(_ directory: URL) async throws -> ImportSummary
-    func report(since: Date?, until: Date?) async throws -> UsageReport
+    func snapshot(query: UsageQuery) async throws -> UsageSnapshot
+    func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error>
 }
 
 extension MonitorRuntime.SessionMonitor: SessionExplorerRuntime {}
@@ -19,6 +20,7 @@ final class SessionExplorerModel {
         case importing
     }
 
+    private(set) var snapshot: UsageSnapshot?
     private(set) var report: UsageReport
     private(set) var activity: Activity = .idle
     private(set) var errorMessage: String?
@@ -73,6 +75,23 @@ final class SessionExplorerModel {
         await refresh()
     }
 
+    /// Owned by the window task; closing the window cancels the underlying observation.
+    func observe() async {
+        do {
+            let runtime = try await resolvedRuntime()
+            let stream = await runtime.snapshots(query: try UsageQuery())
+            for try await snapshot in stream {
+                guard !Task.isCancelled else { return }
+                apply(snapshot)
+            }
+        } catch is CancellationError {
+            // Window lifetime ended.
+        } catch {
+            guard !Task.isCancelled else { return }
+            errorMessage = "Could not observe the report. \(error.localizedDescription)"
+        }
+    }
+
     func refresh() async {
         guard !isBusy else { return }
         activity = .loading
@@ -80,8 +99,8 @@ final class SessionExplorerModel {
         defer { activity = .idle }
         do {
             let runtime = try await resolvedRuntime()
-            let report = try await runtime.report(since: nil, until: nil)
-            apply(report)
+            let snapshot = try await runtime.snapshot(query: UsageQuery())
+            apply(snapshot)
         } catch {
             errorMessage = "Could not load the report. \(error.localizedDescription)"
         }
@@ -100,10 +119,10 @@ final class SessionExplorerModel {
         do {
             let runtime = try await resolvedRuntime()
             let summary = try await runtime.importDirectory(directory)
-            let report = try await runtime.report(since: nil, until: nil)
+            let snapshot = try await runtime.snapshot(query: UsageQuery())
             importSummary = summary
             importedDirectory = directory
-            apply(report)
+            apply(snapshot)
         } catch {
             errorMessage = "Could not import \(directory.lastPathComponent). \(error.localizedDescription)"
         }
@@ -120,10 +139,13 @@ final class SessionExplorerModel {
         return runtime
     }
 
-    private func apply(_ newReport: UsageReport) {
-        report = newReport
+    private func apply(_ newSnapshot: UsageSnapshot) {
+        if let snapshot, snapshot.watermark.databaseID == newSnapshot.watermark.databaseID,
+           snapshot.watermark.revision >= newSnapshot.watermark.revision { return }
+        snapshot = newSnapshot
+        report = newSnapshot.report
         navigation.reconcile(with: visibleSessions)
-        lastUpdated = Date()
+        lastUpdated = newSnapshot.watermark.committedAt
         publishSnapshot()
     }
 

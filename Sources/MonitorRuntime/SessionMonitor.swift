@@ -12,12 +12,12 @@ public actor SessionMonitor {
         return URL.applicationSupportDirectory.appending(path: "SessionMonitor/usage.sqlite")
     }
 
-    private let store: UsageStore
+    let store: UsageStore
     private let databaseURL: URL
 
     public init(databaseURL: URL = SessionMonitor.defaultDatabaseURL) throws {
-        self.databaseURL = databaseURL
         store = try UsageStore(url: databaseURL)
+        self.databaseURL = store.databaseURL
     }
 
     /// Each changed source commits its records and checkpoint together; unchanged bodies are not read.
@@ -29,10 +29,12 @@ public actor SessionMonitor {
         try importSources(directory, rescan: rescan, directoryOnly: false)
     }
 
-    private func importSources(_ directory: URL, rescan: Bool, directoryOnly: Bool) throws -> ImportSummary {
+    private func importSources(
+        _ directory: URL, rescan: Bool, directoryOnly: Bool, ownsLease: Bool = false
+    ) throws -> ImportSummary {
         try Task.checkCancellation()
-        let lock = try ImportLock(url: databaseURL.appendingPathExtension("import-lock"))
-        defer { lock.release() }
+        let lock = try ownsLease ? nil : ImportLock(url: databaseURL.appendingPathExtension("import-lock"))
+        defer { lock?.release() }
         let paths = try sourceFiles(directory, directoryOnly: directoryOnly)
         var records = 0
         var diagnostics: [String: Int64] = [:]
@@ -69,11 +71,15 @@ public actor SessionMonitor {
         guard try root.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true else {
             throw WatchError.directoryRequired
         }
+        let lease = try ImportLock(url: databaseURL.appendingPathExtension("import-lock"))
         let source = FSEventsSource(root: root, excludedPaths: databaseSourcePaths)
-        let watch = try SessionWatch(source: source, options: options) {
-            try await self.importSources(root, rescan: false, directoryOnly: true)
+        let watch = try SessionWatch(source: source, options: options, lease: lease) {
+            try await self.importSources(root, rescan: false, directoryOnly: true, ownsLease: true)
         }
-        try await watch.start()
+        do { try await watch.start() } catch {
+            await watch.stop()
+            throw error
+        }
         if Task.isCancelled {
             await watch.stop()
             throw CancellationError()
@@ -115,7 +121,7 @@ public actor SessionMonitor {
 
     private var databaseSourcePaths: Set<String> {
         let path = databaseURL.resolvingSymlinksInPath().standardizedFileURL.path
-        return [path, path + "-wal", path + "-shm", path + ".import-lock"]
+        return [path, path + "-wal", path + "-shm", path + ".import-lock", path + ".setup-lock"]
     }
 }
 
@@ -130,23 +136,5 @@ public enum MonitorError: Error, LocalizedError {
         case .notDirectory: "Choose an accessible JSONL file or directory."
         case .invalidDateRange: "The start date must precede the end date."
         }
-    }
-}
-
-private final class ImportLock {
-    private let descriptor: Int32
-
-    init(url: URL) throws {
-        descriptor = open(url.path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
-        guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
-        guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else {
-            close(descriptor)
-            throw MonitorError.importerBusy
-        }
-    }
-
-    func release() {
-        flock(descriptor, LOCK_UN)
-        close(descriptor)
     }
 }
