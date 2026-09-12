@@ -167,6 +167,8 @@ cached input не прибавляется к input повторно. Время
 Watch пока не управляется из GUI; состояние внешнего CLI-watch неизвестно и так
 обозначено в панели. Действия, настройки и полный lifecycle относятся к SM-202.
 Bundle IDs: `ru.egormerkushev.SessionMonitor` и `ru.egormerkushev.SessionMonitor.Tests`.
+Видимое product name и заголовок окна — `SessionMonitor`; `Session Explorer` — название
+функциональной области, а `MonitorMac` используется только для Xcode project/target/scheme.
 
 ## Performance baseline
 

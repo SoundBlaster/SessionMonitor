@@ -20,7 +20,7 @@ struct SessionExplorerPage: View {
                     emptyDetail
                 }
             }
-            .navigationTitle(model.selectedSession?.model ?? "Session Explorer")
+            .navigationTitle("SessionMonitor")
             .navigationSubtitle("Canonical usage")
         }
         .toolbar {
