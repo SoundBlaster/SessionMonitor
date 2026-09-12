@@ -25,7 +25,8 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
 merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
 **SM-202 доставлена через [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10),
 merge `3f13b93` (2026-09-12).**
-**SM-301 реализована и проверена; доставка идёт через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13). Следующая задача после merge — SM-302.**
+**SM-301 доставлена через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13),
+merge `ec64cd8`. Активная задача: SM-302 — названия сессий, provenance и дерево; статус: в работе.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
@@ -225,7 +226,7 @@ merge `3f13b93` (2026-09-12).**
   пересчитывает relative period в следующую полночь выбранной зоны без polling и открытого окна.
   Sidebar search остаётся
   presentation-only filter и явно так обозначен.
-  Проверено: `make check` passed — core/CLI process tests, 32 GUI tests, signed Xcode build,
+  Проверено: `make check` passed — core/CLI process tests, 33 GUI tests, signed Xcode build,
   SwiftLint и FSD gates. Live pass на реальном archive подтвердил persistence,
   полный popover и смену Today UTC (3 sessions / 1,718 requests / 243,404,024 input)
   на Europe/Moscow (8 / 2,001 / 279,495,889) с обеими полуночными границами.
@@ -233,6 +234,7 @@ merge `3f13b93` (2026-09-12).**
   Готово, когда одна выборка даёт одинаковые суммы и coverage во всех интерфейсах,
   а export JSON сохраняет период, фильтры и watermark.
 - [ ] **SM-302** — Названия сессий, provenance и дерево parent/subagent/fork.
+  Статус: в работе (2026-09-12), ветка `feat/sm-302-session-provenance`.
   Сохранять наблюдаемые model/harness/version/effort; неизвестное явно помечать.
   Готово, когда дерево основано на source evidence и не меняет общий accounting total.
 - [ ] **SM-303** — Request timeline на Swift Charts и переход к evidence.
