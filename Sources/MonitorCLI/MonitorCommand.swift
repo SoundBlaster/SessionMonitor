@@ -25,16 +25,18 @@ struct DatabaseOptions: ParsableArguments {
 extension MonitorCommand {
     struct Import: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
-            abstract: "Rescan JSONL files and atomically replace each source."
+            abstract: "Incrementally import JSONL files with atomic checkpoints."
         )
         @OptionGroup var options: DatabaseOptions
         @Argument(help: "A JSONL file or directory, recursively scanned. The source is read only.")
         var path: String
+        @Flag(help: "Rebuild selected sources from the beginning, ignoring saved checkpoints.")
+        var rescan = false
 
         mutating func run() async throws {
             let runtime = try options.runtime()
             let source = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
-            let summary = try await runtime.importDirectory(source)
+            let summary = try await runtime.importDirectory(source, rescan: rescan)
             try printJSON(summary)
         }
     }

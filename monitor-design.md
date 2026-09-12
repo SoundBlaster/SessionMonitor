@@ -175,6 +175,20 @@ Token counts хранятся целыми Int64 с проверкой неко�
 проценты вычисляются при формировании отчёта. DTO для передачи между задачами
 проектируются как Sendable value types.
 
+Реализация SM-101 хранит versioned checkpoint: identity открытого файла
+(device/inode/birth time), size, mtime/ctime, byte offset последнего newline,
+абсолютный номер строки, SHA256 завершённого префикса и нормализованный ownership/model
+context. Неполная строка остаётся в source; её содержимое в checkpoint не копируется.
+При неизменных метаданных body не читается. Для изменённого файла прежний префикс
+пока перечитывается для проверки digest, затем decoder продолжает с durable offset.
+Это incremental decoding, но ещё не delta-only I/O для растущих файлов (SM-105).
+Несовместимый checkpoint, truncation, новая identity или изменённый prefix дают rescan.
+Проверки descriptor metadata до и после чтения отклоняют изменившийся snapshot.
+GRDB transaction одновременно сохраняет записи, diagnostics и новый checkpoint;
+compare-and-swap по прежнему blob не позволяет stale batch затереть более новый.
+`partialTails` — текущее состояние хвоста, остальные source diagnostics на append
+накапливаются. `--rescan` принудительно пересобирает выбранные source snapshots.
+
 Runtime сериализует ingest внутри процесса, а межпроцессный lock на конкретное
 хранилище разрешает только одному importer/watch одновременно менять index.
 SQLite transactions/WAL отвечают за согласованность и параллельное чтение.

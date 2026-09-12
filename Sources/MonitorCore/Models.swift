@@ -59,11 +59,13 @@ public struct ImportSummary: Codable, Equatable, Sendable {
     public let files: Int
     public let records: Int
     public let diagnostics: [String: Int64]
+    public let ioMetrics: ImportIO
 
-    public init(files: Int, records: Int, diagnostics: [String: Int64]) {
+    public init(files: Int, records: Int, diagnostics: [String: Int64], ioMetrics: ImportIO = ImportIO()) {
         self.files = files
         self.records = records
         self.diagnostics = diagnostics
+        self.ioMetrics = ioMetrics
     }
 }
 

@@ -6,13 +6,16 @@
 
 ## Текущая точка
 
-Первая версия CLI + GUI реализована и проверена. Импорт пока перечитывает выбранные
-файлы целиком; watch, menu bar, WidgetKit, TUI и адаптация ещё не реализованы.
+Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
+неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
+Для проверки изменённого файла пока перечитывается старый prefix; watch, menu bar,
+WidgetKit, TUI и адаптация ещё не реализованы.
 GitHub repository подключён; `main` отслеживает `origin/main`.
 Первый commit с реализацией создан (SM-702).
-SM-704 реализована в [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1);
-первый GitHub CI прошёл, ruleset для `main` включён. Доставка CI workflow в `main` ожидает merge PR.
-**Следующая задача: SM-101 — persistent incremental checkpoints, после merge PR #1.**
+SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1), merge `de7e328`;
+GitHub CI и ruleset для `main` включены.
+**Текущая доставка: SM-101 реализована и проверена локально; подготовка PR.**
+**Следующая задача: SM-102 — восстановление импорта при изменениях файлов.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -68,9 +71,16 @@ SM-704 реализована в [PR #1](https://github.com/SoundBlaster/Session
 
 ## 1. Incremental import и watch
 
-- [ ] **SM-101** — Хранить offsets и необходимое состояние decoder вместе с импортированными событиями.
-  Готово, когда повторный import неизменённого файла не перечитывает его тело,
-  append учитывается один раз, partial tail сохраняется, а restart/crash не рассогласует данные и checkpoint.
+- [x] **SM-101** — Хранить offsets и необходимое состояние decoder вместе с импортированными событиями.
+  Готово 2026-09-12: versioned checkpoints, atomic records/diagnostics/progress commit,
+  restart и partial-tail recovery, stale-writer rejection, `--rescan`, CLI I/O metrics.
+  Проверено: `make check-core` — 25 tests/SwiftLint; app build и 6 app/model tests;
+  [fixtures](Tests/SessionMonitorTests/IncrementalImportTests.swift) покрывают rollback,
+  append, UTF-8/oversized tails, ownership и изменившийся snapshot.
+  На копии прежней БД: миграция 155 sources, повторный import — 155 skipped/0 bytes,
+  точная parity недельного audit. [Локальное evidence](.build/sm101-verification.json).
+  Ограничение: изменённый prefix проверяется полным SHA256 read (оптимизация — SM-105).
+  Стадия доставки: ветка `feat/sm-101-incremental-checkpoints`, подготовка PR; ещё не в `main`.
 - [ ] **SM-102** — Восстанавливать импорт при rotation, truncation и замене файла.
   Зависит от SM-101. Готово, когда смена identity/содержимого вызывает нужный rescan,
   а переименование или повторная доставка canonical records не удваивают суммы.
@@ -172,13 +182,13 @@ SM-704 реализована в [PR #1](https://github.com/SoundBlaster/Session
   Apple Development build сам по себе не подтверждает distribution readiness.
 - [x] **SM-704** — Настроить GitHub CI и обязательный PR workflow до следующих feature tasks.
   Готово 2026-09-12: [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1),
-  [успешный CI run](https://github.com/SoundBlaster/SessionMonitor/actions/runs/34689399991)
-  на `8eec9fc`: Workflow lint/ShellCheck, CLI/app builds, SwiftLint/FSD positive+negative,
+  [успешный CI run](https://github.com/SoundBlaster/SessionMonitor/actions/runs/34689690547)
+  на `10f58a5`: Workflow lint/ShellCheck, CLI/app builds, SwiftLint/FSD positive+negative,
   12 core и 6 app/model tests, locked packages и ad-hoc signing. Локальный `make ci` также прошёл.
   [Ruleset 23038107](https://github.com/SoundBlaster/SessionMonitor/rules/23038107) включён
   и проверен через API: PR + required `CI` от GitHub Actions, strict checks, no bypass,
   запрет удаления/force push. Workflow и правила адаптированы из FSD и зафиксированы в AGENTS/CONTRIBUTING.
-  Стадия доставки: PR открыт; актуальный required check проверяется перед merge.
+  Стадия доставки: PR #1 merged 2026-09-12, commit `de7e328`, после зелёного required CI.
 
 ## Evidence и границы
 
