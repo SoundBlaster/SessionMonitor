@@ -81,6 +81,44 @@ final class ReportScopeTests: XCTestCase {
         }
     }
 
+    func testRelativePeriodRefreshesAtScheduledBoundary() async {
+        let suite = "ReportScopeTests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suite) else {
+            XCTFail("Could not create isolated UserDefaults")
+            return
+        }
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        var now = date("2025-09-13T20:59:00Z")
+        var scheduledBoundaries: [Date] = []
+        let model = ReportScopeModel(
+            defaults: defaults,
+            currentTimeZone: requiredTimeZone("Europe/Moscow"),
+            now: { now },
+            sleepUntil: { boundary in
+                scheduledBoundaries.append(boundary)
+                if scheduledBoundaries.count == 1 {
+                    now = boundary.addingTimeInterval(1)
+                    return
+                }
+                try await Task.sleep(for: .seconds(60))
+            }
+        )
+        model.selectTimeZone("Europe/Moscow")
+        model.selectPreset(.today)
+
+        for _ in 0..<50 where scheduledBoundaries.last != date("2025-09-14T21:00:00Z") {
+            await Task.yield()
+        }
+
+        XCTAssertEqual(scheduledBoundaries.first, date("2025-09-13T21:00:00Z"))
+        XCTAssertEqual(model.query.since, date("2025-09-13T21:00:00Z"))
+        XCTAssertEqual(model.query.until, date("2025-09-14T21:00:00Z"))
+        XCTAssertEqual(scheduledBoundaries.last, date("2025-09-14T21:00:00Z"))
+        model.selectPreset(.all)
+    }
+
     private func withDefaults(_ body: (UserDefaults) -> Void) {
         let suite = "ReportScopeTests.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suite) else {

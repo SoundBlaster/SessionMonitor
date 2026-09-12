@@ -27,14 +27,21 @@ final class ReportScopeModel {
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let now: @MainActor () -> Date
+    @ObservationIgnored private let sleepUntil: @MainActor (Date) async throws -> Void
+    @ObservationIgnored private var boundaryRefreshTask: Task<Void, Never>?
 
     init(
         defaults: UserDefaults = .standard,
         currentTimeZone: TimeZone = .current,
-        now: @escaping @MainActor () -> Date = Date.init
+        now: @escaping @MainActor () -> Date = Date.init,
+        sleepUntil: @escaping @MainActor (Date) async throws -> Void = { boundary in
+            let delay = boundary.timeIntervalSinceNow
+            if delay > 0 { try await Task.sleep(for: .seconds(delay)) }
+        }
     ) {
         self.defaults = defaults
         self.now = now
+        self.sleepUntil = sleepUntil
         let identifiers = ["UTC", currentTimeZone.identifier]
         timeZoneIdentifiers = identifiers.reduce(into: []) { result, identifier in
             if !result.contains(identifier) { result.append(identifier) }
@@ -47,6 +54,7 @@ final class ReportScopeModel {
         preset = restoredPreset
         timeZoneIdentifier = restoredTimeZone
         query = Self.makeQuery(preset: restoredPreset, timeZoneIdentifier: restoredTimeZone, now: now())
+        scheduleBoundaryRefresh()
     }
 
     var observationID: ObservationID {
@@ -83,7 +91,25 @@ final class ReportScopeModel {
     }
 
     private func resolveQuery() {
-        query = Self.makeQuery(preset: preset, timeZoneIdentifier: timeZoneIdentifier, now: now())
+        let resolved = Self.makeQuery(preset: preset, timeZoneIdentifier: timeZoneIdentifier, now: now())
+        if resolved != query { query = resolved }
+        scheduleBoundaryRefresh()
+    }
+
+    private func scheduleBoundaryRefresh() {
+        boundaryRefreshTask?.cancel()
+        boundaryRefreshTask = nil
+        guard preset != .all, let boundary = query.until else { return }
+        let sleepUntil = sleepUntil
+        boundaryRefreshTask = Task { [weak self] in
+            do {
+                try await sleepUntil(boundary)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled, let self, self.query.until == boundary else { return }
+            self.refreshRelativePeriod()
+        }
     }
 
     private static func makeQuery(
@@ -97,6 +123,8 @@ final class ReportScopeModel {
             preconditionFailure("ReportScopeModel produced an invalid query: \(error)")
         }
     }
+
+    deinit { boundaryRefreshTask?.cancel() }
 }
 
 extension UsagePeriodPreset {

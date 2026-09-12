@@ -221,7 +221,9 @@ merge `3f13b93` (2026-09-12).**
   Last 7 Days и Last 30 Days в UTC или текущей local timezone; calendar bounds учитывают DST,
   выбор сохраняется и применяется одновременно к окнам и menu bar. Одинаковые queries
   разделяют upstream observation, разные изолированы; смена query при том же watermark
-  заменяет totals и отвергает поздние события прежнего query. Sidebar search остаётся
+  заменяет totals и отвергает поздние события прежнего query. App-owned one-shot task
+  пересчитывает relative period в следующую полночь выбранной зоны без polling и открытого окна.
+  Sidebar search остаётся
   presentation-only filter и явно так обозначен.
   Проверено: `make check` passed — core/CLI process tests, 32 GUI tests, signed Xcode build,
   SwiftLint и FSD gates. Live pass на реальном archive подтвердил persistence,
