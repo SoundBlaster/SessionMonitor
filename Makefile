@@ -72,7 +72,7 @@ test-core: guard-package
 
 # check/check-core build the executable first; this harness exercises real process signals.
 test-cli: guard-package
-	python3 scripts/tests/watch-cli-smoke.py --binary "$$($(SWIFT) build --show-bin-path)/$(CLI_PRODUCT)"
+	python3 scripts/tests/watch-cli-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
 
 lint-core: lint-version
 	$(SWIFTLINT) lint --strict --force-exclude --config .swiftlint.yml Sources Tests
