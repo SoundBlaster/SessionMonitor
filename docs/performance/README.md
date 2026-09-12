@@ -92,3 +92,5 @@ for the supported append-only workload. The original run below predates this cha
 ## Recorded runs
 
 - [2026-09-12 — 155-file release baseline](2026-09-12.md)
+
+- [2026-09-12 - append-only release baseline](2026-09-12-append.md)

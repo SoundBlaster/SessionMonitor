@@ -18,7 +18,8 @@ SM-101 доставлена через [PR #2](https://github.com/SoundBlaster/S
 SM-102 доставлена через [PR #3](https://github.com/SoundBlaster/SessionMonitor/pull/3), merge `f366308`.
 SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/SessionMonitor/pull/4), merge `14d7be5`.
 **Последний реализованный пункт: SM-104 (включая SM-705), доставка — [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).**
-**Активная задача: SM-105 — в работе: delta-only append для растущего файла с той же identity.**
+**SM-105 реализована и проверена локально; доставка append-only оптимизации — PR/CI.**
+**Следующая задача: SM-201 — MenuBarExtra.**
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -129,8 +130,8 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   marker описывает index commit, не полноту scan. Замена файла БД требует reopen runtime.
   Доставка: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
   PR merged 2026-09-12, commit `79b4259`, после зелёного required CI на `281bd58`.
-- [ ] **SM-105** — Зафиксировать performance baseline на реальном архиве.
-  Статус: в работе (2026-09-12). По решению пользователя рост той же identity считается append-only;
+- [x] **SM-105** — Зафиксировать performance baseline на реальном архиве.
+  Выполнено и проверено локально (2026-09-12). По решению пользователя рост той же identity считается append-only;
   rewrite-plus-growth требует явного `--rescan`. [Baseline и методика](docs/performance/2026-09-12.md)
   доставлены через [PR #6](https://github.com/SoundBlaster/SessionMonitor/pull/6):
   release, 155 files / 1,271,886,559 bytes, три повторения.
@@ -142,8 +143,11 @@ SM-103 доставлена через [PR #4](https://github.com/SoundBlaster/S
   Исходный baseline: append 752 bytes читал 357,981,808 bytes для проверки prefix.
   Новая реализация: checkpoint v2, resume при росте; same-size change/shrink/replacement дают rescan.
   Rewrite-plus-growth вне автоматического recovery: `--rescan` восстанавливает snapshot.
-  Проверки и повторный real-archive baseline — в работе.
-  Local `make ci`: 52 core + 8 app/model tests и три process harnesses passed.
+  [Повторный baseline](docs/performance/2026-09-12-append.md): 155 files / 1,286,230,037 bytes.
+  Три append запуска читают ровно 752 bytes, median 0.02 s; unchanged — 0 bytes / 0.02 s.
+  Fresh median 6.13 s; audit 6,340 requests и полный rebuild совпадают.
+  Новый `make check-core`: 54 core tests, SwiftLint и три process harnesses passed.
+  Исторический `make ci` для PR #6: 52 core + 8 app/model tests и три process harnesses passed.
   PR #6 merged 2026-09-12, commit `2b48beb`; эти цифры относятся к прежней реализации.
   Измерить first/incremental import, bytes read, peak memory, размер БД и idle CPU.
   Готово, когда append-only обновление читает только хвост (включая прежнюю partial line),

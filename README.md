@@ -151,10 +151,9 @@ Watermark относится к committed index, а не к завершению
 
 ## Performance baseline
 
-[SM-105: результаты на реальном архиве](docs/performance/2026-09-12.md): 155 files / 1.18 GiB,
-median fresh import 12.47 s, unchanged 0.09 s / 0 bytes. Append 752 bytes занимает
-0.36 s и читает 357,981,808 bytes в исходном baseline до append-оптимизации.
-Текущий decoder использует append-only контракт, описанный выше; старые цифры не являются новым замером.
+[SM-105: результаты на реальном архиве](docs/performance/2026-09-12-append.md):
+155 files / 1,286,230,037 bytes, median fresh import 6.13 s, unchanged 0.02 s / 0 bytes.
+Append 752 bytes читает ровно 752 bytes, median 0.02 s; применяется append-only контракт выше.
 Audit parity: 6,340 requests и все шесть token totals. [Команда и методика](docs/performance/README.md).
 `make benchmark` использует отдельные копии/БД; в CI запускается только synthetic smoke.
 
