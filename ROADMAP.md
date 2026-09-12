@@ -232,9 +232,14 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
   Пороговые значения делать настраиваемыми или выводить из сопоставимого baseline/cohort, сохраняя
   evidence pointers, confidence, coverage/unknown reason и основание срабатывания; единичный дневной
   пример не становится hard-coded нормой.
-  Server usage snapshots показывать как отдельный вспомогательный ряд с `resetsAt`: delta процента
-  интерпретировать только внутри того же окна. При смене `resetsAt` обозначать discontinuity и не
-  приписывать разницу одному дню; без server snapshot значение остаётся unknown.
+  Production source для server usage snapshots — наблюдаемые usage-limit events в импортируемых
+  Codex rollouts. Версионированный source adapter сохраняет в SQLite event timestamp, limit/window ID,
+  duration, used percent, `resetsAt`, source/event identity и schema provenance; повторный импорт
+  дедуплицирует snapshot. Приложение не создаёт сетевой polling лимитов. Unsupported schema даёт
+  diagnostic и unknown coverage, а отсутствие такого события остаётся unknown.
+  Server usage snapshots показывать как отдельный вспомогательный ряд: delta процента интерпретировать
+  только внутри одного limit/window ID и `resetsAt`. При смене границы обозначать discontinuity и не
+  приписывать разницу одному дню.
   Готово, когда GUI и CLI объясняют аномалию до конкретных threads/models/tool events и временного
   участка, а fixtures покрывают: большой расход при высоком cache hit, один dominant thread,
   polling storm, первый request, compaction, обычное длительное ожидание с прогрессом, uncached spike,
@@ -243,6 +248,8 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
   277,0 млн cached, 9,53 млн uncached, 1,34 млн output, 96,67% cache hit, top-3 threads
   около 70%, model breakdown, 1 107 wait/polling, 857 shell и 10 `clock.sleep`; изменение server
   indicator 82% → 89% при смене `resetsAt` должно дать discontinuity, а не дневной расход 7 п.п.
+  Integration test прогоняет обезличенный production-captured rollout через обычный import, проверяет
+  provenance/dedup, сохранение после restart и одинаковый auxiliary series в CLI и GUI.
 
 ## 4. Системные macOS widgets
 
