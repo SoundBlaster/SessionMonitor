@@ -152,7 +152,7 @@ Watermark относится к committed index, а не к завершению
 
 ## Menu bar
 
-Значок SessionMonitor открывает компактную read-only панель: весь импортированный
+Значок SessionMonitor открывает компактную панель: весь импортированный
 период (UTC), input/output tokens, известный cached input, cache coverage и время
 последнего commit в индексе (локальное время). Unknown cache остаётся unknown;
 cached input не прибавляется к input повторно. Время индекса не доказывает свежесть logs.
@@ -164,8 +164,16 @@ cached input не прибавляется к input повторно. Время
 После ошибки сохраняется последний snapshot с предупреждением; повторное открытие
 панели повторяет подписку. Ошибки не подменяются нулевыми totals.
 
-Watch пока не управляется из GUI; состояние внешнего CLI-watch неизвестно и так
-обозначено в панели. Действия, настройки и полный lifecycle относятся к SM-202.
+**Watch Folder…** выбирает папку и явно запускает её import/watch. Панель показывает
+состояние этого watcher и предлагает Pause/Resume и Stop Watch. Внешний CLI-watch
+из GUI не управляется; занятый importer lock отображается как ошибка запуска.
+Pause сохраняет ownership индекса, поэтому ручной импорт в это время может вернуть
+ошибку занятого importer. **Refresh** только перечитывает snapshot, без import/rescan.
+
+**Open Window** открывает Session Explorer. **Settings…** позволяет скрыть или вернуть
+значок; эта настройка сохраняется. Закрытие окна и скрытие значка не останавливают
+watch. **Quit SessionMonitor**, включая стандартный Quit приложения, ожидает остановку
+watch и освобождение runtime. После повторного запуска watch нужно включить явно.
 Bundle IDs: `ru.egormerkushev.SessionMonitor` и `ru.egormerkushev.SessionMonitor.Tests`.
 Видимое product name и заголовок окна — `SessionMonitor`; `Session Explorer` — название
 функциональной области, а `MonitorMac` используется только для Xcode project/target/scheme.

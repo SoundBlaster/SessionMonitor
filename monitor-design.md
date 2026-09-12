@@ -387,9 +387,13 @@ SM-201 реализует read-only панель на UsageSnapshot. `SharedRepo
 и отменяет upstream после последней подписки. Навигация и SpecificationKit providers
 остаются per-window. Model панели получает только stream factory без import/watch API.
 Период сейчас All imported time / UTC; cache coverage берётся из общего query contract.
-Watch обозначен как unmanaged: внешний CLI watcher не публикует phase в БД.
+SM-202 добавляет app-owned `AppWatchController`: выбранная через NSOpenPanel папка
+запускается явно, один handle и один status consumer живут независимо от окон.
+Панель получает presentation и actions из app layer; внешний CLI watcher не публикует phase в БД.
 Свежесть показывается как время commit индекса, без вывода о свежести исходных logs.
-Следующее описание действий и lifecycle — целевой scope SM-202 и последующих задач.
+Refresh читает snapshot без импорта. Settings сохраняют видимость значка через AppStorage.
+App delegate перехватывает Quit и отвечает после shutdown, включая pending start.
+Следующие расширения метрик и routing остаются целевым scope последующих задач.
 
 SwiftUI `MenuBarExtra` дополняет существующее окно Session Explorer. Значок показывает
 состояние мониторинга; компактная панель содержит расход за выбранный период,
@@ -405,10 +409,10 @@ cache hit/coverage, время обновления и значимые findings
 watch с debounce; для этого не нужны LLM calls или частый таймер чтения logs.
 
 В `App` используется overload MenuBarExtra с `isInserted` binding рядом с WindowGroup.
-Видимость сохраняется как пользовательская настройка. Проверить lifecycle:
-закрытие основного окна сохраняет watch при включённом menu bar; удаление значка
-не закрывает открытые окна; Quit завершает работу и освобождает importer lock.
-Routing из панели открывает нужный период/сессию в основном GUI.
+Видимость сохраняется как пользовательская настройка. Закрытие основного окна
+сохраняет watch, в том числе при скрытом значке; удаление значка не закрывает окна.
+Quit завершает работу и освобождает importer lock. Open Window открывает Session Explorer;
+routing к выбранному периоду/сессии остаётся будущим расширением.
 
 ### Системные widgets
 

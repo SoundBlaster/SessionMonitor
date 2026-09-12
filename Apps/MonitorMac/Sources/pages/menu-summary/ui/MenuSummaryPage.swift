@@ -3,15 +3,21 @@ import SwiftUI
 
 struct MenuSummaryPage: View {
     let model: MenuSummaryModel
+    var watch = MenuWatchPresentation()
+    var actions: MenuSummaryActions?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("SessionMonitor", systemImage: "chart.bar.xaxis")
                 .font(.headline)
             VStack(alignment: .leading, spacing: 4) {
-                Label("Watch: not managed by this app", systemImage: "questionmark.circle")
-                Text("External watch status is unavailable.")
+                Label(watch.title, systemImage: watch.symbol)
+                Text(watch.directory ?? "No folder selected.")
                     .font(.caption).foregroundStyle(.secondary)
+                    .lineLimit(2).truncationMode(.middle)
+                if let error = watch.error {
+                    Text(error).font(.caption).foregroundStyle(.orange).lineLimit(4).help(error)
+                }
             }
             Divider()
             if let snapshot = model.snapshot {
@@ -26,16 +32,46 @@ struct MenuSummaryPage: View {
                 Label(error, systemImage: "exclamationmark.triangle")
                     .font(.caption)
                     .foregroundStyle(.orange)
+                    .lineLimit(4).help(error)
                 if model.snapshot != nil {
                     Text("Showing the last available report.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            if let actions { controls(actions) }
         }
         .padding(18)
         .frame(width: 340, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
         .task { await model.observe() }
+    }
+
+    private func controls(_ actions: MenuSummaryActions) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Divider()
+            HStack {
+                Button("Open Window", action: actions.openWindow)
+                Spacer()
+                Button("Refresh", systemImage: "arrow.clockwise", action: actions.refresh)
+                    .disabled(model.isRefreshing || watch.isBusy)
+            }
+            HStack {
+                if watch.isRunning {
+                    Button(watch.isPaused ? "Resume Watch" : "Pause Watch", action: actions.togglePause)
+                    Button("Stop Watch", action: actions.stopWatch)
+                } else {
+                    Button("Watch Folder…", systemImage: "folder", action: actions.startWatch)
+                }
+            }
+            .disabled(watch.isBusy)
+            HStack {
+                Button("Settings…", action: actions.openSettings)
+                Spacer()
+                Button("Quit SessionMonitor", action: actions.quit)
+            }
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
     }
 
     private func summary(_ snapshot: UsageSnapshot) -> some View {
@@ -45,7 +81,7 @@ struct MenuSummaryPage: View {
             if snapshot.report.totals.requests == 0 {
                 Text("No canonical usage yet")
                     .font(.headline)
-                Text("Import a rollout folder from the main window.")
+                Text("Choose Watch Folder… or import from the main window.")
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 LabeledContent("Requests", value: snapshot.report.totals.requests.formatted())
