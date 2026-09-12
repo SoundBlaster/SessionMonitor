@@ -126,6 +126,9 @@ harness запускает собранный Swift CLI на synthetic sources �
 SIGINT/SIGTERM, accounting и cleanup при полном stdout pipe. Отдельный `make test-cli`
 предполагает выполненный `make build-cli`. Snapshot harness дополнительно проверяет external
 commits, отсутствие idle emissions, concurrent migration, single-owner watch и SIGKILL recovery.
+Performance smoke проверяет benchmark harness на synthetic corpus: copy isolation, native
+metrics, audit и append/full parity. Реальный архив не используется в CI и не публикуется
+в artifacts; методика — [docs/performance](docs/performance/README.md).
 GUI tests включают SQLite writer в отдельном `/usr/bin/python3` process; Python не входит в app runtime.
 
 ## Реализация и reuse
