@@ -1,16 +1,32 @@
 import Foundation
+import MonitorCore
 import MonitorRuntime
 import SwiftUI
 
 @main
 struct SessionMonitorApp: App {
-    private let runtimeLoader = SessionMonitorRuntimeLoader()
+    private let runtimeLoader: SessionMonitorRuntimeLoader
+    @State private var menuModel: MenuSummaryModel
+    @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
+
+    init() {
+        let loader = SessionMonitorRuntimeLoader()
+        runtimeLoader = loader
+        _menuModel = State(initialValue: MenuSummaryModel {
+            let runtime = try await loader.load()
+            return await runtime.snapshots(query: try UsageQuery())
+        })
+    }
 
     var body: some Scene {
         WindowGroup("SessionMonitor") {
             SessionMonitorWindow(runtimeLoader: runtimeLoader)
         }
         .defaultSize(width: 1120, height: 760)
+        MenuBarExtra("SessionMonitor", systemImage: "chart.bar.xaxis", isInserted: $showMenuBarExtra) {
+            MenuSummaryPage(model: menuModel)
+        }
+        .menuBarExtraStyle(.window)
     }
 }
 
@@ -37,13 +53,14 @@ private struct SessionMonitorWindow: View {
 
 /// Database setup, like imports and queries, is performed away from MainActor.
 private actor SessionMonitorRuntimeLoader {
-    private var runtime: MonitorRuntime.SessionMonitor?
+    private var runtime: SharedReportRuntime?
 
-    func load() throws -> MonitorRuntime.SessionMonitor {
+    func load() throws -> SharedReportRuntime {
         if let runtime { return runtime }
-        let runtime = try MonitorRuntime.SessionMonitor(
+        let databaseRuntime = try MonitorRuntime.SessionMonitor(
             databaseURL: MonitorRuntime.SessionMonitor.defaultDatabaseURL
         )
+        let runtime = SharedReportRuntime(runtime: databaseRuntime)
         self.runtime = runtime
         return runtime
     }

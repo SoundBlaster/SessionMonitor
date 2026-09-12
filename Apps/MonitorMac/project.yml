@@ -30,7 +30,7 @@ targets:
       base:
         PRODUCT_NAME: SessionMonitor
         PRODUCT_MODULE_NAME: SessionMonitor
-        PRODUCT_BUNDLE_IDENTIFIER: com.soundblaster.SessionMonitor
+        PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.SessionMonitor
         INFOPLIST_KEY_CFBundleDisplayName: SessionMonitor
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         ENABLE_APP_SANDBOX: NO
@@ -48,7 +48,7 @@ targets:
     sources: [Tests]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.soundblaster.SessionMonitor.Tests
+        PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.SessionMonitor.Tests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SessionMonitor.app/Contents/MacOS/SessionMonitor"
         BUNDLE_LOADER: "$(TEST_HOST)"
     # Hosted tests resolve package symbols from the app; relinking static packages

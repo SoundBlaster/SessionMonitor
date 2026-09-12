@@ -382,6 +382,15 @@ WidgetKit extension и FSD layer `widgets` — разные
 
 ### Menu bar
 
+SM-201 реализует read-only панель на UsageSnapshot. `SharedReportRuntime` в app layer
+разделяет один default-query stream между окнами и menu bar, кэширует последнее значение
+и отменяет upstream после последней подписки. Навигация и SpecificationKit providers
+остаются per-window. Model панели получает только stream factory без import/watch API.
+Период сейчас All imported time / UTC; cache coverage берётся из общего query contract.
+Watch обозначен как unmanaged: внешний CLI watcher не публикует phase в БД.
+Свежесть показывается как время commit индекса, без вывода о свежести исходных logs.
+Следующее описание действий и lifecycle — целевой scope SM-202 и последующих задач.
+
 SwiftUI `MenuBarExtra` дополняет существующее окно Session Explorer. Значок показывает
 состояние мониторинга; компактная панель содержит расход за выбранный период,
 cache hit/coverage, время обновления и значимые findings. Количество активных сессий
