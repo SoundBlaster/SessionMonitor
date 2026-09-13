@@ -23,6 +23,10 @@ actor SharedReportRuntime: SessionExplorerRuntime {
         try await runtime.snapshot(query: query)
     }
 
+    func timeline(sessionID: String, query: UsageQuery) async throws -> RequestTimeline {
+        try await runtime.timeline(sessionID: sessionID, query: query)
+    }
+
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
         let id = UUID()
         let (stream, continuation) = AsyncThrowingStream<UsageSnapshot, Error>.makeStream(

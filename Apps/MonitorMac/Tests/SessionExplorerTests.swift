@@ -175,6 +175,27 @@ final class SessionExplorerTests: XCTestCase {
         await observation.value
     }
 
+    func testSelectedSessionTimelineUsesTheSameQueryAndSelection() async throws {
+        let first = session("first", model: "model-a")
+        let second = session("second", model: "model-b")
+        let runtime = StubExplorerRuntime(report: report([first, second]))
+        let model = SessionExplorerModel { runtime }
+        let query = try UsageQuery(since: Date(timeIntervalSince1970: 100),
+                                   until: Date(timeIntervalSince1970: 200),
+                                   timeZoneIdentifier: "Europe/Moscow")
+        await model.loadIfNeeded(query: query)
+        model.selectSession(second.id)
+        await model.loadTimeline(sessionID: second.id)
+
+        XCTAssertEqual(model.selectedSession?.id, second.id)
+        XCTAssertEqual(model.timelineModel.timeline?.sessionID, second.id)
+        XCTAssertEqual(model.timelineModel.timeline?.query, query)
+
+        model.selectSession(first.id)
+        XCTAssertEqual(model.selectedSession?.id, first.id)
+        XCTAssertNil(model.timelineModel.timeline)
+    }
+
     func testGUIObservesExternalProcessCommit() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -273,6 +294,10 @@ private actor StubExplorerRuntime: SessionExplorerRuntime {
         return UsageSnapshot(query: query,
                              watermark: QueryWatermark(databaseID: "fixture", revision: revision, committedAt: Date()),
                              report: storedReport)
+    }
+
+    func timeline(sessionID: String, query: UsageQuery) throws -> RequestTimeline {
+        RequestTimeline(sessionID: sessionID, query: query, points: [])
     }
 
     func snapshots(query: UsageQuery) -> AsyncThrowingStream<UsageSnapshot, Error> {

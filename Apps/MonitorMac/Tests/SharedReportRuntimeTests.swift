@@ -197,6 +197,10 @@ private actor StubSharedRuntime: SessionExplorerRuntime {
         )
     }
 
+    func timeline(sessionID: String, query: UsageQuery) async throws -> RequestTimeline {
+        RequestTimeline(sessionID: sessionID, query: query, points: [])
+    }
+
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
         calls.snapshotStreams += 1
         let connection = calls.snapshotStreams

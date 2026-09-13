@@ -3,7 +3,7 @@ import MonitorCore
 import MonitorRuntime
 import Observation
 
-protocol SessionExplorerRuntime: Sendable {
+protocol SessionExplorerRuntime: RequestTimelineSource, Sendable {
     func importDirectory(_ directory: URL) async throws -> ImportSummary
     func snapshot(query: UsageQuery) async throws -> UsageSnapshot
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error>
@@ -33,6 +33,7 @@ final class SessionExplorerModel {
     var navigation = SessionNavigationState()
 
     @ObservationIgnored let contextProvider: SessionReportContextProvider
+    let timelineModel = RequestTimelineModel()
     @ObservationIgnored private let runtimeFactory: @Sendable () async throws -> any SessionExplorerRuntime
     @ObservationIgnored private var runtime: (any SessionExplorerRuntime)?
     @ObservationIgnored private var loadedQuery: UsageQuery?
@@ -79,8 +80,20 @@ final class SessionExplorerModel {
     }
 
     func selectSession(_ id: String?) {
+        let previousSelection = navigation.selectedSessionID
         navigation.select(id, among: visibleSessions)
+        if navigation.selectedSessionID != previousSelection { timelineModel.reset() }
         publishSnapshot()
+    }
+
+    func loadTimeline(sessionID: String) async {
+        guard selectedSession?.id == sessionID else { return }
+        do {
+            let runtime = try await resolvedRuntime()
+            await timelineModel.load(sessionID: sessionID, query: query, source: runtime)
+        } catch {
+            timelineModel.fail(error)
+        }
     }
 
     func loadIfNeeded(query requestedQuery: UsageQuery? = nil) async {
@@ -162,6 +175,7 @@ final class SessionExplorerModel {
     private func activate(_ requestedQuery: UsageQuery) {
         guard query != requestedQuery else { return }
         query = requestedQuery
+        timelineModel.reset()
         snapshot = nil
         provenance = [:]
         report = UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:])

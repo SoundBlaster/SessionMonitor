@@ -16,7 +16,11 @@ struct SessionExplorerPage: View {
                     errorBanner(error)
                 }
                 if let session = model.selectedSession {
-                    SessionDetailView(session: session, provider: model.contextProvider)
+                    SessionDetailView(session: session, query: model.query,
+                                      timelineModel: model.timelineModel, provider: model.contextProvider)
+                        .task(id: timelineTaskID(session: session)) {
+                            await model.loadTimeline(sessionID: session.id)
+                        }
                 } else {
                     emptyDetail
                 }
@@ -177,6 +181,12 @@ struct SessionExplorerPage: View {
         panel.canCreateDirectories = false
         guard panel.runModal() == .OK, let directory = panel.url else { return }
         Task { await model.importDirectory(directory) }
+    }
+
+    private func timelineTaskID(session: SessionSummary) -> String {
+        let start = model.query.since?.timeIntervalSince1970.description ?? "-"
+        let end = model.query.until?.timeIntervalSince1970.description ?? "-"
+        return "\(session.id)|\(start)|\(end)|\(model.query.timeZoneIdentifier)"
     }
 }
 
