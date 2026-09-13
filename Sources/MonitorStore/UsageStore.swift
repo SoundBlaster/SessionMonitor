@@ -103,6 +103,43 @@ public final class UsageStore: Sendable {
         try database.read { database in try Self.checkpoint(source: source, database: database) }
     }
 
+    public func needsProvenanceBackfill(source: String) throws -> Bool {
+        try database.read { database in
+            try Bool.fetchOne(database, sql: """
+                SELECT EXISTS(
+                    SELECT 1 FROM source_records AS records
+                    WHERE records.source = ?
+                      AND NOT EXISTS(
+                          SELECT 1 FROM source_provenance AS provenance
+                          WHERE provenance.source = records.source
+                            AND provenance.session = records.session
+                      )
+                )
+                """, arguments: [source]) ?? false
+        }
+    }
+
+    /// Adds metadata for existing canonical records without replacing records or diagnostics.
+    /// The checkpoint is advanced with the metadata-only decoder result atomically.
+    @discardableResult
+    public func backfillProvenance(source: String, update: SourceImport,
+                                   expectedCheckpoint: Data?) throws -> Bool {
+        try database.write { database in
+            guard try Self.checkpoint(source: source, database: database) == expectedCheckpoint else {
+                throw CheckpointWriteError.staleCheckpoint
+            }
+            guard let provenance = update.rollout.provenance,
+                  try Self.hasMissingProvenance(source: source, database: database) else { return false }
+            try Self.insertProvenance(provenance, source: source, database: database)
+            try database.execute(sql: """
+                INSERT INTO source_checkpoints VALUES (?, ?)
+                ON CONFLICT(source) DO UPDATE SET checkpoint = excluded.checkpoint
+                """, arguments: [source, update.checkpoint])
+            try Self.advanceWatermark(database)
+            return true
+        }
+    }
+
     /// Events, diagnostics and decoder progress commit together. Stale retries cannot overwrite newer data.
     public func apply(source: String, update: SourceImport, expectedCheckpoint: Data?) throws {
         try database.write { database in
@@ -131,6 +168,20 @@ public final class UsageStore: Sendable {
                           arguments: [source])
     }
 
+    private static func hasMissingProvenance(source: String, database: Database) throws -> Bool {
+        try Bool.fetchOne(database, sql: """
+            SELECT EXISTS(
+                SELECT 1 FROM source_records AS records
+                WHERE records.source = ?
+                  AND NOT EXISTS(
+                      SELECT 1 FROM source_provenance AS provenance
+                      WHERE provenance.source = records.source
+                        AND provenance.session = records.session
+                  )
+            )
+            """, arguments: [source]) ?? false
+    }
+
     private static func clear(source: String, database: Database) throws {
         try database.execute(sql: "DELETE FROM source_records WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ?", arguments: [source])
@@ -156,29 +207,34 @@ public final class UsageStore: Sendable {
                 """, arguments: [source, kind, count])
         }
         if let provenance = rollout.provenance {
-            let encoder = JSONEncoder()
-            let models = try encoder.encode(provenance.models)
-            let efforts = try encoder.encode(provenance.efforts)
-            try database.execute(sql: """
-                INSERT INTO source_provenance VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(source, session) DO UPDATE SET
-                    root_session = COALESCE(excluded.root_session, source_provenance.root_session),
-                    display_name = COALESCE(excluded.display_name, source_provenance.display_name),
-                    agent_path = COALESCE(excluded.agent_path, source_provenance.agent_path),
-                    originator = COALESCE(excluded.originator, source_provenance.originator),
-                    client_version = COALESCE(excluded.client_version, source_provenance.client_version),
-                    model_provider = COALESCE(excluded.model_provider, source_provenance.model_provider),
-                    models = excluded.models, efforts = excluded.efforts,
-                    relationship_kind = COALESCE(excluded.relationship_kind, source_provenance.relationship_kind),
-                    parent_session = COALESCE(excluded.parent_session, source_provenance.parent_session)
-                """, arguments: [
-                    source, provenance.sessionID, provenance.rootSessionID, provenance.displayName,
-                    provenance.agentPath, provenance.originator, provenance.clientVersion,
-                    provenance.modelProvider, String(bytes: models, encoding: .utf8) ?? "[]",
-                    String(bytes: efforts, encoding: .utf8) ?? "[]", provenance.relationship?.kind.rawValue,
-                    provenance.relationship?.parentSessionID
-                ])
+            try Self.insertProvenance(provenance, source: source, database: database)
         }
+    }
+
+    private static func insertProvenance(_ provenance: SessionProvenance, source: String,
+                                         database: Database) throws {
+        let encoder = JSONEncoder()
+        let models = try encoder.encode(provenance.models)
+        let efforts = try encoder.encode(provenance.efforts)
+        try database.execute(sql: """
+            INSERT INTO source_provenance VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(source, session) DO UPDATE SET
+                root_session = COALESCE(excluded.root_session, source_provenance.root_session),
+                display_name = COALESCE(excluded.display_name, source_provenance.display_name),
+                agent_path = COALESCE(excluded.agent_path, source_provenance.agent_path),
+                originator = COALESCE(excluded.originator, source_provenance.originator),
+                client_version = COALESCE(excluded.client_version, source_provenance.client_version),
+                model_provider = COALESCE(excluded.model_provider, source_provenance.model_provider),
+                models = excluded.models, efforts = excluded.efforts,
+                relationship_kind = COALESCE(excluded.relationship_kind, source_provenance.relationship_kind),
+                parent_session = COALESCE(excluded.parent_session, source_provenance.parent_session)
+            """, arguments: [
+                source, provenance.sessionID, provenance.rootSessionID, provenance.displayName,
+                provenance.agentPath, provenance.originator, provenance.clientVersion,
+                provenance.modelProvider, String(bytes: models, encoding: .utf8) ?? "[]",
+                String(bytes: efforts, encoding: .utf8) ?? "[]", provenance.relationship?.kind.rawValue,
+                provenance.relationship?.parentSessionID
+            ])
     }
 
     public func report(since: Date?, until: Date?) throws -> UsageReport {

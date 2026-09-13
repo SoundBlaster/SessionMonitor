@@ -8,6 +8,23 @@ public struct RolloutDecoder: Sendable {
         try parseIncrementally(url).rollout
     }
 
+    /// Reads the source only to recover metadata for records already in the store.
+    /// It deliberately does not decode or return usage records.
+    public func parseMetadata(_ url: URL) throws -> SourceImport {
+        let source = try RolloutFile(url: url)
+        var state = DecodeState()
+        let progress = try JSONLReader().read(source, from: JSONLCursor()) { data, line in
+            guard let data else { return }
+            state.consume(data, line: line, includeRecords: false)
+        }
+        state.result.provenance = state.provenance()
+        try source.validateSnapshot()
+        let next = DecoderCheckpoint(version: source.version, cursor: progress.cursor,
+                                     state: state.context)
+        return SourceImport(rollout: state.result, checkpoint: try JSONEncoder().encode(next),
+                            mode: .replaced, bytesRead: source.bytesRead)
+    }
+
     public func parseIncrementally(_ url: URL, checkpoint: Data? = nil) throws -> SourceImport {
         let source = try RolloutFile(url: url)
         let previous = checkpoint.flatMap { try? JSONDecoder().decode(DecoderCheckpoint.self, from: $0) }
@@ -50,7 +67,8 @@ private struct DecoderCheckpoint: Codable {
     let state: DecoderContext
 
     func isUsable(for current: RolloutFileVersion) -> Bool {
-        schemaVersion == 3 && version.identity == current.identity && current.size >= version.size
+        (schemaVersion == 2 || schemaVersion == 3) && version.identity == current.identity
+            && current.size >= version.size
             && cursor.offset <= version.size && cursor.line >= 0 && UInt64(cursor.line) <= cursor.offset
     }
 }
@@ -70,6 +88,30 @@ private struct DecoderContext: Codable {
     var clientVersion: String?
     var modelProvider: String?
     var threadSource: String?
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        sessionID = try values.decodeIfPresent(String.self, forKey: .sessionID)
+        created = try values.decodeIfPresent(Date.self, forKey: .created)
+        nativeTurns = try values.decodeIfPresent(Set<String>.self, forKey: .nativeTurns) ?? []
+        models = try values.decodeIfPresent([String: String].self, forKey: .models) ?? [:]
+        efforts = try values.decodeIfPresent([String: String].self, forKey: .efforts) ?? [:]
+        rootSessionID = try values.decodeIfPresent(String.self, forKey: .rootSessionID)
+        parentSessionID = try values.decodeIfPresent(String.self, forKey: .parentSessionID)
+        agentNickname = try values.decodeIfPresent(String.self, forKey: .agentNickname)
+        agentPath = try values.decodeIfPresent(String.self, forKey: .agentPath)
+        originator = try values.decodeIfPresent(String.self, forKey: .originator)
+        clientVersion = try values.decodeIfPresent(String.self, forKey: .clientVersion)
+        modelProvider = try values.decodeIfPresent(String.self, forKey: .modelProvider)
+        threadSource = try values.decodeIfPresent(String.self, forKey: .threadSource)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sessionID, created, nativeTurns, models, efforts, rootSessionID, parentSessionID,
+             agentNickname, agentPath, originator, clientVersion, modelProvider, threadSource
+    }
 }
 
 private struct Header: Decodable {
@@ -149,7 +191,7 @@ private struct DecodeState {
     var context = DecoderContext()
     let decoder = JSONDecoder()
 
-    mutating func consume(_ data: Data, line: Int) {
+    mutating func consume(_ data: Data, line: Int, includeRecords: Bool = true) {
         do {
             let header = try decoder.decode(Header.self, from: data)
             if header.type == "session_meta" {
@@ -163,13 +205,13 @@ private struct DecodeState {
                 return
             }
             let event = try decoder.decode(Envelope.self, from: data)
-            try process(event, line: line)
+            try process(event, line: line, includeRecords: includeRecords)
         } catch {
             result.diagnostics["malformedRecords", default: 0] += 1
         }
     }
 
-    mutating func process(_ event: Envelope, line: Int) throws {
+    mutating func process(_ event: Envelope, line: Int, includeRecords: Bool) throws {
         let payload = event.payload
         if event.type == "session_meta" {
             context.sessionID = payload.id
@@ -196,7 +238,7 @@ private struct DecodeState {
             }
         } else if event.type == "event_msg", payload.type == "token_count" {
             result.diagnostics["legacySnapshotsNotCounted", default: 0] += 1
-        } else if event.type == "token_usage_record" {
+        } else if event.type == "token_usage_record", includeRecords {
             try append(payload, timestamp: event.timestamp, line: line)
         }
     }
