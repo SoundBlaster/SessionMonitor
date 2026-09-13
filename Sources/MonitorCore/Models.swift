@@ -89,6 +89,32 @@ public struct SessionProvenance: Codable, Equatable, Sendable {
     }
 }
 
+/// Presentation state for a session's relationship in the explicit provenance tree.
+public enum SessionTreeState: String, Codable, Sendable {
+    case knownRoot
+    case attached
+    case unknown
+    case orphan
+    case conflict
+    case cycle
+}
+
+/// A relationship tree node. Children are structural only; their totals remain their own.
+public struct SessionTreeNode: Codable, Equatable, Identifiable, Sendable {
+    public let session: SessionSummary
+    public let state: SessionTreeState
+    public let children: [SessionTreeNode]
+
+    public var id: String { session.id }
+    public var outlineChildren: [SessionTreeNode]? { children.isEmpty ? nil : children }
+
+    public init(session: SessionSummary, state: SessionTreeState, children: [SessionTreeNode] = []) {
+        self.session = session
+        self.state = state
+        self.children = children
+    }
+}
+
 public struct UsageReport: Codable, Equatable, Sendable {
     public let totals: UsageTotals
     public let sessions: [SessionSummary]

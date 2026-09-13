@@ -56,6 +56,16 @@ final class SessionExplorerModel {
         }
     }
 
+    var sessionTree: [SessionTreeNode] {
+        SessionTreeBuilder.build(sessions: report.sessions, provenance: provenance)
+    }
+
+    var visibleSessionTree: [SessionTreeNode] {
+        let query = filter.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return sessionTree }
+        return sessionTree.compactMap { filteredTree($0, query: query, provenance: provenance) }
+    }
+
     var selectedSession: SessionSummary? {
         visibleSessions.first { $0.id == navigation.selectedSessionID }
     }
@@ -179,6 +189,16 @@ final class SessionExplorerModel {
             selectedSessionID: navigation.selectedSessionID
         ))
     }
+}
+
+private func filteredTree(_ node: SessionTreeNode, query: String,
+                          provenance: [String: SessionProvenance]) -> SessionTreeNode? {
+    let matches = node.session.id.localizedCaseInsensitiveContains(query)
+        || node.session.model.localizedCaseInsensitiveContains(query)
+        || (provenance[node.id]?.displayName?.localizedCaseInsensitiveContains(query) ?? false)
+    let children = node.children.compactMap { filteredTree($0, query: query, provenance: provenance) }
+    guard matches || !children.isEmpty else { return nil }
+    return SessionTreeNode(session: node.session, state: node.state, children: children)
 }
 
 private func defaultUsageQuery() -> UsageQuery {
