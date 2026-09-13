@@ -33,6 +33,7 @@ public struct RolloutDecoder: Sendable {
             }
             state.consume(data, line: line)
         }
+        state.result.provenance = state.provenance()
         if progress.partialTail { state.result.diagnostics["partialTails"] = 1 }
         try source.validateSnapshot()
         let next = DecoderCheckpoint(version: source.version, cursor: progress.cursor,
@@ -43,13 +44,13 @@ public struct RolloutDecoder: Sendable {
 }
 
 private struct DecoderCheckpoint: Codable {
-    var schemaVersion = 2
+    var schemaVersion = 3
     let version: RolloutFileVersion
     let cursor: JSONLCursor
     let state: DecoderContext
 
     func isUsable(for current: RolloutFileVersion) -> Bool {
-        schemaVersion == 2 && version.identity == current.identity && current.size >= version.size
+        schemaVersion == 3 && version.identity == current.identity && current.size >= version.size
             && cursor.offset <= version.size && cursor.line >= 0 && UInt64(cursor.line) <= cursor.offset
     }
 }
@@ -60,6 +61,15 @@ private struct DecoderContext: Codable {
     var created: Date?
     var nativeTurns = Set<String>()
     var models: [String: String] = [:]
+    var efforts: [String: String] = [:]
+    var rootSessionID: String?
+    var parentSessionID: String?
+    var agentNickname: String?
+    var agentPath: String?
+    var originator: String?
+    var clientVersion: String?
+    var modelProvider: String?
+    var threadSource: String?
 }
 
 private struct Header: Decodable {
@@ -81,14 +91,32 @@ private struct Payload: Decodable {
     let responseID: String?
     let startedAt: Int64?
     let model: String?
+    let effort: String?
+    let sessionID: String?
+    let rootSessionID: String?
+    let parentThreadID: String?
+    let agentNickname: String?
+    let agentPath: String?
+    let originator: String?
+    let clientVersion: String?
+    let modelProvider: String?
+    let threadSource: String?
     let usage: Usage?
 
     enum CodingKeys: String, CodingKey {
-        case type, id, timestamp, model, usage
+        case type, id, timestamp, model, effort, usage, originator
         case threadID = "thread_id"
         case turnID = "turn_id"
         case responseID = "response_id"
         case startedAt = "started_at"
+        case sessionID = "session_id"
+        case rootSessionID = "root_session_id"
+        case parentThreadID = "parent_thread_id"
+        case agentNickname = "agent_nickname"
+        case agentPath = "agent_path"
+        case clientVersion = "cli_version"
+        case modelProvider = "model_provider"
+        case threadSource = "thread_source"
     }
 }
 
@@ -148,8 +176,18 @@ private struct DecodeState {
             context.created = try parseDate(payload.timestamp ?? event.timestamp)
             context.nativeTurns.removeAll()
             context.models.removeAll()
+            context.efforts.removeAll()
+            context.rootSessionID = payload.rootSessionID ?? payload.sessionID
+            context.parentSessionID = payload.parentThreadID
+            context.agentNickname = payload.agentNickname
+            context.agentPath = payload.agentPath
+            context.originator = payload.originator
+            context.clientVersion = payload.clientVersion
+            context.modelProvider = payload.modelProvider
+            context.threadSource = payload.threadSource
         } else if event.type == "turn_context", let turn = payload.turnID {
             context.models[turn] = payload.model
+            if let effort = payload.effort { context.efforts[turn] = effort }
         } else if event.type == "event_msg", payload.type == "task_started", let turn = payload.turnID {
             context.nativeTurns.remove(turn)
             if let started = payload.startedAt, let created = context.created,
@@ -194,5 +232,25 @@ private struct DecodeState {
     func parseDate(_ value: String) throws -> Date {
         if let date = try? Date.ISO8601FormatStyle(includingFractionalSeconds: true).parse(value) { return date }
         return try Date.ISO8601FormatStyle().parse(value)
+    }
+
+    func provenance() -> SessionProvenance? {
+        guard let sessionID = context.sessionID else { return nil }
+        let kind: SessionRelationshipKind = context.threadSource == "subagent" ? .subagent : .unknown
+        let relationship = (context.parentSessionID != nil || kind == .subagent)
+            ? SessionRelationship(kind: kind, parentSessionID: context.parentSessionID)
+            : nil
+        return SessionProvenance(
+            sessionID: sessionID,
+            rootSessionID: context.rootSessionID,
+            displayName: context.agentNickname,
+            agentPath: context.agentPath,
+            originator: context.originator,
+            clientVersion: context.clientVersion,
+            modelProvider: context.modelProvider,
+            models: Array(Set(context.models.values.compactMap { $0 })).sorted(),
+            efforts: Array(Set(context.efforts.values)).sorted(),
+            relationship: relationship
+        )
     }
 }

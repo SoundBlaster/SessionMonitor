@@ -3,6 +3,8 @@ import Foundation
 import GRDB
 import MonitorCore
 
+// swiftlint:disable function_body_length type_body_length
+
 public final class UsageStore: Sendable {
     private let database: DatabaseQueue
     public let databaseURL: URL
@@ -64,6 +66,26 @@ public final class UsageStore: Sendable {
             try database.execute(sql: "INSERT INTO query_watermark VALUES (1, ?, 0, NULL)",
                                  arguments: [UUID().uuidString])
         }
+        migrator.registerMigration("session-provenance-v1") { database in
+            try database.execute(sql: """
+                CREATE TABLE source_provenance (
+                    source TEXT NOT NULL,
+                    session TEXT NOT NULL,
+                    root_session TEXT,
+                    display_name TEXT,
+                    agent_path TEXT,
+                    originator TEXT,
+                    client_version TEXT,
+                    model_provider TEXT,
+                    models TEXT NOT NULL,
+                    efforts TEXT NOT NULL,
+                    relationship_kind TEXT,
+                    parent_session TEXT,
+                    PRIMARY KEY(source, session)
+                )
+                """)
+            try database.execute(sql: "CREATE INDEX provenance_sessions ON source_provenance(session)")
+        }
         return migrator
     }
 
@@ -112,6 +134,7 @@ public final class UsageStore: Sendable {
     private static func clear(source: String, database: Database) throws {
         try database.execute(sql: "DELETE FROM source_records WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ?", arguments: [source])
+        try database.execute(sql: "DELETE FROM source_provenance WHERE source = ?", arguments: [source])
     }
 
     private static func insert(_ rollout: ParsedRollout, source: String, database: Database) throws {
@@ -132,6 +155,30 @@ public final class UsageStore: Sendable {
                 ON CONFLICT(source, kind) DO UPDATE SET count = count + excluded.count
                 """, arguments: [source, kind, count])
         }
+        if let provenance = rollout.provenance {
+            let encoder = JSONEncoder()
+            let models = try encoder.encode(provenance.models)
+            let efforts = try encoder.encode(provenance.efforts)
+            try database.execute(sql: """
+                INSERT INTO source_provenance VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(source, session) DO UPDATE SET
+                    root_session = COALESCE(excluded.root_session, source_provenance.root_session),
+                    display_name = COALESCE(excluded.display_name, source_provenance.display_name),
+                    agent_path = COALESCE(excluded.agent_path, source_provenance.agent_path),
+                    originator = COALESCE(excluded.originator, source_provenance.originator),
+                    client_version = COALESCE(excluded.client_version, source_provenance.client_version),
+                    model_provider = COALESCE(excluded.model_provider, source_provenance.model_provider),
+                    models = excluded.models, efforts = excluded.efforts,
+                    relationship_kind = COALESCE(excluded.relationship_kind, source_provenance.relationship_kind),
+                    parent_session = COALESCE(excluded.parent_session, source_provenance.parent_session)
+                """, arguments: [
+                    source, provenance.sessionID, provenance.rootSessionID, provenance.displayName,
+                    provenance.agentPath, provenance.originator, provenance.clientVersion,
+                    provenance.modelProvider, String(bytes: models, encoding: .utf8) ?? "[]",
+                    String(bytes: efforts, encoding: .utf8) ?? "[]", provenance.relationship?.kind.rawValue,
+                    provenance.relationship?.parentSessionID
+                ])
+        }
     }
 
     public func report(since: Date?, until: Date?) throws -> UsageReport {
@@ -149,9 +196,50 @@ public final class UsageStore: Sendable {
             let watermark = QueryWatermark(databaseID: row["database_id"], revision: row["revision"],
                                            committedAt: committed.map(Date.init(timeIntervalSince1970:)))
             guard watermark != previous else { return nil }
+            let report = try Self.report(database, since: query.since, until: query.until)
             return UsageSnapshot(query: query, watermark: watermark,
-                                 report: try Self.report(database, since: query.since, until: query.until))
+                                 report: report,
+                                 provenance: try Self.provenance(database, sessionIDs: report.sessions.map(\.id)))
         }
+    }
+
+    private static func provenance(_ database: Database, sessionIDs: [String]) throws -> [String: SessionProvenance] {
+        guard !sessionIDs.isEmpty else { return [:] }
+        let rows = try Row.fetchAll(database, sql: "SELECT * FROM source_provenance ORDER BY source, session")
+        let wanted = Set(sessionIDs)
+        var result: [String: SessionProvenance] = [:]
+        for row in rows {
+            let session: String = row["session"]
+            guard wanted.contains(session) else { continue }
+            let models = (try? JSONDecoder().decode([String].self, from: Data((row["models"] as String).utf8))) ?? []
+            let efforts = (try? JSONDecoder().decode([String].self, from: Data((row["efforts"] as String).utf8))) ?? []
+            let relationshipKind: String? = row["relationship_kind"]
+            let relationship = relationshipKind.flatMap { kind in
+                SessionRelationshipKind(rawValue: kind).map {
+                    SessionRelationship(kind: $0, parentSessionID: row["parent_session"])
+                }
+            }
+            let value = SessionProvenance(sessionID: session, rootSessionID: row["root_session"],
+                                          displayName: row["display_name"], agentPath: row["agent_path"],
+                                          originator: row["originator"], clientVersion: row["client_version"],
+                                          modelProvider: row["model_provider"], models: models, efforts: efforts,
+                                          relationship: relationship)
+            if let existing = result[session] {
+                result[session] = SessionProvenance(sessionID: session,
+                    rootSessionID: existing.rootSessionID ?? value.rootSessionID,
+                    displayName: existing.displayName ?? value.displayName,
+                    agentPath: existing.agentPath ?? value.agentPath,
+                    originator: existing.originator ?? value.originator,
+                    clientVersion: existing.clientVersion ?? value.clientVersion,
+                    modelProvider: existing.modelProvider ?? value.modelProvider,
+                    models: Array(Set(existing.models).union(models)).sorted(),
+                    efforts: Array(Set(existing.efforts).union(efforts)).sorted(),
+                    relationship: existing.relationship ?? relationship)
+            } else {
+                result[session] = value
+            }
+        }
+        return result
     }
 
     private static func advanceWatermark(_ database: Database) throws {
@@ -224,6 +312,8 @@ public final class UsageStore: Sendable {
         return SHA256.hash(data: try encoder.encode(copy)).map { String(format: "%02x", $0) }.joined()
     }
 }
+
+// swiftlint:enable function_body_length type_body_length
 
 public enum CheckpointWriteError: Error {
     case staleCheckpoint

@@ -43,6 +43,52 @@ public struct SessionSummary: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+public enum SessionRelationshipKind: String, Codable, Sendable {
+    case subagent
+    case unknown
+}
+
+public struct SessionRelationship: Codable, Equatable, Sendable {
+    public let kind: SessionRelationshipKind
+    public let parentSessionID: String?
+
+    public init(kind: SessionRelationshipKind, parentSessionID: String?) {
+        self.kind = kind
+        self.parentSessionID = parentSessionID
+    }
+}
+
+public struct SessionProvenance: Codable, Equatable, Sendable {
+    public let sessionID: String
+    public let rootSessionID: String?
+    public let displayName: String?
+    public let agentPath: String?
+    public let originator: String?
+    public let clientVersion: String?
+    public let modelProvider: String?
+    public let models: [String]
+    public let efforts: [String]
+    public let relationship: SessionRelationship?
+
+    public init(
+        sessionID: String, rootSessionID: String? = nil, displayName: String? = nil,
+        agentPath: String? = nil, originator: String? = nil, clientVersion: String? = nil,
+        modelProvider: String? = nil, models: [String] = [], efforts: [String] = [],
+        relationship: SessionRelationship? = nil
+    ) {
+        self.sessionID = sessionID
+        self.rootSessionID = rootSessionID
+        self.displayName = displayName
+        self.agentPath = agentPath
+        self.originator = originator
+        self.clientVersion = clientVersion
+        self.modelProvider = modelProvider
+        self.models = models
+        self.efforts = efforts
+        self.relationship = relationship
+    }
+}
+
 public struct UsageReport: Codable, Equatable, Sendable {
     public let totals: UsageTotals
     public let sessions: [SessionSummary]
@@ -106,6 +152,7 @@ public struct UsageRecord: Codable, Equatable, Sendable {
 public struct ParsedRollout: Sendable {
     public var records: [UsageRecord] = []
     public var diagnostics: [String: Int64] = [:]
+    public var provenance: SessionProvenance?
 
     public init() {}
 }
