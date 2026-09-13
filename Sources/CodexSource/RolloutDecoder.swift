@@ -1,6 +1,8 @@
 import Foundation
 import MonitorCore
 
+// swiftlint:disable cyclomatic_complexity function_parameter_count
+
 public struct RolloutDecoder: Sendable {
     public init() {}
 
@@ -144,9 +146,14 @@ private struct Payload: Decodable {
     let modelProvider: String?
     let threadSource: String?
     let usage: Usage?
+    let role: String?
+    let name: String?
+    let turnKind: String?
+    let continuationKind: String?
+    let eventKind: String?
 
     enum CodingKeys: String, CodingKey {
-        case type, id, timestamp, model, effort, usage, originator
+        case type, id, timestamp, model, effort, usage, originator, role, name
         case threadID = "thread_id"
         case turnID = "turn_id"
         case responseID = "response_id"
@@ -159,6 +166,9 @@ private struct Payload: Decodable {
         case clientVersion = "cli_version"
         case modelProvider = "model_provider"
         case threadSource = "thread_source"
+        case turnKind = "turn_kind"
+        case continuationKind = "continuation_kind"
+        case eventKind = "event_kind"
     }
 }
 
@@ -197,19 +207,26 @@ private struct DecodeState {
             if header.type == "session_meta" {
                 context = DecoderContext()
             }
-            guard ["session_meta", "turn_context", "event_msg", "token_usage_record"].contains(header.type)
+            let supportedTypes = ["session_meta", "turn_context", "event_msg", "token_usage_record",
+                                  "response_item", "compacted"]
+            guard supportedTypes.contains(header.type)
             else {
                 if !["response_item", "compacted"].contains(header.type) {
                     result.diagnostics["unknownRecordTypes", default: 0] += 1
                 }
                 return
             }
+            // These envelope types are known, but a missing payload is not a malformed
+            // canonical record and must remain ignored for backwards-compatible diagnostics.
+            guard data.contains(payloadMarker) || !["response_item", "compacted"].contains(header.type) else { return }
             let event = try decoder.decode(Envelope.self, from: data)
             try process(event, line: line, includeRecords: includeRecords)
         } catch {
             result.diagnostics["malformedRecords", default: 0] += 1
         }
     }
+
+    private var payloadMarker: Data { Data("\"payload\"".utf8) }
 
     mutating func process(_ event: Envelope, line: Int, includeRecords: Bool) throws {
         let payload = event.payload
@@ -230,6 +247,11 @@ private struct DecodeState {
         } else if event.type == "turn_context", let turn = payload.turnID {
             context.models[turn] = payload.model
             if let effort = payload.effort { context.efforts[turn] = effort }
+            if includeRecords, let kind = explicitTurnKind(payload) {
+                let evidence = payload.turnKind ?? payload.continuationKind ?? "turn_context"
+                appendEvent(sessionID: context.sessionID, turnID: turn, timestamp: event.timestamp,
+                            line: line, kind: kind, evidence: evidence)
+            }
         } else if event.type == "event_msg", payload.type == "task_started", let turn = payload.turnID {
             context.nativeTurns.remove(turn)
             if let started = payload.startedAt, let created = context.created,
@@ -240,7 +262,86 @@ private struct DecodeState {
             result.diagnostics["legacySnapshotsNotCounted", default: 0] += 1
         } else if event.type == "token_usage_record", includeRecords {
             try append(payload, timestamp: event.timestamp, line: line)
+        } else if event.type == "compacted", includeRecords {
+            appendEvent(sessionID: context.sessionID, turnID: payload.turnID, timestamp: event.timestamp,
+                        line: line, kind: .compaction, evidence: "compacted")
+        } else if event.type == "response_item", includeRecords {
+            appendResponseEvent(payload, timestamp: event.timestamp, line: line)
+        } else if event.type == "event_msg", includeRecords {
+            appendMessageEvent(payload, timestamp: event.timestamp, line: line)
         }
+    }
+
+    mutating func appendResponseEvent(_ payload: Payload, timestamp: String, line: Int) {
+        let kind: TimelineEventKind?
+        switch payload.type {
+        case "message" where payload.role == "user": kind = .humanTurn
+        case "function_call", "custom_tool_call", "custom_tool_call_output": kind = .tool
+        case .some: kind = .unknown
+        case .none: kind = nil
+        }
+        guard let kind, let sessionID = context.sessionID, let date = try? parseDate(timestamp) else { return }
+        appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
+                    kind: kind, evidence: payload.type ?? "response_item")
+    }
+
+    mutating func appendMessageEvent(_ payload: Payload, timestamp: String, line: Int) {
+        guard let sessionID = context.sessionID, let date = try? parseDate(timestamp) else { return }
+        let rawType = payload.eventKind ?? payload.type
+        let kind = explicitTurnKind(payload) ?? explicitMessageKind(rawType)
+        guard let kind else {
+            guard rawType != nil, rawType != "task_started", rawType != "token_count",
+                  rawType != "item_completed", rawType != "task_complete" else { return }
+            appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
+                        kind: .unknown, evidence: rawType ?? "event_msg")
+            return
+        }
+        appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
+                    kind: kind, evidence: rawType ?? "event_msg")
+    }
+
+    func explicitTurnKind(_ payload: Payload) -> TimelineEventKind? {
+        let value = (payload.turnKind ?? payload.continuationKind)?.lowercased()
+        switch value {
+        case "human", "user", "human_turn", "user_turn": return .humanTurn
+        case "goal", "goal_turn", "auto_continuation", "auto_continuation_turn": return .goalTurn
+        default: return nil
+        }
+    }
+
+    func explicitMessageKind(_ value: String?) -> TimelineEventKind? {
+        guard let value else { return nil }
+        let normalized = value.lowercased()
+        if ["compacted", "compaction", "context_compacted", "compaction_started"].contains(normalized) {
+            return .compaction
+        }
+        if normalized.hasPrefix("tool_") || ["tool_call", "tool_started", "tool_completed"].contains(normalized) {
+            return .tool
+        }
+        if normalized.hasPrefix("wait") || normalized.hasPrefix("waiting") {
+            return .wait
+        }
+        if ["human_turn_started", "user_turn_started"].contains(normalized) { return .humanTurn }
+        let goalTypes = ["goal_started", "goal_turn_started", "auto_continuation_started", "continuation_started"]
+        if goalTypes.contains(normalized) {
+            return .goalTurn
+        }
+        return nil
+    }
+
+    mutating func appendEvent(sessionID: String?, turnID: String?, timestamp: String, line: Int,
+                              kind: TimelineEventKind, evidence: String) {
+        guard let date = try? parseDate(timestamp) else { return }
+        appendEvent(sessionID: sessionID, turnID: turnID, timestamp: date, line: line,
+                    kind: kind, evidence: evidence)
+    }
+
+    mutating func appendEvent(sessionID: String?, turnID: String?, timestamp: Date, line: Int,
+                              kind: TimelineEventKind, evidence: String) {
+        guard let sessionID else { return }
+        result.timelineEvents.append(TimelineSourceEvent(sessionID: sessionID, turnID: turnID,
+                                                         timestamp: timestamp, sourceLine: line,
+                                                         kind: kind, evidence: evidence))
     }
 
     mutating func append(_ payload: Payload, timestamp: String, line: Int) throws {
@@ -296,3 +397,4 @@ private struct DecodeState {
         )
     }
 }
+// swiftlint:enable cyclomatic_complexity function_parameter_count

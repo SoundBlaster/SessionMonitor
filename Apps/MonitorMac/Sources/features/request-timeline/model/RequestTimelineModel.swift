@@ -1,0 +1,162 @@
+import Foundation
+import MonitorCore
+import Observation
+
+protocol RequestTimelineSource: Sendable {
+    func timeline(sessionID: String, query: UsageQuery) async throws -> RequestTimeline
+}
+
+enum RequestTimelineRangeMode: String, CaseIterable, Hashable, Identifiable {
+    case fitToData
+    case lastEvents
+    case fullQuery
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .fitToData: "Fit to data"
+        case .lastEvents: "Last events"
+        case .fullQuery: "Full query"
+        }
+    }
+}
+
+/// Separates the observed event span from the absolute query span used to read it.
+/// Both are finite for charting, but only `visibleDomain` changes when the user navigates.
+struct RequestTimelineAxis: Equatable {
+    let dataBounds: DateInterval
+    let dataDomain: DateInterval
+    let queryDomain: DateInterval
+    let visibleDomain: DateInterval
+    let mode: RequestTimelineRangeMode
+    let queryHasBound: Bool
+
+    var preferredChartWidth: Double {
+        max(480, visibleDomain.duration / 3_600 * 64)
+    }
+
+    init?(
+        points: [RequestTimelinePoint], query: UsageQuery,
+        mode: RequestTimelineRangeMode, recentWindow: TimeInterval = 15 * 60
+    ) {
+        guard
+            let first = points.map(\.timestamp).min(),
+            let last = points.map(\.timestamp).max()
+        else {
+            return nil
+        }
+        let dataBounds = DateInterval(start: first, end: last)
+        let dataDomain = Self.padded(dataBounds)
+        let queryStart = query.since ?? dataDomain.start
+        let queryEnd = query.until ?? dataDomain.end
+        guard queryStart < queryEnd else { return nil }
+        let queryDomain = DateInterval(start: queryStart, end: queryEnd)
+        let visibleDomain: DateInterval
+        switch mode {
+        case .fitToData:
+            visibleDomain = dataDomain
+        case .lastEvents:
+            let recentStart = max(dataBounds.start, dataBounds.end.addingTimeInterval(-recentWindow))
+            visibleDomain = Self.padded(DateInterval(start: recentStart, end: dataBounds.end))
+        case .fullQuery:
+            visibleDomain = query.since == nil && query.until == nil ? dataDomain : queryDomain
+        }
+
+        self.dataBounds = dataBounds
+        self.dataDomain = dataDomain
+        self.queryDomain = queryDomain
+        self.visibleDomain = visibleDomain
+        self.mode = mode
+        queryHasBound = query.since != nil || query.until != nil
+    }
+
+    func description(timeZone: TimeZone) -> String {
+        let data = "\(timelineDateLabel(dataBounds.start, timeZone: timeZone))–"
+            + "\(timelineDateLabel(dataBounds.end, timeZone: timeZone))"
+        switch mode {
+        case .fitToData:
+            return "Fit to data: observed events span \(data). Query bounds remain available through Full query."
+        case .lastEvents:
+            let ending = timelineDateLabel(dataBounds.end, timeZone: timeZone)
+            return "Last events: showing the trailing 15-minute window ending at \(ending)."
+        case .fullQuery:
+            if queryHasBound {
+                return "Full query: showing the selected absolute query range."
+            }
+            return "Full range: no finite query bounds; showing the observed data span."
+        }
+    }
+
+    private static func padded(_ bounds: DateInterval) -> DateInterval {
+        let padding = min(max(30, bounds.duration * 0.08), 5 * 60)
+        return DateInterval(
+            start: bounds.start.addingTimeInterval(-padding),
+            end: bounds.end.addingTimeInterval(padding)
+        )
+    }
+}
+
+func timelineDateLabel(_ date: Date, timeZone: TimeZone) -> String {
+    var format = Date.FormatStyle(date: .omitted, time: .shortened)
+    format.timeZone = timeZone
+    return date.formatted(format)
+}
+
+@MainActor
+@Observable
+final class RequestTimelineModel {
+    private(set) var timeline: RequestTimeline?
+    private(set) var isLoading = false
+    private(set) var errorMessage: String?
+    // A broad query must not manufacture empty chart canvas; Full query remains explicit.
+    private(set) var rangeMode: RequestTimelineRangeMode = .fitToData
+
+    var axis: RequestTimelineAxis? {
+        guard let timeline else { return nil }
+        return RequestTimelineAxis(points: timeline.points, query: timeline.query, mode: rangeMode)
+    }
+
+    var displayTimeZone: TimeZone {
+        TimeZone(identifier: timeline?.query.timeZoneIdentifier ?? "UTC") ?? .gmt
+    }
+
+    var rangeDescription: String {
+        axis?.description(timeZone: displayTimeZone) ?? "No timeline range selected."
+    }
+
+    func load(sessionID: String, query: UsageQuery, source: any RequestTimelineSource) async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            let value = try await source.timeline(sessionID: sessionID, query: query)
+            guard value.sessionID == sessionID, value.query == query else {
+                errorMessage = "Timeline query did not match the selected session."
+                return
+            }
+            if timeline?.sessionID != value.sessionID || timeline?.query != value.query {
+                rangeMode = .fitToData
+            }
+            timeline = value
+        } catch {
+            errorMessage = "Could not load request timeline. \(error.localizedDescription)"
+        }
+    }
+
+    func setRangeMode(_ value: RequestTimelineRangeMode) {
+        rangeMode = value
+    }
+
+    func reset() {
+        timeline = nil
+        isLoading = false
+        errorMessage = nil
+        rangeMode = .fitToData
+    }
+
+    func fail(_ error: Error) {
+        isLoading = false
+        errorMessage = "Could not load request timeline. \(error.localizedDescription)"
+    }
+}

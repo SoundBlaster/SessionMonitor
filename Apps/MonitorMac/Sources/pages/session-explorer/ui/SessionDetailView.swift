@@ -5,10 +5,15 @@ import SwiftUI
 
 struct SessionDetailView: View {
     let session: SessionSummary
+    let query: UsageQuery
+    let timelineModel: RequestTimelineModel
     @ObservedSatisfies<SessionReportSnapshot> private var hasCompleteCacheCoverage: Bool
 
-    init(session: SessionSummary, provider: SessionReportContextProvider) {
+    init(session: SessionSummary, query: UsageQuery, timelineModel: RequestTimelineModel,
+         provider: SessionReportContextProvider) {
         self.session = session
+        self.query = query
+        self.timelineModel = timelineModel
         _hasCompleteCacheCoverage = ObservedSatisfies(provider: provider, using: DisplayedCacheCoverageSpec())
     }
 
@@ -72,6 +77,8 @@ struct SessionDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.background, in: RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(.quaternary))
+
+                RequestTimelineView(model: timelineModel, query: query)
             }
             .padding(28)
             .frame(maxWidth: 960, alignment: .leading)

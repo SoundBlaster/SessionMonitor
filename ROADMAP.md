@@ -240,6 +240,14 @@ merge `ec64cd8`. Активная задача: SM-302 — названия се
 - [ ] **SM-303** — Request timeline на Swift Charts и переход к evidence.
   Зависит от SM-301/SM-302. Показать cached/uncached input, human/goal turns,
   compactions и tool/wait events; пользователь может объяснить конкретный всплеск расхода.
+- [ ] **SM-309** — Исправить масштабирование и навигацию request timeline.
+  Обнаружено 2026-09-13 на сессии `01a06e61-3787-7852-b66b-5a8465d86716`: 36 requests
+  образуют два временных кластера (`00:44–00:46` и `11:34–11:35` MSK), но текущий график
+  получает ширину из количества точек и оставляет неудобную пустоту/скрывает дальний кластер.
+  Готово, когда domain явно строится по фактическому data span и query bounds, пользователь
+  может быстро перейти к последнему/всему диапазону, а sparse и dense timelines остаются
+  читаемыми в узком и широком окне. Не менять absolute timestamps и canonical accounting;
+  добавить regression/UI checks на gap, кластер в конце диапазона, empty state и timezone.
 - [ ] **SM-304** — `sessions`, `inspect`, `doctor` и объяснимые diagnostic findings.
   Отдельно проверять repetitive polling, startup overhead и cache changes;
   учитывать нормальное ожидание, первый request turn и compaction как negative cases.
