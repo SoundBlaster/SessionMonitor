@@ -8,6 +8,23 @@ public struct RolloutDecoder: Sendable {
         try parseIncrementally(url).rollout
     }
 
+    /// Reads the source only to recover metadata for records already in the store.
+    /// It deliberately does not decode or return usage records.
+    public func parseMetadata(_ url: URL) throws -> SourceImport {
+        let source = try RolloutFile(url: url)
+        var state = DecodeState()
+        let progress = try JSONLReader().read(source, from: JSONLCursor()) { data, line in
+            guard let data else { return }
+            state.consume(data, line: line, includeRecords: false)
+        }
+        state.result.provenance = state.provenance()
+        try source.validateSnapshot()
+        let next = DecoderCheckpoint(version: source.version, cursor: progress.cursor,
+                                     state: state.context)
+        return SourceImport(rollout: state.result, checkpoint: try JSONEncoder().encode(next),
+                            mode: .replaced, bytesRead: source.bytesRead)
+    }
+
     public func parseIncrementally(_ url: URL, checkpoint: Data? = nil) throws -> SourceImport {
         let source = try RolloutFile(url: url)
         let previous = checkpoint.flatMap { try? JSONDecoder().decode(DecoderCheckpoint.self, from: $0) }
@@ -33,6 +50,7 @@ public struct RolloutDecoder: Sendable {
             }
             state.consume(data, line: line)
         }
+        state.result.provenance = state.provenance()
         if progress.partialTail { state.result.diagnostics["partialTails"] = 1 }
         try source.validateSnapshot()
         let next = DecoderCheckpoint(version: source.version, cursor: progress.cursor,
@@ -43,13 +61,14 @@ public struct RolloutDecoder: Sendable {
 }
 
 private struct DecoderCheckpoint: Codable {
-    var schemaVersion = 2
+    var schemaVersion = 3
     let version: RolloutFileVersion
     let cursor: JSONLCursor
     let state: DecoderContext
 
     func isUsable(for current: RolloutFileVersion) -> Bool {
-        schemaVersion == 2 && version.identity == current.identity && current.size >= version.size
+        (schemaVersion == 2 || schemaVersion == 3) && version.identity == current.identity
+            && current.size >= version.size
             && cursor.offset <= version.size && cursor.line >= 0 && UInt64(cursor.line) <= cursor.offset
     }
 }
@@ -60,6 +79,39 @@ private struct DecoderContext: Codable {
     var created: Date?
     var nativeTurns = Set<String>()
     var models: [String: String] = [:]
+    var efforts: [String: String] = [:]
+    var rootSessionID: String?
+    var parentSessionID: String?
+    var agentNickname: String?
+    var agentPath: String?
+    var originator: String?
+    var clientVersion: String?
+    var modelProvider: String?
+    var threadSource: String?
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        sessionID = try values.decodeIfPresent(String.self, forKey: .sessionID)
+        created = try values.decodeIfPresent(Date.self, forKey: .created)
+        nativeTurns = try values.decodeIfPresent(Set<String>.self, forKey: .nativeTurns) ?? []
+        models = try values.decodeIfPresent([String: String].self, forKey: .models) ?? [:]
+        efforts = try values.decodeIfPresent([String: String].self, forKey: .efforts) ?? [:]
+        rootSessionID = try values.decodeIfPresent(String.self, forKey: .rootSessionID)
+        parentSessionID = try values.decodeIfPresent(String.self, forKey: .parentSessionID)
+        agentNickname = try values.decodeIfPresent(String.self, forKey: .agentNickname)
+        agentPath = try values.decodeIfPresent(String.self, forKey: .agentPath)
+        originator = try values.decodeIfPresent(String.self, forKey: .originator)
+        clientVersion = try values.decodeIfPresent(String.self, forKey: .clientVersion)
+        modelProvider = try values.decodeIfPresent(String.self, forKey: .modelProvider)
+        threadSource = try values.decodeIfPresent(String.self, forKey: .threadSource)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sessionID, created, nativeTurns, models, efforts, rootSessionID, parentSessionID,
+             agentNickname, agentPath, originator, clientVersion, modelProvider, threadSource
+    }
 }
 
 private struct Header: Decodable {
@@ -81,14 +133,32 @@ private struct Payload: Decodable {
     let responseID: String?
     let startedAt: Int64?
     let model: String?
+    let effort: String?
+    let sessionID: String?
+    let rootSessionID: String?
+    let parentThreadID: String?
+    let agentNickname: String?
+    let agentPath: String?
+    let originator: String?
+    let clientVersion: String?
+    let modelProvider: String?
+    let threadSource: String?
     let usage: Usage?
 
     enum CodingKeys: String, CodingKey {
-        case type, id, timestamp, model, usage
+        case type, id, timestamp, model, effort, usage, originator
         case threadID = "thread_id"
         case turnID = "turn_id"
         case responseID = "response_id"
         case startedAt = "started_at"
+        case sessionID = "session_id"
+        case rootSessionID = "root_session_id"
+        case parentThreadID = "parent_thread_id"
+        case agentNickname = "agent_nickname"
+        case agentPath = "agent_path"
+        case clientVersion = "cli_version"
+        case modelProvider = "model_provider"
+        case threadSource = "thread_source"
     }
 }
 
@@ -121,7 +191,7 @@ private struct DecodeState {
     var context = DecoderContext()
     let decoder = JSONDecoder()
 
-    mutating func consume(_ data: Data, line: Int) {
+    mutating func consume(_ data: Data, line: Int, includeRecords: Bool = true) {
         do {
             let header = try decoder.decode(Header.self, from: data)
             if header.type == "session_meta" {
@@ -135,21 +205,31 @@ private struct DecodeState {
                 return
             }
             let event = try decoder.decode(Envelope.self, from: data)
-            try process(event, line: line)
+            try process(event, line: line, includeRecords: includeRecords)
         } catch {
             result.diagnostics["malformedRecords", default: 0] += 1
         }
     }
 
-    mutating func process(_ event: Envelope, line: Int) throws {
+    mutating func process(_ event: Envelope, line: Int, includeRecords: Bool) throws {
         let payload = event.payload
         if event.type == "session_meta" {
             context.sessionID = payload.id
             context.created = try parseDate(payload.timestamp ?? event.timestamp)
             context.nativeTurns.removeAll()
             context.models.removeAll()
+            context.efforts.removeAll()
+            context.rootSessionID = payload.rootSessionID ?? payload.sessionID
+            context.parentSessionID = payload.parentThreadID
+            context.agentNickname = payload.agentNickname
+            context.agentPath = payload.agentPath
+            context.originator = payload.originator
+            context.clientVersion = payload.clientVersion
+            context.modelProvider = payload.modelProvider
+            context.threadSource = payload.threadSource
         } else if event.type == "turn_context", let turn = payload.turnID {
             context.models[turn] = payload.model
+            if let effort = payload.effort { context.efforts[turn] = effort }
         } else if event.type == "event_msg", payload.type == "task_started", let turn = payload.turnID {
             context.nativeTurns.remove(turn)
             if let started = payload.startedAt, let created = context.created,
@@ -158,7 +238,7 @@ private struct DecodeState {
             }
         } else if event.type == "event_msg", payload.type == "token_count" {
             result.diagnostics["legacySnapshotsNotCounted", default: 0] += 1
-        } else if event.type == "token_usage_record" {
+        } else if event.type == "token_usage_record", includeRecords {
             try append(payload, timestamp: event.timestamp, line: line)
         }
     }
@@ -194,5 +274,25 @@ private struct DecodeState {
     func parseDate(_ value: String) throws -> Date {
         if let date = try? Date.ISO8601FormatStyle(includingFractionalSeconds: true).parse(value) { return date }
         return try Date.ISO8601FormatStyle().parse(value)
+    }
+
+    func provenance() -> SessionProvenance? {
+        guard let sessionID = context.sessionID else { return nil }
+        let kind: SessionRelationshipKind = context.threadSource == "subagent" ? .subagent : .unknown
+        let relationship = (context.parentSessionID != nil || kind == .subagent)
+            ? SessionRelationship(kind: kind, parentSessionID: context.parentSessionID)
+            : nil
+        return SessionProvenance(
+            sessionID: sessionID,
+            rootSessionID: context.rootSessionID,
+            displayName: context.agentNickname,
+            agentPath: context.agentPath,
+            originator: context.originator,
+            clientVersion: context.clientVersion,
+            modelProvider: context.modelProvider,
+            models: Array(Set(context.models.values.compactMap { $0 })).sorted(),
+            efforts: Array(Set(context.efforts.values)).sorted(),
+            relationship: relationship
+        )
     }
 }

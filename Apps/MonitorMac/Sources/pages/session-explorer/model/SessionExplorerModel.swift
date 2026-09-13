@@ -21,6 +21,7 @@ final class SessionExplorerModel {
     }
 
     private(set) var snapshot: UsageSnapshot?
+    private(set) var provenance: [String: SessionProvenance] = [:]
     private(set) var report: UsageReport
     private(set) var query: UsageQuery
     private(set) var activity: Activity = .idle
@@ -51,6 +52,7 @@ final class SessionExplorerModel {
         return report.sessions.filter { session in
             query.isEmpty || session.id.localizedCaseInsensitiveContains(query)
                 || session.model.localizedCaseInsensitiveContains(query)
+                || (provenance[session.id]?.displayName?.localizedCaseInsensitiveContains(query) ?? false)
         }
     }
 
@@ -151,6 +153,7 @@ final class SessionExplorerModel {
         guard query != requestedQuery else { return }
         query = requestedQuery
         snapshot = nil
+        provenance = [:]
         report = UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:])
         navigation.reconcile(with: [])
         lastUpdated = nil
@@ -163,6 +166,7 @@ final class SessionExplorerModel {
            snapshot.watermark.databaseID == newSnapshot.watermark.databaseID,
            snapshot.watermark.revision >= newSnapshot.watermark.revision { return }
         snapshot = newSnapshot
+        provenance = newSnapshot.provenance
         report = newSnapshot.report
         navigation.reconcile(with: visibleSessions)
         lastUpdated = newSnapshot.watermark.committedAt

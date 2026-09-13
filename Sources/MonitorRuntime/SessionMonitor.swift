@@ -43,10 +43,18 @@ public actor SessionMonitor {
             try Task.checkCancellation()
             let source = path.resolvingSymlinksInPath().path
             let previous = try store.checkpoint(source: source)
-            let update = try RolloutDecoder().parseIncrementally(path, checkpoint: rescan ? nil : previous)
+            let decoder = RolloutDecoder()
+            if !rescan, let previous, try store.needsProvenanceBackfill(source: source) {
+                let metadata = try decoder.parseMetadata(path)
+                ioMetrics.bytesRead += metadata.bytesRead
+                _ = try store.backfillProvenance(source: source, update: metadata,
+                                                 expectedCheckpoint: previous)
+            }
+            let currentCheckpoint = try store.checkpoint(source: source)
+            let update = try decoder.parseIncrementally(path, checkpoint: rescan ? nil : currentCheckpoint)
             try Task.checkCancellation()
             if update.mode != .unchanged {
-                try store.apply(source: source, update: update, expectedCheckpoint: previous)
+                try store.apply(source: source, update: update, expectedCheckpoint: currentCheckpoint)
             }
             records += update.rollout.records.count
             for (key, count) in update.rollout.diagnostics { diagnostics[key, default: 0] += count }

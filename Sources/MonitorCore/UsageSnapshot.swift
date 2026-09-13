@@ -72,12 +72,27 @@ public struct UsageSnapshot: Codable, Equatable, Sendable {
     public let watermark: QueryWatermark
     public let coverage: QueryCoverage
     public let report: UsageReport
+    public let provenance: [String: SessionProvenance]
 
-    public init(query: UsageQuery, watermark: QueryWatermark, report: UsageReport) {
-        schemaVersion = 1
+    public init(query: UsageQuery, watermark: QueryWatermark, report: UsageReport,
+                provenance: [String: SessionProvenance] = [:]) {
+        schemaVersion = 2
         self.query = query
         self.watermark = watermark
         coverage = QueryCoverage(totals: report.totals)
         self.report = report
+        self.provenance = provenance
+    }
+
+    private enum CodingKeys: String, CodingKey { case schemaVersion, query, watermark, coverage, report, provenance }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try values.decode(Int.self, forKey: .schemaVersion)
+        query = try values.decode(UsageQuery.self, forKey: .query)
+        watermark = try values.decode(QueryWatermark.self, forKey: .watermark)
+        coverage = try values.decode(QueryCoverage.self, forKey: .coverage)
+        report = try values.decode(UsageReport.self, forKey: .report)
+        provenance = try values.decodeIfPresent([String: SessionProvenance].self, forKey: .provenance) ?? [:]
     }
 }

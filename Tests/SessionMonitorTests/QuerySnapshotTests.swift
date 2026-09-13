@@ -55,7 +55,7 @@ struct QuerySnapshotTests {
                                    until: Date(timeIntervalSince1970: 102),
                                    timeZoneIdentifier: "Europe/Moscow")
         let snapshot = try #require(try store.snapshot(query: query))
-        #expect(snapshot.schemaVersion == 1)
+        #expect(snapshot.schemaVersion == 2)
         #expect(snapshot.query == query)
         #expect(snapshot.report.totals.requests == 2)
         #expect(snapshot.coverage.cache == .partial)

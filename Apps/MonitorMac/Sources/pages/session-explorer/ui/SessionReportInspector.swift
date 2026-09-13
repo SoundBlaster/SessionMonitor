@@ -33,6 +33,13 @@ struct SessionReportInspector: View {
 
             if let session = model.selectedSession {
                 Section("Selection") {
+                    if let provenance = model.provenance[session.id] {
+                        LabeledContent("Display name", value: provenance.displayName ?? "Unknown")
+                        LabeledContent("Origin", value: provenance.originator ?? "Unknown")
+                        LabeledContent("Client", value: provenance.clientVersion ?? "Unknown")
+                        LabeledContent("Relationship",
+                                       value: provenance.relationship.map { $0.kind.rawValue } ?? "Unknown")
+                    }
                     LabeledContent("Model", value: session.model)
                     Text(session.id)
                         .font(.caption.monospaced())

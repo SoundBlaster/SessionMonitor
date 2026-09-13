@@ -105,7 +105,7 @@ def run(binary):
                 first = observer.next()
                 assert first["report"]["totals"]["requests"] == 1
                 assert first["coverage"]["cache"] == "complete"
-                assert first["schemaVersion"] == 1
+                assert first["schemaVersion"] == 2
                 assert first["query"]["timeZoneIdentifier"] == "UTC"
                 assert first["watermark"]["revision"] > empty["watermark"]["revision"]
                 query = ("--since", "1970-01-01T00:01:42Z",
