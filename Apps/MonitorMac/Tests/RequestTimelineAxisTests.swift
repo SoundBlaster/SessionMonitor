@@ -5,6 +5,57 @@ import XCTest
 
 @MainActor
 final class RequestTimelineAxisTests: XCTestCase {
+    func testYAxisReservesSafeTopInsetForLargeLabels() {
+        XCTAssertGreaterThanOrEqual(RequestTimelineChartLayout.yAxisTopInset, 16)
+        XCTAssertEqual(RequestTimelineChartLayout.chartHeight, 250)
+    }
+
+    func testLargeTokenValuesKeepAxisLayoutReadable() throws {
+        let query = try UsageQuery(since: date(0), until: date(10_000))
+        let axis = try XCTUnwrap(RequestTimelineAxis(
+            points: [point("large", seconds: 100, cached: 280_000, uncached: 20_000)],
+            query: query,
+            mode: .fitToData
+        ))
+
+        XCTAssertTrue(axis.visibleDomain.contains(date(100)))
+        XCTAssertGreaterThanOrEqual(RequestTimelineChartLayout.yAxisTopInset, 16)
+    }
+
+    func testZeroAndSmallValuesUseTheSameSafeLayout() throws {
+        let query = try UsageQuery(since: date(0), until: date(10_000))
+        for tokens: Int64 in [0, 1, 10] {
+            let axis = try XCTUnwrap(RequestTimelineAxis(
+                points: [point("small-\(tokens)", seconds: 100, cached: tokens, uncached: 0)],
+                query: query,
+                mode: .fitToData
+            ))
+            XCTAssertTrue(axis.visibleDomain.contains(date(100)))
+            XCTAssertGreaterThanOrEqual(RequestTimelineChartLayout.yAxisTopInset, 16)
+        }
+    }
+
+    func testAllRangeModesShareTheSafeYAxisLayout() throws {
+        let query = try UsageQuery(since: date(0), until: date(50_000))
+        let points = [
+            point("early", seconds: 100, cached: 300_000, uncached: 1),
+            point("late", seconds: 40_000, cached: 1, uncached: 1)
+        ]
+
+        for mode in RequestTimelineRangeMode.allCases {
+            let axis = try XCTUnwrap(RequestTimelineAxis(points: points, query: query, mode: mode))
+            XCTAssertGreaterThan(axis.visibleDomain.duration, 0)
+            XCTAssertGreaterThanOrEqual(RequestTimelineChartLayout.yAxisTopInset, 16)
+        }
+    }
+
+    func testTimelineAccessibilityLabelRemainsComplete() {
+        XCTAssertEqual(
+            RequestTimelineChartLayout.accessibilityLabel,
+            "Cached and uncached input over time"
+        )
+    }
+
     func testSeparatedClustersKeepAbsoluteSpanAndOfferLastEventsNavigation() throws {
         let points = [
             point("early-1", seconds: 100),
@@ -140,14 +191,19 @@ final class RequestTimelineAxisTests: XCTestCase {
         )
     }
 
-    private func point(_ id: String, seconds: TimeInterval) -> RequestTimelinePoint {
+    private func point(
+        _ id: String,
+        seconds: TimeInterval,
+        cached: Int64 = 80,
+        uncached: Int64 = 20
+    ) -> RequestTimelinePoint {
         RequestTimelinePoint(
             id: id,
             sessionID: "session",
             timestamp: date(seconds),
             kind: .usageRequest,
-            cachedInputTokens: 80,
-            uncachedInputTokens: 20
+            cachedInputTokens: cached,
+            uncachedInputTokens: uncached
         )
     }
 

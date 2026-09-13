@@ -2,6 +2,12 @@ import Charts
 import MonitorCore
 import SwiftUI
 
+enum RequestTimelineChartLayout {
+    static let chartHeight: CGFloat = 250
+    static let yAxisTopInset: CGFloat = 16
+    static let accessibilityLabel = "Cached and uncached input over time"
+}
+
 struct RequestTimelineView: View {
     let model: RequestTimelineModel
     let query: UsageQuery
@@ -119,14 +125,19 @@ struct RequestTimelineView: View {
                     }
                 }
                 .chartYAxis { AxisMarks(position: .leading) }
-                .frame(width: chartWidth, height: 250)
+                .chartYScale(range: .plotDimension(padding: RequestTimelineChartLayout.yAxisTopInset))
+                .frame(width: chartWidth, height: RequestTimelineChartLayout.chartHeight)
                 .padding(.horizontal, 4)
             }
-            .frame(width: geometry.size.width, height: 250, alignment: .leading)
+            .frame(
+                width: geometry.size.width,
+                height: RequestTimelineChartLayout.chartHeight,
+                alignment: .leading
+            )
         }
-        .frame(height: 250)
+        .frame(height: RequestTimelineChartLayout.chartHeight)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Cached and uncached input over time")
+        .accessibilityLabel(RequestTimelineChartLayout.accessibilityLabel)
         .accessibilityValue(model.rangeDescription)
         .accessibilityHint(
             "The chart uses absolute event timestamps. Use Axis range to fit the data, "
