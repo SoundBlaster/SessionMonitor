@@ -233,14 +233,15 @@ merge `ec64cd8`. Активная задача: SM-302 — названия се
   Доставка: [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13).
   Готово, когда одна выборка даёт одинаковые суммы и coverage во всех интерфейсах,
   а export JSON сохраняет период, фильтры и watermark.
-- [ ] **SM-302** — Названия сессий, provenance и дерево parent/subagent/fork.
-  Статус: в работе (2026-09-12), ветка `feat/sm-302-session-provenance`.
-  Сохранять наблюдаемые model/harness/version/effort; неизвестное явно помечать.
-  Готово, когда дерево основано на source evidence и не меняет общий accounting total.
-- [ ] **SM-303** — Request timeline на Swift Charts и переход к evidence.
+- [x] **SM-302** — Названия сессий, provenance и дерево parent/subagent/fork.
+  Выполнено 2026-09-13 через [PR #14](https://github.com/SoundBlaster/SessionMonitor/pull/14)
+  и [PR #15](https://github.com/SoundBlaster/SessionMonitor/pull/15): provenance для
+  существующих баз, explicit parent tree, Unknown/Orphan/Conflict/Cycle states.
+- [x] **SM-303** — Request timeline на Swift Charts и переход к evidence.
   Зависит от SM-301/SM-302. Показать cached/uncached input, human/goal turns,
   compactions и tool/wait events; пользователь может объяснить конкретный всплеск расхода.
-- [ ] **SM-309** — Исправить масштабирование и навигацию request timeline.
+  Выполнено 2026-09-13 через [PR #17](https://github.com/SoundBlaster/SessionMonitor/pull/17).
+- [x] **SM-309** — Исправить масштабирование и навигацию request timeline.
   Обнаружено 2026-09-13 на сессии `01a06e61-3787-7852-b66b-5a8465d86716`: 36 requests
   образуют два временных кластера (`00:44–00:46` и `11:34–11:35` MSK), но текущий график
   получает ширину из количества точек и оставляет неудобную пустоту/скрывает дальний кластер.
@@ -248,6 +249,10 @@ merge `ec64cd8`. Активная задача: SM-302 — названия се
   может быстро перейти к последнему/всему диапазону, а sparse и dense timelines остаются
   читаемыми в узком и широком окне. Не менять absolute timestamps и canonical accounting;
   добавить regression/UI checks на gap, кластер в конце диапазона, empty state и timezone.
+- [ ] **SM-310** — Исправить clipping верхней подписи Y-axis в request timeline.
+  Обнаружено 2026-09-13: верхнее значение вертикальной оси частично выходит за границу
+  chart/card при больших token values. Сохранить domain, timestamps, scrolling и accounting;
+  проверить large/small values, все range modes, empty state, accessibility и dark/light.
 - [ ] **SM-304** — `sessions`, `inspect`, `doctor` и объяснимые diagnostic findings.
   Отдельно проверять repetitive polling, startup overhead и cache changes;
   учитывать нормальное ожидание, первый request turn и compaction как negative cases.
