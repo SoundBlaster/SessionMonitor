@@ -6,7 +6,7 @@ import MonitorCore
 // swiftlint:disable function_body_length type_body_length
 
 public final class UsageStore: Sendable {
-    private let database: DatabaseQueue
+    let database: DatabaseQueue
     public let databaseURL: URL
 
     public init(url: URL) throws {
@@ -85,6 +85,17 @@ public final class UsageStore: Sendable {
                 )
                 """)
             try database.execute(sql: "CREATE INDEX provenance_sessions ON source_provenance(session)")
+        }
+        migrator.registerMigration("timeline-evidence-v1") { database in
+            try database.execute(sql: """
+                CREATE TABLE source_timeline_events (
+                    source TEXT NOT NULL, line INTEGER NOT NULL,
+                    session TEXT NOT NULL, turn TEXT, timestamp REAL NOT NULL,
+                    kind TEXT NOT NULL, evidence TEXT NOT NULL,
+                    PRIMARY KEY(source, line)
+                );
+                CREATE INDEX timeline_event_sessions ON source_timeline_events(session, timestamp);
+                """)
         }
         return migrator
     }
@@ -184,6 +195,7 @@ public final class UsageStore: Sendable {
 
     private static func clear(source: String, database: Database) throws {
         try database.execute(sql: "DELETE FROM source_records WHERE source = ?", arguments: [source])
+        try database.execute(sql: "DELETE FROM source_timeline_events WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_provenance WHERE source = ?", arguments: [source])
     }
@@ -199,6 +211,12 @@ public final class UsageStore: Sendable {
                     record.cachedInputTokens, record.outputTokens, fingerprint,
                     record.cacheWriteInputTokens, record.reasoningOutputTokens, record.totalTokens
                 ])
+        }
+        for event in rollout.timelineEvents {
+            try database.execute(sql: """
+                INSERT INTO source_timeline_events VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, arguments: [source, event.sourceLine, event.sessionID, event.turnID,
+                                  event.timestamp.timeIntervalSince1970, event.kind.rawValue, event.evidence])
         }
         for (kind, count) in rollout.diagnostics {
             try database.execute(sql: """

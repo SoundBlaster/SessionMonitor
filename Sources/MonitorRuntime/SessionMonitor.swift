@@ -73,6 +73,11 @@ public actor SessionMonitor {
         return try store.report(since: since, until: until)
     }
 
+    /// Read-only presentation evidence for one session and the exact absolute query.
+    public func timeline(sessionID: String, query: UsageQuery) throws -> RequestTimeline {
+        try store.timeline(sessionID: sessionID, query: query)
+    }
+
     public func watch(_ directory: URL, options: WatchOptions = WatchOptions()) async throws -> SessionWatch {
         try Task.checkCancellation()
         let root = directory.resolvingSymlinksInPath().standardizedFileURL
