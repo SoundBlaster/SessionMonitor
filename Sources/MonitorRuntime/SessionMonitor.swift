@@ -78,6 +78,22 @@ public actor SessionMonitor {
         try store.timeline(sessionID: sessionID, query: query)
     }
 
+    public func listSessions(
+        query: UsageQuery, sort: SessionListSort = .input, descending: Bool = true,
+        model: String? = nil, idPrefix: String? = nil, relationship: SessionTreeState? = nil
+    ) throws -> SessionListReport {
+        try store.listSessions(query: query, sort: sort, descending: descending,
+                               model: model, idPrefix: idPrefix, relationship: relationship)
+    }
+
+    public func inspect(sessionID: String, query: UsageQuery) throws -> SessionInspection? {
+        try store.inspect(sessionID: sessionID, query: query)
+    }
+
+    public func doctor(query: UsageQuery) throws -> DiagnosticReport {
+        try store.doctor(query: query)
+    }
+
     public func watch(_ directory: URL, options: WatchOptions = WatchOptions()) async throws -> SessionWatch {
         try Task.checkCancellation()
         let root = directory.resolvingSymlinksInPath().standardizedFileURL

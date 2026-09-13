@@ -8,7 +8,8 @@ import MonitorRuntime
 struct MonitorCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "codex-monitor", abstract: "Inspect local Codex canonical request usage.",
-        version: "0.1.0", subcommands: [Import.self, Report.self, Watch.self, Snapshot.self]
+        version: "0.1.0", subcommands: [Import.self, Report.self, Watch.self, Snapshot.self,
+                                         Sessions.self, Inspect.self, Doctor.self]
     )
 }
 
@@ -69,7 +70,7 @@ extension MonitorCommand {
     }
 }
 
-private func printJSON(_ value: some Encodable) throws {
+func printJSON(_ value: some Encodable) throws {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
     let data = try encoder.encode(value)
