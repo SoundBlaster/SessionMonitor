@@ -26,7 +26,7 @@ merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
 **SM-202 доставлена через [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10),
 merge `3f13b93` (2026-09-12).**
 **SM-301 доставлена через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13),
-merge `ec64cd8`. Активная задача: SM-302 — названия сессий, provenance и дерево; статус: в работе.**
+merge `ec64cd8`. SM-302, SM-303, SM-309 и SM-310 доставлены; следующая активная задача — SM-304.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
@@ -249,10 +249,11 @@ merge `ec64cd8`. Активная задача: SM-302 — названия се
   может быстро перейти к последнему/всему диапазону, а sparse и dense timelines остаются
   читаемыми в узком и широком окне. Не менять absolute timestamps и canonical accounting;
   добавить regression/UI checks на gap, кластер в конце диапазона, empty state и timezone.
-- [ ] **SM-310** — Исправить clipping верхней подписи Y-axis в request timeline.
+- [x] **SM-310** — Исправить clipping верхней подписи Y-axis в request timeline.
   Обнаружено 2026-09-13: верхнее значение вертикальной оси частично выходит за границу
   chart/card при больших token values. Сохранить domain, timestamps, scrolling и accounting;
   проверить large/small values, все range modes, empty state, accessibility и dark/light.
+  Выполнено 2026-09-13 через [PR #18](https://github.com/SoundBlaster/SessionMonitor/pull/18).
 - [ ] **SM-304** — `sessions`, `inspect`, `doctor` и объяснимые diagnostic findings.
   Отдельно проверять repetitive polling, startup overhead и cache changes;
   учитывать нормальное ожидание, первый request turn и compaction как negative cases.
