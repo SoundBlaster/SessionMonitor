@@ -75,9 +75,9 @@ struct SessionExplorerPage: View {
                 get: { model.navigation.selectedSessionID },
                 set: { model.selectSession($0) }
             )) {
-                ForEach(model.visibleSessions) { session in
-                        SessionListRow(session: session, provenance: model.provenance[session.id])
-                        .tag(session.id)
+                OutlineGroup(model.visibleSessionTree, children: \.outlineChildren) { node in
+                    SessionListRow(node: node, provenance: model.provenance[node.id])
+                        .tag(node.id)
                 }
             }
             .overlay {
@@ -181,24 +181,25 @@ struct SessionExplorerPage: View {
 }
 
 private struct SessionListRow: View {
-    let session: SessionSummary
+    let node: SessionTreeNode
     let provenance: SessionProvenance?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(provenance?.displayName ?? (session.model.isEmpty ? "Unknown model" : session.model))
+            Text(provenance?.displayName ?? (node.session.model.isEmpty ? "Unknown model" : node.session.model))
                 .font(.headline)
-            Text(session.id)
+            Text(node.session.id)
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
             HStack {
-                Text("\(session.totals.requests.formatted()) requests")
-                if let relationship = provenance?.relationship {
-                    Label(relationship.kind == .subagent ? "Subagent" : "Unknown", systemImage: "arrow.turn.down.right")
-                }
-                if session.totals.unknownCacheRequests > 0 {
+                Text("\(node.session.totals.requests.formatted()) requests")
+                Label(
+                    stateLabel,
+                    systemImage: node.state == .attached ? "arrow.turn.down.right" : "questionmark.circle"
+                )
+                if node.session.totals.unknownCacheRequests > 0 {
                     Image(systemName: "questionmark.circle")
                         .help("Some requests have unknown cache usage")
                 }
@@ -208,5 +209,16 @@ private struct SessionListRow: View {
         }
         .padding(.vertical, 5)
         .accessibilityElement(children: .combine)
+    }
+
+    private var stateLabel: String {
+        switch node.state {
+        case .knownRoot: "Root"
+        case .attached: provenance?.relationship?.kind == .subagent ? "Subagent" : "Child"
+        case .unknown: "Unknown"
+        case .orphan: "Orphan"
+        case .conflict: "Conflict"
+        case .cycle: "Cycle"
+        }
     }
 }
