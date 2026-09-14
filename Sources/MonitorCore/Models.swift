@@ -175,8 +175,40 @@ public struct UsageRecord: Codable, Equatable, Sendable {
     }
 }
 
+/// A delta derived from a legacy cumulative `event_msg/token_count` snapshot.
+/// It is deliberately not a `UsageRecord`: legacy snapshots have no stable
+/// response or turn identity and are never included in canonical accounting.
+public struct LegacyUsageEstimate: Codable, Equatable, Sendable {
+    public let source: String?
+    public let sessionID: String?
+    public let timestamp: Date
+    public let sourceLine: Int
+    public let inputTokens: Int64
+    public let cachedInputTokens: Int64?
+    public let outputTokens: Int64
+    public let cacheWriteInputTokens: Int64?
+    public let reasoningOutputTokens: Int64?
+    public let totalTokens: Int64
+
+    public init(source: String? = nil, sessionID: String?, timestamp: Date, sourceLine: Int, inputTokens: Int64,
+                cachedInputTokens: Int64?, outputTokens: Int64, cacheWriteInputTokens: Int64?,
+                reasoningOutputTokens: Int64?, totalTokens: Int64) {
+        self.source = source
+        self.sessionID = sessionID
+        self.timestamp = timestamp
+        self.sourceLine = sourceLine
+        self.inputTokens = inputTokens
+        self.cachedInputTokens = cachedInputTokens
+        self.outputTokens = outputTokens
+        self.cacheWriteInputTokens = cacheWriteInputTokens
+        self.reasoningOutputTokens = reasoningOutputTokens
+        self.totalTokens = totalTokens
+    }
+}
+
 public struct ParsedRollout: Sendable {
     public var records: [UsageRecord] = []
+    public var legacyEstimates: [LegacyUsageEstimate] = []
     public var timelineEvents: [TimelineSourceEvent] = []
     public var diagnostics: [String: Int64] = [:]
     public var provenance: SessionProvenance?
