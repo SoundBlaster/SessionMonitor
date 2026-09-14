@@ -97,6 +97,21 @@ public final class UsageStore: Sendable {
                 CREATE INDEX timeline_event_sessions ON source_timeline_events(session, timestamp);
                 """)
         }
+        migrator.registerMigration("legacy-estimates-v1") { database in
+            try database.execute(sql: """
+                CREATE TABLE source_legacy_estimates (
+                    source TEXT NOT NULL, line INTEGER NOT NULL, session TEXT,
+                    timestamp REAL NOT NULL, input INTEGER NOT NULL CHECK(input >= 0),
+                    cached INTEGER CHECK(cached >= 0 AND cached <= input),
+                    output INTEGER NOT NULL CHECK(output >= 0),
+                    cache_write INTEGER CHECK(cache_write >= 0),
+                    reasoning INTEGER CHECK(reasoning >= 0 AND reasoning <= output),
+                    total INTEGER NOT NULL CHECK(total >= 0),
+                    PRIMARY KEY(source, line)
+                );
+                CREATE INDEX legacy_estimate_timestamps ON source_legacy_estimates(timestamp);
+                """)
+        }
         return migrator
     }
 
@@ -195,6 +210,7 @@ public final class UsageStore: Sendable {
 
     private static func clear(source: String, database: Database) throws {
         try database.execute(sql: "DELETE FROM source_records WHERE source = ?", arguments: [source])
+        try database.execute(sql: "DELETE FROM source_legacy_estimates WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_timeline_events WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_provenance WHERE source = ?", arguments: [source])
@@ -211,6 +227,15 @@ public final class UsageStore: Sendable {
                     record.cachedInputTokens, record.outputTokens, fingerprint,
                     record.cacheWriteInputTokens, record.reasoningOutputTokens, record.totalTokens
                 ])
+        }
+        for estimate in rollout.legacyEstimates {
+            try database.execute(sql: """
+                INSERT INTO source_legacy_estimates VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, arguments: [source, estimate.sourceLine, estimate.sessionID,
+                                  estimate.timestamp.timeIntervalSince1970, estimate.inputTokens,
+                                  estimate.cachedInputTokens, estimate.outputTokens,
+                                  estimate.cacheWriteInputTokens, estimate.reasoningOutputTokens,
+                                  estimate.totalTokens])
         }
         for event in rollout.timelineEvents {
             try database.execute(sql: """
@@ -259,6 +284,26 @@ public final class UsageStore: Sendable {
         try database.read { try Self.report($0, since: since, until: until) }
     }
 
+    /// Returns legacy deltas separately. They are estimates, never part of `report`.
+    public func legacyEstimates(since: Date? = nil, until: Date? = nil) throws -> [LegacyUsageEstimate] {
+        try database.read { database in
+            let start = since?.timeIntervalSince1970
+            let end = until?.timeIntervalSince1970
+            return try Row.fetchAll(database, sql: """
+                SELECT * FROM source_legacy_estimates
+                WHERE (? IS NULL OR timestamp >= ?) AND (? IS NULL OR timestamp < ?)
+                ORDER BY timestamp ASC, source ASC, line ASC
+                """, arguments: [start, start, end, end]).map { row in
+                LegacyUsageEstimate(source: row["source"], sessionID: row["session"],
+                                     timestamp: Date(timeIntervalSince1970: row["timestamp"]),
+                                     sourceLine: row["line"], inputTokens: row["input"],
+                                     cachedInputTokens: row["cached"], outputTokens: row["output"],
+                                     cacheWriteInputTokens: row["cache_write"],
+                                     reasoningOutputTokens: row["reasoning"], totalTokens: row["total"])
+            }
+        }
+    }
+
     /// Watermark and all report queries share one SQLite read transaction.
     /// A previous watermark must come from this same query; changed queries require an initial fetch.
     public func snapshot(query: UsageQuery, after previous: QueryWatermark? = nil) throws -> UsageSnapshot? {
@@ -275,45 +320,6 @@ public final class UsageStore: Sendable {
                                  report: report,
                                  provenance: try Self.provenance(database, sessionIDs: report.sessions.map(\.id)))
         }
-    }
-
-    private static func provenance(_ database: Database, sessionIDs: [String]) throws -> [String: SessionProvenance] {
-        guard !sessionIDs.isEmpty else { return [:] }
-        let rows = try Row.fetchAll(database, sql: "SELECT * FROM source_provenance ORDER BY source, session")
-        let wanted = Set(sessionIDs)
-        var result: [String: SessionProvenance] = [:]
-        for row in rows {
-            let session: String = row["session"]
-            guard wanted.contains(session) else { continue }
-            let models = (try? JSONDecoder().decode([String].self, from: Data((row["models"] as String).utf8))) ?? []
-            let efforts = (try? JSONDecoder().decode([String].self, from: Data((row["efforts"] as String).utf8))) ?? []
-            let relationshipKind: String? = row["relationship_kind"]
-            let relationship = relationshipKind.flatMap { kind in
-                SessionRelationshipKind(rawValue: kind).map {
-                    SessionRelationship(kind: $0, parentSessionID: row["parent_session"])
-                }
-            }
-            let value = SessionProvenance(sessionID: session, rootSessionID: row["root_session"],
-                                          displayName: row["display_name"], agentPath: row["agent_path"],
-                                          originator: row["originator"], clientVersion: row["client_version"],
-                                          modelProvider: row["model_provider"], models: models, efforts: efforts,
-                                          relationship: relationship)
-            if let existing = result[session] {
-                result[session] = SessionProvenance(sessionID: session,
-                    rootSessionID: existing.rootSessionID ?? value.rootSessionID,
-                    displayName: existing.displayName ?? value.displayName,
-                    agentPath: existing.agentPath ?? value.agentPath,
-                    originator: existing.originator ?? value.originator,
-                    clientVersion: existing.clientVersion ?? value.clientVersion,
-                    modelProvider: existing.modelProvider ?? value.modelProvider,
-                    models: Array(Set(existing.models).union(models)).sorted(),
-                    efforts: Array(Set(existing.efforts).union(efforts)).sorted(),
-                    relationship: existing.relationship ?? relationship)
-            } else {
-                result[session] = value
-            }
-        }
-        return result
     }
 
     private static func advanceWatermark(_ database: Database) throws {

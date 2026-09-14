@@ -81,6 +81,53 @@ struct AccountingTests {
         #expect(report.diagnostics["legacySnapshotsNotCounted"] == 1)
     }
 
+    @Test func legacyCumulativeDeltasResetsAndMirrorsRemainSeparate() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.native + fixture.legacy(input: 100, output: 10, total: 110)
+                          + fixture.legacy(input: 130, output: 15, total: 145)
+                          + fixture.legacy(input: 130, output: 15, total: 145)
+                          + fixture.legacy(input: 50, output: 5, total: 55, cached: 25)
+                          + fixture.legacy(input: 0, output: 0, total: 0, cached: 0)
+                          + fixture.legacy(input: 20, output: 3, total: 23, cached: 10)
+                          + fixture.record())
+        let runtime = try SessionMonitor(databaseURL: fixture.database)
+        _ = try await runtime.importDirectory(fixture.file)
+        let report = try await runtime.report()
+        let estimates = try await runtime.legacyEstimates()
+        #expect(report.totals.requests == 1)
+        #expect(report.totals.inputTokens == 100)
+        #expect(estimates.map(\.inputTokens) == [30, 20])
+        #expect(estimates.map(\.outputTokens) == [5, 3])
+        #expect(report.diagnostics["legacyReversedOrUncertain"] == 1)
+        #expect(report.diagnostics["legacyResets"] == 1)
+        #expect(report.diagnostics["legacyPartialCoverage"] == 1)
+    }
+
+    @Test func invalidAndPartialLegacySnapshotsStayUnknown() throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.native + fixture.legacy(input: 100, output: 10, total: 110, cached: nil)
+                          + fixture.legacyMissingInfo)
+        let parsed = try RolloutDecoder().parse(fixture.file)
+        #expect(parsed.legacyEstimates.isEmpty)
+        #expect(parsed.diagnostics["legacyPartialCoverage"] == 1)
+        #expect(parsed.diagnostics["legacyUnknownSnapshots"] == 1)
+    }
+
+    @Test func legacyBaselineSurvivesIncrementalImport() async throws {
+        let fixture = try Fixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.native + fixture.legacy(input: 100, output: 10, total: 110))
+        let runtime = try SessionMonitor(databaseURL: fixture.database)
+        _ = try await runtime.importDirectory(fixture.file)
+        try fixture.append(fixture.legacy(input: 130, output: 15, total: 145))
+        let restarted = try SessionMonitor(databaseURL: fixture.database)
+        _ = try await restarted.importDirectory(fixture.file)
+        #expect(try await restarted.legacyEstimates().map(\.inputTokens) == [30])
+        #expect(try await restarted.report().totals.requests == 0)
+    }
+
     @Test(arguments: ["-1", "1.5", "\"100\"", "9223372036854775808"])
     func invalidCountsAreNotCoerced(input: String) throws {
         let fixture = try Fixture()
@@ -184,8 +231,26 @@ private struct Fixture {
 
         """
     }
+
+    func legacy(input: Int, output: Int, total: Int, cached: Int? = 50) -> String {
+        let cachedField = cached.map { ",\"cached_input_tokens\":\($0)" } ?? ""
+        return """
+        {"timestamp":"1970-01-01T00:01:42Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":\(input)\(cachedField),"output_tokens":\(output),"total_tokens":\(total)}}}}
+
+        """
+    }
+
+    let legacyMissingInfo = ""
+        + "{\"timestamp\":\"1970-01-01T00:01:42Z\",\"type\":\"event_msg\","
+        + "\"payload\":{\"type\":\"token_count\",\"info\":null}}\n"
     // swiftlint:enable line_length
 
     func write(_ content: String) throws { try content.write(to: file, atomically: true, encoding: .utf8) }
+    func append(_ content: String) throws {
+        let handle = try FileHandle(forWritingTo: file)
+        defer { try? handle.close() }
+        try handle.seekToEnd()
+        try handle.write(contentsOf: Data(content.utf8))
+    }
     func remove() { try? FileManager.default.removeItem(at: directory) }
 }

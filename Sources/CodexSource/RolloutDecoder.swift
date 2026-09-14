@@ -1,7 +1,7 @@
 import Foundation
 import MonitorCore
 
-// swiftlint:disable cyclomatic_complexity function_parameter_count
+// swiftlint:disable cyclomatic_complexity function_parameter_count file_length
 
 public struct RolloutDecoder: Sendable {
     public init() {}
@@ -90,6 +90,7 @@ private struct DecoderContext: Codable {
     var clientVersion: String?
     var modelProvider: String?
     var threadSource: String?
+    var legacyBaseline: LegacyUsage?
 
     init() {}
 
@@ -108,11 +109,12 @@ private struct DecoderContext: Codable {
         clientVersion = try values.decodeIfPresent(String.self, forKey: .clientVersion)
         modelProvider = try values.decodeIfPresent(String.self, forKey: .modelProvider)
         threadSource = try values.decodeIfPresent(String.self, forKey: .threadSource)
+        legacyBaseline = try values.decodeIfPresent(LegacyUsage.self, forKey: .legacyBaseline)
     }
 
     private enum CodingKeys: String, CodingKey {
         case sessionID, created, nativeTurns, models, efforts, rootSessionID, parentSessionID,
-             agentNickname, agentPath, originator, clientVersion, modelProvider, threadSource
+             agentNickname, agentPath, originator, clientVersion, modelProvider, threadSource, legacyBaseline
     }
 }
 
@@ -146,6 +148,7 @@ private struct Payload: Decodable {
     let modelProvider: String?
     let threadSource: String?
     let usage: Usage?
+    let info: LegacyTokenCountInfo?
     let role: String?
     let name: String?
     let turnKind: String?
@@ -153,7 +156,7 @@ private struct Payload: Decodable {
     let eventKind: String?
 
     enum CodingKeys: String, CodingKey {
-        case type, id, timestamp, model, effort, usage, originator, role, name
+        case type, id, timestamp, model, effort, usage, info, originator, role, name
         case threadID = "thread_id"
         case turnID = "turn_id"
         case responseID = "response_id"
@@ -169,6 +172,46 @@ private struct Payload: Decodable {
         case turnKind = "turn_kind"
         case continuationKind = "continuation_kind"
         case eventKind = "event_kind"
+    }
+}
+
+private struct LegacyTokenCountInfo: Decodable {
+    let totalTokenUsage: LegacyUsage?
+
+    enum CodingKeys: String, CodingKey {
+        case totalTokenUsage = "total_token_usage"
+    }
+}
+
+private struct LegacyUsage: Codable {
+    let input: Int64?
+    let cached: Int64?
+    let output: Int64?
+    let cacheWrite: Int64?
+    let reasoning: Int64?
+    let total: Int64?
+
+    enum CodingKeys: String, CodingKey {
+        case input = "input_tokens"
+        case cached = "cached_input_tokens"
+        case output = "output_tokens"
+        case cacheWrite = "cache_write_input_tokens"
+        case reasoning = "reasoning_output_tokens"
+        case total = "total_tokens"
+    }
+
+    var isValid: Bool {
+        guard let input, let output, let total,
+              input >= 0, output >= 0, total >= 0,
+              cached.map({ $0 >= 0 && $0 <= input }) ?? true,
+              cacheWrite.map({ $0 >= 0 }) ?? true,
+              reasoning.map({ $0 >= 0 && $0 <= output }) ?? true else { return false }
+        return true
+    }
+
+    var isZero: Bool {
+        input == 0 && (cached == nil || cached == 0) && output == 0
+            && (cacheWrite == nil || cacheWrite == 0) && (reasoning == nil || reasoning == 0) && total == 0
     }
 }
 
@@ -259,7 +302,7 @@ private struct DecodeState {
                 context.nativeTurns.insert(turn)
             }
         } else if event.type == "event_msg", payload.type == "token_count" {
-            result.diagnostics["legacySnapshotsNotCounted", default: 0] += 1
+            appendLegacyEstimate(payload.info?.totalTokenUsage, timestamp: event.timestamp, line: line)
         } else if event.type == "token_usage_record", includeRecords {
             try append(payload, timestamp: event.timestamp, line: line)
         } else if event.type == "compacted", includeRecords {
@@ -270,6 +313,57 @@ private struct DecodeState {
         } else if event.type == "event_msg", includeRecords {
             appendMessageEvent(payload, timestamp: event.timestamp, line: line)
         }
+    }
+
+    mutating func appendLegacyEstimate(_ usage: LegacyUsage?, timestamp: String, line: Int) {
+        guard let usage, usage.isValid, let date = try? parseDate(timestamp) else {
+            result.diagnostics["legacyUnknownSnapshots", default: 0] += 1
+            result.diagnostics["legacySnapshotsNotCounted", default: 0] += 1
+            return
+        }
+        guard let baseline = context.legacyBaseline else {
+            context.legacyBaseline = usage
+            result.diagnostics["legacyPartialCoverage", default: 0] += 1
+            return
+        }
+        if usage.isZero {
+            context.legacyBaseline = usage
+            result.diagnostics["legacyResets", default: 0] += 1
+            return
+        }
+        guard let input = usage.input, let baselineInput = baseline.input,
+              let output = usage.output, let baselineOutput = baseline.output,
+              let total = usage.total, let baselineTotal = baseline.total,
+              input >= baselineInput, output >= baselineOutput, total >= baselineTotal else {
+            // A lower cumulative snapshot can be a reset or a late mirror. Without
+            // an epoch/identity field, retaining it is not semantically safe.
+            result.diagnostics["legacyReversedOrUncertain", default: 0] += 1
+            return
+        }
+        let cached = usage.cached.flatMap { current -> Int64? in
+            guard let previous = baseline.cached, current >= previous else { return nil }
+            return current - previous
+        }
+        let cacheWrite = usage.cacheWrite.flatMap { current -> Int64? in
+            guard let previous = baseline.cacheWrite, current >= previous else { return nil }
+            return current - previous
+        }
+        let reasoning = usage.reasoning.flatMap { current -> Int64? in
+            guard let previous = baseline.reasoning, current >= previous else { return nil }
+            return current - previous
+        }
+        let deltaInput = input - baselineInput
+        let deltaOutput = output - baselineOutput
+        let deltaTotal = total - baselineTotal
+        if deltaInput > 0 || deltaOutput > 0 || deltaTotal > 0 {
+            result.legacyEstimates.append(LegacyUsageEstimate(
+                sessionID: context.sessionID, timestamp: date, sourceLine: line,
+                inputTokens: deltaInput, cachedInputTokens: cached,
+                outputTokens: deltaOutput, cacheWriteInputTokens: cacheWrite,
+                reasoningOutputTokens: reasoning, totalTokens: deltaTotal
+            ))
+        }
+        context.legacyBaseline = usage
     }
 
     mutating func appendResponseEvent(_ payload: Payload, timestamp: String, line: Int) {
@@ -397,4 +491,4 @@ private struct DecodeState {
         )
     }
 }
-// swiftlint:enable cyclomatic_complexity function_parameter_count
+// swiftlint:enable cyclomatic_complexity function_parameter_count file_length

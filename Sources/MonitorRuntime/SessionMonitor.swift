@@ -73,6 +73,12 @@ public actor SessionMonitor {
         return try store.report(since: since, until: until)
     }
 
+    /// Read-only legacy estimates, kept separate from canonical accounting.
+    public func legacyEstimates(since: Date? = nil, until: Date? = nil) throws -> [LegacyUsageEstimate] {
+        if let since, let until, since >= until { throw MonitorError.invalidDateRange }
+        return try store.legacyEstimates(since: since, until: until)
+    }
+
     /// Read-only presentation evidence for one session and the exact absolute query.
     public func timeline(sessionID: String, query: UsageQuery) throws -> RequestTimeline {
         try store.timeline(sessionID: sessionID, query: query)
