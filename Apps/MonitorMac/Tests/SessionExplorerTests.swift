@@ -246,7 +246,7 @@ final class SessionExplorerTests: XCTestCase {
     }
 }
 
-private actor StubExplorerRuntime: SessionExplorerRuntime {
+actor StubExplorerRuntime: SessionExplorerRuntime {
     private struct Observer {
         let query: UsageQuery
         let continuation: AsyncThrowingStream<UsageSnapshot, Error>.Continuation
