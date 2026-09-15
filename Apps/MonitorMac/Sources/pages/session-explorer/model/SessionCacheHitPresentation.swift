@@ -11,12 +11,12 @@ struct SessionCacheHitPresentation: Equatable, Sendable {
         case invalidTotals
     }
 
-    enum State: Equatable, Sendable {
+    enum Availability: Equatable, Sendable {
         case known(ratio: Double)
         case unavailable(reason: UnavailableReason)
     }
 
-    let state: State
+    let state: Availability
 
     init(totals: UsageTotals) {
         if totals.requests == 0 {
