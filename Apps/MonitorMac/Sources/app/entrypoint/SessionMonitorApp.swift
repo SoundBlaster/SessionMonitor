@@ -10,6 +10,7 @@ struct SessionMonitorApp: App {
     @State private var menuModel: MenuSummaryModel
     @State private var reportScope: ReportScopeModel
     @State private var watchController: AppWatchController
+    @State private var cacheHitSettings = CacheHitThresholdSettings()
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
 
     init() {
@@ -28,7 +29,11 @@ struct SessionMonitorApp: App {
 
     var body: some Scene {
         WindowGroup("SessionMonitor", id: "session-explorer") {
-            SessionMonitorWindow(runtimeLoader: runtimeLoader, reportScope: reportScope)
+            SessionMonitorWindow(
+                runtimeLoader: runtimeLoader,
+                reportScope: reportScope,
+                cacheHitSettings: cacheHitSettings
+            )
         }
         .defaultSize(width: 1120, height: 760)
         MenuBarExtra("SessionMonitor", systemImage: "chart.bar.xaxis", isInserted: $showMenuBarExtra) {
@@ -36,7 +41,7 @@ struct SessionMonitorApp: App {
                         runtimeLoader: runtimeLoader)
         }
         .menuBarExtraStyle(.window)
-        Settings { MonitorSettingsPage() }
+        Settings { MonitorSettingsPage(cacheHitSettings: cacheHitSettings) }
     }
 }
 
@@ -45,17 +50,27 @@ struct SessionMonitorApp: App {
 private struct SessionMonitorWindow: View {
     @State private var model: SessionExplorerModel
     let reportScope: ReportScopeModel
+    let cacheHitSettings: CacheHitThresholdSettings
     @Environment(\.scenePhase) private var scenePhase
 
-    init(runtimeLoader: SessionMonitorRuntimeLoader, reportScope: ReportScopeModel) {
+    init(
+        runtimeLoader: SessionMonitorRuntimeLoader,
+        reportScope: ReportScopeModel,
+        cacheHitSettings: CacheHitThresholdSettings
+    ) {
         self.reportScope = reportScope
+        self.cacheHitSettings = cacheHitSettings
         _model = State(initialValue: SessionExplorerModel {
             try await runtimeLoader.load()
         })
     }
 
     var body: some View {
-        SessionExplorerPage(model: model, reportScope: reportScope)
+        SessionExplorerPage(
+            model: model,
+            reportScope: reportScope,
+            cacheHitSettings: cacheHitSettings
+        )
             .frame(minWidth: 760, minHeight: 520)
             .task(id: reportScope.observationID) {
                 let query = reportScope.query

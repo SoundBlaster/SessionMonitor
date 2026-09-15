@@ -1,10 +1,12 @@
 import AppKit
 import MonitorCore
+import MonitorPolicies
 import SwiftUI
 
 struct SessionExplorerPage: View {
     @Bindable var model: SessionExplorerModel
     @Bindable var reportScope: ReportScopeModel
+    @Bindable var cacheHitSettings: CacheHitThresholdSettings
 
     var body: some View {
         NavigationSplitView(columnVisibility: $model.navigation.columnVisibility) {
@@ -74,6 +76,18 @@ struct SessionExplorerPage: View {
                     .foregroundStyle(.secondary)
             }
             .padding()
+            Divider()
+            SessionCacheHitChart(
+                sessions: model.visibleSessions,
+                provenance: model.provenance,
+                query: model.query,
+                isSearchActive: !model.filter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                policy: CacheHitThresholdPolicy(threshold: cacheHitSettings.threshold),
+                selectedSessionID: model.navigation.selectedSessionID,
+                onSelect: model.selectSession
+            )
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
             Divider()
             List(selection: Binding(
                 get: { model.navigation.selectedSessionID },

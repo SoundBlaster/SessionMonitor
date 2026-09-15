@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MonitorSettingsPage: View {
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
-    @State private var cacheHitSettings = CacheHitThresholdSettings()
+    @Bindable var cacheHitSettings: CacheHitThresholdSettings
 
     var body: some View {
         Form {
