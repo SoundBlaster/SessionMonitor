@@ -30,7 +30,7 @@ targets:
       base:
         PRODUCT_NAME: SessionMonitor
         PRODUCT_MODULE_NAME: SessionMonitor
-        PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.SessionMonitor
+        PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.session-monitor
         INFOPLIST_KEY_CFBundleDisplayName: SessionMonitor
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         ENABLE_APP_SANDBOX: NO
