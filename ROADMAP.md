@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-12. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-15. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -30,6 +30,9 @@ merge `ec64cd8`. SM-302, SM-303, SM-309 и SM-310 доставлены; след
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
+SM-306-FSD-1 — follow-up завершён в текущей ветке PR #22: устранена baseline FSD
+dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-layer
+`State` без изменения поведения SM-306.
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -268,6 +271,13 @@ merge `ec64cd8`. SM-302, SM-303, SM-309 и SM-310 доставлены; след
   а не 0%. Процент соответствует той же сессии и периоду, что detail view.
   Готово, когда значения обновляются вместе со snapshot, совпадают с detail/CLI,
   а длинные названия и проценты не обрезаются в узком sidebar; есть tests и visual check.
+- [x] **SM-306-FSD-1** — Устранить baseline FSD dependency в `ReportScopeControls`.
+  Готово 2026-09-15 в ветке PR #22: вложенный page-level `State` в
+  `SessionCacheHitPresentation` переименован в `Availability`, чтобы системный
+  SwiftUI `State` в feature не разрешался как higher-layer symbol. API controls,
+  SM-306 behavior и canonical accounting не изменены. Проверено: `make lint`,
+  `make lint-architecture`, `make test-architecture`, targeted 15/15 app tests,
+  `git diff --check`.
 - [ ] **SM-307** — Внутренний виджет с графиком cache hit по сессиям и порогом в Settings.
   Зависит от SM-306/SM-202. Компактный Swift Charts block в Session Explorer;
   точное место выбрать и проверить в существующем layout при реализации.

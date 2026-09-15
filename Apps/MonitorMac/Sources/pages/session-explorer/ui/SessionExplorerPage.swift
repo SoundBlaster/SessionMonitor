@@ -198,27 +198,43 @@ private struct SessionListRow: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(provenance?.displayName ?? (node.session.model.isEmpty ? "Unknown model" : node.session.model))
                 .font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
             Text(node.session.id)
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            HStack {
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Cache hit")
+                    .foregroundStyle(.secondary)
+                Text(cacheHit.value)
+                    .fontWeight(.semibold)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .help(cacheHit.explanation)
+                    .accessibilityValue(cacheHit.accessibilityValue)
+                Spacer(minLength: 0)
                 Text("\(node.session.totals.requests.formatted()) requests")
+                    .lineLimit(1)
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            HStack {
                 Label(
                     stateLabel,
                     systemImage: node.state == .attached ? "arrow.turn.down.right" : "questionmark.circle"
                 )
-                if node.session.totals.unknownCacheRequests > 0 {
-                    Image(systemName: "questionmark.circle")
-                        .help("Some requests have unknown cache usage")
-                }
             }
             .font(.caption)
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 5)
         .accessibilityElement(children: .combine)
+    }
+
+    private var cacheHit: SessionCacheHitPresentation {
+        SessionCacheHitPresentation(totals: node.session.totals)
     }
 
     private var stateLabel: String {

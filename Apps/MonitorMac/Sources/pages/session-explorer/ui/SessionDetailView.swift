@@ -1,5 +1,4 @@
 import MonitorCore
-import MonitorPolicies
 import SpecificationKit
 import SwiftUI
 
@@ -59,10 +58,8 @@ struct SessionDetailView: View {
                         Text("cache hit ratio")
                             .foregroundStyle(.secondary)
                     }
-                    if let finding = CacheCoverageDecision().decide(session.totals) {
-                        Text(finding)
-                            .foregroundStyle(.secondary)
-                    }
+                    Text(cacheHit.explanation)
+                        .foregroundStyle(.secondary)
                     if session.totals.unknownCacheRequests > 0 {
                         Label("\(session.totals.unknownCacheRequests.formatted()) requests have unknown cache usage",
                               systemImage: "questionmark.circle")
@@ -87,10 +84,12 @@ struct SessionDetailView: View {
     }
 
     private var cachePercentage: String {
-        guard hasCompleteCacheCoverage, let ratio = session.totals.cacheHitRatio else {
-            return "Unavailable"
-        }
-        return ratio.formatted(.percent.precision(.fractionLength(1)))
+        guard hasCompleteCacheCoverage else { return "—" }
+        return cacheHit.value
+    }
+
+    private var cacheHit: SessionCacheHitPresentation {
+        SessionCacheHitPresentation(totals: session.totals)
     }
 
     private func metric(_ title: String, value: String) -> some View {
