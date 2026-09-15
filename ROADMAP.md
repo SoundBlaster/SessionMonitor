@@ -26,7 +26,8 @@ merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
 **SM-202 доставлена через [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10),
 merge `3f13b93` (2026-09-12).**
 **SM-301 доставлена через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13),
-merge `ec64cd8`. SM-302, SM-303, SM-309 и SM-310 доставлены; следующая активная задача — SM-304.**
+merge `ec64cd8`. SM-302, SM-303, SM-304, SM-305, SM-306, SM-309 и SM-310 доставлены;
+следующая активная задача — SM-307.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
@@ -257,20 +258,23 @@ dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-laye
   chart/card при больших token values. Сохранить domain, timestamps, scrolling и accounting;
   проверить large/small values, все range modes, empty state, accessibility и dark/light.
   Выполнено 2026-09-13 через [PR #18](https://github.com/SoundBlaster/SessionMonitor/pull/18).
-- [ ] **SM-304** — `sessions`, `inspect`, `doctor` и объяснимые diagnostic findings.
+- [x] **SM-304** — `sessions`, `inspect`, `doctor` и объяснимые diagnostic findings.
   Отдельно проверять repetitive polling, startup overhead и cache changes;
   учитывать нормальное ожидание, первый request turn и compaction как negative cases.
   Готово, когда finding содержит причины/evidence/confidence, а настройки читаются без изменения.
-- [ ] **SM-305** — Определить и реализовать поддерживаемую legacy usage семантику.
+  Выполнено 2026-09-14 через [PR #20](https://github.com/SoundBlaster/SessionMonitor/pull/20).
+- [x] **SM-305** — Определить и реализовать поддерживаемую legacy usage семантику.
   Fixtures должны покрыть cumulative deltas/resets, late/reversed mirrors и fork replay.
   Готово, когда estimates явно отделены от canonical records и не создают двойного учёта.
-- [ ] **SM-306** — Показывать cache hit % каждой сессии в sidebar.
+  Выполнено 2026-09-14 через [PR #21](https://github.com/SoundBlaster/SessionMonitor/pull/21).
+- [x] **SM-306** — Показывать cache hit % каждой сессии в sidebar.
   Зависит от SM-104. Использовать totals сессии из текущего общего snapshot:
   `cached input tokens / input tokens × 100`, без усреднения процентов отдельных requests.
   При partial/unknown cache или нулевом input показывать «—» с объяснением coverage,
   а не 0%. Процент соответствует той же сессии и периоду, что detail view.
   Готово, когда значения обновляются вместе со snapshot, совпадают с detail/CLI,
   а длинные названия и проценты не обрезаются в узком sidebar; есть tests и visual check.
+  Выполнено 2026-09-15 через [PR #22](https://github.com/SoundBlaster/SessionMonitor/pull/22).
 - [x] **SM-306-FSD-1** — Устранить baseline FSD dependency в `ReportScopeControls`.
   Готово 2026-09-15 в ветке PR #22: вложенный page-level `State` в
   `SessionCacheHitPresentation` переименован в `Availability`, чтобы системный
