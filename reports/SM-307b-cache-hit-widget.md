@@ -17,10 +17,16 @@ Sidebar chart использует один экземпляр Swift Charts дл
 основной native `List` ниже остаётся bounded scrolling surface. Chart viewport имеет
 фиксированный диапазон 140–220 pt, а вместе с навигацией — максимум 248 pt.
 
-Чтобы sidebar не увеличивал intrinsic height split view, `List`, sidebar, detail
-content и window root получают explicit max frames. `NavigationSplitView` дополнительно
-учитывает top safe area. Detail `SessionDetailView` также получает bounded frame,
-поэтому его scroll content не может вытолкнуть оба столбца в toolbar/titlebar area.
+Sidebar теперь имеет явный вертикальный контракт: `Header` фиксирован на 176 pt,
+cache-hit block фиксирован на 460 pt, а `List` — единственный flexible region с
+`minHeight: 0` и `maxHeight: .infinity`. Поэтому верхние блоки не зависят от числа
+сессий, а `List` получает только остаток высоты parent и остаётся native bounded
+scroll surface. Заголовок model и UUID в каждой строке ограничены одной строкой с
+middle truncation, поэтому длинные display names не могут раздувать row height.
+
+Sidebar, detail content и window root также получают explicit max frames;
+`NavigationSplitView` дополнительно учитывает top safe area. Это ограничивает layout
+в пределах content region, не меняя selection или query semantics.
 
 ## Policy states → visual states
 
@@ -77,7 +83,8 @@ layout. Более того, fresh sample показал отдельный су
 - `Apps/MonitorMac/Sources/pages/session-explorer/ui/SessionCacheHitChart.swift` —
   one-page chart, bounded viewport, sparse axis, paging и accessible summary.
 - `Apps/MonitorMac/Sources/pages/session-explorer/ui/SessionExplorerPage.swift` —
-  bounded sidebar/detail frames и top safe-area containment.
+  explicit `Header → fixed Chart → flexible List` sidebar layout, bounded
+  long-name rows, sidebar/detail frames и top safe-area containment.
 - `Apps/MonitorMac/Sources/app/entrypoint/SessionMonitorApp.swift` —
   window content fills available bounded area.
 - `Apps/MonitorMac/Sources/features/request-timeline/ui/RequestTimelineView.swift` —
@@ -98,21 +105,26 @@ Canonical accounting, CLI, menu bar, WidgetKit, Settings persistence and
 - `make test-macos` / full `MonitorMac` test plan: **63/63 passed**;
 - targeted `SessionCacheHitChartTests` + `RequestTimelineAxisTests`: **18/18 passed**;
 - `make build-macos`: **BUILD SUCCEEDED**;
+- Xcode-tools `BuildProject`: **project built successfully**;
+- Xcode-tools targeted layout/identity tests: **3/3 passed**;
+- `make lint`: **0 violations**;
 - `make lint-architecture`: **0 errors, 0 warnings**;
 - `make test-architecture`: **exit 0**; expected negative boundary fixture was exercised;
 - `git diff --check`: clean.
 
-Targeted result bundle:
+Current full test result bundle:
+`.build/quality/20260915T182247-DFDF48E5-ED2D-4AE3-9A9C-72C08844EA8B.xcresult`.
+
+Previous targeted result bundle:
 `.build/quality/sm307b-freeze-targeted-final5.xcresult`.
 
 В targeted result остаётся существующее SwiftUI runtime warning о publishing changes
 inside view updates; оно не связано с новым projection/layout contract и не использовано
 для ослабления lint/test gates.
 
-Xcode-tools discovery использовал clean tab `windowtab7`, scheme `MonitorMac`, destination
-`My Mac` arm64/macOS 27. `BuildProject` был заблокирован hosted Xcode package cache с
-missing `MonitorCore`, `MonitorRuntime` и `MonitorPolicies`; `RunProject` вернул
-`BSServiceConnectionErrorDomain` XPC failure. CLI через тот же Xcode 27 toolchain
+Xcode-tools discovery использовал clean tab `windowtab2`, scheme `MonitorMac`, destination
+`My Mac` arm64/macOS 27. На этой ревизии `BuildProject` и `RunProject` завершились
+успешно; приложение запущено с PID `59893`. CLI через тот же Xcode 27 toolchain также
 собрал проект успешно.
 
 ## Instruments / startup evidence
