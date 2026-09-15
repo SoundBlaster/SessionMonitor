@@ -131,6 +131,18 @@ final class RequestTimelineAxisTests: XCTestCase {
         XCTAssertEqual(sparse.preferredChartWidth, 480)
     }
 
+    func testDenseTimelineChartCapsPresentationMarksAndPreservesBounds() {
+        let points = (0..<2_545).map { index in
+            point("dense-\(index)", seconds: Double(index))
+        }
+
+        let chartPoints = RequestTimelineChartLayout.chartPoints(from: points)
+
+        XCTAssertEqual(chartPoints.count, RequestTimelineChartLayout.maxChartPoints)
+        XCTAssertEqual(chartPoints.first?.id, points.first?.id)
+        XCTAssertEqual(chartPoints.last?.id, points.last?.id)
+    }
+
     func testEmptyTimelineHasNoAxis() throws {
         let query = try UsageQuery()
 

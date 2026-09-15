@@ -20,6 +20,7 @@ struct SessionExplorerPage: View {
                 if let session = model.selectedSession {
                     SessionDetailView(session: session, query: model.query,
                                       timelineModel: model.timelineModel, provider: model.contextProvider)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .task(id: timelineTaskID(session: session)) {
                             await model.loadTimeline(sessionID: session.id)
                         }
@@ -29,6 +30,7 @@ struct SessionExplorerPage: View {
             }
             .navigationTitle("SessionMonitor")
             .navigationSubtitle("Canonical usage")
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .toolbar {
             ToolbarItemGroup {
@@ -54,60 +56,86 @@ struct SessionExplorerPage: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             statusBar
         }
+        .safeAreaPadding(.top)
     }
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(reportScope.title)
-                    .font(.headline)
-                HStack {
-                    compactTotal("Sessions", value: Int64(model.report.sessions.count))
-                    Spacer()
-                    compactTotal("Requests", value: model.report.totals.requests)
-                }
-                HStack {
-                    compactTotal("Input tokens", value: model.report.totals.inputTokens)
-                    Spacer()
-                    compactTotal("Output tokens", value: model.report.totals.outputTokens)
-                }
-                Text("Totals use the selected period. Search only narrows this list.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
+            sidebarHeader
+                .frame(height: SessionExplorerSidebarLayout.headerHeight, alignment: .topLeading)
             Divider()
-            SessionCacheHitChart(
-                sessions: model.visibleSessions,
-                provenance: model.provenance,
-                query: model.query,
-                isSearchActive: !model.filter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                policy: CacheHitThresholdPolicy(threshold: cacheHitSettings.threshold),
-                selectedSessionID: model.navigation.selectedSessionID,
-                onSelect: model.selectSession
-            )
-            .padding(.horizontal, 10)
-            .padding(.vertical, 10)
+            sidebarChart
             Divider()
-            List(selection: Binding(
-                get: { model.navigation.selectedSessionID },
-                set: { model.selectSession($0) }
-            )) {
-                OutlineGroup(model.visibleSessionTree, children: \.outlineChildren) { node in
-                    SessionListRow(node: node, provenance: model.provenance[node.id])
-                        .tag(node.id)
-                }
-            }
-            .overlay {
-                if model.visibleSessions.isEmpty && !model.report.sessions.isEmpty {
-                    ContentUnavailableView.search(text: model.filter)
-                }
-            }
-            .searchable(text: Binding(get: { model.filter }, set: { model.setFilter($0) }),
-                        prompt: "Session ID or model")
-            .accessibilityLabel("Sessions")
+            sidebarSessionList
+                .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                .layoutPriority(1)
         }
         .navigationTitle("Sessions")
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .clipped()
+    }
+
+    private var sidebarHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(reportScope.title)
+                .font(.headline)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            HStack {
+                compactTotal("Sessions", value: Int64(model.report.sessions.count))
+                Spacer()
+                compactTotal("Requests", value: model.report.totals.requests)
+            }
+            HStack {
+                compactTotal("Input tokens", value: model.report.totals.inputTokens)
+                Spacer()
+                compactTotal("Output tokens", value: model.report.totals.outputTokens)
+            }
+            Text("Totals use the selected period. Search only narrows this list.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .clipped()
+    }
+
+    private var sidebarChart: some View {
+        SessionCacheHitChart(
+            sessions: model.visibleSessions,
+            provenance: model.provenance,
+            query: model.query,
+            isSearchActive: !model.filter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            policy: CacheHitThresholdPolicy(threshold: cacheHitSettings.threshold),
+            selectedSessionID: model.navigation.selectedSessionID,
+            onSelect: model.selectSession
+        )
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .frame(height: SessionExplorerSidebarLayout.chartHeight, alignment: .topLeading)
+        .clipped()
+    }
+
+    private var sidebarSessionList: some View {
+        List(selection: Binding(
+            get: { model.navigation.selectedSessionID },
+            set: { model.selectSession($0) }
+        )) {
+            OutlineGroup(model.visibleSessionTree, children: \.outlineChildren) { node in
+                SessionListRow(node: node, provenance: model.provenance[node.id])
+                    .tag(node.id)
+            }
+        }
+        .overlay {
+            if model.visibleSessions.isEmpty && !model.report.sessions.isEmpty {
+                ContentUnavailableView.search(text: model.filter)
+            }
+        }
+        .searchable(text: Binding(get: { model.filter }, set: { model.setFilter($0) }),
+                    prompt: "Session ID or model")
+        .accessibilityLabel("Sessions")
     }
 
     private var emptyDetail: some View {
@@ -204,6 +232,12 @@ struct SessionExplorerPage: View {
     }
 }
 
+enum SessionExplorerSidebarLayout {
+    // The sidebar has two fixed sections followed by the only flexible region.
+    static let headerHeight: CGFloat = 176
+    static let chartHeight: CGFloat = 460
+}
+
 private struct SessionListRow: View {
     let node: SessionTreeNode
     let provenance: SessionProvenance?
@@ -212,12 +246,15 @@ private struct SessionListRow: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(provenance?.displayName ?? (node.session.model.isEmpty ? "Unknown model" : node.session.model))
                 .font(.headline)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .truncationMode(.middle)
                 .layoutPriority(1)
             Text(node.session.id)
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .help(node.session.id)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text("Cache hit")
                     .foregroundStyle(.secondary)
