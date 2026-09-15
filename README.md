@@ -184,7 +184,7 @@ Pause сохраняет ownership индекса, поэтому ручной �
 значок; эта настройка сохраняется. Закрытие окна и скрытие значка не останавливают
 watch. **Quit SessionMonitor**, включая стандартный Quit приложения, ожидает остановку
 watch и освобождение runtime. После повторного запуска watch нужно включить явно.
-Bundle IDs: `ru.egormerkushev.SessionMonitor` и `ru.egormerkushev.SessionMonitor.Tests`.
+Bundle IDs: `ru.egormerkushev.session-monitor` и `ru.egormerkushev.SessionMonitor.Tests`.
 Видимое product name и заголовок окна — `SessionMonitor`; `Session Explorer` — название
 функциональной области, а `MonitorMac` используется только для Xcode project/target/scheme.
 
@@ -195,6 +195,37 @@ Bundle IDs: `ru.egormerkushev.SessionMonitor` и `ru.egormerkushev.SessionMonito
 Append 752 bytes читает ровно 752 bytes, median 0.02 s; применяется append-only контракт выше.
 Audit parity: 6,340 requests и все шесть token totals. [Команда и методика](docs/performance/README.md).
 `make benchmark` использует отдельные копии/БД; в CI запускается только synthetic smoke.
+
+## Локальная загрузка в App Store Connect
+
+Публикация сборок пока выполняется только с локального Mac. GitHub Actions не получает
+App Store Connect credentials и не загружает release artifacts.
+
+Авторизуйте `asc` локально через Keychain, затем выполните:
+
+```sh
+make release-local
+```
+
+Скрипт проверяет App Store ID `6812366729`, bundle ID
+`ru.egormerkushev.session-monitor`, создаёт подписанный macOS archive и `.pkg` в
+игнорируемом `.build/release-local`, а перед upload запрашивает подтверждение. Для
+проверки только сборки без upload:
+
+```sh
+scripts/release-local.sh --archive-only
+```
+
+`ALLOW_PROVISIONING_UPDATES=YES` следует указывать только если локальному Xcode нужно
+обновить signing/provisioning assets. Приватные ключи, сертификаты и provisioning profiles
+не добавляются в repository. Для App Store Connect export локальный Mac также должен иметь
+`Mac Installer Distribution` certificate с private key и Mac App Store provisioning profile;
+`ALLOW_PROVISIONING_UPDATES=YES` не создаёт отсутствующий distribution certificate.
+Для submission используйте стабильный Xcode, например:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer make release-local
+```
 
 ## Проверка результата
 
