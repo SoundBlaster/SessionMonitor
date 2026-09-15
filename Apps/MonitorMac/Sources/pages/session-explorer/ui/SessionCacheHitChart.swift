@@ -11,6 +11,7 @@ struct SessionCacheHitChart: View {
     let policy: CacheHitThresholdPolicy
     let selectedSessionID: String?
     let onSelect: (String?) -> Void
+    @State private var pageIndex = 0
 
     private var data: [SessionCacheHitChartDatum] {
         SessionCacheHitChartDatum.make(sessions: sessions, provenance: provenance, policy: policy)
@@ -40,6 +41,9 @@ struct SessionCacheHitChart: View {
                     + "Minimum threshold \(thresholdLabel)."
         )
         .accessibilityIdentifier("sessionCacheHit.chart")
+        .onChange(of: pageCount) { _, newPageCount in
+            pageIndex = min(pageIndex, max(0, newPageCount - 1))
+        }
     }
 
     private var header: some View {
@@ -147,74 +151,156 @@ struct SessionCacheHitChart: View {
     }
 
     private var chart: some View {
-        ScrollView(.vertical, showsIndicators: data.count > 8) {
-            Chart {
-                RuleMark(x: .value("Threshold", policy.threshold.percent))
-                    .foregroundStyle(.secondary)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+        VStack(spacing: 4) {
+            HStack(spacing: 6) {
+                Button("Previous session group", systemImage: "chevron.up") {
+                    pageIndex = max(0, pageIndex - 1)
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .disabled(pageIndex == 0)
 
-                ForEach(data) { datum in
-                    chartMark(datum)
+                Text(pageDescription)
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+
+                Button("Next session group", systemImage: "chevron.down") {
+                    pageIndex = min(pageCount - 1, pageIndex + 1)
                 }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .disabled(pageIndex >= pageCount - 1)
             }
-            .chartXScale(domain: 0...100)
-            .chartForegroundStyleScale([
-                "Known": Color.primary,
-                "Below threshold": Color.red,
-                "Unavailable": Color.secondary
-            ])
-            .chartXAxis {
-                AxisMarks(values: [0.0, 25.0, 50.0, 75.0, 100.0]) { value in
-                    AxisGridLine()
-                    AxisTick()
-                    AxisValueLabel {
-                        if let percent = value.as(Double.self) {
-                            Text(Self.percentLabel(percent))
-                        }
-                    }
-                }
-            }
-            .chartYAxis {
-                AxisMarks(position: .leading, values: data.map(\.index)) { value in
-                    AxisGridLine()
-                    AxisTick()
-                    AxisValueLabel {
-                        if let index = value.as(Int.self), let datum = data.first(where: { $0.index == index }) {
-                            Text(datum.axisLabel)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                    }
-                }
-            }
-            .chartYScale(domain: 0...max(0, data.count - 1))
-            .chartLegend(.hidden)
-            .chartOverlay { proxy in
-                GeometryReader { geometry in
-                    Rectangle()
-                        .fill(.clear)
-                        .contentShape(Rectangle())
-                        .onTapGesture(count: 1, coordinateSpace: .local) { location in
-                            let plotFrame = geometry[proxy.plotAreaFrame]
-                            guard plotFrame.contains(location) else { return }
-                            let plotY = location.y - plotFrame.minY
-                            guard let index: Int = proxy.value(atY: plotY, as: Int.self),
-                                  let datum = data.first(where: { $0.index == index }) else { return }
-                            onSelect(datum.id)
-                        }
-                }
-            }
-            .frame(height: chartHeight)
             .accessibilityElement(children: .contain)
+            .accessibilityLabel("Session group navigation")
+
+            SessionCacheHitChartPage(
+                data: currentPage,
+                policy: policy,
+                onSelect: onSelect
+            )
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel("Cache hit session chart")
-            .accessibilityHint("Select a session bar to open its detail.")
+            .accessibilityHint(
+                "Select a session bar to open its detail. Use session group controls to view more sessions."
+            )
+            .accessibilityValue(chartAccessibilityValue)
+            .accessibilityIdentifier("sessionCacheHit.plot")
         }
-        .frame(maxHeight: 245)
-        .accessibilityIdentifier("sessionCacheHit.plot")
+        // Keep the only Charts instance bounded; the session list below remains scrollable.
+        .frame(height: SessionCacheHitChartLayout.chartViewportHeight(for: currentPage.count))
+        .accessibilityElement(children: .contain)
     }
 
-    private var chartHeight: CGFloat {
-        max(140, CGFloat(data.count) * 26 + 28)
+    private var chartPages: [[SessionCacheHitChartDatum]] {
+        stride(from: 0, to: data.count, by: SessionCacheHitChartLayout.pageSize).map { start in
+            Array(data[start..<min(start + SessionCacheHitChartLayout.pageSize, data.count)])
+        }
+    }
+
+    private var pageCount: Int {
+        max(1, chartPages.count)
+    }
+
+    private var currentPage: [SessionCacheHitChartDatum] {
+        chartPages.isEmpty ? [] : chartPages[min(pageIndex, chartPages.count - 1)]
+    }
+
+    private var pageDescription: String {
+        guard let first = currentPage.first?.index, let last = currentPage.last?.index else {
+            return "No sessions"
+        }
+        return "Sessions \(first + 1)–\(last + 1) of \(data.count)"
+    }
+
+    private var chartAccessibilityValue: String {
+        let knownCount = data.filter { $0.visualState == .known }.count
+        let belowCount = data.filter { $0.visualState == .belowThreshold }.count
+        let unavailableCount = data.filter { $0.visualState == .unavailable }.count
+        return "\(data.count.formatted()) sessions. \(knownCount.formatted()) known, "
+            + "\(belowCount.formatted()) below threshold, \(unavailableCount.formatted()) unavailable. "
+            + "\(thresholdLabel) threshold."
+    }
+}
+
+private struct SessionCacheHitChartPage: View {
+    let data: [SessionCacheHitChartDatum]
+    let policy: CacheHitThresholdPolicy
+    let onSelect: (String?) -> Void
+
+    private var yDomain: ClosedRange<Int> {
+        let first = data.first?.index ?? 0
+        let last = data.last?.index ?? first
+        return first...max(first, last)
+    }
+
+    var body: some View {
+        Chart {
+            RuleMark(x: .value("Threshold", policy.threshold.percent))
+                .foregroundStyle(.secondary)
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+
+            ForEach(data) { datum in
+                chartMark(datum)
+            }
+        }
+        .chartXScale(domain: 0...100)
+        .chartForegroundStyleScale([
+            "Known": Color.primary,
+            "Below threshold": Color.red,
+            "Unavailable": Color.secondary
+        ])
+        .chartXAxis {
+            AxisMarks(values: [0.0, 25.0, 50.0, 75.0, 100.0]) { value in
+                AxisGridLine()
+                AxisTick()
+                AxisValueLabel {
+                    if let percent = value.as(Double.self) {
+                        Text(SessionCacheHitChartFormat.percentLabel(percent))
+                    }
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(
+                position: .leading,
+                values: SessionCacheHitChartLayout.axisMarkIndices(
+                    startingAt: data.first?.index ?? 0,
+                    count: data.count
+                )
+            ) { value in
+                AxisGridLine()
+                AxisTick()
+                AxisValueLabel {
+                    if let index = value.as(Int.self), let datum = data.first(where: { $0.index == index }) {
+                        Text(datum.axisLabel)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+            }
+        }
+        .chartYScale(domain: yDomain)
+        .chartLegend(.hidden)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 1, coordinateSpace: .local) { location in
+                        guard let plotAnchor = proxy.plotFrame else { return }
+                        let plotFrame = geometry[plotAnchor]
+                        guard plotFrame.contains(location) else { return }
+                        let plotY = location.y - plotFrame.minY
+                        guard let index: Int = proxy.value(atY: plotY, as: Int.self),
+                              let datum = data.first(where: { $0.index == index }) else { return }
+                        onSelect(datum.id)
+                    }
+            }
+        }
+        .frame(height: SessionCacheHitChartLayout.chartHeight(for: data.count))
     }
 
     @ChartContentBuilder
@@ -226,8 +312,6 @@ struct SessionCacheHitChart: View {
             )
             .foregroundStyle(by: .value("Status", datum.visualState.legendLabel))
             .cornerRadius(3)
-            .accessibilityLabel(datum.accessibilityLabel)
-            .accessibilityValue(datum.accessibilityValue)
         } else {
             PointMark(
                 x: .value("Cache hit", 0),
@@ -235,12 +319,59 @@ struct SessionCacheHitChart: View {
             )
             .symbol(.diamond)
             .foregroundStyle(by: .value("Status", datum.visualState.legendLabel))
-            .accessibilityLabel(datum.accessibilityLabel)
-            .accessibilityValue(datum.accessibilityValue)
         }
     }
+}
 
-    private static func percentLabel(_ value: Double) -> String {
+private enum SessionCacheHitChartFormat {
+    static func percentLabel(_ value: Double) -> String {
         value.formatted(.number.precision(.fractionLength(0))) + "%"
+    }
+}
+
+enum SessionCacheHitChartLayout {
+    static let maxVisibleAxisMarks = 8
+    static let maxVisibleRows = 8
+    static let pageSize = maxVisibleRows
+    static let minimumChartHeight: CGFloat = 140
+    static let maximumChartHeight: CGFloat = 220
+    static let pageNavigationHeight: CGFloat = 28
+    static let rowHeight: CGFloat = 26
+    static let chartInsets: CGFloat = 28
+
+    static func axisMarkCount(for sessionCount: Int) -> Int {
+        min(max(sessionCount, 1), maxVisibleAxisMarks)
+    }
+
+    static func axisMarkIndices(startingAt startIndex: Int, count: Int) -> [Int] {
+        guard count > 0 else { return [] }
+        guard count > maxVisibleAxisMarks else {
+            return Array(startIndex..<(startIndex + count))
+        }
+
+        let maximumSteps = maxVisibleAxisMarks - 1
+        let step = max(1, Int(ceil(Double(count - 1) / Double(maximumSteps))))
+        var indices = Array(stride(from: startIndex, through: startIndex + count - 1, by: step))
+        let lastIndex = startIndex + count - 1
+        if indices.last != lastIndex, indices.count < maxVisibleAxisMarks {
+            indices.append(lastIndex)
+        }
+        return indices
+    }
+
+    static func visibleYDomainLength(for sessionCount: Int) -> Int {
+        min(max(sessionCount, 1), maxVisibleRows)
+    }
+
+    static func chartHeight(for sessionCount: Int) -> CGFloat {
+        let visibleRows = CGFloat(visibleYDomainLength(for: sessionCount))
+        return min(
+            maximumChartHeight,
+            max(minimumChartHeight, visibleRows * rowHeight + chartInsets)
+        )
+    }
+
+    static func chartViewportHeight(for sessionCount: Int) -> CGFloat {
+        chartHeight(for: sessionCount) + pageNavigationHeight
     }
 }

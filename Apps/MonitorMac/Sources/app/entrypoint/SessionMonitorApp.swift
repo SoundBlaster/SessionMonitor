@@ -72,6 +72,7 @@ private struct SessionMonitorWindow: View {
             cacheHitSettings: cacheHitSettings
         )
             .frame(minWidth: 760, minHeight: 520)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .task(id: reportScope.observationID) {
                 let query = reportScope.query
                 await model.loadIfNeeded(query: query)

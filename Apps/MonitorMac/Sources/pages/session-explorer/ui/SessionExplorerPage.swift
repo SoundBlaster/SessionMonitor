@@ -20,6 +20,7 @@ struct SessionExplorerPage: View {
                 if let session = model.selectedSession {
                     SessionDetailView(session: session, query: model.query,
                                       timelineModel: model.timelineModel, provider: model.contextProvider)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .task(id: timelineTaskID(session: session)) {
                             await model.loadTimeline(sessionID: session.id)
                         }
@@ -29,6 +30,7 @@ struct SessionExplorerPage: View {
             }
             .navigationTitle("SessionMonitor")
             .navigationSubtitle("Canonical usage")
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .toolbar {
             ToolbarItemGroup {
@@ -54,6 +56,7 @@ struct SessionExplorerPage: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             statusBar
         }
+        .safeAreaPadding(.top)
     }
 
     private var sidebar: some View {
@@ -106,8 +109,10 @@ struct SessionExplorerPage: View {
             .searchable(text: Binding(get: { model.filter }, set: { model.setFilter($0) }),
                         prompt: "Session ID or model")
             .accessibilityLabel("Sessions")
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationTitle("Sessions")
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var emptyDetail: some View {

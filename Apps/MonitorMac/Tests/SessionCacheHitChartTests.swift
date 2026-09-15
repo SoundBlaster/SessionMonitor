@@ -94,6 +94,29 @@ final class SessionCacheHitChartTests: XCTestCase {
         XCTAssertTrue(data[1].axisLabel.hasSuffix("#2"))
     }
 
+    func testLargeSessionChartUsesBoundedViewportAndSparseAxisContract() throws {
+        let policy = CacheHitThresholdPolicy(threshold: try CacheHitThreshold(percent: 80))
+        let sessions = (0..<250).map { index in
+            session("session-\(index)", cachedInputTokens: Int64(index % 101))
+        }
+
+        for count in [192, 250, 512] {
+            XCTAssertLessThanOrEqual(SessionCacheHitChartLayout.axisMarkCount(for: count), 8)
+            XCTAssertLessThanOrEqual(
+                SessionCacheHitChartLayout.axisMarkIndices(startingAt: 0, count: count).count,
+                8
+            )
+            XCTAssertLessThanOrEqual(SessionCacheHitChartLayout.visibleYDomainLength(for: count), 8)
+            XCTAssertLessThanOrEqual(SessionCacheHitChartLayout.chartHeight(for: count), 220)
+            XCTAssertLessThanOrEqual(SessionCacheHitChartLayout.chartViewportHeight(for: count), 248)
+        }
+
+        measure(metrics: [XCTClockMetric()]) {
+            let data = SessionCacheHitChartDatum.make(sessions: sessions, provenance: [:], policy: policy)
+            XCTAssertEqual(data.count, 250)
+        }
+    }
+
     func testDatumIdentityRoutesChartSelectionToTheMatchingSession() throws {
         let sessions = [session("first", cachedInputTokens: 0), session("second", cachedInputTokens: 100)]
         let policy = CacheHitThresholdPolicy(threshold: try CacheHitThreshold(percent: 80))
