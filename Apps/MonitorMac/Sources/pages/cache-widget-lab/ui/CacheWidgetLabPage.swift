@@ -7,6 +7,7 @@ struct CacheWidgetLabPage: View {
     @State private var width = 560.0
     @State private var dark = true
     @State private var monochrome = false
+    @State private var embedded = false
     @State private var customCopy = false
     @State private var largeType = false
     @State private var family = "Large"
@@ -16,7 +17,8 @@ struct CacheWidgetLabPage: View {
         VStack(spacing: 16) {
             controls
             ScrollView([.horizontal, .vertical]) {
-                CacheHitRateWidget(report: fixture.report, family: selectedFamily, appearance: appearance)
+                CacheHitRateWidget(report: fixture.report, family: selectedFamily, appearance: appearance,
+                                   containerStyle: embedded ? .embedded : .card)
                     .frame(width: width)
                     .environment(\.dynamicTypeSize, largeType ? .accessibility2 : .large)
                     .padding(32)
@@ -40,7 +42,10 @@ struct CacheWidgetLabPage: View {
                 Picker("Family", selection: $family) { ForEach(families, id: \.self) { Text($0) } }
                     .frame(width: 180)
             }
-            Toggle("Long custom title and legend", isOn: $customCopy)
+            HStack {
+                Toggle("Long custom title and legend", isOn: $customCopy)
+                Toggle("Embedded (no card)", isOn: $embedded)
+            }
             HStack {
                 Text("Width \(Int(width)) pt").monospacedDigit()
                 Slider(value: $width, in: 220...720, step: 20)

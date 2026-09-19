@@ -340,6 +340,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   полный GUI run 73/73 и финальные targeted 16/16, lint/FSD passed.
   [Отчёт и visual evidence](reports/SM-311-cache-hit-rate-widget-family.md);
   [PR #29](https://github.com/SoundBlaster/SessionMonitor/pull/29) открыт, SM-311 остаётся частичной.
+  Уточнение presentation: sidebar использует embedded variant без собственного background,
+  border и rounded container; card appearance остаётся отдельной опцией для внешнего host.
+  Проверено на реальной БД; build/lint/FSD и `make test-widget` (16/16) прошли.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
   Зависит от SM-104/SM-301/SM-302/SM-303/SM-304. Для выбранного интервала показывать model responses,
   input/cached/uncached/output tokens, cache hit и breakdown по thread, model и типу tool event;

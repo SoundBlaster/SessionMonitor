@@ -86,6 +86,18 @@ PNG snapshots предназначены для visual review; это не pixel
 - Xcode MCP build на этом этапе сообщил cancellation; использован `xcodebuild` fallback.
 - `git diff --check`: passed. Canonical/Core/Store code в этом follow-up не менялся.
 
+## Sidebar embedded presentation — 2026-09-20
+
+Sidebar передаёт `containerStyle: .embedded`: нет отдельного фона, border, rounded rectangle
+и card padding. Page задаёт единый section inset 16pt для выравнивания с header;
+существующие dividers разделяют header, chart и list. `.card` сохраняет прежнее оформление
+для standalone presentation. В Widget Lab добавлен переключатель Embedded.
+
+Xcode MCP BuildProject/RunProject и CLI build прошли; SwiftLint/FSD — без нарушений.
+`make test-widget`: 16/16 passed.
+Native screenshot на текущей базе подтвердил встроенный график без обрамления (96.9%, +0.7pp).
+При AX-проверке также убран лишний children-ignore с Text, скрывавший bucket descriptions.
+
 ## Предыдущие проверки (baseline, не повторялись целиком в visual follow-up)
 
 - `make check-core` — полный core/CLI/performance smoke passed; новые 7 core tests passed.

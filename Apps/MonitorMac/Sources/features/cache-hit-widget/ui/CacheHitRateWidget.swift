@@ -7,6 +7,7 @@ struct CacheHitRateWidget: View {
     @Environment(\.colorScheme) private var colorScheme
     let report: CacheHitRateWidgetReport?
     let family: CacheHitRateWidgetAppearance.Family
+    let containerStyle: CacheHitRateWidgetAppearance.ContainerStyle
     let appearance: CacheHitRateWidgetAppearance
     let onOpenAnalytics: (() -> Void)?
 
@@ -14,30 +15,42 @@ struct CacheHitRateWidget: View {
         report: CacheHitRateWidgetReport?,
         family: CacheHitRateWidgetAppearance.Family,
         appearance: CacheHitRateWidgetAppearance = .default,
+        containerStyle: CacheHitRateWidgetAppearance.ContainerStyle = .card,
         onOpenAnalytics: (() -> Void)? = nil
     ) {
         self.report = report
         self.family = family
         self.appearance = appearance
+        self.containerStyle = containerStyle
         self.onOpenAnalytics = onOpenAnalytics
     }
 
     var body: some View {
-        interactiveContent
-        .padding(cardPadding)
-        .background(
-            colorScheme == .dark ? appearance.palette.darkSurface : appearance.palette.lightSurface,
-            in: RoundedRectangle(cornerRadius: CacheHitRateWidgetLayout.cardCornerRadius)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: CacheHitRateWidgetLayout.cardCornerRadius)
-                .stroke(Color.primary.opacity(CacheHitRateWidgetLayout.borderOpacity))
-        }
+        container
         .accessibilityElement(children: .contain)
         .accessibilityLabel(appearance.copy.title)
         .accessibilityValue(accessibilityValue)
         .accessibilityHint(onOpenAnalytics == nil ? "" : "Open cache analytics.")
         .accessibilityIdentifier("cacheHitRate.widget")
+    }
+
+    @ViewBuilder
+    private var container: some View {
+        switch containerStyle {
+        case .embedded:
+            interactiveContent
+        case .card:
+            interactiveContent
+                .padding(cardPadding)
+                .background(
+                    colorScheme == .dark ? appearance.palette.darkSurface : appearance.palette.lightSurface,
+                    in: RoundedRectangle(cornerRadius: CacheHitRateWidgetLayout.cardCornerRadius)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: CacheHitRateWidgetLayout.cardCornerRadius)
+                        .stroke(Color.primary.opacity(CacheHitRateWidgetLayout.borderOpacity))
+                }
+        }
     }
 
     @ViewBuilder

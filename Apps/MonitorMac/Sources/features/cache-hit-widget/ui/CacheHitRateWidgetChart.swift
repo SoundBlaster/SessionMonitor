@@ -58,7 +58,6 @@ struct CacheHitRateWidgetChart: View {
             VStack {
                 ForEach(slots) { slot in
                     Text(slot.bucket.map(bucketDescription) ?? "\(dateLabel(slot.start)): no cache data")
-                        .accessibilityElement(children: .ignore)
                 }
             }
             .accessibilityElement(children: .contain)

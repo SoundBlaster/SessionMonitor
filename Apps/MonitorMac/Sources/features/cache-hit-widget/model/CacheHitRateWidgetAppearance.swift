@@ -47,6 +47,7 @@ struct CacheHitRateWidgetAppearance {
     }
 
     enum Family { case large, medium, small }
+    enum ContainerStyle { case card, embedded }
 
     let palette: Palette
     let copy: Copy
