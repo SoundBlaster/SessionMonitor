@@ -3,6 +3,26 @@ import GRDB
 import MonitorCore
 
 extension UsageStore {
+    /// Reads only the minimal, identity-internal observations needed to derive the
+    /// privacy-safe cache-rate widget report. It never changes canonical accounting.
+    public func cacheHitRateObservations(since: Date, until: Date) throws -> [CacheHitRateObservation] {
+        try database.read { database in
+            try Row.fetchAll(database, sql: """
+                SELECT session, timestamp, input, cached
+                FROM confirmed
+                WHERE timestamp >= ? AND timestamp < ?
+                ORDER BY timestamp ASC, response ASC
+                """, arguments: [since.timeIntervalSince1970, until.timeIntervalSince1970]).map { row in
+                    CacheHitRateObservation(
+                        timestamp: Date(timeIntervalSince1970: row["timestamp"]),
+                        sessionID: row["session"],
+                        cacheableInputTokens: row["input"],
+                        cachedInputTokens: row["cached"]
+                    )
+                }
+        }
+    }
+
     /// Reads presentation evidence for one exact session. This query never contributes to accounting.
     public func timeline(sessionID: String, query: UsageQuery) throws -> RequestTimeline {
         try database.read { database in

@@ -27,6 +27,12 @@ actor SharedReportRuntime: SessionExplorerRuntime {
         try await runtime.timeline(sessionID: sessionID, query: query)
     }
 
+    func cacheHitRateWidget(
+        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone
+    ) async throws -> CacheHitRateWidgetReport {
+        try await runtime.cacheHitRateWidget(period: period, referenceDate: referenceDate, timeZone: timeZone)
+    }
+
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
         let id = UUID()
         let (stream, continuation) = AsyncThrowingStream<UsageSnapshot, Error>.makeStream(

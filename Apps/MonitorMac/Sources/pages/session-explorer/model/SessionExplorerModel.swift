@@ -7,6 +7,9 @@ protocol SessionExplorerRuntime: RequestTimelineSource, Sendable {
     func importDirectory(_ directory: URL) async throws -> ImportSummary
     func snapshot(query: UsageQuery) async throws -> UsageSnapshot
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error>
+    func cacheHitRateWidget(
+        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone
+    ) async throws -> CacheHitRateWidgetReport
 }
 
 extension MonitorRuntime.SessionMonitor: SessionExplorerRuntime {}
@@ -29,6 +32,7 @@ final class SessionExplorerModel {
     private(set) var importSummary: ImportSummary?
     private(set) var importedDirectory: URL?
     private(set) var lastUpdated: Date?
+    private(set) var cacheHitRateWidgetReport: CacheHitRateWidgetReport?
     private(set) var filter = ""
     var navigation = SessionNavigationState()
 
@@ -93,6 +97,19 @@ final class SessionExplorerModel {
             await timelineModel.load(sessionID: sessionID, query: query, source: runtime)
         } catch {
             timelineModel.fail(error)
+        }
+    }
+
+    func loadCacheHitRateWidget(
+        period: CacheHitRateWidgetPeriod, referenceDate: Date = Date(), timeZone: TimeZone
+    ) async {
+        do {
+            let runtime = try await resolvedRuntime()
+            cacheHitRateWidgetReport = try await runtime.cacheHitRateWidget(
+                period: period, referenceDate: referenceDate, timeZone: timeZone
+            )
+        } catch {
+            errorMessage = "Could not load the cache hit widget. \(error.localizedDescription)"
         }
     }
 
@@ -181,6 +198,7 @@ final class SessionExplorerModel {
         report = UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:])
         navigation.reconcile(with: [])
         lastUpdated = nil
+        cacheHitRateWidgetReport = nil
         publishSnapshot()
     }
 
