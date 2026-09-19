@@ -39,6 +39,7 @@ in-app card реагирует на snapshot revision и настройку пе
 - `make lint-architecture` — 0 errors, 0 warnings.
 - `make test-architecture` — expected negative FSD fixture detected; target exited successfully.
 - `git diff --check` — passed.
+- Xcode MCP `BuildProject` — passed; `RunSomeTests` for `CacheHitRateWidgetTests` — 4/4 passed.
 - Native dark-mode AX and screenshot: card displays `97.0%`, `Last 7 days` and delta,
   while widget subtree exposes only aggregate distribution text; no session/model identity.
 
