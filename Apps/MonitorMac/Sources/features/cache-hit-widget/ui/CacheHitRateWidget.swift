@@ -156,6 +156,8 @@ struct CacheHitRateWidget: View {
                         family: family,
                         timeZoneIdentifier: report.timeZoneIdentifier
                     ))
+                    .font(.caption2)
+                    .fixedSize(horizontal: true, vertical: false)
                 }
             }
         }
