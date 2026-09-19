@@ -25,6 +25,10 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
 merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
 **SM-202 доставлена через [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10),
 merge `3f13b93` (2026-09-12).**
+SM-706 — локальный macOS App Store Connect upload workflow — в работе в текущей ветке;
+перед загрузкой подтверждается совпадение bundle ID проекта и App Store Connect app.
+Локальные distribution assets установлены; 2026-09-19 export `.pkg` прошёл с Xcode 27.0
+и `ALLOW_PROVISIONING_UPDATES=YES`; upload намеренно отменён на подтверждении.
 **SM-301 доставлена через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13),
 merge `ec64cd8`. SM-302, SM-303, SM-304, SM-305, SM-306, SM-309 и SM-310 доставлены;
 следующая активная задача — SM-307.**
@@ -176,7 +180,8 @@ dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-laye
   GUI watch ещё не запущен, статус внешнего watcher неизвестен. Управление — SM-202.
   SharedReportRuntime разделяет default stream между окнами и панелью; навигация per-window.
   Loading/empty/error, tokens, cache coverage и время commit индекса без обещания source freshness.
-  Bundle IDs по указанию пользователя: `ru.egormerkushev.SessionMonitor` / `.Tests`.
+  Bundle IDs: `ru.egormerkushev.session-monitor` / `ru.egormerkushev.SessionMonitor.Tests`;
+  app bundle ID синхронизирован с App Store Connect app `6812366729`.
   `make lint lint-architecture test-macos`: 15 GUI/model/render tests passed, SwiftLint/FSD passed.
   Native build passed; пустая menu-панель проверена визуально, populated fixture проверен в окне.
   Native ImageRenderer: empty/partial/complete панели с большими totals проверены визуально.
@@ -384,6 +389,19 @@ dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-laye
 - [ ] **SM-703** — Distribution packaging CLI/app/widget, notices, signing, notarization и обновления.
   Готово, когда выбранный способ доставки проверен на чистой установке с сохранением данных;
   Apple Development build сам по себе не подтверждает distribution readiness.
+- [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
+  Статус: в работе. Скрипт создаёт archive и `.pkg` только локально, проверяет app ID и bundle ID,
+  запрашивает подтверждение перед upload и использует локальную аутентификацию `asc`; GitHub Actions
+  и repository secrets не участвуют. 2026-09-19: установленный Mac App Distribution identity,
+  Mac Installer Distribution identity и Mac App Store Connect profile проверены локально;
+  Xcode 27.0 автоматически установил profile в version-specific каталог. Первый export без
+  `-allowProvisioningUpdates` не нашёл profile; повторный export с этим флагом прошёл.
+  Полный `make release-local` с `ALLOW_PROVISIONING_UPDATES=YES` создал подписанный `.pkg`,
+  `pkgutil --check-signature` подтвердил Mac Installer Distribution certificate. Upload
+  намеренно отменён на интерактивном подтверждении; App Store Connect upload/processing и
+  TestFlight distribution ещё не проверены. Остаток — выполнить первый upload и зафиксировать
+  processing/TestFlight evidence, затем доставить изменения через PR. Для App Store submission
+  предпочтителен стабильный Xcode; текущая локальная проверка была на Xcode 27 beta.
 - [x] **SM-704** — Настроить GitHub CI и обязательный PR workflow до следующих feature tasks.
   Готово 2026-09-12: [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1),
   [успешный CI run](https://github.com/SoundBlaster/SessionMonitor/actions/runs/34689690547)
