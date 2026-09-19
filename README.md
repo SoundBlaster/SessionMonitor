@@ -207,21 +207,46 @@ App Store Connect credentials и не загружает release artifacts.
 make release-local
 ```
 
+Перед первым export локальному Mac нужны оба distribution identity с private keys
+в Keychain: `Mac App Distribution` и `Mac Installer Distribution`. Также нужен
+профиль типа `Mac App Store Connect` для explicit App ID
+`ru.egormerkushev.session-monitor`, содержащий `Mac App Distribution` certificate.
+Проверить локально установленные профили можно так:
+
+```sh
+asc profiles local list \
+  --bundle-id ru.egormerkushev.session-monitor \
+  --output table
+```
+
+App Store Connect API key, используемый `asc` для доступа и upload, не заменяет
+distribution signing identity. Все API keys, private keys и signing assets остаются
+в локальном Keychain/профильном хранилище; не добавляйте их, скачанные профили,
+сертификаты или локальные `.xcarchive`/`.pkg` в GitHub.
+
 Скрипт проверяет App Store ID `6812366729`, bundle ID
 `ru.egormerkushev.session-monitor`, создаёт подписанный macOS archive и `.pkg` в
-игнорируемом `.build/release-local`, а перед upload запрашивает подтверждение. Для
-проверки только сборки без upload:
+игнорируемом `.build/release-local`, а перед upload запрашивает подтверждение.
+`--archive-only` создаёт archive и экспортирует `.pkg`, но пропускает upload:
 
 ```sh
 scripts/release-local.sh --archive-only
 ```
 
-`ALLOW_PROVISIONING_UPDATES=YES` следует указывать только если локальному Xcode нужно
-обновить signing/provisioning assets. Приватные ключи, сертификаты и provisioning profiles
-не добавляются в repository. Для App Store Connect export локальный Mac также должен иметь
-`Mac Installer Distribution` certificate с private key и Mac App Store provisioning profile;
-`ALLOW_PROVISIONING_UPDATES=YES` не создаёт отсутствующий distribution certificate.
-Для submission используйте стабильный Xcode, например:
+Если Xcode не находит подходящий локальный профиль, разрешите ему обновить provisioning
+assets из Developer Portal при archive/export:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+ALLOW_PROVISIONING_UPDATES=YES \
+make release-local
+```
+
+Этот параметр может синхронизировать или создать provisioning profile через аккаунт
+разработчика; он не создаёт отсутствующий distribution certificate/private key.
+Путь к локальному кэшу profiles зависит от версии Xcode — вручную переносить профиль
+в старую папку `~/Library/MobileDevice` не требуется. Для submission используйте
+стабильный Xcode, например:
 
 ```sh
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer make release-local

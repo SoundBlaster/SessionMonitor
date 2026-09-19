@@ -27,9 +27,8 @@ merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
 merge `3f13b93` (2026-09-12).**
 SM-706 — локальный macOS App Store Connect upload workflow — в работе в текущей ветке;
 перед загрузкой подтверждается совпадение bundle ID проекта и App Store Connect app.
-Archive-only verification прошла 2026-09-15: archive подписан и содержит bundle ID
-`ru.egormerkushev.session-monitor`, version `0.1.0`, build `1`; export заблокирован отсутствующими
-`Mac Installer Distribution` certificate/private key и Mac App Store provisioning profile.
+Локальные distribution assets установлены; 2026-09-19 export `.pkg` прошёл с Xcode 27.0
+и `ALLOW_PROVISIONING_UPDATES=YES`; upload намеренно отменён на подтверждении.
 **SM-301 доставлена через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13),
 merge `ec64cd8`. SM-302, SM-303, SM-304, SM-305, SM-306, SM-309 и SM-310 доставлены;
 следующая активная задача — SM-307.**
@@ -393,10 +392,16 @@ dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-laye
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
   Статус: в работе. Скрипт создаёт archive и `.pkg` только локально, проверяет app ID и bundle ID,
   запрашивает подтверждение перед upload и использует локальную аутентификацию `asc`; GitHub Actions
-  и repository secrets не участвуют. Archive и codesign проверены локально; остаток — настроить
-  distribution certificate/profile на Mac, повторить export и выполнить первый upload, затем
-  зафиксировать evidence и доставить через PR. Дополнительное ограничение: текущий Xcode beta;
-  для App Store submission предпочтителен стабильный Xcode.
+  и repository secrets не участвуют. 2026-09-19: установленный Mac App Distribution identity,
+  Mac Installer Distribution identity и Mac App Store Connect profile проверены локально;
+  Xcode 27.0 автоматически установил profile в version-specific каталог. Первый export без
+  `-allowProvisioningUpdates` не нашёл profile; повторный export с этим флагом прошёл.
+  Полный `make release-local` с `ALLOW_PROVISIONING_UPDATES=YES` создал подписанный `.pkg`,
+  `pkgutil --check-signature` подтвердил Mac Installer Distribution certificate. Upload
+  намеренно отменён на интерактивном подтверждении; App Store Connect upload/processing и
+  TestFlight distribution ещё не проверены. Остаток — выполнить первый upload и зафиксировать
+  processing/TestFlight evidence, затем доставить изменения через PR. Для App Store submission
+  предпочтителен стабильный Xcode; текущая локальная проверка была на Xcode 27 beta.
 - [x] **SM-704** — Настроить GitHub CI и обязательный PR workflow до следующих feature tasks.
   Готово 2026-09-12: [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1),
   [успешный CI run](https://github.com/SoundBlaster/SessionMonitor/actions/runs/34689690547)
