@@ -51,13 +51,15 @@ enum CacheHitRateWidgetLayout {
     static let cardPadding: CGFloat = 16
     static let compactCardPadding: CGFloat = 12
     static let cardCornerRadius: CGFloat = 24
-    static let chartHeight: CGFloat = 190
-    static let compactChartHeight: CGFloat = 138
+    static let chartAspectRatio: CGFloat = 16 / 9
     static let rangeWidth: CGFloat = 14
     static let averageLineWidth: CGFloat = 3
     static let normalOutlierSize: CGFloat = 6
     static let strongOutlierSize: CGFloat = 7
     static let xAxisEdgePadding: CGFloat = 14
+    static let xAxisLabelHeight: CGFloat = 14
+    static let plotLeadingInset: CGFloat = 32
+    static let plotTrailingInset: CGFloat = 8
     static let gridOpacity = 0.20
     static let maximumOutliers = 4
 }

@@ -35,7 +35,7 @@ final class CacheHitRateWidgetTests: XCTestCase {
         XCTAssertEqual(CacheHitRateWidgetAxis.domain(for: [bucket]), 50...100)
     }
 
-    func testQuarterBandAxisIncludesWeightedAverage() {
+    func testQuarterBandAxisIgnoresWeightedAverageOutsideRange() {
         let bucket = CacheHitRateBucket(
             start: Date(timeIntervalSince1970: 0), end: Date(timeIntervalSince1970: 86_400),
             lower: 82, upper: 93, average: 49, median: 88,
@@ -43,7 +43,7 @@ final class CacheHitRateWidgetTests: XCTestCase {
             sampleCount: 12, usesMinMaxFallback: false
         )
 
-        XCTAssertEqual(CacheHitRateWidgetAxis.domain(for: [bucket]), 25...100)
+        XCTAssertEqual(CacheHitRateWidgetAxis.domain(for: [bucket]), 75...100)
     }
 
     func testHourlyBucketLabelUsesReportTimeZone() {
@@ -69,6 +69,18 @@ final class CacheHitRateWidgetTests: XCTestCase {
         )
 
         XCTAssertEqual(label, "Thu")
+    }
+
+    func testDailyLabelsAreSingleCharactersForSmallFamily() {
+        let label = CacheHitRateWidgetLabelFormat.bucketLabel(
+            for: Date(timeIntervalSince1970: 0),
+            period: .last7Days,
+            family: .small,
+            timeZoneIdentifier: "UTC",
+            locale: Locale(identifier: "en_US_POSIX")
+        )
+
+        XCTAssertEqual(label, "T")
     }
 
     func testAverageMarkerStaysWithinDisplayedRange() {

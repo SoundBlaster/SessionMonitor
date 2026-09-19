@@ -43,6 +43,10 @@ timezone; а average marker центрирован над range bar. Negative de
 лежать вне unweighted P10–P90, поэтому marker display-clamp'ится внутри range bar; исходное
 weighted значение остаётся в report.
 
+После visual direction correction chart plot стал responsive 16:9, а sidebar зарезервировал
+для card 240pt вместо 460pt. Grid показывает только 75–100 с шагом 5, и при narrow sidebar
+labels переключаются на single-character weekdays; wider families сохраняют three-letter form.
+
 ## Проверки
 
 - `make check-core` — полный core/CLI/performance smoke passed; новые 7 core tests passed.

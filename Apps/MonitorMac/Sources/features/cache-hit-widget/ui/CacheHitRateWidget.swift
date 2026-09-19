@@ -99,7 +99,8 @@ struct CacheHitRateWidget: View {
 
     private func chart(_ report: CacheHitRateWidgetReport) -> some View {
         let domain = CacheHitRateWidgetAxis.domain(for: report.buckets)
-        return Chart {
+        return VStack(spacing: 2) {
+            Chart {
             ForEach(report.buckets) { bucket in
                 BarMark(
                     x: .value("Bucket", bucket.start),
@@ -135,36 +136,25 @@ struct CacheHitRateWidget: View {
                             : appearance.palette.notableOutlier.opacity(0.65))
                 }
             }
+            }
+            .chartYScale(domain: domain)
+            .chartXScale(range: .plotDimension(startPadding: xAxisEdgePadding, endPadding: xAxisEdgePadding))
+            .chartXAxis { xAxisTicks(for: report) }
+            .chartYAxis { yAxis }
+            .chartLegend(.hidden)
+            .aspectRatio(CacheHitRateWidgetLayout.chartAspectRatio, contentMode: .fit)
+
+            CacheHitRateWidgetBucketLabels(report: report, family: family)
         }
-        .chartYScale(domain: domain)
-        .chartXScale(range: .plotDimension(startPadding: xAxisEdgePadding, endPadding: xAxisEdgePadding))
-        .chartXAxis { xAxis(for: report) }
-        .chartYAxis { yAxis }
-        .chartLegend(.hidden)
-        .frame(height: chartHeight)
         .accessibilityLabel("Cache hit rate distribution")
     }
 
-    @AxisContentBuilder private func xAxis(for report: CacheHitRateWidgetReport) -> some AxisContent {
-        AxisMarks(values: CacheHitRateWidgetChartPresentation.bucketStarts(for: report)) { value in
-            AxisTick()
-            AxisValueLabel {
-                if let date = value.as(Date.self) {
-                    Text(CacheHitRateWidgetLabelFormat.bucketLabel(
-                        for: date,
-                        period: report.period,
-                        family: family,
-                        timeZoneIdentifier: report.timeZoneIdentifier
-                    ))
-                    .font(.caption2)
-                    .fixedSize(horizontal: true, vertical: false)
-                }
-            }
-        }
+    @AxisContentBuilder private func xAxisTicks(for report: CacheHitRateWidgetReport) -> some AxisContent {
+        AxisMarks(values: CacheHitRateWidgetChartPresentation.bucketStarts(for: report)) { _ in AxisTick() }
     }
 
     @AxisContentBuilder private var yAxis: some AxisContent {
-        AxisMarks(position: .leading, values: .stride(by: 5)) { _ in
+        AxisMarks(position: .leading, values: [75.0, 80, 85, 90, 95, 100]) { _ in
             if family != .small {
                 AxisGridLine().foregroundStyle(.secondary.opacity(CacheHitRateWidgetLayout.gridOpacity))
             }
@@ -269,10 +259,6 @@ struct CacheHitRateWidget: View {
         family == .large ? CacheHitRateWidgetLayout.cardPadding : CacheHitRateWidgetLayout.compactCardPadding
     }
 
-    private var chartHeight: CGFloat {
-        family == .small ? CacheHitRateWidgetLayout.compactChartHeight : CacheHitRateWidgetLayout.chartHeight
-    }
-
 }
 
 private extension CacheHitRateWidget {
@@ -291,10 +277,38 @@ private extension CacheHitRateWidget {
 
 enum CacheHitRateWidgetAxis {
     static func domain(for buckets: [CacheHitRateBucket]) -> ClosedRange<Double> {
-        let normalValues = buckets.flatMap { [$0.lower, $0.average, $0.upper] }
+        let normalValues = buckets.flatMap { [$0.lower, $0.upper] }
         let normalMinimum = normalValues.min() ?? 75
         let minimum = [75.0, 50, 25, 0].first(where: { $0 <= normalMinimum }) ?? 0
         return minimum...100
+    }
+}
+
+private struct CacheHitRateWidgetBucketLabels: View {
+    let report: CacheHitRateWidgetReport
+    let family: CacheHitRateWidgetAppearance.Family
+
+    var body: some View {
+        GeometryReader { proxy in
+            let labelFamily: CacheHitRateWidgetAppearance.Family = proxy.size.width < 320 ? .small : family
+            HStack(spacing: 0) {
+                ForEach(report.buckets) { bucket in
+                    Text(CacheHitRateWidgetLabelFormat.bucketLabel(
+                        for: bucket.start,
+                        period: report.period,
+                        family: labelFamily,
+                        timeZoneIdentifier: report.timeZoneIdentifier
+                    ))
+                    .font(.caption2.weight(.medium))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
+                }
+            }
+            .padding(.leading, CacheHitRateWidgetLayout.plotLeadingInset)
+            .padding(.trailing, CacheHitRateWidgetLayout.plotTrailingInset)
+        }
+        .frame(height: CacheHitRateWidgetLayout.xAxisLabelHeight)
     }
 }
 

@@ -249,7 +249,7 @@ struct SessionExplorerPage: View {
 enum SessionExplorerSidebarLayout {
     // The sidebar has two fixed sections followed by the only flexible region.
     static let headerHeight: CGFloat = 176
-    static let chartHeight: CGFloat = 460
+    static let chartHeight: CGFloat = 240
 }
 
 private struct CacheHitRateWidgetLoadID: Hashable {
