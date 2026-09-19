@@ -85,6 +85,7 @@ public struct CacheHitRateBucket: Equatable, Sendable, Identifiable {
 
 public struct CacheHitRateWidgetReport: Equatable, Sendable {
     public let period: CacheHitRateWidgetPeriod
+    public let timeZoneIdentifier: String
     public let periodStart: Date
     public let periodEnd: Date
     public let periodCacheHitRate: Double?
@@ -93,11 +94,13 @@ public struct CacheHitRateWidgetReport: Equatable, Sendable {
     public let sessionCount: Int
     public let buckets: [CacheHitRateBucket]
 
-    public init(period: CacheHitRateWidgetPeriod, periodStart: Date, periodEnd: Date,
+    public init(period: CacheHitRateWidgetPeriod, timeZoneIdentifier: String = "UTC",
+                periodStart: Date, periodEnd: Date,
                 periodCacheHitRate: Double?, comparisonDeltaPercentagePoints: Double?,
                 availability: CacheHitRateWidgetAvailability, sessionCount: Int,
                 buckets: [CacheHitRateBucket]) {
         self.period = period
+        self.timeZoneIdentifier = timeZoneIdentifier
         self.periodStart = periodStart
         self.periodEnd = periodEnd
         self.periodCacheHitRate = periodCacheHitRate
@@ -128,6 +131,7 @@ public enum CacheHitRateWidgetBuilder {
         let sessionCount = Set(current.map(\.sessionID)).count
         return CacheHitRateWidgetReport(
             period: period,
+            timeZoneIdentifier: timeZone.identifier,
             periodStart: periodStart,
             periodEnd: periodEnd,
             periodCacheHitRate: availability == .available ? currentRate : nil,

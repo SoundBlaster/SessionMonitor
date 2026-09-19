@@ -35,6 +35,40 @@ final class CacheHitRateWidgetTests: XCTestCase {
         XCTAssertEqual(CacheHitRateWidgetAxis.domain(for: [bucket]), 50...100)
     }
 
+    func testQuarterBandAxisIncludesWeightedAverage() {
+        let bucket = CacheHitRateBucket(
+            start: Date(timeIntervalSince1970: 0), end: Date(timeIntervalSince1970: 86_400),
+            lower: 82, upper: 93, average: 49, median: 88,
+            outliers: [CacheHitRateOutlier(cacheHitRate: 10, deviation: -4, severity: .strong)],
+            sampleCount: 12, usesMinMaxFallback: false
+        )
+
+        XCTAssertEqual(CacheHitRateWidgetAxis.domain(for: [bucket]), 25...100)
+    }
+
+    func testHourlyBucketLabelUsesReportTimeZone() {
+        let date = Date(timeIntervalSince1970: 0)
+        let label = CacheHitRateWidgetLabelFormat.bucketLabel(
+            for: date,
+            period: .last24Hours,
+            family: .medium,
+            timeZoneIdentifier: "America/Los_Angeles",
+            locale: Locale(identifier: "en_US_POSIX")
+        )
+
+        XCTAssertEqual(label.replacingOccurrences(of: "\u{202F}", with: " "), "4 PM")
+    }
+
+    func testRefreshScheduleUsesNextHourBoundary() throws {
+        let date = Date(timeIntervalSince1970: 1_725_925_930)
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+
+        XCTAssertEqual(
+            CacheHitRateWidgetRefreshSchedule.nextRefresh(after: date, timeZone: timeZone),
+            Date(timeIntervalSince1970: 1_725_926_400)
+        )
+    }
+
     @MainActor
     func testWidgetPeriodPersistsAndInvalidStoredValueFallsBackToSevenDays() throws {
         let suiteName = "CacheHitRateWidgetTests.\(UUID().uuidString)"

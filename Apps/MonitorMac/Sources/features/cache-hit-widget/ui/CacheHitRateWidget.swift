@@ -81,10 +81,14 @@ struct CacheHitRateWidget: View {
                     .font(family == .small ? .title2.weight(.semibold) : .title.weight(.semibold))
                     .monospacedDigit()
                 if let delta = report.comparisonDeltaPercentagePoints {
-                    Label(deltaLabel(delta), systemImage: "triangle.fill")
+                    Label {
+                        Text(deltaLabel(delta))
+                    } icon: {
+                        Image(systemName: "triangle.fill")
+                            .rotationEffect(delta < 0 ? .degrees(180) : .zero)
+                    }
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(delta >= 0 ? appearance.palette.improvement : appearance.palette.degradation)
-                        .rotationEffect(delta < 0 ? .degrees(180) : .zero)
                 }
                 if family == .large {
                     Text(appearance.copy.comparisonLabel).font(.caption).foregroundStyle(.secondary)
@@ -133,18 +137,25 @@ struct CacheHitRateWidget: View {
             }
         }
         .chartYScale(domain: domain)
-        .chartXAxis { xAxis }
+        .chartXAxis { xAxis(for: report) }
         .chartYAxis { yAxis }
         .chartLegend(.hidden)
         .frame(height: chartHeight)
         .accessibilityLabel("Cache hit rate distribution")
     }
 
-    @AxisContentBuilder private var xAxis: some AxisContent {
+    @AxisContentBuilder private func xAxis(for report: CacheHitRateWidgetReport) -> some AxisContent {
         AxisMarks(values: .automatic(desiredCount: family == .small ? 7 : 8)) { value in
             AxisTick()
             AxisValueLabel {
-                if let date = value.as(Date.self) { Text(bucketLabel(date)) }
+                if let date = value.as(Date.self) {
+                    Text(CacheHitRateWidgetLabelFormat.bucketLabel(
+                        for: date,
+                        period: report.period,
+                        family: family,
+                        timeZoneIdentifier: report.timeZoneIdentifier
+                    ))
+                }
             }
         }
     }
@@ -245,12 +256,6 @@ struct CacheHitRateWidget: View {
         return "\(value > 0 ? "+" : "")\(number) pp"
     }
 
-    private func bucketLabel(_ date: Date) -> String {
-        let formatter = Date.FormatStyle(date: family == .small ? .omitted : .abbreviated, time: .omitted)
-            .weekday(family == .small ? .narrow : .abbreviated)
-        return date.formatted(formatter)
-    }
-
     private func clipped(_ value: Double, domain: ClosedRange<Double>) -> Double {
         min(domain.upperBound, max(domain.lowerBound, value))
     }
@@ -264,18 +269,22 @@ struct CacheHitRateWidget: View {
     }
 
     private func averageStart(for bucket: CacheHitRateBucket) -> Date {
-        bucket.start.addingTimeInterval(0.25 * bucket.end.timeIntervalSince(bucket.start))
+        bucket.start.addingTimeInterval(-averageMarkerHalfWidth(for: bucket))
     }
 
     private func averageEnd(for bucket: CacheHitRateBucket) -> Date {
-        bucket.start.addingTimeInterval(0.75 * bucket.end.timeIntervalSince(bucket.start))
+        bucket.start.addingTimeInterval(averageMarkerHalfWidth(for: bucket))
+    }
+
+    private func averageMarkerHalfWidth(for bucket: CacheHitRateBucket) -> TimeInterval {
+        0.09 * bucket.end.timeIntervalSince(bucket.start)
     }
 }
 
 enum CacheHitRateWidgetAxis {
     static func domain(for buckets: [CacheHitRateBucket]) -> ClosedRange<Double> {
-        let ranges = buckets.flatMap { [$0.lower, $0.upper] }
-        let normalMinimum = ranges.min() ?? 75
+        let normalValues = buckets.flatMap { [$0.lower, $0.average, $0.upper] }
+        let normalMinimum = normalValues.min() ?? 75
         let minimum = [75.0, 50, 25, 0].first(where: { $0 <= normalMinimum }) ?? 0
         return minimum...100
     }

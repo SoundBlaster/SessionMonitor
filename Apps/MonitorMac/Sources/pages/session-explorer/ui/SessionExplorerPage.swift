@@ -116,10 +116,19 @@ struct SessionExplorerPage: View {
             timeZoneIdentifier: model.query.timeZoneIdentifier
         )) {
             guard model.snapshot != nil else { return }
-            await model.loadCacheHitRateWidget(
-                period: cacheHitRateWidgetSettings.period,
-                timeZone: TimeZone(identifier: model.query.timeZoneIdentifier) ?? .current
-            )
+            while !Task.isCancelled {
+                let timeZone = TimeZone(identifier: model.query.timeZoneIdentifier) ?? .current
+                await model.loadCacheHitRateWidget(
+                    period: cacheHitRateWidgetSettings.period,
+                    timeZone: timeZone
+                )
+                let nextRefresh = CacheHitRateWidgetRefreshSchedule.nextRefresh(after: Date(), timeZone: timeZone)
+                do {
+                    try await Task.sleep(for: .seconds(nextRefresh.timeIntervalSinceNow))
+                } catch {
+                    return
+                }
+            }
         }
     }
 

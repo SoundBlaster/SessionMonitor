@@ -2,7 +2,7 @@
 
 Дата: 2026-09-19  
 Ветка: `feat/sm-311-cache-hit-widget-family`  
-Статус: частичная реализация, PR ещё не создан.
+Статус: частичная реализация, PR #29 открыт.
 
 ## Результат этого этапа
 
@@ -28,7 +28,14 @@ presentation formulas.
 
 `CacheHitRateWidgetAppearance` содержит semantic palette, copy/legend strings и layout
 tokens. `CacheHitRateWidgetSettings` хранит 24h/7d/14d/30d в `UserDefaults`; текущий
-in-app card реагирует на snapshot revision и настройку периода без reimport.
+in-app card реагирует на snapshot revision и настройку периода без reimport. Она также
+пересчитывает rolling window на каждой следующей границе local hour, чтобы records
+своевременно выходили из window и hourly buckets для 24h сдвигались без нового import.
+
+После review добавлены safeguards для presentation correctness: quarter-band axis учитывает
+weighted average, но продолжает исключать isolated outliers; hourly labels используют report
+timezone; а average marker центрирован над range bar. Negative delta разворачивает только
+иконку, сохраняя число читаемым.
 
 ## Проверки
 
@@ -42,6 +49,8 @@ in-app card реагирует на snapshot revision и настройку пе
 - Xcode MCP `BuildProject` — passed; `RunSomeTests` for `CacheHitRateWidgetTests` — 4/4 passed.
 - Native dark-mode AX and screenshot: card displays `97.0%`, `Last 7 days` and delta,
   while widget subtree exposes only aggregate distribution text; no session/model identity.
+- Review regressions: targeted `CacheHitRateWidgetTests` — 7/7 passed, including weighted
+  average axis, timezone-aware hourly label and next-hour refresh schedule.
 
 ## Remaining delivery
 
