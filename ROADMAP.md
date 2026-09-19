@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-15. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-19. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -34,7 +34,10 @@ merge `ec64cd8`. SM-302, SM-303, SM-304, SM-305, SM-306, SM-309 и SM-310 дос
 следующая активная задача — SM-307.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
-дополнительную статистику и детектирование аномального расхода. Реализация запланирована.
+дополнительную статистику и детектирование аномального расхода. По запросу 2026-09-19
+уточнены требования SM-308 и SM-503: account/model-pool quota observations отделены
+от session/model attribution; оценочные распределения должны явно показывать источник
+и неопределённость. Реализация остаётся запланированной; следующая активная задача — SM-307.
 SM-306-FSD-1 — follow-up завершён в текущей ветке PR #22: устранена baseline FSD
 dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-layer
 `State` без изменения поведения SM-306.
@@ -305,6 +308,22 @@ dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-laye
   Зависит от SM-104/SM-301/SM-302/SM-303/SM-304. Для выбранного интервала показывать model responses,
   input/cached/uncached/output tokens, cache hit и breakdown по thread, model и типу tool event;
   parent и subagents учитывать совместно и отдельно без изменения canonical total.
+  Dashboard и CLI показывают рядом, но в отдельных представлениях, локальную activity и quota:
+  observed used/remaining percent для каждого подтверждённого 5-hour и weekly limit/window,
+  reset time и freshness. `remainingPercent` явно помечать как вычисленное из observed `usedPercent`.
+  Сохранять quota observations независимо от сессий с source/root/account scope, limit/window identity,
+  slot, duration, `resetsAt`, capture timestamp и provenance; не выводить account quota из token totals.
+  Сравнение session/model quota share разрешено как отдельная атрибуция поверх observation series.
+  Подтверждённый model-scoped pool можно показать отдельно, если это прямо следует из source evidence.
+  Для общей account quota оценивать вклад сессии/модели только по observations, охватывающим один
+  и тот же limit/window/reset; метод и основания оценки хранить явно. При параллельных известных
+  сессиях, неполном source coverage или возможном внешнем usage помечать allocation
+  `non_deterministic`, показывать coverage/overlap и нераспределённый остаток. Pro-rata allocation,
+  если включена, остаётся оценкой и не добавляется к canonical totals. При отсутствии надёжных
+  observations attribution остаётся unknown; при смене `resetsAt` показывать discontinuity.
+  API-equivalent cost по model rate card и распределение заданной пользователем фиксированной цены
+  подписки — отдельные оценочные сценарии с currency/period/rate provenance; не называть их
+  provider invoice, marginal cost или savings.
   Детектировать высокий абсолютный расход и темп responses/tokens, концентрацию расхода в нескольких
   threads, repetitive polling/wait density, uncached bursts и резкое ухудшение cache hit. Высокий
   cache hit сам по себе не означает низкий расход или экономию: finding должен учитывать абсолютные
@@ -319,14 +338,15 @@ dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-laye
   duration, used percent, `resetsAt`, source/event identity и schema provenance; повторный импорт
   дедуплицирует snapshot. Приложение не создаёт сетевой polling лимитов. Unsupported schema даёт
   diagnostic и unknown coverage, а отсутствие такого события остаётся unknown.
-  Server usage snapshots показывать как отдельный вспомогательный ряд: delta процента интерпретировать
-  только внутри одного limit/window ID и `resetsAt`. При смене границы обозначать discontinuity и не
-  приписывать разницу одному дню.
   Готово, когда GUI и CLI объясняют аномалию до конкретных threads/models/tool events и временного
   участка, а fixtures покрывают: большой расход при высоком cache hit, один dominant thread,
   polling storm, первый request, compaction, обычное длительное ожидание с прогрессом, uncached spike,
   partial/unknown telemetry, parent/subagent и duplicate/fork replay без двойного учёта, а также смену
-  `resetsAt`. Проверить на обезличенном примере 2026-09-12: 2 328 responses, 286,6 млн input,
+  `resetsAt`; observed used/remaining и freshness; отдельный model-scoped pool; shared quota с одной
+  и несколькими сессиями; параллельные сессии/unknown external usage с `non_deterministic`
+  attribution и unattributed remainder; API-equivalent pricing и user-configured subscription-price
+  scenarios без представления их как фактической оплаты. Проверить на обезличенном примере 2026-09-12:
+  2 328 responses, 286,6 млн input,
   277,0 млн cached, 9,53 млн uncached, 1,34 млн output, 96,67% cache hit, top-3 threads
   около 70%, model breakdown, 1 107 wait/polling, 857 shell и 10 `clock.sleep`; изменение server
   indicator 82% → 89% при смене `resetsAt` должно дать discontinuity, а не дневной расход 7 п.п.
@@ -357,7 +377,17 @@ dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-laye
   Готово, когда релиз даёт основание для проверки, а не недоказанный вывод о причине cache miss.
 - [ ] **SM-503** — Проверяемые рекомендации через SpecificationCore и GUI features через SpecificationKit.
   Зависит от SM-501/SM-502. Изменять один фактор при сравнении; показывать confidence,
-  rework/quality и расход на результат. Не переводить token totals в subscription quota percent.
+  rework/quality и расход на результат. Сравнение моделей по quota разрешено для явно
+  подтверждённых независимых model pools и для маркированных session/model allocation estimates
+  из отдельного observed quota ряда; сохранять allocation method, period, evidence, coverage,
+  confidence и `non_deterministic` state при параллельном/внешнем usage. Сырые account quota
+  observations не приписывать одной сессии без достаточных оснований; token totals сами по себе
+  не являются observed subscription quota percent.
+  API-equivalent cost рассчитывать только по датированному/versioned model rate card. Распределение
+  фактической фиксированной цены подписки возможно только как user-configured scenario с явными
+  currency, billing period и allocation assumption; называть результат allocated/effective estimate,
+  не provider charge, marginal cost или savings. Ни estimate, ни quota allocation не меняют canonical
+  usage totals; неизвестные цены/coverage не подменять нулями.
 - [ ] **SM-504** — Компактный отчёт для Parallel Subagent Orchestrator.
   Зависит от SM-304/SM-501. Отражать суммарные parent+child costs, startup и ожидания;
   чтение отчёта для решения не должно запускать постоянный LLM polling или повторять весь audit.
