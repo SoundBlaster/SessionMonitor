@@ -37,6 +37,12 @@ weighted average, но продолжает исключать isolated outliers
 timezone; а average marker центрирован над range bar. Negative delta разворачивает только
 иконку, сохраняя число читаемым.
 
+После native visual follow-up X-axis получает только фактические starts buckets и edge padding,
+так что первый и последний weekday не обрезаются, а automatic date ticks не подменяют дни
+недели. Для medium family используются three-letter weekday labels. Weighted average может
+лежать вне unweighted P10–P90, поэтому marker display-clamp'ится внутри range bar; исходное
+weighted значение остаётся в report.
+
 ## Проверки
 
 - `make check-core` — полный core/CLI/performance smoke passed; новые 7 core tests passed.

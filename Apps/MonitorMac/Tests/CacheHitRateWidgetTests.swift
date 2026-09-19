@@ -59,6 +59,28 @@ final class CacheHitRateWidgetTests: XCTestCase {
         XCTAssertEqual(label.replacingOccurrences(of: "\u{202F}", with: " "), "4 PM")
     }
 
+    func testDailyLabelsAreThreeLetterWeekdaysForMediumFamily() {
+        let label = CacheHitRateWidgetLabelFormat.bucketLabel(
+            for: Date(timeIntervalSince1970: 0),
+            period: .last7Days,
+            family: .medium,
+            timeZoneIdentifier: "UTC",
+            locale: Locale(identifier: "en_US_POSIX")
+        )
+
+        XCTAssertEqual(label, "Thu")
+    }
+
+    func testAverageMarkerStaysWithinDisplayedRange() {
+        let bucket = CacheHitRateBucket(
+            start: Date(timeIntervalSince1970: 0), end: Date(timeIntervalSince1970: 86_400),
+            lower: 82, upper: 93, average: 97, median: 88,
+            outliers: [], sampleCount: 12, usesMinMaxFallback: false
+        )
+
+        XCTAssertEqual(CacheHitRateWidgetChartPresentation.averageMarker(for: bucket), 93)
+    }
+
     func testRefreshScheduleUsesNextHourBoundary() throws {
         let date = Date(timeIntervalSince1970: 1_725_925_930)
         let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))

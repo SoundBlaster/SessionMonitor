@@ -57,6 +57,7 @@ enum CacheHitRateWidgetLayout {
     static let averageLineWidth: CGFloat = 3
     static let normalOutlierSize: CGFloat = 6
     static let strongOutlierSize: CGFloat = 7
+    static let xAxisEdgePadding: CGFloat = 14
     static let gridOpacity = 0.20
     static let maximumOutliers = 4
 }

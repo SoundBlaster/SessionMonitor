@@ -116,7 +116,7 @@ struct CacheHitRateWidget: View {
                 RuleMark(
                     xStart: .value("Average start", averageStart(for: bucket)),
                     xEnd: .value("Average end", averageEnd(for: bucket)),
-                    y: .value("Average", bucket.average)
+                    y: .value("Average", CacheHitRateWidgetChartPresentation.averageMarker(for: bucket))
                 )
                 .foregroundStyle(appearance.palette.average)
                 .lineStyle(StrokeStyle(lineWidth: CacheHitRateWidgetLayout.averageLineWidth, lineCap: .round))
@@ -137,6 +137,7 @@ struct CacheHitRateWidget: View {
             }
         }
         .chartYScale(domain: domain)
+        .chartXScale(range: .plotDimension(startPadding: xAxisEdgePadding, endPadding: xAxisEdgePadding))
         .chartXAxis { xAxis(for: report) }
         .chartYAxis { yAxis }
         .chartLegend(.hidden)
@@ -145,7 +146,7 @@ struct CacheHitRateWidget: View {
     }
 
     @AxisContentBuilder private func xAxis(for report: CacheHitRateWidgetReport) -> some AxisContent {
-        AxisMarks(values: .automatic(desiredCount: family == .small ? 7 : 8)) { value in
+        AxisMarks(values: CacheHitRateWidgetChartPresentation.bucketStarts(for: report)) { value in
             AxisTick()
             AxisValueLabel {
                 if let date = value.as(Date.self) {
@@ -260,6 +261,8 @@ struct CacheHitRateWidget: View {
         min(domain.upperBound, max(domain.lowerBound, value))
     }
 
+    private var xAxisEdgePadding: CGFloat { CacheHitRateWidgetLayout.xAxisEdgePadding }
+
     private var cardPadding: CGFloat {
         family == .large ? CacheHitRateWidgetLayout.cardPadding : CacheHitRateWidgetLayout.compactCardPadding
     }
@@ -268,15 +271,18 @@ struct CacheHitRateWidget: View {
         family == .small ? CacheHitRateWidgetLayout.compactChartHeight : CacheHitRateWidgetLayout.chartHeight
     }
 
-    private func averageStart(for bucket: CacheHitRateBucket) -> Date {
+}
+
+private extension CacheHitRateWidget {
+    func averageStart(for bucket: CacheHitRateBucket) -> Date {
         bucket.start.addingTimeInterval(-averageMarkerHalfWidth(for: bucket))
     }
 
-    private func averageEnd(for bucket: CacheHitRateBucket) -> Date {
+    func averageEnd(for bucket: CacheHitRateBucket) -> Date {
         bucket.start.addingTimeInterval(averageMarkerHalfWidth(for: bucket))
     }
 
-    private func averageMarkerHalfWidth(for bucket: CacheHitRateBucket) -> TimeInterval {
+    func averageMarkerHalfWidth(for bucket: CacheHitRateBucket) -> TimeInterval {
         0.09 * bucket.end.timeIntervalSince(bucket.start)
     }
 }
@@ -287,5 +293,15 @@ enum CacheHitRateWidgetAxis {
         let normalMinimum = normalValues.min() ?? 75
         let minimum = [75.0, 50, 25, 0].first(where: { $0 <= normalMinimum }) ?? 0
         return minimum...100
+    }
+}
+
+enum CacheHitRateWidgetChartPresentation {
+    static func averageMarker(for bucket: CacheHitRateBucket) -> Double {
+        min(bucket.upper, max(bucket.lower, bucket.average))
+    }
+
+    static func bucketStarts(for report: CacheHitRateWidgetReport) -> [Date] {
+        report.buckets.map(\.start)
     }
 }
