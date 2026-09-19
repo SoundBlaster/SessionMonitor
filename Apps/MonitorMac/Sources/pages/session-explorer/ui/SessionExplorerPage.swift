@@ -1,12 +1,11 @@
 import AppKit
 import MonitorCore
-import MonitorPolicies
 import SwiftUI
 
 struct SessionExplorerPage: View {
     @Bindable var model: SessionExplorerModel
     @Bindable var reportScope: ReportScopeModel
-    @Bindable var cacheHitSettings: CacheHitThresholdSettings
+    @Bindable var cacheHitRateWidgetSettings: CacheHitRateWidgetSettings
 
     var body: some View {
         NavigationSplitView(columnVisibility: $model.navigation.columnVisibility) {
@@ -103,19 +102,25 @@ struct SessionExplorerPage: View {
     }
 
     private var sidebarChart: some View {
-        SessionCacheHitChart(
-            sessions: model.visibleSessions,
-            provenance: model.provenance,
-            query: model.query,
-            isSearchActive: !model.filter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-            policy: CacheHitThresholdPolicy(threshold: cacheHitSettings.threshold),
-            selectedSessionID: model.navigation.selectedSessionID,
-            onSelect: model.selectSession
+        CacheHitRateWidget(
+            report: model.cacheHitRateWidgetReport,
+            family: .medium
         )
         .padding(.horizontal, 10)
         .padding(.vertical, 10)
         .frame(height: SessionExplorerSidebarLayout.chartHeight, alignment: .topLeading)
         .clipped()
+        .task(id: CacheHitRateWidgetLoadID(
+            period: cacheHitRateWidgetSettings.period,
+            revision: model.snapshot?.watermark.revision,
+            timeZoneIdentifier: model.query.timeZoneIdentifier
+        )) {
+            guard model.snapshot != nil else { return }
+            await model.loadCacheHitRateWidget(
+                period: cacheHitRateWidgetSettings.period,
+                timeZone: TimeZone(identifier: model.query.timeZoneIdentifier) ?? .current
+            )
+        }
     }
 
     private var sidebarSessionList: some View {
@@ -236,6 +241,12 @@ enum SessionExplorerSidebarLayout {
     // The sidebar has two fixed sections followed by the only flexible region.
     static let headerHeight: CGFloat = 176
     static let chartHeight: CGFloat = 460
+}
+
+private struct CacheHitRateWidgetLoadID: Hashable {
+    let period: CacheHitRateWidgetPeriod
+    let revision: Int64?
+    let timeZoneIdentifier: String
 }
 
 private struct SessionListRow: View {

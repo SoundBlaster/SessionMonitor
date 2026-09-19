@@ -41,6 +41,11 @@ merge `ec64cd8`. SM-302, SM-303, SM-304, SM-305, SM-306, SM-309 и SM-310 дос
 SM-306-FSD-1 — follow-up завершён в текущей ветке PR #22: устранена baseline FSD
 dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-layer
 `State` без изменения поведения SM-306.
+**SM-311 — Cache Hit Rate Widget Family — в работе.** Новый контракт заменяет
+внутренний per-session chart из SM-307: он агрегирует обезличенные session rates в
+calendar buckets, использует weighted period rate и P10–P90, показывает variability
+и outliers без model/session identity. После shared in-app component следующий
+deliverable — WidgetKit extension с App Group в SM-401.
 Новые изменения выполняются только в отдельных ветках через PR; direct push в `main` запрещён.
 
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
@@ -290,7 +295,7 @@ dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-laye
   SM-306 behavior и canonical accounting не изменены. Проверено: `make lint`,
   `make lint-architecture`, `make test-architecture`, targeted 15/15 app tests,
   `git diff --check`.
-- [ ] **SM-307** — Внутренний виджет с графиком cache hit по сессиям и порогом в Settings.
+- [x] **SM-307** — Внутренний виджет с графиком cache hit по сессиям и порогом в Settings.
   Зависит от SM-306/SM-202. Компактный Swift Charts block в Session Explorer;
   точное место выбрать и проверить в существующем layout при реализации.
   Один элемент графика соответствует одной сессии текущей выборки, значение — cache hit %.
@@ -304,6 +309,28 @@ dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-laye
   Это виджет внутри окна приложения, отдельный от системного WidgetKit в SM-401/SM-402.
   Готово, когда проверены значения ниже/равно/выше порога, invalid Settings, сохранение настройки,
   unknown/empty states и live updates; layout читается в light/dark mode и при большом числе сессий.
+  Выполнено 2026-09-15 через [PR #24](https://github.com/SoundBlaster/SessionMonitor/pull/24),
+  [PR #25](https://github.com/SoundBlaster/SessionMonitor/pull/25) и follow-up
+  [PR #26](https://github.com/SoundBlaster/SessionMonitor/pull/26). Этот per-session chart
+  заменяется обезличенным family component в SM-311.
+- [ ] **SM-311** — Cache Hit Rate Widget Family для in-app и WidgetKit presentation.
+  **Статус: в работе (2026-09-19).** Заменить SM-307 per-session chart на responsive
+  component, который не раскрывает model/session identity. Периоды 24h/7d/14d/30d
+  строятся в adaptive calendar buckets; period cache hit — weighted ratio
+  `sum(cached input) / sum(cacheable input)`, не среднее процентов. В каждом bucket
+  показывать P10–P90 range, weighted average marker и ограниченные robust-z (median/MAD)
+  outliers; isolated outlier не расширяет quarter-band Y-axis. Нужны configurable
+  semantic palette, legend/title texts, tokenized design values, Dynamic Type,
+  VoiceOver descriptions и no-data/partial/zero-input/insufficient-samples cases.
+  Первым PR сделать reusable in-app composition и domain projection с pure tests;
+  затем SM-401 публикует тот же privacy-safe snapshot для desktop WidgetKit.
+  Проверить small/medium/large layouts, light/dark, large data set и отсутствие identities
+  в rendered/accessibility tree.
+  Частичный результат 2026-09-19: in-app `medium` card заменяет старый per-session
+  chart; read-only store query строит identity-free report, Settings сохраняет 24h/7d/14d/30d,
+  а core/UI tests, macOS test plan, SwiftLint и FSD lint прошли. Native dark-mode AX/screenshot
+  подтвердил отсутствие session/model identity в widget subtree. Остаются small/large visual
+  acceptance, cache analytics destination и WidgetKit/App Group delivery в SM-401/SM-402.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
   Зависит от SM-104/SM-301/SM-302/SM-303/SM-304. Для выбранного интервала показывать model responses,
   input/cached/uncached/output tokens, cache hit и breakdown по thread, model и типу tool event;

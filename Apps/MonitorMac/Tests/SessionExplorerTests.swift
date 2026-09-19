@@ -300,6 +300,14 @@ actor StubExplorerRuntime: SessionExplorerRuntime {
         RequestTimeline(sessionID: sessionID, query: query, points: [])
     }
 
+    func cacheHitRateWidget(
+        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone
+    ) -> CacheHitRateWidgetReport {
+        CacheHitRateWidgetBuilder.build(
+            observations: [], period: period, referenceDate: referenceDate, timeZone: timeZone
+        )
+    }
+
     func snapshots(query: UsageQuery) -> AsyncThrowingStream<UsageSnapshot, Error> {
         AsyncThrowingStream { continuation in
             let identifier = UUID()

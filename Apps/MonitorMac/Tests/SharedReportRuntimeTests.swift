@@ -201,6 +201,14 @@ private actor StubSharedRuntime: SessionExplorerRuntime {
         RequestTimeline(sessionID: sessionID, query: query, points: [])
     }
 
+    func cacheHitRateWidget(
+        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone
+    ) -> CacheHitRateWidgetReport {
+        CacheHitRateWidgetBuilder.build(
+            observations: [], period: period, referenceDate: referenceDate, timeZone: timeZone
+        )
+    }
+
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
         calls.snapshotStreams += 1
         let connection = calls.snapshotStreams

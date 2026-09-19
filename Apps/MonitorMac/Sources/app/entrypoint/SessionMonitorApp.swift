@@ -10,7 +10,7 @@ struct SessionMonitorApp: App {
     @State private var menuModel: MenuSummaryModel
     @State private var reportScope: ReportScopeModel
     @State private var watchController: AppWatchController
-    @State private var cacheHitSettings = CacheHitThresholdSettings()
+    @State private var cacheHitRateWidgetSettings = CacheHitRateWidgetSettings()
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
 
     init() {
@@ -32,7 +32,7 @@ struct SessionMonitorApp: App {
             SessionMonitorWindow(
                 runtimeLoader: runtimeLoader,
                 reportScope: reportScope,
-                cacheHitSettings: cacheHitSettings
+                cacheHitRateWidgetSettings: cacheHitRateWidgetSettings
             )
         }
         .defaultSize(width: 1120, height: 760)
@@ -41,7 +41,11 @@ struct SessionMonitorApp: App {
                         runtimeLoader: runtimeLoader)
         }
         .menuBarExtraStyle(.window)
-        Settings { MonitorSettingsPage(cacheHitSettings: cacheHitSettings) }
+        Settings {
+            MonitorSettingsPage(
+                cacheHitRateWidgetSettings: cacheHitRateWidgetSettings
+            )
+        }
     }
 }
 
@@ -50,16 +54,16 @@ struct SessionMonitorApp: App {
 private struct SessionMonitorWindow: View {
     @State private var model: SessionExplorerModel
     let reportScope: ReportScopeModel
-    let cacheHitSettings: CacheHitThresholdSettings
+    let cacheHitRateWidgetSettings: CacheHitRateWidgetSettings
     @Environment(\.scenePhase) private var scenePhase
 
     init(
         runtimeLoader: SessionMonitorRuntimeLoader,
         reportScope: ReportScopeModel,
-        cacheHitSettings: CacheHitThresholdSettings
+        cacheHitRateWidgetSettings: CacheHitRateWidgetSettings
     ) {
         self.reportScope = reportScope
-        self.cacheHitSettings = cacheHitSettings
+        self.cacheHitRateWidgetSettings = cacheHitRateWidgetSettings
         _model = State(initialValue: SessionExplorerModel {
             try await runtimeLoader.load()
         })
@@ -69,7 +73,7 @@ private struct SessionMonitorWindow: View {
         SessionExplorerPage(
             model: model,
             reportScope: reportScope,
-            cacheHitSettings: cacheHitSettings
+            cacheHitRateWidgetSettings: cacheHitRateWidgetSettings
         )
             .frame(minWidth: 760, minHeight: 520)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
