@@ -32,22 +32,61 @@ in-app card реагирует на snapshot revision и настройку пе
 пересчитывает rolling window на каждой следующей границе local hour, чтобы records
 своевременно выходили из window и hourly buckets для 24h сдвигались без нового import.
 
-После review добавлены safeguards для presentation correctness: quarter-band axis учитывает
-weighted average, но продолжает исключать isolated outliers; hourly labels используют report
-timezone; а average marker центрирован над range bar. Negative delta разворачивает только
-иконку, сохраняя число читаемым.
+## Deterministic visual iteration — 2026-09-20
 
-После native visual follow-up X-axis получает только фактические starts buckets и edge padding,
-так что первый и последний weekday не обрезаются, а automatic date ticks не подменяют дни
-недели. Для medium family используются three-letter weekday labels. Weighted average может
-лежать вне unweighted P10–P90, поэтому marker display-clamp'ится внутри range bar; исходное
-weighted значение остаётся в report.
+В Debug build доступно **Window → Widget Lab**. Оно использует production SwiftUI component,
+но не читает и не изменяет SQLite, Settings или runtime snapshot. В Release lab и fixtures исключены.
+Фиксированная дата — 2026-09-14 00:00 UTC. Можно менять family, ширину 220–720pt, light/dark,
+монохромную палитру, длинные custom title/legend strings и Dynamic Type environment.
 
-После visual direction correction chart plot стал responsive 16:9, а sidebar зарезервировал
-для card 240pt вместо 460pt. Grid показывает только 75–100 с шагом 5, и при narrow sidebar
-labels переключаются на single-character weekdays; wider families сохраняют three-letter form.
+Сценарии: reference seven days, missing days, outliers below axis, weighted mean outside P10–P90,
+one session, no data, partial coverage, zero cacheable input, 24 hourly buckets и 30 daily buckets.
+Reference — presentation fixture по концепту (включая illustrative headline 86.4%/142 sessions),
+а остальные сценарии проходят настоящий `CacheHitRateWidgetBuilder` на synthetic observations.
+Reference не служит проверкой accounting; production данные им не подменяются.
 
-## Проверки
+Исправления presentation:
+
+- Header/chart выделены в отдельные компоненты; семантические palette/copy/layout values общие.
+- Aspect ratio 16:9 применяется к plot, а не к card вместе с заголовком/легендой.
+- X labels позиционируются через `ChartProxy` по тем же координатам, что range и mean.
+  При нехватке ширины используются single-letter weekdays; для dense periods прореживаются
+  только labels, сами buckets сохраняются. Bars сужаются для 24/30 buckets.
+- Пустые calendar slots сохраняются без фиктивных zero bars. Rolling 7d может пересекать
+  восемь calendar days из-за partial first/last day; это не дублирование данных.
+- Quarter-band Y-axis использует typical ranges, исключая isolated outliers. Ticks покрывают
+  выбранный band (например, 50–100), а не всегда только 75–100.
+- Убран display-clamp weighted average к P10–P90: он математически может быть вне этого
+  невзвешенного диапазона. Marker остаётся на настоящем значении, с dashed connector к range.
+  При значении ниже axis используется edge annotation; доступность содержит реальное значение.
+- Убрано disabled Button wrapping: read-only card не затемняется и открывает AX descriptions.
+  AX descriptions используют report timezone и не содержат session/model identities.
+
+Воспроизведение: `rtk proxy make test-widget`. Это 16 targeted tests, включая render matrix из
+15 PNG attachments в `.xcresult`: все 10 сценариев, medium/small, light, dense-small и narrow-large.
+PNG snapshots предназначены для visual review; это не pixel-diff golden gate.
+
+![Large dark synthetic fixture](assets/sm311/large-dark.png)
+
+[Medium](assets/sm311/medium-dark.png) · [Small](assets/sm311/small-dark.png) ·
+[Light](assets/sm311/large-light.png)
+
+Текущие проверки:
+
+- `make test-macos`: 73/73 passed до последних локальных chart/AX refinements.
+  Первый запуск нашёл ошибку synthetic outlier fixture и timeout существующего
+  `SharedReportRuntimeTests`; fixture исправлен, повторный полный запуск зелёный.
+- Финальные targeted suites: 16/16 passed, включая 15 native SwiftUI renders.
+- `make lint lint-architecture test-architecture`: passed; negative FSD fixture ожидаемо отклонён.
+- `make build-macos`: passed; последующие builds также выполнены xcodebuild test.
+- Native app: Widget Lab открыт через Window menu; проверены dark 560pt, light/monochrome
+  320pt и 220pt, title fallback и weekday alignment. Sidebar startup также прошёл на реальной БД.
+- Dynamic Type environment можно переключать, но системное увеличение текста macOS этим
+  запуском не подтверждено. Наличие переключателя не считается accessibility acceptance.
+- Xcode MCP build на этом этапе сообщил cancellation; использован `xcodebuild` fallback.
+- `git diff --check`: passed. Canonical/Core/Store code в этом follow-up не менялся.
+
+## Предыдущие проверки (baseline, не повторялись целиком в visual follow-up)
 
 - `make check-core` — полный core/CLI/performance smoke passed; новые 7 core tests passed.
 - `make test-macos` — полный MonitorMac test plan passed.

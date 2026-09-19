@@ -83,14 +83,14 @@ final class CacheHitRateWidgetTests: XCTestCase {
         XCTAssertEqual(label, "T")
     }
 
-    func testAverageMarkerStaysWithinDisplayedRange() {
+    func testWeightedAverageIsNotFalsifiedToFitUnweightedRange() {
         let bucket = CacheHitRateBucket(
             start: Date(timeIntervalSince1970: 0), end: Date(timeIntervalSince1970: 86_400),
             lower: 82, upper: 93, average: 97, median: 88,
             outliers: [], sampleCount: 12, usesMinMaxFallback: false
         )
 
-        XCTAssertEqual(CacheHitRateWidgetChartPresentation.averageMarker(for: bucket), 93)
+        XCTAssertEqual(CacheHitRateWidgetChartPresentation.averageMarker(for: bucket), 97)
     }
 
     func testRefreshScheduleUsesNextHourBoundary() throws {

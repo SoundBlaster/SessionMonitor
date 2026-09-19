@@ -41,7 +41,7 @@ SIGNING_ARGS += -allowProvisioningUpdates
 endif
 
 .PHONY: help doctor generate guard-package guard-app lint-version resolve build-cli test-core build-mcp
-.PHONY: lint-core lint lint-architecture build-macos test-macos check-core check archive
+.PHONY: lint-core lint lint-architecture build-macos test-macos test-widget check-core check archive
 .PHONY: ci lint-ci test-architecture test-cli build-cli-release benchmark release-local
 
 help:
@@ -119,6 +119,10 @@ build-mcp: guard-app
 test-macos: guard-app
 	@mkdir -p "$(BUILD_ROOT)"
 	$(XCODEBUILD) $(XCODEBUILD_FLAGS) -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIGURATION)" -destination "$(DESTINATION)" -derivedDataPath "$(DERIVED_DATA)" -resultBundlePath "$(RESULT_BUNDLE)" $(SIGNING_ARGS) test
+
+# Bounded GUI fixture/model suite; ImageRenderer PNGs are attached to the xcresult.
+test-widget:
+	$(MAKE) test-macos XCODEBUILD_FLAGS="$(XCODEBUILD_FLAGS) -only-testing:MonitorMacTests/CacheHitRateWidgetTests -only-testing:MonitorMacTests/CacheHitRateWidgetFixtureTests"
 
 # Explicit ordering also holds under make -j. No automatic source correction.
 check-core:

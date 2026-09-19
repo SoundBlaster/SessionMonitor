@@ -36,6 +36,12 @@ struct SessionMonitorApp: App {
             )
         }
         .defaultSize(width: 1120, height: 760)
+        #if DEBUG
+        Window("Widget Lab", id: "cache-widget-lab") {
+            CacheWidgetLabPage()
+        }
+        .defaultSize(width: 840, height: 720)
+        #endif
         MenuBarExtra("SessionMonitor", systemImage: "chart.bar.xaxis", isInserted: $showMenuBarExtra) {
             AppMenuHost(model: menuModel, watch: watchController, reportScope: reportScope,
                         runtimeLoader: runtimeLoader)

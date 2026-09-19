@@ -4,12 +4,19 @@ import SwiftUI
 /// WidgetKit maps the same roles to its environment in SM-401.
 struct CacheHitRateWidgetAppearance {
     struct Palette {
+        var darkSurface: Color = Color(red: 0.085, green: 0.105, blue: 0.16)
+        var lightSurface: Color = Color(red: 0.97, green: 0.98, blue: 1)
         let accent: Color
         let average: Color
         let notableOutlier: Color
         let strongOutlier: Color
         let improvement: Color
         let degradation: Color
+
+        static let monochrome = Self(
+            accent: .gray, average: .primary, notableOutlier: .secondary,
+            strongOutlier: .red, improvement: .primary, degradation: .red
+        )
 
         static let system = Self(
             accent: .blue,
@@ -48,18 +55,21 @@ struct CacheHitRateWidgetAppearance {
 }
 
 enum CacheHitRateWidgetLayout {
-    static let cardPadding: CGFloat = 16
+    static let compactRangeWidth: CGFloat = 8
+    static let fullLabelSlotWidth: CGFloat = 32
+    static let labelOffset: CGFloat = 12
+    static let labelSpace: CGFloat = 24
+    static let headerSpacing: CGFloat = 8
+    static let textSpacing: CGFloat = 3
+    static let borderOpacity = 0.12
+    static let cardPadding: CGFloat = 24
     static let compactCardPadding: CGFloat = 12
-    static let cardCornerRadius: CGFloat = 24
+    static let cardCornerRadius: CGFloat = 28
     static let chartAspectRatio: CGFloat = 16 / 9
     static let rangeWidth: CGFloat = 14
-    static let averageLineWidth: CGFloat = 3
-    static let normalOutlierSize: CGFloat = 6
-    static let strongOutlierSize: CGFloat = 7
-    static let xAxisEdgePadding: CGFloat = 14
-    static let xAxisLabelHeight: CGFloat = 14
-    static let plotLeadingInset: CGFloat = 32
-    static let plotTrailingInset: CGFloat = 8
-    static let gridOpacity = 0.20
-    static let maximumOutliers = 4
+    static let plotVerticalInset: CGFloat = 6
+    static let averageSlotHalfWidth = 0.16
+    static let minimumRangeArea: CGFloat = 36
+    static let outlierArea: CGFloat = 25
+    static let gridOpacity = 0.35
 }

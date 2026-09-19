@@ -1,10 +1,10 @@
-import Charts
 import MonitorCore
 import SwiftUI
 
 /// A reusable privacy-safe card. The caller selects a family; no session or model identifier
 /// enters this view's public API, rendered labels, or accessibility tree.
 struct CacheHitRateWidget: View {
+    @Environment(\.colorScheme) private var colorScheme
     let report: CacheHitRateWidgetReport?
     let family: CacheHitRateWidgetAppearance.Family
     let appearance: CacheHitRateWidgetAppearance
@@ -23,14 +23,15 @@ struct CacheHitRateWidget: View {
     }
 
     var body: some View {
-        Button(action: { onOpenAnalytics?() }, label: { content })
-        .buttonStyle(.plain)
-        .disabled(onOpenAnalytics == nil)
+        interactiveContent
         .padding(cardPadding)
-        .background(.background, in: RoundedRectangle(cornerRadius: CacheHitRateWidgetLayout.cardCornerRadius))
+        .background(
+            colorScheme == .dark ? appearance.palette.darkSurface : appearance.palette.lightSurface,
+            in: RoundedRectangle(cornerRadius: CacheHitRateWidgetLayout.cardCornerRadius)
+        )
         .overlay {
             RoundedRectangle(cornerRadius: CacheHitRateWidgetLayout.cardCornerRadius)
-                .stroke(.quaternary)
+                .stroke(Color.primary.opacity(CacheHitRateWidgetLayout.borderOpacity))
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(appearance.copy.title)
@@ -40,13 +41,22 @@ struct CacheHitRateWidget: View {
     }
 
     @ViewBuilder
+    private var interactiveContent: some View {
+        if let onOpenAnalytics {
+            Button(action: onOpenAnalytics) { content }.buttonStyle(.plain)
+        } else {
+            content
+        }
+    }
+
+    @ViewBuilder
     private var content: some View {
         if let report {
             VStack(alignment: .leading, spacing: 10) {
-                header(report)
+                CacheHitRateWidgetHeader(report: report, family: family, appearance: appearance)
                 switch report.availability {
                 case .available:
-                    chart(report)
+                    CacheHitRateWidgetChart(report: report, family: family, appearance: appearance)
                     if family == .large { footer(report) }
                 case .partialCoverage:
                     unavailableState(report, message: "Cache coverage is partial")
@@ -61,105 +71,6 @@ struct CacheHitRateWidget: View {
                 Text(appearance.copy.title).font(.headline)
                 unavailableState(nil, message: appearance.copy.noDataMessage)
             }
-        }
-    }
-
-    private func header(_ report: CacheHitRateWidgetReport) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(appearance.copy.title)
-                    .font(family == .small ? .headline : .title3.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                if family != .small {
-                    Text(periodLabel(report.period)).font(.subheadline).foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 4)
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(percentLabel(report.periodCacheHitRate))
-                    .font(family == .small ? .title2.weight(.semibold) : .title.weight(.semibold))
-                    .monospacedDigit()
-                if let delta = report.comparisonDeltaPercentagePoints {
-                    Label {
-                        Text(deltaLabel(delta))
-                    } icon: {
-                        Image(systemName: "triangle.fill")
-                            .rotationEffect(delta < 0 ? .degrees(180) : .zero)
-                    }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(delta >= 0 ? appearance.palette.improvement : appearance.palette.degradation)
-                }
-                if family == .large {
-                    Text(appearance.copy.comparisonLabel).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-    private func chart(_ report: CacheHitRateWidgetReport) -> some View {
-        let domain = CacheHitRateWidgetAxis.domain(for: report.buckets)
-        return VStack(spacing: 2) {
-            Chart {
-            ForEach(report.buckets) { bucket in
-                BarMark(
-                    x: .value("Bucket", bucket.start),
-                    yStart: .value("P10", bucket.lower),
-                    yEnd: .value("P90", bucket.upper),
-                    width: .fixed(CacheHitRateWidgetLayout.rangeWidth)
-                )
-                .foregroundStyle(
-                    LinearGradient(colors: [appearance.palette.accent.opacity(0.75), appearance.palette.accent],
-                                   startPoint: .bottom, endPoint: .top)
-                )
-                .cornerRadius(CacheHitRateWidgetLayout.rangeWidth / 2)
-
-                RuleMark(
-                    xStart: .value("Average start", averageStart(for: bucket)),
-                    xEnd: .value("Average end", averageEnd(for: bucket)),
-                    y: .value("Average", CacheHitRateWidgetChartPresentation.averageMarker(for: bucket))
-                )
-                .foregroundStyle(appearance.palette.average)
-                .lineStyle(StrokeStyle(lineWidth: CacheHitRateWidgetLayout.averageLineWidth, lineCap: .round))
-
-                ForEach(Array(bucket.outliers.prefix(outlierLimit)), id: \.self) { outlier in
-                    PointMark(
-                        x: .value("Bucket", bucket.start),
-                        y: .value("Outlier", clipped(outlier.cacheHitRate, domain: domain))
-                    )
-                        .symbol(outlier.severity == .strong ? .circle : .circle)
-                        .symbolSize(outlier.severity == .strong
-                            ? CacheHitRateWidgetLayout.strongOutlierSize * CacheHitRateWidgetLayout.strongOutlierSize
-                            : CacheHitRateWidgetLayout.normalOutlierSize * CacheHitRateWidgetLayout.normalOutlierSize)
-                        .foregroundStyle(outlier.severity == .strong
-                            ? appearance.palette.strongOutlier
-                            : appearance.palette.notableOutlier.opacity(0.65))
-                }
-            }
-            }
-            .chartYScale(domain: domain)
-            .chartXScale(range: .plotDimension(startPadding: xAxisEdgePadding, endPadding: xAxisEdgePadding))
-            .chartXAxis { xAxisTicks(for: report) }
-            .chartYAxis { yAxis }
-            .chartLegend(.hidden)
-            .aspectRatio(CacheHitRateWidgetLayout.chartAspectRatio, contentMode: .fit)
-
-            CacheHitRateWidgetBucketLabels(report: report, family: family)
-        }
-        .accessibilityLabel("Cache hit rate distribution")
-    }
-
-    @AxisContentBuilder private func xAxisTicks(for report: CacheHitRateWidgetReport) -> some AxisContent {
-        AxisMarks(values: CacheHitRateWidgetChartPresentation.bucketStarts(for: report)) { _ in AxisTick() }
-    }
-
-    @AxisContentBuilder private var yAxis: some AxisContent {
-        AxisMarks(position: .leading, values: [75.0, 80, 85, 90, 95, 100]) { _ in
-            if family != .small {
-                AxisGridLine().foregroundStyle(.secondary.opacity(CacheHitRateWidgetLayout.gridOpacity))
-            }
-            AxisTick()
-            if family != .small { AxisValueLabel() }
         }
     }
 
@@ -188,12 +99,14 @@ struct CacheHitRateWidget: View {
     }
 
     @ViewBuilder private var legendItems: some View {
-        Label(appearance.copy.rangeLegend, systemImage: "rectangle.portrait.fill")
-            .foregroundStyle(appearance.palette.accent)
+        Label { Text(appearance.copy.rangeLegend).foregroundStyle(.secondary) } icon: {
+            Image(systemName: "rectangle.portrait.fill").foregroundStyle(appearance.palette.accent)
+        }
         Label(appearance.copy.averageLegend, systemImage: "minus")
             .foregroundStyle(appearance.palette.average)
-        Label(appearance.copy.outlierLegend, systemImage: "circle.fill")
-            .foregroundStyle(appearance.palette.strongOutlier)
+        Label { Text(appearance.copy.outlierLegend).foregroundStyle(.secondary) } icon: {
+            Image(systemName: "circle.fill").foregroundStyle(appearance.palette.strongOutlier)
+        }
     }
 
     private func unavailableState(_ report: CacheHitRateWidgetReport?, message: String) -> some View {
@@ -203,14 +116,6 @@ struct CacheHitRateWidget: View {
             description: Text(unavailableDescription(report))
         )
             .frame(maxWidth: .infinity, minHeight: family == .small ? 90 : 120)
-    }
-
-    private var outlierLimit: Int {
-        switch family {
-        case .large: CacheHitRateWidgetLayout.maximumOutliers
-        case .medium: 3
-        case .small: 2
-        }
     }
 
     private var accessibilityValue: String {
@@ -249,75 +154,8 @@ struct CacheHitRateWidget: View {
         return "\(value > 0 ? "+" : "")\(number) pp"
     }
 
-    private func clipped(_ value: Double, domain: ClosedRange<Double>) -> Double {
-        min(domain.upperBound, max(domain.lowerBound, value))
-    }
-
-    private var xAxisEdgePadding: CGFloat { CacheHitRateWidgetLayout.xAxisEdgePadding }
-
     private var cardPadding: CGFloat {
         family == .large ? CacheHitRateWidgetLayout.cardPadding : CacheHitRateWidgetLayout.compactCardPadding
     }
 
-}
-
-private extension CacheHitRateWidget {
-    func averageStart(for bucket: CacheHitRateBucket) -> Date {
-        bucket.start.addingTimeInterval(-averageMarkerHalfWidth(for: bucket))
-    }
-
-    func averageEnd(for bucket: CacheHitRateBucket) -> Date {
-        bucket.start.addingTimeInterval(averageMarkerHalfWidth(for: bucket))
-    }
-
-    func averageMarkerHalfWidth(for bucket: CacheHitRateBucket) -> TimeInterval {
-        0.09 * bucket.end.timeIntervalSince(bucket.start)
-    }
-}
-
-enum CacheHitRateWidgetAxis {
-    static func domain(for buckets: [CacheHitRateBucket]) -> ClosedRange<Double> {
-        let normalValues = buckets.flatMap { [$0.lower, $0.upper] }
-        let normalMinimum = normalValues.min() ?? 75
-        let minimum = [75.0, 50, 25, 0].first(where: { $0 <= normalMinimum }) ?? 0
-        return minimum...100
-    }
-}
-
-private struct CacheHitRateWidgetBucketLabels: View {
-    let report: CacheHitRateWidgetReport
-    let family: CacheHitRateWidgetAppearance.Family
-
-    var body: some View {
-        GeometryReader { proxy in
-            let labelFamily: CacheHitRateWidgetAppearance.Family = proxy.size.width < 320 ? .small : family
-            HStack(spacing: 0) {
-                ForEach(report.buckets) { bucket in
-                    Text(CacheHitRateWidgetLabelFormat.bucketLabel(
-                        for: bucket.start,
-                        period: report.period,
-                        family: labelFamily,
-                        timeZoneIdentifier: report.timeZoneIdentifier
-                    ))
-                    .font(.caption2.weight(.medium))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityHidden(true)
-                }
-            }
-            .padding(.leading, CacheHitRateWidgetLayout.plotLeadingInset)
-            .padding(.trailing, CacheHitRateWidgetLayout.plotTrailingInset)
-        }
-        .frame(height: CacheHitRateWidgetLayout.xAxisLabelHeight)
-    }
-}
-
-enum CacheHitRateWidgetChartPresentation {
-    static func averageMarker(for bucket: CacheHitRateBucket) -> Double {
-        min(bucket.upper, max(bucket.lower, bucket.average))
-    }
-
-    static func bucketStarts(for report: CacheHitRateWidgetReport) -> [Date] {
-        report.buckets.map(\.start)
-    }
 }

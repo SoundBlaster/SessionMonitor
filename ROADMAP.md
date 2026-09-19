@@ -324,6 +324,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   VoiceOver descriptions и no-data/partial/zero-input/insufficient-samples cases.
   Первым PR сделать reusable in-app composition и domain projection с pure tests;
   затем SM-401 публикует тот же privacy-safe snapshot для desktop WidgetKit.
+  Текущий visual follow-up: deterministic Widget Lab (без production data), календарные
+  пустые slots, plot 16:9, честный weighted average вне P10–P90 и screenshot matrix.
   Проверить small/medium/large layouts, light/dark, large data set и отсутствие identities
   в rendered/accessibility tree.
   Частичный результат 2026-09-19: in-app `medium` card заменяет старый per-session
@@ -331,6 +333,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
   а core/UI tests, macOS test plan, SwiftLint и FSD lint прошли. Native dark-mode AX/screenshot
   подтвердил отсутствие session/model identity в widget subtree. Остаются small/large visual
   acceptance, cache analytics destination и WidgetKit/App Group delivery в SM-401/SM-402.
+  Visual follow-up 2026-09-20: Debug Widget Lab с 10 deterministic scenarios и controls
+  family/width/palette/copy. `make test-widget` даёт 16 tests и 15 native render attachments.
+  Исправлены calendar gaps, X label alignment через ChartProxy, plot 16:9, lower-band ticks
+  и правдивый weighted mean вне P10–P90. In-app light/dark/220–560pt проверены;
+  полный GUI run 73/73 и финальные targeted 16/16, lint/FSD passed.
+  [Отчёт и visual evidence](reports/SM-311-cache-hit-rate-widget-family.md);
+  [PR #29](https://github.com/SoundBlaster/SessionMonitor/pull/29) открыт, SM-311 остаётся частичной.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
   Зависит от SM-104/SM-301/SM-302/SM-303/SM-304. Для выбранного интервала показывать model responses,
   input/cached/uncached/output tokens, cache hit и breakdown по thread, model и типу tool event;
