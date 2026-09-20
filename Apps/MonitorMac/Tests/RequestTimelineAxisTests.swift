@@ -52,7 +52,7 @@ final class RequestTimelineAxisTests: XCTestCase {
     func testTimelineAccessibilityLabelRemainsComplete() {
         XCTAssertEqual(
             RequestTimelineChartLayout.accessibilityLabel,
-            "Cached and uncached input over time"
+            "Known cached and uncached token sums over time"
         )
     }
 
@@ -114,7 +114,7 @@ final class RequestTimelineAxisTests: XCTestCase {
         XCTAssertEqual(fullEnding.visibleDomain, fullEnding.queryDomain)
     }
 
-    func testDenseTimelineWidthUsesTimeSpanNotPointCount() throws {
+    func testDenseTimelineKeepsAbsoluteDomainIndependentOfPointCount() throws {
         let query = try UsageQuery(since: date(0), until: date(10_000))
         let sparse = try XCTUnwrap(RequestTimelineAxis(
             points: [point("a", seconds: 100), point("b", seconds: 130)],
@@ -127,8 +127,8 @@ final class RequestTimelineAxisTests: XCTestCase {
             mode: .fitToData
         ))
 
-        XCTAssertEqual(sparse.preferredChartWidth, dense.preferredChartWidth)
-        XCTAssertEqual(sparse.preferredChartWidth, 480)
+        XCTAssertEqual(sparse.visibleDomain.start, dense.visibleDomain.start)
+        XCTAssertEqual(sparse.visibleDomain.duration, dense.visibleDomain.duration, accuracy: 5)
     }
 
     func testDenseTimelineChartCapsPresentationMarksAndPreservesBounds() {
@@ -136,11 +136,11 @@ final class RequestTimelineAxisTests: XCTestCase {
             point("dense-\(index)", seconds: Double(index))
         }
 
-        let chartPoints = RequestTimelineChartLayout.chartPoints(from: points)
-
-        XCTAssertEqual(chartPoints.count, RequestTimelineChartLayout.maxChartPoints)
-        XCTAssertEqual(chartPoints.first?.id, points.first?.id)
-        XCTAssertEqual(chartPoints.last?.id, points.last?.id)
+        let projection = TimelineAggregation(points: points,
+            domain: DateInterval(start: date(0), end: date(2_544)), width: 560)
+        XCTAssertLessThanOrEqual(projection.buckets.count, projection.capacity)
+        XCTAssertEqual(projection.requestCount, points.count)
+        XCTAssertEqual(projection.buckets.reduce(0) { $0 + $1.cached }, 80 * Double(points.count))
     }
 
     func testEmptyTimelineHasNoAxis() throws {
@@ -201,6 +201,18 @@ final class RequestTimelineAxisTests: XCTestCase {
             timelineDateLabel(date(0), timeZone: utcTimeZone),
             timelineDateLabel(date(0), timeZone: moscowTimeZone)
         )
+    }
+
+    func testAccessibilityLabelsDistinguishSameClockTimeOnDifferentDays() throws {
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let first = timelineAccessibilityDateLabel(date(0), duration: 48 * 60 * 60, timeZone: timeZone)
+        let second = timelineAccessibilityDateLabel(
+            date(24 * 60 * 60), duration: 48 * 60 * 60, timeZone: timeZone
+        )
+
+        XCTAssertNotEqual(first, second)
+        XCTAssertTrue(first.contains("Jan"))
+        XCTAssertTrue(second.contains("Jan"))
     }
 
     private func point(

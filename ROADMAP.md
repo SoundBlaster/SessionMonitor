@@ -6,6 +6,10 @@
 
 ## Текущая точка
 
+**SM-312 реализована и локально проверена (2026-09-20), [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) открыт.**
+From/to, zoom, temporal slider и pixel-budget aggregation всех видимых observations.
+Ветка `fix/sm-312-dense-timeline`; следующий пункт — SM-308b.
+
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
 SM-105 переводит рост той же identity на append-only чтение хвоста. SM-103 добавляет
@@ -31,9 +35,8 @@ Bundle ID проекта и App Store Connect app требуется свери�
 **SM-301 доставлена через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13),
 merge `ec64cd8`. SM-302, SM-303, SM-304, SM-305, SM-306, SM-309 и SM-310 доставлены.
 SM-307 заменена новым обезличенным виджетом SM-311. PR #29 смёржен в `main`
-20 сентября 2026 (`4058a83`); quota snapshot ingestion доставлена через
-[PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30).
-Рабочая ветка: `feat/sm-308-anomaly-analytics`.**
+20 сентября 2026 (`66ca045`); quota snapshot ingestion доставлена через
+[PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30), merge `4058a83`.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. По запросу 2026-09-19
@@ -361,10 +364,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   классификация tool events; **SM-308c** — anomaly policies с evidence, confidence,
   coverage и negative cases; **SM-308d** — GUI/CLI presentation, session/model quota
   attribution и отдельные API-equivalent/subscription-price estimates с end-to-end fixtures.
-  SM-308a реализована как частичный deliverable через открытый
-  [PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30); отмеченные review-дефекты
-  исправлены в текущей ветке; latest CI и review state отслеживаются в PR.
-  Следующий этап после интеграции — SM-308b.
+  SM-308a доставлена через [PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30),
+  merge `4058a83` (2026-09-20). Multi-account roadmap доставлен через
+  [PR #31](https://github.com/SoundBlaster/SessionMonitor/pull/31).
+  Следующий этап после SM-312 — SM-308b.
   Версионированный parser/store и read-only `codex-monitor quota` покрыты синтетическими
   fixtures и `make check-core`; детали и ограничения — в
   [SM-308a report](reports/SM-308a-quota-snapshot-ingestion.md). В локальных rollout
@@ -445,6 +448,17 @@ deliverable — WidgetKit extension с App Group в SM-401.
     учётных записей, overlapping windows, одинаковые event payloads, duplicate mirrors,
     account switch/reset и отсутствие account identity в CLI JSON/text и GUI.
     Квотные части SM-308 считать завершёнными только после выполнения этих условий.
+
+- [x] **SM-312** — Восстановить читаемость плотных request timelines (follow-up SM-303/SM-309).
+  Реализована и локально проверена 2026-09-20; [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) открыт.
+  From/to с validation, zoom buttons, temporal slider и шаги earlier/later.
+  Вместо sampling — aggregation всех видимых requests/events в pixel-budget buckets
+  (14 pt spacing, максимум 120). Столбцы — суммы известных cached/uncached tokens
+  за интервал, unavailable requests считаются отдельно; caption явно сообщает семантику.
+  Полный evidence list, query, timestamps источника и canonical accounting сохранены.
+  22 targeted tests, SwiftLint/FSD, light/dark plot renders (560/1000 pt);
+  native zoom и temporal slider проверены на реальной проблемной сессии.
+  [Отчёт](reports/SM-312-dense-request-timeline.md).
 
 ## 4. Системные macOS widgets
 
