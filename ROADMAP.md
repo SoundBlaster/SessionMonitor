@@ -31,7 +31,8 @@ Bundle ID проекта и App Store Connect app требуется свери�
 **SM-301 доставлена через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13),
 merge `ec64cd8`. SM-302, SM-303, SM-304, SM-305, SM-306, SM-309 и SM-310 доставлены.
 SM-307 заменена новым обезличенным виджетом SM-311. PR #29 смёржен в `main`
-20 сентября 2026 (`66ca045`); следующая активная задача — SM-308a, quota snapshot ingestion.
+20 сентября 2026 (`66ca045`); SM-308a реализована в ветке и открыта как
+[PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30); CI и review ожидают проверки.
 Рабочая ветка: `feat/sm-308-anomaly-analytics`.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
@@ -357,7 +358,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   классификация tool events; **SM-308c** — anomaly policies с evidence, confidence,
   coverage и negative cases; **SM-308d** — GUI/CLI presentation, session/model quota
   attribution и отдельные API-equivalent/subscription-price estimates с end-to-end fixtures.
-  Текущая часть: SM-308a реализована как частичный deliverable; следующая часть — SM-308b.
+  SM-308a реализована как частичный deliverable через открытый
+  [PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30); CI и review pending.
+  Следующий этап после интеграции — SM-308b.
   Версионированный parser/store и read-only `codex-monitor quota` покрыты синтетическими
   fixtures и `make check-core`; детали и ограничения — в
   [SM-308a report](reports/SM-308a-quota-snapshot-ingestion.md). В локальных rollout

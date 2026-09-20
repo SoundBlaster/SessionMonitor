@@ -1,6 +1,7 @@
 # SM-308a — quota snapshot ingestion
 
-**Status:** partial deliverable for SM-308, ready for PR review. The parent SM-308 remains
+**Status:** partial deliverable for SM-308; [PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30)
+is open. The parent SM-308 remains
 unchecked; activity rollups, anomaly policies, attribution, and GUI presentation are still open.
 
 ## Result
