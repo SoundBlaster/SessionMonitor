@@ -92,6 +92,7 @@ test-core: guard-package
 test-cli: guard-package
 	python3 scripts/tests/watch-cli-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
 	python3 scripts/tests/snapshot-cli-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
+	python3 scripts/tests/quota-cli-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
 	python3 scripts/tests/performance-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
 
 lint-core: lint-version

@@ -136,7 +136,7 @@ struct IncrementalStoreTests {
         #expect(migrated.ioMetrics.bytesRead == UInt64(original.utf8.count))
         let current = try #require(try store.checkpoint(source: fixture.source))
         let currentObject = try #require(JSONSerialization.jsonObject(with: current) as? [String: Any])
-        #expect(currentObject["schemaVersion"] as? Int == 3)
+        #expect(currentObject["schemaVersion"] as? Int == 4)
         #expect(currentObject["prefixDigest"] == nil)
         let appended = fixture.record(id: "R2")
         try fixture.append(appended)

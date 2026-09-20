@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-19. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-20. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -25,23 +25,25 @@ SM-104 (включая SM-705) доставлена через [PR #5](https://g
 merge `f6eb88a`: единое видимое product name `SessionMonitor`.**
 **SM-202 доставлена через [PR #10](https://github.com/SoundBlaster/SessionMonitor/pull/10),
 merge `3f13b93` (2026-09-12).**
-SM-706 — локальный macOS App Store Connect upload workflow — в работе в текущей ветке;
-перед загрузкой подтверждается совпадение bundle ID проекта и App Store Connect app.
-Локальные distribution assets установлены; 2026-09-19 export `.pkg` прошёл с Xcode 27.0
-и `ALLOW_PROVISIONING_UPDATES=YES`; upload намеренно отменён на подтверждении.
+SM-706 — локальный macOS App Store Connect upload workflow — export `.pkg` прошёл
+с Xcode 27.0 и `ALLOW_PROVISIONING_UPDATES=YES`; upload был отменён до отправки.
+Bundle ID проекта и App Store Connect app требуется сверить перед следующим upload.
 **SM-301 доставлена через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13),
-merge `ec64cd8`. SM-302, SM-303, SM-304, SM-305, SM-306, SM-309 и SM-310 доставлены;
-следующая активная задача — SM-307.**
+merge `ec64cd8`. SM-302, SM-303, SM-304, SM-305, SM-306, SM-309 и SM-310 доставлены.
+SM-307 заменена новым обезличенным виджетом SM-311. PR #29 смёржен в `main`
+20 сентября 2026 (`66ca045`); SM-308a реализована и проходит review в
+[PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30).
+Рабочая ветка: `feat/sm-308-anomaly-analytics`.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
 внутри приложения — график сессий с настраиваемым порогом. SM-308 планирует
 дополнительную статистику и детектирование аномального расхода. По запросу 2026-09-19
 уточнены требования SM-308 и SM-503: account/model-pool quota observations отделены
 от session/model attribution; оценочные распределения должны явно показывать источник
-и неопределённость. Реализация остаётся запланированной; следующая активная задача — SM-307.
-SM-306-FSD-1 — follow-up завершён в текущей ветке PR #22: устранена baseline FSD
+и неопределённость. SM-308 начата 2026-09-20.
+SM-306-FSD-1 — follow-up завершён через PR #22: устранена baseline FSD
 dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-layer
 `State` без изменения поведения SM-306.
-**SM-311 — Cache Hit Rate Widget Family — в работе.** Новый контракт заменяет
+**SM-311 — Cache Hit Rate Widget Family — частично выполнена.** Новый контракт заменяет
 внутренний per-session chart из SM-307: он агрегирует обезличенные session rates в
 calendar buckets, использует weighted period rate и P10–P90, показывает variability
 и outliers без model/session identity. После shared in-app component следующий
@@ -339,11 +341,33 @@ deliverable — WidgetKit extension с App Group в SM-401.
   и правдивый weighted mean вне P10–P90. In-app light/dark/220–560pt проверены;
   полный GUI run 73/73 и финальные targeted 16/16, lint/FSD passed.
   [Отчёт и visual evidence](reports/SM-311-cache-hit-rate-widget-family.md);
-  [PR #29](https://github.com/SoundBlaster/SessionMonitor/pull/29) открыт, SM-311 остаётся частичной.
+  [PR #29](https://github.com/SoundBlaster/SessionMonitor/pull/29) смёржен 2026-09-20 (`66ca045`).
   Уточнение presentation: sidebar использует embedded variant без собственного background,
   border и rounded container; card appearance остаётся отдельной опцией для внешнего host.
-  Проверено на реальной БД; build/lint/FSD и `make test-widget` (16/16) прошли.
+  Small/medium/large, light/dark, responsive widths и fixtures проверены. Остаток SM-311:
+  widget tap пока не ведёт на отдельную Cache Analytics страницу; WidgetKit/App Group
+  delivery отслеживаются отдельно в SM-401/SM-402.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
+  **Статус: в работе (2026-09-20), ветка `feat/sm-308-anomaly-analytics`.** Реализация
+  будет идти вертикальными частями: activity metrics/evidence; наблюдения quota из rollout
+  с provenance и дедупликацией; объяснимые findings и осторожная quota attribution;
+  общий CLI/GUI query и проверка на обезличенной captured fixture. Статус задачи останется
+  частичным, пока не выполнены проверки всего acceptance scope ниже.
+  Части SM-308: **SM-308a** — versioned rollout adapter для наблюдаемых quota snapshots,
+  SQLite provenance/dedup и read-only CLI; **SM-308b** — activity rollups и явная
+  классификация tool events; **SM-308c** — anomaly policies с evidence, confidence,
+  coverage и negative cases; **SM-308d** — GUI/CLI presentation, session/model quota
+  attribution и отдельные API-equivalent/subscription-price estimates с end-to-end fixtures.
+  SM-308a реализована как частичный deliverable через открытый
+  [PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30); отмеченные review-дефекты
+  исправлены в текущей ветке; latest CI и review state отслеживаются в PR.
+  Следующий этап после интеграции — SM-308b.
+  Версионированный parser/store и read-only `codex-monitor quota` покрыты синтетическими
+  fixtures и `make check-core`; детали и ограничения — в
+  [SM-308a report](reports/SM-308a-quota-snapshot-ingestion.md). В локальных rollout
+  samples подтверждён shape
+  `event_msg/token_count.payload.rate_limits.primary` с `used_percent`, `resets_at`
+  и `window_minutes`; `secondary`/`individual_limit` пока не наблюдались и остаются unknown.
   Зависит от SM-104/SM-301/SM-302/SM-303/SM-304. Для выбранного интервала показывать model responses,
   input/cached/uncached/output tokens, cache hit и breakdown по thread, model и типу tool event;
   parent и subagents учитывать совместно и отдельно без изменения canonical total.

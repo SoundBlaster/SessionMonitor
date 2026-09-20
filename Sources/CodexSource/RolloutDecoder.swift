@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import MonitorCore
 
@@ -63,13 +64,13 @@ public struct RolloutDecoder: Sendable {
 }
 
 private struct DecoderCheckpoint: Codable {
-    var schemaVersion = 3
+    var schemaVersion = 4
     let version: RolloutFileVersion
     let cursor: JSONLCursor
     let state: DecoderContext
 
     func isUsable(for current: RolloutFileVersion) -> Bool {
-        (schemaVersion == 2 || schemaVersion == 3) && version.identity == current.identity
+        schemaVersion == 4 && version.identity == current.identity
             && current.size >= version.size
             && cursor.offset <= version.size && cursor.line >= 0 && UInt64(cursor.line) <= cursor.offset
     }
@@ -175,6 +176,133 @@ private struct Payload: Decodable {
     }
 }
 
+private struct UsageLimitEventPayload: Decodable {
+    let type: String?
+    let rateLimits: RateLimitsPayload?
+    let containsRateLimits: Bool
+    let rateLimitsDecodeFailed: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case rateLimits = "rate_limits"
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        type = try values.decodeIfPresent(String.self, forKey: .type)
+        containsRateLimits = values.contains(.rateLimits)
+        do {
+            rateLimits = try values.decodeIfPresent(RateLimitsPayload.self, forKey: .rateLimits)
+            rateLimitsDecodeFailed = false
+        } catch {
+            rateLimits = nil
+            rateLimitsDecodeFailed = true
+        }
+    }
+}
+
+private struct UsageLimitEventEnvelope: Decodable {
+    let payload: UsageLimitEventPayload
+}
+
+private struct RateLimitsPayload: Decodable {
+    let limitID: String?
+    let limitName: String?
+    let planType: String?
+    let primary: RateLimitWindowPayload?
+    let secondary: RateLimitWindowPayload?
+    let individualLimit: RateLimitWindowPayload?
+    let hasRecognizedFields: Bool
+    let hasDecodeIssues: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case limitID = "limit_id"
+        case limitName = "limit_name"
+        case planType = "plan_type"
+        case primary
+        case secondary
+        case individualLimit = "individual_limit"
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        let id = Self.decode(String.self, from: values, forKey: .limitID)
+        let name = Self.decode(String.self, from: values, forKey: .limitName)
+        let plan = Self.decode(String.self, from: values, forKey: .planType)
+        let primary = Self.decode(RateLimitWindowPayload.self, from: values, forKey: .primary)
+        let secondary = Self.decode(RateLimitWindowPayload.self, from: values, forKey: .secondary)
+        let individual = Self.decode(RateLimitWindowPayload.self, from: values, forKey: .individualLimit)
+        limitID = id.value
+        limitName = name.value
+        planType = plan.value
+        self.primary = primary.value
+        self.secondary = secondary.value
+        individualLimit = individual.value
+        hasDecodeIssues = id.failed || name.failed || plan.failed
+            || primary.failed || secondary.failed || individual.failed
+            || primary.value?.hasDecodeIssues == true || secondary.value?.hasDecodeIssues == true
+            || individual.value?.hasDecodeIssues == true
+        hasRecognizedFields = values.contains(.limitID) || values.contains(.limitName)
+            || values.contains(.planType) || values.contains(.primary) || values.contains(.secondary)
+            || values.contains(.individualLimit)
+    }
+
+    private static func decode<Value: Decodable>(
+        _ type: Value.Type, from values: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys
+    ) -> (value: Value?, failed: Bool) {
+        guard values.contains(key) else { return (nil, false) }
+        do {
+            return (try values.decodeIfPresent(type, forKey: key), false)
+        } catch {
+            return (nil, true)
+        }
+    }
+}
+
+private struct RateLimitWindowPayload: Decodable {
+    let usedPercent: Double?
+    let windowMinutes: Int64?
+    let resetsAt: Int64?
+    let hasDecodeIssues: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case usedPercent = "used_percent"
+        case windowMinutes = "window_minutes"
+        case resetsAt = "resets_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        let used = Self.decode(Double.self, from: values, forKey: .usedPercent)
+        let duration = Self.decode(Int64.self, from: values, forKey: .windowMinutes)
+        let reset = Self.decode(Int64.self, from: values, forKey: .resetsAt)
+        usedPercent = used.value
+        windowMinutes = duration.value
+        resetsAt = reset.value
+        hasDecodeIssues = used.failed || duration.failed || reset.failed
+    }
+
+    private static func decode<Value: Decodable>(
+        _ type: Value.Type, from values: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys
+    ) -> (value: Value?, failed: Bool) {
+        guard values.contains(key) else { return (nil, false) }
+        do {
+            return (try values.decodeIfPresent(type, forKey: key), false)
+        } catch {
+            return (nil, true)
+        }
+    }
+
+    func observation(slot: UsageLimitWindowSlot) -> UsageLimitWindowObservation {
+        UsageLimitWindowObservation(
+            slot: slot,
+            windowMinutes: windowMinutes.flatMap { $0 > 0 ? $0 : nil },
+            usedPercent: usedPercent.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil },
+            resetsAt: resetsAt.flatMap { $0 > 0 ? Date(timeIntervalSince1970: TimeInterval($0)) : nil }
+        )
+    }
+}
+
 private struct LegacyTokenCountInfo: Decodable {
     let totalTokenUsage: LegacyUsage?
 
@@ -264,6 +392,9 @@ private struct DecodeState {
             guard data.contains(payloadMarker) || !["response_item", "compacted"].contains(header.type) else { return }
             let event = try decoder.decode(Envelope.self, from: data)
             try process(event, line: line, includeRecords: includeRecords)
+            if event.type == "event_msg", event.payload.type == "token_count" {
+                appendUsageLimitSnapshot(data, timestamp: event.timestamp, line: line)
+            }
         } catch {
             result.diagnostics["malformedRecords", default: 0] += 1
         }
@@ -489,6 +620,88 @@ private struct DecodeState {
             efforts: Array(Set(context.efforts.values)).sorted(),
             relationship: relationship
         )
+    }
+}
+
+private extension DecodeState {
+    var rateLimitsMarker: Data { Data("\"rate_limits\"".utf8) }
+
+    mutating func appendUsageLimitSnapshot(_ data: Data, timestamp: String, line: Int) {
+        guard data.range(of: rateLimitsMarker) != nil else { return }
+        guard let date = try? parseDate(timestamp) else {
+            result.diagnostics["unsupportedUsageLimitSchemas", default: 0] += 1
+            return
+        }
+        guard let decoded = try? decoder.decode(UsageLimitEventEnvelope.self, from: data),
+              decoded.payload.containsRateLimits,
+              !decoded.payload.rateLimitsDecodeFailed,
+              let rateLimits = decoded.payload.rateLimits,
+              rateLimits.hasRecognizedFields else {
+            result.usageLimitSnapshots.append(unsupportedSnapshot(data, timestamp: date, line: line))
+            result.diagnostics["unsupportedUsageLimitSchemas", default: 0] += 1
+            return
+        }
+
+        let windows = [
+            rateLimits.primary.map { $0.observation(slot: .primary) },
+            rateLimits.secondary.map { $0.observation(slot: .secondary) },
+            rateLimits.individualLimit.map { $0.observation(slot: .individualLimit) }
+        ].compactMap { $0 }
+        let hasDecodeIssues = rateLimits.hasDecodeIssues
+        let state = snapshotState(windows, hasDecodeIssues: hasDecodeIssues)
+        result.usageLimitSnapshots.append(UsageLimitSnapshotObservation(
+            eventIdentity: hasDecodeIssues
+                ? dataIdentity(data) : eventIdentity(timestamp: date, rateLimits: rateLimits, windows: windows),
+            timestamp: date, sourceLine: line,
+            sourceContextSessionID: context.sessionID, sourceSchema: "codex.event_msg.token_count.rate_limits",
+            state: state, limitID: rateLimits.limitID, limitName: rateLimits.limitName,
+            planType: rateLimits.planType, windows: windows
+        ))
+    }
+
+    func unsupportedSnapshot(_ data: Data, timestamp: Date, line: Int) -> UsageLimitSnapshotObservation {
+        UsageLimitSnapshotObservation(
+            eventIdentity: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(),
+            timestamp: timestamp, sourceLine: line, sourceContextSessionID: context.sessionID,
+            sourceSchema: nil, state: .unsupportedSchema, limitID: nil, limitName: nil, planType: nil, windows: []
+        )
+    }
+
+    mutating func snapshotState(
+        _ windows: [UsageLimitWindowObservation], hasDecodeIssues: Bool
+    ) -> UsageLimitSnapshotState {
+        guard !windows.isEmpty else {
+            if hasDecodeIssues {
+                result.diagnostics["unsupportedUsageLimitSchemas", default: 0] += 1
+                return .unsupportedSchema
+            }
+            result.diagnostics["usageLimitSnapshotsWithoutWindows", default: 0] += 1
+            return .noWindowData
+        }
+        guard !hasDecodeIssues, !windows.contains(where: { !$0.isComplete }) else {
+            result.diagnostics["partialUsageLimitSnapshots", default: 0] += 1
+            return .partial
+        }
+        return .observed
+    }
+
+    func eventIdentity(
+        timestamp: Date, rateLimits: RateLimitsPayload, windows: [UsageLimitWindowObservation]
+    ) -> String {
+        let windowIdentity = windows.sorted { $0.slot.rawValue < $1.slot.rawValue }.map { window in
+            [window.slot.rawValue, window.windowMinutes.map { String($0) } ?? "unknown-duration",
+             window.usedPercent.map { String($0) } ?? "unknown-used",
+             window.resetsAt.map { String($0.timeIntervalSince1970) } ?? "unknown-reset"].joined(separator: ":")
+        }.joined(separator: ",")
+        let material = [
+            "adapter-v1", String(timestamp.timeIntervalSince1970), rateLimits.limitID ?? "unknown-limit-id",
+            rateLimits.limitName ?? "unknown-limit-name", rateLimits.planType ?? "unknown-plan", windowIdentity
+        ].joined(separator: "\u{1f}")
+        return SHA256.hash(data: Data(material.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    func dataIdentity(_ data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 }
 // swiftlint:enable cyclomatic_complexity function_parameter_count file_length
