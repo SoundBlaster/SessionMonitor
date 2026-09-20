@@ -158,6 +158,10 @@ public final class UsageStore: Sendable {
             guard let provenance = update.rollout.provenance,
                   try Self.hasMissingProvenance(source: source, database: database) else { return false }
             try Self.insertProvenance(provenance, source: source, database: database)
+            try Self.clearUsageLimitSnapshots(source: source, database: database)
+            for snapshot in update.rollout.usageLimitSnapshots {
+                try Self.insertUsageLimitSnapshot(snapshot, source: source, database: database)
+            }
             try database.execute(sql: """
                 INSERT INTO source_checkpoints VALUES (?, ?)
                 ON CONFLICT(source) DO UPDATE SET checkpoint = excluded.checkpoint

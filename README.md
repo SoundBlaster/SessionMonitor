@@ -27,7 +27,7 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 `xcode-tools` через XcodeMCPWrapper broker. Проверены 43 доступных tools и успешные
 `XcodeListWindows`, `XcodeListSchemes`, `GetTestList`. Выбирать workspace tab и scheme
 перед `BuildProject`, `RunProject`, `RunAllTests` и debugger operations.
-`SessionMonitor-Package` — Swift package с 89 core tests; GUI и 73 GUI/model/render tests
+`SessionMonitor-Package` — Swift package с 91 core tests; GUI и 73 GUI/model/render tests
 находятся в `Apps/MonitorMac/MonitorMac.xcodeproj`, схема `MonitorMac`.
 XcodeBuildMCP CLI остаётся дополнительным build path; это отдельный инструмент.
 
@@ -36,7 +36,7 @@ XcodeBuildMCP CLI остаётся дополнительным build path; эт
 Runtime dependencies разрешаются через SwiftPM; локальная compatibility dependency описана ниже.
 
 ```sh
-make check-core           # Swift CLI build, SwiftLint, 89 core tests и CLI process smoke
+make check-core           # Swift CLI build, SwiftLint, 91 core tests и CLI process smoke
 make test-cli             # CLI signals/backpressure smoke после build-cli; Python 3 standard library
 make build-mcp            # GUI build через XcodeBuildMCP CLI
 make test-macos           # xcodebuild + 73 GUI/model/render tests

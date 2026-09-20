@@ -72,6 +72,28 @@ struct UsageLimitSnapshotTests {
         #expect(unknownUsed.remainingPercentDerived == nil)
     }
 
+    @Test func malformedSlotKeepsOtherValidWindowAndMarksSnapshotPartial() throws {
+        let fixture = try UsageLimitFixture()
+        defer { fixture.remove() }
+        let event = try fixture.jsonlEvent(timestamp: "2026-09-20T10:00:00Z", rateLimits: [
+            "primary": ["used_percent": 82, "resets_at": 1_790_422_316, "window_minutes": 300],
+            "secondary": "future-window-shape",
+            "individual_limit": NSNull()
+        ])
+        try fixture.write(event)
+
+        let parsed = try RolloutDecoder().parse(fixture.file)
+        let snapshot = try #require(parsed.usageLimitSnapshots.first)
+        let primary = try #require(snapshot.windows.first)
+
+        #expect(snapshot.state == .partial)
+        #expect(snapshot.windows.count == 1)
+        #expect(primary.slot == .primary)
+        #expect(primary.usedPercent == 82)
+        #expect(parsed.diagnostics["partialUsageLimitSnapshots"] == 1)
+        #expect(parsed.diagnostics["unsupportedUsageLimitSchemas"] == nil)
+    }
+
     @Test func importsDeduplicateMirroredEventsAndKeepResetEpochsSeparate() async throws {
         let fixture = try UsageLimitFixture()
         defer { fixture.remove() }
@@ -158,10 +180,11 @@ struct UsageLimitSnapshotTests {
     }
 }
 
-private struct UsageLimitFixture {
+struct UsageLimitFixture {
     let directory: URL
     var file: URL { directory.appending(path: "quota.jsonl") }
     var database: URL { directory.appending(path: "usage.sqlite") }
+    var source: String { file.resolvingSymlinksInPath().path }
 
     init() throws {
         directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
@@ -183,6 +206,20 @@ private struct UsageLimitFixture {
         defer { try? handle.close() }
         try handle.seekToEnd()
         try handle.write(contentsOf: Data(content.utf8))
+    }
+
+    func jsonlEvent(timestamp: String, rateLimits: [String: Any]) throws -> String {
+        let payload: [String: Any] = ["type": "token_count", "rate_limits": rateLimits]
+        let event: [String: Any] = ["timestamp": timestamp, "type": "event_msg", "payload": payload]
+        return try jsonlLine(event)
+    }
+
+    func jsonlLine(_ object: [String: Any]) throws -> String {
+        let data = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+        guard let line = String(bytes: data, encoding: .utf8) else {
+            throw CocoaError(.fileWriteInapplicableStringEncoding)
+        }
+        return line + "\n"
     }
 
     // swiftlint:disable line_length
