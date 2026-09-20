@@ -360,7 +360,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   attribution и отдельные API-equivalent/subscription-price estimates с end-to-end fixtures.
   SM-308a реализована как частичный deliverable через открытый
   [PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30); отмеченные review-дефекты
-  исправлены в текущей ветке, новые проверки выполняются.
+  исправлены в текущей ветке; latest CI и review state отслеживаются в PR.
   Следующий этап после интеграции — SM-308b.
   Версионированный parser/store и read-only `codex-monitor quota` покрыты синтетическими
   fixtures и `make check-core`; детали и ограничения — в
