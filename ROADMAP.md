@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-312 реализована и локально проверена (2026-09-20), PR готовится.**
+**SM-312 реализована и локально проверена (2026-09-20), [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) открыт.**
 Раздельные budgets usage/events, stacked token bars и общая легенда.
 Ветка `fix/sm-312-dense-timeline`; следующий пункт — SM-308b.
 
@@ -450,7 +450,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
     Квотные части SM-308 считать завершёнными только после выполнения этих условий.
 
 - [x] **SM-312** — Восстановить читаемость плотных request timelines (follow-up SM-303/SM-309).
-  Реализована и локально проверена 2026-09-20; PR готовится. Раздельные budgets
+  Реализована и локально проверена 2026-09-20; [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) открыт. Раздельные budgets
   usage/events и sampling внутри visible domain, сохранение endpoints/token peaks.
   Cached/uncached показаны stacked segments; events — компактными markers
   и общей легендой. Полный evidence list и canonical accounting сохранены.

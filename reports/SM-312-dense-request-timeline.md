@@ -1,6 +1,6 @@
 # SM-312 — Dense request timeline
 
-Implemented locally on 2026-09-20; delivery requires the PR to merge.
+Implemented locally on 2026-09-20; [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) is open. Delivery requires the PR to merge.
 
 ## Cause and change
 
