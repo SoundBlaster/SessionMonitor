@@ -10,6 +10,7 @@ enum RequestTimelineRangeMode: String, CaseIterable, Hashable, Identifiable {
     case fitToData
     case lastEvents
     case fullQuery
+    case custom
 
     var id: String { rawValue }
 
@@ -18,6 +19,7 @@ enum RequestTimelineRangeMode: String, CaseIterable, Hashable, Identifiable {
         case .fitToData: "Fit to data"
         case .lastEvents: "Last events"
         case .fullQuery: "Full query"
+        case .custom: "Custom"
         }
     }
 }
@@ -32,13 +34,14 @@ struct RequestTimelineAxis: Equatable {
     let mode: RequestTimelineRangeMode
     let queryHasBound: Bool
 
-    var preferredChartWidth: Double {
-        max(480, visibleDomain.duration / 3_600 * 64)
+    var navigationDomain: DateInterval {
+        DateInterval(start: min(dataDomain.start, queryDomain.start), end: max(dataDomain.end, queryDomain.end))
     }
 
     init?(
         points: [RequestTimelinePoint], query: UsageQuery,
-        mode: RequestTimelineRangeMode, recentWindow: TimeInterval = 15 * 60
+        mode: RequestTimelineRangeMode, recentWindow: TimeInterval = 15 * 60,
+        customDomain: DateInterval? = nil
     ) {
         guard
             let first = points.map(\.timestamp).min(),
@@ -59,6 +62,10 @@ struct RequestTimelineAxis: Equatable {
         case .lastEvents:
             let recentStart = max(dataBounds.start, dataBounds.end.addingTimeInterval(-recentWindow))
             visibleDomain = Self.padded(DateInterval(start: recentStart, end: dataBounds.end))
+        case .custom:
+            let bounds = DateInterval(start: min(dataDomain.start, queryDomain.start),
+                                      end: max(dataDomain.end, queryDomain.end))
+            visibleDomain = TimelineViewport.clamp(customDomain ?? dataDomain, to: bounds)
         case .fullQuery:
             visibleDomain = query.since == nil && query.until == nil ? dataDomain : queryDomain
         }
@@ -80,6 +87,9 @@ struct RequestTimelineAxis: Equatable {
         case .lastEvents:
             let ending = timelineDateLabel(dataBounds.end, timeZone: timeZone)
             return "Last events: showing the trailing 15-minute window ending at \(ending)."
+        case .custom:
+            return "Custom range: \(timelineDateLabel(visibleDomain.start, timeZone: timeZone))–"
+                + timelineDateLabel(visibleDomain.end, timeZone: timeZone)
         case .fullQuery:
             if queryHasBound {
                 return "Full query: showing the selected absolute query range."
@@ -98,7 +108,7 @@ struct RequestTimelineAxis: Equatable {
 }
 
 func timelineDateLabel(_ date: Date, timeZone: TimeZone) -> String {
-    var format = Date.FormatStyle(date: .omitted, time: .shortened)
+    var format = Date.FormatStyle(date: .abbreviated, time: .shortened)
     format.timeZone = timeZone
     return date.formatted(format)
 }
@@ -110,11 +120,14 @@ final class RequestTimelineModel {
     private(set) var isLoading = false
     private(set) var errorMessage: String?
     // A broad query must not manufacture empty chart canvas; Full query remains explicit.
+    private(set) var customDomain: DateInterval?
+    private(set) var rangeError: String?
     private(set) var rangeMode: RequestTimelineRangeMode = .fitToData
 
     var axis: RequestTimelineAxis? {
         guard let timeline else { return nil }
-        return RequestTimelineAxis(points: timeline.points, query: timeline.query, mode: rangeMode)
+        return RequestTimelineAxis(points: timeline.points, query: timeline.query, mode: rangeMode,
+                                   customDomain: customDomain)
     }
 
     var displayTimeZone: TimeZone {
@@ -137,6 +150,8 @@ final class RequestTimelineModel {
             }
             if timeline?.sessionID != value.sessionID || timeline?.query != value.query {
                 rangeMode = .fitToData
+                customDomain = nil
+                rangeError = nil
             }
             timeline = value
         } catch {
@@ -146,6 +161,54 @@ final class RequestTimelineModel {
 
     func setRangeMode(_ value: RequestTimelineRangeMode) {
         rangeMode = value
+        rangeError = nil
+    }
+
+    func applyRange(from start: Date, to end: Date) {
+        guard let axis else { return }
+        guard start.timeIntervalSince1970.isFinite, end.timeIntervalSince1970.isFinite, start < end else {
+            rangeError = "From must be earlier than To."
+            return
+        }
+        guard start >= axis.navigationDomain.start, end <= axis.navigationDomain.end else {
+            rangeError = "Choose a range within the timeline bounds."
+            return
+        }
+        setViewport(DateInterval(start: start, end: end))
+    }
+
+    func zoom(by factor: Double) {
+        guard let axis, factor.isFinite, factor > 0 else { return }
+        let middle = axis.visibleDomain.start.addingTimeInterval(axis.visibleDomain.duration / 2)
+        let span = min(axis.navigationDomain.duration,
+                       max(TimelineViewport.minimumSpan, axis.visibleDomain.duration * factor))
+        setViewport(DateInterval(start: middle.addingTimeInterval(-span / 2), duration: span))
+    }
+
+    func pan(by fraction: Double) {
+        guard let axis, fraction.isFinite else { return }
+        setViewport(DateInterval(start: axis.visibleDomain.start.addingTimeInterval(
+            axis.visibleDomain.duration * fraction), duration: axis.visibleDomain.duration))
+    }
+
+    var scrollPosition: Double {
+        guard let axis else { return 0 }
+        let travel = axis.navigationDomain.duration - axis.visibleDomain.duration
+        return travel > 0 ? (axis.visibleDomain.start.timeIntervalSince(axis.navigationDomain.start) / travel) : 0
+    }
+
+    func scroll(to fraction: Double) {
+        guard let axis, fraction.isFinite else { return }
+        let travel = max(0, axis.navigationDomain.duration - axis.visibleDomain.duration)
+        setViewport(DateInterval(start: axis.navigationDomain.start.addingTimeInterval(
+            travel * min(1, max(0, fraction))), duration: axis.visibleDomain.duration))
+    }
+
+    private func setViewport(_ range: DateInterval) {
+        guard let axis else { return }
+        customDomain = TimelineViewport.clamp(range, to: axis.navigationDomain)
+        rangeMode = .custom
+        rangeError = nil
     }
 
     func reset() {
@@ -153,6 +216,8 @@ final class RequestTimelineModel {
         isLoading = false
         errorMessage = nil
         rangeMode = .fitToData
+        customDomain = nil
+        rangeError = nil
     }
 
     func fail(_ error: Error) {

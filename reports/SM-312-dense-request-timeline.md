@@ -1,43 +1,47 @@
-# SM-312 — Dense request timeline
+# SM-312 - Interactive dense request timeline
 
-Implemented locally on 2026-09-20; [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) is open. Delivery requires the PR to merge.
+Implemented and locally verified on 2026-09-20; [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) is open.
 
-## Cause and change
+## Final behavior
 
-The previous 256-point projection reserved all semantic events before usage. Once
-semantic events exhausted that budget, almost all usage requests disappeared.
-Every semantic point also carried an overlapping text annotation.
+The original 256-point sampler allowed semantic events to evict nearly all usage
+requests. The final implementation replaces sampling entirely with temporal buckets
+whose count depends on plot width: approximately 14 pt per slot, at most 120 slots.
+Every visible request/event contributes once. Empty intervals stay empty.
 
-The projection now filters the visible domain before sampling and gives usage an
-independent budget (at least 192 points when enough requests exist). Semantic
-sampling is balanced by event kind so a tool/unknown flood does not erase rare
-compactions or human turns. Usage endpoints and cached/uncached peaks survive.
-The full evidence list and canonical accounting are unchanged.
+Bars show sums of known cached and uncached tokens in each interval. The caption
+states the interval size, request count and number with unavailable token data.
+Requests missing either component are excluded from known sums and counted as
+unavailable; observed zero remains known. Events are grouped into baseline markers
+with full per-kind counts in the legend. Full source evidence and canonical accounting
+are unchanged. Bucket timestamps are presentation centers, not rewritten source dates.
 
-`RequestTimelinePlot` renders fixed-width cached/uncached stacked segments, small
-baseline event symbols, and accessible event labels. A wrapping legend outside
-the plot reports the full visible event counts. No per-event text overlays remain.
+From/To fields use the report timezone and validate ordering and timeline bounds.
+Zoom buttons halve/double the viewport, with a one-minute minimum unless the entire
+available span is shorter. Earlier/later buttons and a position slider navigate
+within bounds. Presets remain available. Refresh preserves a custom range; changing
+session or query resets it. No oversized horizontal chart canvas is constructed.
 
 ## Validation
 
 - `make lint lint-architecture`: no violations, errors or warnings.
-- `make test-macos XCODEBUILD_FLAGS='-skipMacroValidation -only-testing:MonitorMacTests/RequestTimelineAxisTests -only-testing:MonitorMacTests/RequestTimelineDensityTests'`: 17 passed.
-- Synthetic fixture: 581 requests, 2,400 tool/unknown events, one rare compaction;
-  cached and uncached peaks, endpoints, sparse/empty/unknown/zero cases, event-only
-  timelines, and visible-window filtering are covered.
+- `make test-macos XCODEBUILD_FLAGS='-skipMacroValidation -only-testing:MonitorMacTests/RequestTimelineAxisTests -only-testing:MonitorMacTests/RequestTimelineDensityTests -only-testing:MonitorMacTests/TimelineViewportTests'`: 22 passed.
+- Synthetic tests cover all-request token/count preservation under semantic floods,
+  rare event counts, duplicate timestamps, viewport boundaries, empty/unknown/zero
+  data, finite width limits, from/to validation, zoom/pan clamps, refresh and reset.
 - Production plot ImageRenderer attachments: dark 1000 pt and light 560 pt, visually
-  reviewed. Tests attach PNGs to xcresult; the complete view contains native controls
-  and scroll containers, so it is validated in the native app separately.
-- Native app launched from this worktree: selected the reported real session,
-  checked Fit to data and Last events, readable bars, external event legend and
-  retained evidence. Native capture was dark; light verification is the plot fixture.
-- Read-only inspection of the local database reproduced the starvation; no raw
-  session contents or private database exports are included in this repository.
-- `git diff --check`: passed. Full `make check` was not repeated for this GUI-only fix.
+  reviewed. Attachments are available in xcresult; no private data is checked in.
+- Native app on the reported real session: checked overview, zoom in, changed
+  aggregation interval and request counts, and moved the position slider. Dates
+  visibly match the report timezone. Native capture was dark; light verification
+  uses the deterministic plot fixture.
+- `git diff --check`: passed. Full `make check` was not repeated for this GUI-only change.
 
-## Remaining boundaries
+## Boundaries
 
-The chart is a bounded sample, not an exhaustive per-request visualization or a
-bucket-total chart. Close timestamps can still overlap at limited pixel resolution;
-Last events provides detail while the evidence list preserves every observation.
+Zoom uses buttons and temporal scrolling uses the slider/arrows; gesture zoom and
+trackpad horizontal panning are not implemented. From/to model validation is covered
+by tests; native date-field typing was not separately automated. Interval token sums
+must not be interpreted as individual request context size. Known sums can be partial
+when the caption reports unavailable requests. Evidence remains the full query list.
 The next planned feature is SM-308b.

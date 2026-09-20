@@ -1,55 +1,68 @@
 import Foundation
 import MonitorCore
 
-/// Bounded presentation only. The source timeline and its accounting remain unchanged.
 enum RequestTimelineChartLayout {
     static let chartHeight: CGFloat = 250
     static let yAxisTopInset: CGFloat = 16
-    static let barWidth: CGFloat = 4
+    static let barWidth: CGFloat = 6
     static let eventSymbolSize: CGFloat = 12
-    static let maxChartPoints = 256
-    static let reservedEventPoints = 64
-    static let accessibilityLabel = "Cached and uncached input over time"
+    static let axisAllowance: Double = 80
+    static let minimumMarkSpacing: Double = 14
+    static let maximumBuckets = 120
+    static let accessibilityLabel = "Known cached and uncached token sums over time"
+}
 
-    static func chartPoints(
-        from points: [RequestTimelinePoint], visibleDomain: DateInterval? = nil
-    ) -> [RequestTimelinePoint] {
-        let visible = points.filter { visibleDomain?.contains($0.timestamp) ?? true }
-            .sorted(by: chronological)
-        guard visible.count > maxChartPoints else { return visible }
-        let usage = visible.filter { $0.kind == .usageRequest }
-        let events = visible.filter { $0.kind != .usageRequest }
-        let usageLimit = maxChartPoints - min(reservedEventPoints, events.count)
-        let sampledUsage = sample(usage, limit: usageLimit)
-        let eventLimit = maxChartPoints - sampledUsage.count
-        let kinds = TimelineEventKind.allCases.filter { kind in events.contains { $0.kind == kind } }
-        let perKindLimit = eventLimit / max(1, kinds.count)
-        let sampledEvents = kinds.flatMap { kind in
-            sample(events.filter { $0.kind == kind }, limit: perKindLimit)
+struct TimelineBucket: Identifiable {
+    let id: Int
+    let start: Date
+    let end: Date
+    var requestCount = 0
+    var knownRequestCount = 0
+    var cached: Double = 0
+    var uncached: Double = 0
+    var events: [TimelineEventKind: Int] = [:]
+    var timestamp: Date { start.addingTimeInterval(end.timeIntervalSince(start) / 2) }
+    var unknownRequestCount: Int { requestCount - knownRequestCount }
+    var eventCount: Int { events.values.reduce(0, +) }
+}
+
+/// Every visible observation belongs to one pixel-budget bucket. No downsampling.
+struct TimelineAggregation {
+    let buckets: [TimelineBucket]
+    let capacity: Int
+    let interval: TimeInterval
+    var requestCount: Int { buckets.reduce(0) { $0 + $1.requestCount } }
+    var unknownRequestCount: Int { buckets.reduce(0) { $0 + $1.unknownRequestCount } }
+
+    init(points: [RequestTimelinePoint], domain: DateInterval, width: Double) {
+        let safeWidth = width.isFinite ? width : RequestTimelineChartLayout.axisAllowance
+        capacity = max(1, Int(min(Double(RequestTimelineChartLayout.maximumBuckets), max(0,
+            safeWidth - RequestTimelineChartLayout.axisAllowance) / RequestTimelineChartLayout.minimumMarkSpacing)))
+        interval = max(domain.duration, 0.001) / Double(capacity)
+        var grouped: [Int: TimelineBucket] = [:]
+        for point in points where point.timestamp >= domain.start && point.timestamp <= domain.end {
+            let slot = min(capacity - 1, Int(point.timestamp.timeIntervalSince(domain.start) / interval))
+            let start = domain.start.addingTimeInterval(Double(slot) * interval)
+            var bucket = grouped[slot] ?? TimelineBucket(
+                id: slot, start: start, end: min(domain.end, start.addingTimeInterval(interval)))
+            if point.kind == .usageRequest {
+                bucket.requestCount += 1
+                if let cached = point.cachedInputTokens, let uncached = point.uncachedInputTokens {
+                    bucket.knownRequestCount += 1
+                    bucket.cached += Double(cached)
+                    bucket.uncached += Double(uncached)
+                }
+            } else {
+                bucket.events[point.kind, default: 0] += 1
+            }
+            grouped[slot] = bucket
         }
-        return (sampledUsage + sampledEvents).sorted(by: chronological)
+        buckets = grouped.values.sorted { $0.id < $1.id }
     }
 
-    /// Preserve endpoints and token peaks, then sample across the remaining requests.
-    private static func sample(_ points: [RequestTimelinePoint], limit: Int) -> [RequestTimelinePoint] {
-        guard points.count > limit else { return points }
-        guard limit > 0 else { return [] }
-        var selected: Set<Int> = [0, points.count - 1]
-        if let peak = points.indices.max(by: {
-            (points[$0].cachedInputTokens ?? 0) < (points[$1].cachedInputTokens ?? 0)
-        }) { selected.insert(peak) }
-        if let peak = points.indices.max(by: {
-            (points[$0].uncachedInputTokens ?? 0) < (points[$1].uncachedInputTokens ?? 0)
-        }) { selected.insert(peak) }
-        let candidates = points.indices.filter { !selected.contains($0) }
-        let slots = max(0, limit - selected.count)
-        for slot in 0..<slots {
-            selected.insert(candidates[slot * candidates.count / slots])
-        }
-        return selected.sorted().prefix(limit).map { points[$0] }
-    }
-
-    private static func chronological(_ lhs: RequestTimelinePoint, _ rhs: RequestTimelinePoint) -> Bool {
-        lhs.timestamp == rhs.timestamp ? lhs.id < rhs.id : lhs.timestamp < rhs.timestamp
+    var description: String {
+        let seconds = max(1, Int(interval.rounded()))
+        return "Known token sums per ~\(seconds)s interval · \(requestCount) requests · "
+            + "\(unknownRequestCount) with unavailable token data. Zoom in for finer intervals."
     }
 }

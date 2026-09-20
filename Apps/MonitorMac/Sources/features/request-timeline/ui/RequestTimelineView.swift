@@ -24,15 +24,8 @@ struct RequestTimelineView: View {
                     .textSelection(.enabled)
             } else if let timeline = model.timeline, !timeline.isEmpty {
                 if let axis = model.axis {
-                    if timeline.points.lazy.filter({ axis.visibleDomain.contains($0.timestamp) }).count
-                        > RequestTimelineChartLayout.maxChartPoints {
-                        Text("Dense timeline: chart shows representative events; "
-                             + "the complete evidence list remains below.")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                     rangeControls()
+                    TimelineViewportControls(model: model, axis: axis)
                     timelineChart(timeline, axis: axis)
                     eventLegend(timeline, axis: axis)
                     evidenceList(timeline)
@@ -106,22 +99,11 @@ struct RequestTimelineView: View {
     }
 
     private func timelineChart(_ timeline: RequestTimeline, axis: RequestTimelineAxis) -> some View {
-        let chartPoints = RequestTimelineChartLayout.chartPoints(
-            from: timeline.points, visibleDomain: axis.visibleDomain
-        )
-        return GeometryReader { geometry in
-            let chartWidth = max(CGFloat(axis.preferredChartWidth), geometry.size.width)
-            ScrollView(.horizontal, showsIndicators: chartWidth > geometry.size.width) {
-                RequestTimelinePlot(points: chartPoints, axis: axis,
-                                    timeZone: model.displayTimeZone, width: chartWidth)
-            }
-            .frame(
-                width: geometry.size.width,
-                height: RequestTimelineChartLayout.chartHeight,
-                alignment: .leading
-            )
+        GeometryReader { geometry in
+            RequestTimelinePlot(points: timeline.points, axis: axis,
+                                timeZone: model.displayTimeZone, width: geometry.size.width)
         }
-        .frame(height: RequestTimelineChartLayout.chartHeight)
+        .frame(height: RequestTimelineChartLayout.chartHeight + 60)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(RequestTimelineChartLayout.accessibilityLabel)
         .accessibilityValue(model.rangeDescription)
@@ -139,7 +121,7 @@ struct RequestTimelineView: View {
         let kinds = TimelineEventKind.allCases.filter { kind in events.contains { $0.kind == kind } }
         return VStack(alignment: .leading, spacing: 6) {
             if !events.isEmpty {
-                Text("Events along the baseline · counts in the visible range")
+                Text("Grouped events on baseline · counts in the visible range")
                     .font(.caption2).foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), alignment: .leading)], alignment: .leading) {
                     ForEach(kinds, id: \.self) { kind in

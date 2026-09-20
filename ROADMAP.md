@@ -7,7 +7,7 @@
 ## Текущая точка
 
 **SM-312 реализована и локально проверена (2026-09-20), [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) открыт.**
-Раздельные budgets usage/events, stacked token bars и общая легенда.
+From/to, zoom, temporal slider и pixel-budget aggregation всех видимых observations.
 Ветка `fix/sm-312-dense-timeline`; следующий пункт — SM-308b.
 
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
@@ -450,12 +450,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
     Квотные части SM-308 считать завершёнными только после выполнения этих условий.
 
 - [x] **SM-312** — Восстановить читаемость плотных request timelines (follow-up SM-303/SM-309).
-  Реализована и локально проверена 2026-09-20; [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) открыт. Раздельные budgets
-  usage/events и sampling внутри visible domain, сохранение endpoints/token peaks.
-  Cached/uncached показаны stacked segments; events — компактными markers
-  и общей легендой. Полный evidence list и canonical accounting сохранены.
-  17 targeted tests, SwiftLint/FSD, synthetic light/dark plot renders (560/1000 pt);
-  native Fit to data / Last events проверены на реальной проблемной сессии.
+  Реализована и локально проверена 2026-09-20; [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) открыт.
+  From/to с validation, zoom buttons, temporal slider и шаги earlier/later.
+  Вместо sampling — aggregation всех видимых requests/events в pixel-budget buckets
+  (14 pt spacing, максимум 120). Столбцы — суммы известных cached/uncached tokens
+  за интервал, unavailable requests считаются отдельно; caption явно сообщает семантику.
+  Полный evidence list, query, timestamps источника и canonical accounting сохранены.
+  22 targeted tests, SwiftLint/FSD, light/dark plot renders (560/1000 pt);
+  native zoom и temporal slider проверены на реальной проблемной сессии.
   [Отчёт](reports/SM-312-dense-request-timeline.md).
 
 ## 4. Системные macOS widgets
