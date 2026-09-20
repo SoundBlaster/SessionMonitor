@@ -112,6 +112,7 @@ public final class UsageStore: Sendable {
                 CREATE INDEX legacy_estimate_timestamps ON source_legacy_estimates(timestamp);
                 """)
         }
+        Self.registerUsageLimitSnapshotMigration(on: &migrator)
         return migrator
     }
 
@@ -189,29 +190,11 @@ public final class UsageStore: Sendable {
         }
     }
 
-    private static func checkpoint(source: String, database: Database) throws -> Data? {
-        try Data.fetchOne(database, sql: "SELECT checkpoint FROM source_checkpoints WHERE source = ?",
-                          arguments: [source])
-    }
-
-    private static func hasMissingProvenance(source: String, database: Database) throws -> Bool {
-        try Bool.fetchOne(database, sql: """
-            SELECT EXISTS(
-                SELECT 1 FROM source_records AS records
-                WHERE records.source = ?
-                  AND NOT EXISTS(
-                      SELECT 1 FROM source_provenance AS provenance
-                      WHERE provenance.source = records.source
-                        AND provenance.session = records.session
-                  )
-            )
-            """, arguments: [source]) ?? false
-    }
-
     private static func clear(source: String, database: Database) throws {
         try database.execute(sql: "DELETE FROM source_records WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_legacy_estimates WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_timeline_events WHERE source = ?", arguments: [source])
+        try Self.clearUsageLimitSnapshots(source: source, database: database)
         try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_provenance WHERE source = ?", arguments: [source])
     }
@@ -242,6 +225,9 @@ public final class UsageStore: Sendable {
                 INSERT INTO source_timeline_events VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, arguments: [source, event.sourceLine, event.sessionID, event.turnID,
                                   event.timestamp.timeIntervalSince1970, event.kind.rawValue, event.evidence])
+        }
+        for snapshot in rollout.usageLimitSnapshots {
+            try Self.insertUsageLimitSnapshot(snapshot, source: source, database: database)
         }
         for (kind, count) in rollout.diagnostics {
             try database.execute(sql: """

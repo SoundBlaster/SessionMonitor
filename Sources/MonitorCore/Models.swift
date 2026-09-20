@@ -210,6 +210,7 @@ public struct ParsedRollout: Sendable {
     public var records: [UsageRecord] = []
     public var legacyEstimates: [LegacyUsageEstimate] = []
     public var timelineEvents: [TimelineSourceEvent] = []
+    public var usageLimitSnapshots: [UsageLimitSnapshotObservation] = []
     public var diagnostics: [String: Int64] = [:]
     public var provenance: SessionProvenance?
 

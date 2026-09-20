@@ -112,6 +112,13 @@ public actor SessionMonitor {
         try store.doctor(query: query)
     }
 
+    /// Returns imported quota observations and freshness metadata without polling a provider.
+    public func usageLimitSnapshots(
+        query: UsageQuery, generatedAt: Date = Date()
+    ) throws -> UsageLimitSnapshotReport {
+        try store.usageLimitSnapshots(query: query, generatedAt: generatedAt)
+    }
+
     public func watch(_ directory: URL, options: WatchOptions = WatchOptions()) async throws -> SessionWatch {
         try Task.checkCancellation()
         let root = directory.resolvingSymlinksInPath().standardizedFileURL

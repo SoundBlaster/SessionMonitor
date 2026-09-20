@@ -3,6 +3,25 @@ import GRDB
 import MonitorCore
 
 extension UsageStore {
+    static func checkpoint(source: String, database: Database) throws -> Data? {
+        try Data.fetchOne(database, sql: "SELECT checkpoint FROM source_checkpoints WHERE source = ?",
+                          arguments: [source])
+    }
+
+    static func hasMissingProvenance(source: String, database: Database) throws -> Bool {
+        try Bool.fetchOne(database, sql: """
+            SELECT EXISTS(
+                SELECT 1 FROM source_records AS records
+                WHERE records.source = ?
+                  AND NOT EXISTS(
+                      SELECT 1 FROM source_provenance AS provenance
+                      WHERE provenance.source = records.source
+                        AND provenance.session = records.session
+                  )
+            )
+            """, arguments: [source]) ?? false
+    }
+
     static func provenance(_ database: Database, sessionIDs: [String]) throws -> [String: SessionProvenance] {
         guard !sessionIDs.isEmpty else { return [:] }
         let rows = try Row.fetchAll(database, sql: "SELECT * FROM source_provenance ORDER BY source, session")

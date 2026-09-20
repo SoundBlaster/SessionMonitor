@@ -12,6 +12,9 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 - CLI `import` и `report`: text/JSON, период `[since, until)`, общие и посессионные суммы.
 - CLI `watch`: native FSEvents, bounded debounce, retry/reconciliation и pause/resume/stop.
 - Versioned `snapshot` / `snapshot --follow`: общие query metadata и live updates в GUI от external commits.
+- CLI `quota`: read-only usage-limit observations из импортированных rollouts; показывает observed used,
+  derived remaining, reset и freshness. Отсутствующие/неподдерживаемые данные остаются unknown;
+  сетевого polling нет.
 - Input/cache/output и optional cache-write/reasoning/total counters. Unknown не превращается в ноль.
 - SpecificationCore для coverage policy; SpecificationKit `@ObservedSatisfies` в GUI.
 - Native split navigation, фильтр по session ID/model, inspector и независимое состояние окон.
@@ -24,7 +27,7 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 `xcode-tools` через XcodeMCPWrapper broker. Проверены 43 доступных tools и успешные
 `XcodeListWindows`, `XcodeListSchemes`, `GetTestList`. Выбирать workspace tab и scheme
 перед `BuildProject`, `RunProject`, `RunAllTests` и debugger operations.
-`SessionMonitor-Package` — Swift package с 54 core tests; GUI и 15 GUI/model/render tests
+`SessionMonitor-Package` — Swift package с 89 core tests; GUI и 73 GUI/model/render tests
 находятся в `Apps/MonitorMac/MonitorMac.xcodeproj`, схема `MonitorMac`.
 XcodeBuildMCP CLI остаётся дополнительным build path; это отдельный инструмент.
 
@@ -33,10 +36,10 @@ XcodeBuildMCP CLI остаётся дополнительным build path; эт
 Runtime dependencies разрешаются через SwiftPM; локальная compatibility dependency описана ниже.
 
 ```sh
-make check-core           # Swift CLI build, SwiftLint, 54 core tests и CLI process smoke
+make check-core           # Swift CLI build, SwiftLint, 89 core tests и CLI process smoke
 make test-cli             # CLI signals/backpressure smoke после build-cli; Python 3 standard library
 make build-mcp            # GUI build через XcodeBuildMCP CLI
-make test-macos           # xcodebuild + 15 GUI/model/render tests
+make test-macos           # xcodebuild + 73 GUI/model/render tests
 make lint-architecture    # FSD strict architecture gate
 make check                # Полный последовательный набор локальных проверок
 make ci                   # Те же native gates, locked packages и ad-hoc signing
@@ -66,8 +69,14 @@ swift run codex-monitor report --since 2026-09-05T05:27:20Z --until 2026-09-12T0
 swift run codex-monitor report --since 2026-09-11T21:00:00Z --until 2026-09-12T21:00:00Z --time-zone Europe/Moscow
 swift run codex-monitor report --json
 swift run codex-monitor snapshot --follow --time-zone Europe/Moscow
+swift run codex-monitor quota --since 2026-09-13T00:00:00Z --json
 open .build/xcode/Build/Products/Debug/SessionMonitor.app
 ```
+
+`quota` читает только уже импортированные события `event_msg/token_count.rate_limits`.
+`remaining` явно помечается как вычисленное из `used_percent`; thread context не считается
+доказательством владения account/model-pool quota. Отсутствие event в выбранном интервале
+означает unknown, а не нулевой расход. Подробнее: [SM-308a report](reports/SM-308a-quota-snapshot-ingestion.md).
 
 CLI и GUI по умолчанию используют одну БД:
 `~/Library/Application Support/SessionMonitor/usage.sqlite`.
