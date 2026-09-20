@@ -31,7 +31,7 @@ Bundle ID проекта и App Store Connect app требуется свери�
 **SM-301 доставлена через [PR #13](https://github.com/SoundBlaster/SessionMonitor/pull/13),
 merge `ec64cd8`. SM-302, SM-303, SM-304, SM-305, SM-306, SM-309 и SM-310 доставлены.
 SM-307 заменена новым обезличенным виджетом SM-311. PR #29 смёржен в `main`
-20 сентября 2026 (`66ca045`); SM-308a реализована и проходит review в
+20 сентября 2026 (`4058a83`); quota snapshot ingestion доставлена через
 [PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30).
 Рабочая ветка: `feat/sm-308-anomaly-analytics`.**
 По запросу пользователя 2026-09-12 добавлены SM-306/SM-307: cache hit в sidebar и
@@ -39,7 +39,10 @@ SM-307 заменена новым обезличенным виджетом SM-
 дополнительную статистику и детектирование аномального расхода. По запросу 2026-09-19
 уточнены требования SM-308 и SM-503: account/model-pool quota observations отделены
 от session/model attribution; оценочные распределения должны явно показывать источник
-и неопределённость. SM-308 начата 2026-09-20.
+и неопределённость. SM-308 начата 2026-09-20. Multi-account продолжение запланировано
+как SM-308e/f: 308e следует после завершения части SM-308 по импорту quota snapshots; 308f
+зависит от 308e и общего GUI/CLI query scope SM-308. Quota presentation не завершена до
+выполнения обоих пунктов.
 SM-306-FSD-1 — follow-up завершён через PR #22: устранена baseline FSD
 dependency `features/report-scope/ui/ReportScopeControls.swift` на higher-layer
 `State` без изменения поведения SM-306.
@@ -419,7 +422,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Multi-account follow-up добавлен 2026-09-20: аккаунт нельзя выводить из rollout session context;
   общий источник без явного разделения должен оставаться `unknown`/`mixed`.
   - [ ] **SM-308e** — Задать account profile provenance для импортируемых источников.
-    Зависит от SM-308a. Поддержать явный non-secret account identity из формата источника и
+    Предпосылка: завершена часть SM-308 по импорту quota snapshots. Поддержать явный non-secret
+    account identity из формата источника и
     пользовательское сопоставление однородного source root с локальным profile ID/label.
     Если в одном root могут находиться данные нескольких аккаунтов, а event-level identity
     отсутствует, не назначать весь root одному профилю: сохранять `unknown`/`mixed`.
@@ -432,14 +436,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
     Проверить migration старой БД, два профиля с совпадающими ID/окнами/временем, зеркала внутри
     профиля и источники с неизвестной/смешанной принадлежностью.
   - [ ] **SM-308f** — Разделить multi-account quota presentation и сохранить unknown coverage.
-    Зависит от SM-308e и GUI/CLI query из SM-308d. Предоставить `All accounts`, отдельный профиль
+    Зависит от SM-308e и общего GUI/CLI query scope SM-308. Предоставить `All accounts`, отдельный
+    профиль
     и `Unknown/Mixed`; activity может показывать общий total с явной маркировкой, quota должна
     отображаться отдельными рядами по профилям и не усредняться/суммироваться между аккаунтами.
     Показывать freshness, reset discontinuities и coverage отдельно для каждого профиля;
     не приписывать mixed/unknown snapshots выбранному аккаунту. Проверить одну и несколько
     учётных записей, overlapping windows, одинаковые event payloads, duplicate mirrors,
     account switch/reset и отсутствие account identity в CLI JSON/text и GUI.
-    Квотные части SM-308d считать завершёнными только после выполнения этих условий.
+    Квотные части SM-308 считать завершёнными только после выполнения этих условий.
 
 ## 4. Системные macOS widgets
 
