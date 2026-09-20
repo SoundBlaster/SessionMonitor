@@ -6,26 +6,22 @@ struct CacheHitRateWidgetAppearance {
     struct Palette {
         var darkSurface: Color = Color(red: 0.085, green: 0.105, blue: 0.16)
         var lightSurface: Color = Color(red: 0.97, green: 0.98, blue: 1)
-        let accent: Color
-        let average: Color
-        let notableOutlier: Color
-        let strongOutlier: Color
-        let improvement: Color
-        let degradation: Color
+        let chart: UsageChartPalette
 
-        static let monochrome = Self(
-            accent: .gray, average: .primary, notableOutlier: .secondary,
-            strongOutlier: .red, improvement: .primary, degradation: .red
-        )
+        var accent: Color { chart.accent }
+        var neutral: Color { chart.neutral }
+        var average: Color { chart.average }
+        var notableOutlier: Color { chart.notable }
+        var strongOutlier: Color { chart.warning }
+        var improvement: Color { chart.improvement }
+        var degradation: Color { chart.degradation }
+        var grid: Color { chart.grid }
 
-        static let system = Self(
-            accent: .blue,
-            average: .primary,
-            notableOutlier: .secondary,
-            strongOutlier: .red,
-            improvement: .green,
-            degradation: .red
-        )
+        static let monochrome = Self(chart: .monochrome)
+
+        static let system = Self(chart: .system)
+
+        init(chart: UsageChartPalette) { self.chart = chart }
     }
 
     struct Copy: Equatable {
@@ -72,5 +68,4 @@ enum CacheHitRateWidgetLayout {
     static let averageSlotHalfWidth = 0.16
     static let minimumRangeArea: CGFloat = 36
     static let outlierArea: CGFloat = 25
-    static let gridOpacity = 0.35
 }

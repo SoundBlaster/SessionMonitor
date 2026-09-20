@@ -6,13 +6,15 @@ struct SessionDetailView: View {
     let session: SessionSummary
     let query: UsageQuery
     let timelineModel: RequestTimelineModel
+    let chartPalette: UsageChartPalette
     @ObservedSatisfies<SessionReportSnapshot> private var hasCompleteCacheCoverage: Bool
 
     init(session: SessionSummary, query: UsageQuery, timelineModel: RequestTimelineModel,
-         provider: SessionReportContextProvider) {
+         provider: SessionReportContextProvider, chartPalette: UsageChartPalette = .system) {
         self.session = session
         self.query = query
         self.timelineModel = timelineModel
+        self.chartPalette = chartPalette
         _hasCompleteCacheCoverage = ObservedSatisfies(provider: provider, using: DisplayedCacheCoverageSpec())
     }
 
@@ -75,7 +77,7 @@ struct SessionDetailView: View {
                 .background(.background, in: RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(.quaternary))
 
-                RequestTimelineView(model: timelineModel, query: query)
+                RequestTimelineView(model: timelineModel, query: query, palette: chartPalette)
             }
             .padding(28)
             .frame(maxWidth: 960, alignment: .leading)

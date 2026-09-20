@@ -5,6 +5,7 @@ import SwiftUI
 struct RequestTimelineView: View {
     let model: RequestTimelineModel
     let query: UsageQuery
+    var palette: UsageChartPalette = .system
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -101,7 +102,7 @@ struct RequestTimelineView: View {
     private func timelineChart(_ timeline: RequestTimeline, axis: RequestTimelineAxis) -> some View {
         GeometryReader { geometry in
             RequestTimelinePlot(points: timeline.points, axis: axis,
-                                timeZone: model.displayTimeZone, width: geometry.size.width)
+                                timeZone: model.displayTimeZone, width: geometry.size.width, palette: palette)
         }
         .frame(height: RequestTimelineChartLayout.chartHeight + 60)
         .accessibilityElement(children: .contain)
@@ -127,7 +128,7 @@ struct RequestTimelineView: View {
                     ForEach(kinds, id: \.self) { kind in
                         Label("\(kind.label) · \(events.filter { $0.kind == kind }.count)", systemImage: "circle.fill")
                             .font(.caption2)
-                            .foregroundStyle(kind.color)
+                            .foregroundStyle(palette.color(for: kind))
                     }
                 }
             }
@@ -142,7 +143,7 @@ struct RequestTimelineView: View {
                 LazyVStack(alignment: .leading, spacing: 7) {
                     ForEach(timeline.points) { point in
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Circle().fill(point.kind.color).frame(width: 7, height: 7)
+                            Circle().fill(palette.color(for: point.kind)).frame(width: 7, height: 7)
                             Text(point.kind.label)
                                 .font(.callout)
                             if let cached = point.cachedInputTokens, let uncached = point.uncachedInputTokens {
@@ -150,7 +151,7 @@ struct RequestTimelineView: View {
                                     .foregroundStyle(.secondary)
                             } else if point.kind == .usageRequest {
                                 Text("Unavailable")
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(palette.warning)
                             } else if let evidence = point.evidence {
                                 Text(evidence)
                                     .foregroundStyle(.secondary)

@@ -3,6 +3,8 @@ import MonitorCore
 import SwiftUI
 
 struct SessionExplorerPage: View {
+    @AppStorage(UsageChartPaletteSelection.storageKey)
+    private var chartPaletteRawValue = UsageChartPaletteSelection.system.rawValue
     @Bindable var model: SessionExplorerModel
     @Bindable var reportScope: ReportScopeModel
     @Bindable var cacheHitRateWidgetSettings: CacheHitRateWidgetSettings
@@ -18,7 +20,8 @@ struct SessionExplorerPage: View {
                 }
                 if let session = model.selectedSession {
                     SessionDetailView(session: session, query: model.query,
-                                      timelineModel: model.timelineModel, provider: model.contextProvider)
+                                      timelineModel: model.timelineModel, provider: model.contextProvider,
+                                      chartPalette: chartPalette)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .task(id: timelineTaskID(session: session)) {
                             await model.loadTimeline(sessionID: session.id)
@@ -105,6 +108,9 @@ struct SessionExplorerPage: View {
         CacheHitRateWidget(
             report: model.cacheHitRateWidgetReport,
             family: .medium,
+            appearance: CacheHitRateWidgetAppearance(
+                palette: CacheHitRateWidgetAppearance.Palette(chart: chartPalette), copy: .default
+            ),
             containerStyle: .embedded
         )
         .padding(SessionExplorerSidebarLayout.sectionInset)
@@ -130,6 +136,10 @@ struct SessionExplorerPage: View {
                 }
             }
         }
+    }
+
+    private var chartPalette: UsageChartPalette {
+        UsageChartPaletteSelection(rawValue: chartPaletteRawValue)?.palette ?? .system
     }
 
     private var sidebarSessionList: some View {

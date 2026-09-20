@@ -16,7 +16,7 @@ struct CacheHitRateWidgetChart: View {
                 ForEach(labelSlots) { slot in
                     RuleMark(x: .value("Day", Double(slot.id)))
                         .lineStyle(StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
-                        .foregroundStyle(Color.secondary.opacity(CacheHitRateWidgetLayout.gridOpacity))
+                        .foregroundStyle(appearance.palette.grid)
                         .accessibilityHidden(true)
                 }
             }
@@ -40,7 +40,7 @@ struct CacheHitRateWidgetChart: View {
                             Text(CacheHitRateWidgetLabelFormat.bucketLabel(
                                 for: slot.start, period: report.period,
                                 family: labelFamily, timeZoneIdentifier: report.timeZoneIdentifier))
-                                .font(.caption2).foregroundStyle(.secondary)
+                                .font(.caption2).foregroundStyle(appearance.palette.neutral)
                                 .position(x: plot.minX + position,
                                           y: plot.maxY + CacheHitRateWidgetLayout.labelOffset)
                         }
@@ -114,8 +114,8 @@ struct CacheHitRateWidgetChart: View {
         AxisMarks(position: .leading, values: CacheHitRateWidgetAxis.ticks(for: domain)) { _ in
             if family != .small {
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
-                    .foregroundStyle(Color.secondary.opacity(CacheHitRateWidgetLayout.gridOpacity))
-                AxisValueLabel()
+                    .foregroundStyle(appearance.palette.grid)
+                AxisValueLabel().foregroundStyle(appearance.palette.neutral)
             }
         }
     }
