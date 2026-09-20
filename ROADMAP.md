@@ -416,6 +416,31 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Integration test прогоняет обезличенный production-captured rollout через обычный import, проверяет
   provenance/dedup, сохранение после restart и одинаковый auxiliary series в CLI и GUI.
 
+  Multi-account follow-up добавлен 2026-09-20: аккаунт нельзя выводить из rollout session context;
+  общий источник без явного разделения должен оставаться `unknown`/`mixed`.
+  - [ ] **SM-308e** — Задать account profile provenance для импортируемых источников.
+    Зависит от SM-308a. Поддержать явный non-secret account identity из формата источника и
+    пользовательское сопоставление однородного source root с локальным profile ID/label.
+    Если в одном root могут находиться данные нескольких аккаунтов, а event-level identity
+    отсутствует, не назначать весь root одному профилю: сохранять `unknown`/`mixed`.
+    Не читать и не хранить auth tokens, `auth.json`, cookies или другие credentials.
+    Сохранять account provenance отдельно от session ownership; дать CLI/query фильтр по profile.
+    Account scope включить в quota event/window dedup identity, сохранив mirror dedup внутри
+    одного профиля и раздельность одинаковых по содержимому событий между профилями.
+    Для activity reports обеспечить account-scoped view без cross-account response collapse;
+    общий view может агрегировать запросы только с явной меткой `All accounts`.
+    Проверить migration старой БД, два профиля с совпадающими ID/окнами/временем, зеркала внутри
+    профиля и источники с неизвестной/смешанной принадлежностью.
+  - [ ] **SM-308f** — Разделить multi-account quota presentation и сохранить unknown coverage.
+    Зависит от SM-308e и GUI/CLI query из SM-308d. Предоставить `All accounts`, отдельный профиль
+    и `Unknown/Mixed`; activity может показывать общий total с явной маркировкой, quota должна
+    отображаться отдельными рядами по профилям и не усредняться/суммироваться между аккаунтами.
+    Показывать freshness, reset discontinuities и coverage отдельно для каждого профиля;
+    не приписывать mixed/unknown snapshots выбранному аккаунту. Проверить одну и несколько
+    учётных записей, overlapping windows, одинаковые event payloads, duplicate mirrors,
+    account switch/reset и отсутствие account identity в CLI JSON/text и GUI.
+    Квотные части SM-308d считать завершёнными только после выполнения этих условий.
+
 ## 4. Системные macOS widgets
 
 Пользователь подтвердил WidgetKit widgets на desktop/в Notification Center.
