@@ -65,26 +65,33 @@ final class RequestTimelineDensityTests: XCTestCase {
         )
         let model = RequestTimelineModel()
         await model.load(sessionID: "fixture", query: query, source: source)
-        for (name, width, scheme) in [("dark", 1_000.0, ColorScheme.dark), ("light-narrow", 560.0, .light)] {
+        let renders = [
+            TimelineRenderConfiguration(name: "dark-system", width: 1_000, scheme: .dark, palette: .system),
+            TimelineRenderConfiguration(name: "light-narrow-monochrome", width: 560, scheme: .light,
+                                         palette: .monochrome)
+        ]
+        for render in renders {
             let axis = try XCTUnwrap(model.axis)
             let points = source.value.points
-            let view = RequestTimelinePlot(points: points, axis: axis, timeZone: .gmt, width: width)
-                .frame(width: width)
-                .background(scheme == .dark ? Color.black : Color.white)
-                .environment(\.colorScheme, scheme)
+            let view = RequestTimelinePlot(points: points, axis: axis, timeZone: .gmt, width: render.width,
+                                          palette: render.palette)
+                .frame(width: render.width)
+                .background(render.scheme == .dark ? Color.black : Color.white)
+                .environment(\.colorScheme, render.scheme)
                 .environment(\.locale, Locale(identifier: "en_US"))
             let renderer = ImageRenderer(content: view)
             renderer.scale = 2
             let image = try XCTUnwrap(renderer.nsImage)
-            XCTAssertEqual(image.size.width, width, accuracy: 1)
+            XCTAssertEqual(image.size.width, render.width, accuracy: 1)
             let attachment = XCTAttachment(image: image)
-            attachment.name = "SM-312-\(name)"
+            attachment.name = "SM-313-\(render.name)"
             attachment.lifetime = .keepAlways
             add(attachment)
             // Local-only evidence, never a raw production archive.
             let bitmap = try XCTUnwrap(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
             let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
-            try png.write(to: URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("SM-312-\(name).png"))
+            try png.write(to: URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent("SM-313-\(render.name).png"))
         }
     }
 
@@ -110,6 +117,13 @@ final class RequestTimelineDensityTests: XCTestCase {
     private func date(_ seconds: Int) -> Date {
         Date(timeIntervalSince1970: 1_789_900_000 + Double(seconds))
     }
+}
+
+private struct TimelineRenderConfiguration {
+    let name: String
+    let width: Double
+    let scheme: ColorScheme
+    let palette: UsageChartPalette
 }
 
 private struct DensityTimelineSource: RequestTimelineSource {

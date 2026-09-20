@@ -54,12 +54,20 @@ final class CacheHitRateWidgetFixtureTests: XCTestCase {
         try render(.reference, family: .large, width: 560, scheme: .light, name: "large-light")
         try render(.month, family: .small, width: 220, scheme: .light, name: "dense-small-light")
         try render(.reference, family: .large, width: 220, scheme: .light, name: "narrow-large")
+        try render(.reference, family: .large, width: 560, scheme: .dark, name: "large-monochrome-dark",
+                   palette: .monochrome)
+        try render(.reference, family: .medium, width: 320, scheme: .light, name: "medium-monochrome-light",
+                   palette: .monochrome)
     }
 
     @MainActor
     private func render(_ fixture: CacheHitRateWidgetFixture, family: CacheHitRateWidgetAppearance.Family,
-                        width: CGFloat, scheme: ColorScheme, name: String) throws {
-        let view = CacheHitRateWidget(report: fixture.report, family: family)
+                        width: CGFloat, scheme: ColorScheme, name: String,
+                        palette: UsageChartPalette = .system) throws {
+        let appearance = CacheHitRateWidgetAppearance(
+            palette: CacheHitRateWidgetAppearance.Palette(chart: palette), copy: .default
+        )
+        let view = CacheHitRateWidget(report: fixture.report, family: family, appearance: appearance)
             .frame(width: width).environment(\.colorScheme, scheme).environment(\.locale, Locale(identifier: "en_US"))
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2

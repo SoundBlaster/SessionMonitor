@@ -6,9 +6,9 @@
 
 ## Текущая точка
 
-**SM-312 реализована и локально проверена (2026-09-20), [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) открыт.**
-From/to, zoom, temporal slider и pixel-budget aggregation всех видимых observations.
-Ветка `fix/sm-312-dense-timeline`; следующий пункт — SM-308b.
+**SM-313 реализована и локально проверена (2026-09-20), [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33) открыт:** общий визуальный стиль для cache-hit chart и request timeline.
+SM-312 доставлена через [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32), merge `f9a369d`.
+Текущая ветка `feat/sm-313-shared-chart-style`.
 
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
@@ -450,7 +450,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
     Квотные части SM-308 считать завершёнными только после выполнения этих условий.
 
 - [x] **SM-312** — Восстановить читаемость плотных request timelines (follow-up SM-303/SM-309).
-  Реализована и локально проверена 2026-09-20; [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32) открыт.
+  Реализована и локально проверена 2026-09-20; доставлена через [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32), merge `f9a369d`.
   From/to с validation, zoom buttons, temporal slider и шаги earlier/later.
   Вместо sampling — aggregation всех видимых requests/events в pixel-budget buckets
   (14 pt spacing, максимум 120). Столбцы — суммы известных cached/uncached tokens
@@ -459,6 +459,17 @@ deliverable — WidgetKit extension с App Group в SM-401.
   22 targeted tests, SwiftLint/FSD, light/dark plot renders (560/1000 pt);
   native zoom и temporal slider проверены на реальной проблемной сессии.
   [Отчёт](reports/SM-312-dense-request-timeline.md).
+
+- [ ] **SM-313** — Унифицировать внешний стиль аналитических графиков.
+  Локальная реализация и проверки пройдены 2026-09-20; [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33) открыт. Вынести семантическую палитру/стили графиков в общий слой,
+  использовать её и в cache-hit chart (в sidebar и виджетах приложения), и в request timeline.
+  Цвета категорий, известные/неизвестные данные, акцент, среднее, предупреждение, сетка и
+  подписи должны задаваться общей конфигурацией с доступными system/monochrome palettes.
+  Сохранить разную предметную семантику, layout и доступность графиков; не создавать один
+  универсальный View с разветвлёнными сценариями. Проверить, что переключение палитры
+  согласованно меняет обе визуализации, включая легенды/VoiceOver, и что стандартные цвета
+  остаются читаемы в light/dark appearance. Snapshot renders проверены для обеих палитр.
+  [Отчёт](reports/SM-313-shared-chart-style.md).
 
 ## 4. Системные macOS widgets
 

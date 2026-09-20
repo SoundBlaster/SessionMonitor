@@ -7,6 +7,7 @@ struct RequestTimelinePlot: View {
     let axis: RequestTimelineAxis
     let timeZone: TimeZone
     let width: CGFloat
+    var palette: UsageChartPalette = .system
 
     var body: some View {
         let aggregation = TimelineAggregation(points: points, domain: axis.visibleDomain, width: width)
@@ -18,13 +19,13 @@ struct RequestTimelinePlot: View {
             Chart { timelineMarks(aggregation.buckets) }
                 .chartXScale(domain: axis.visibleDomain.start...axis.visibleDomain.end)
                 .chartForegroundStyleScale([
-                    "Cached input": Color.accentColor,
-                    "Uncached input": Color.secondary
+                    "Cached input": palette.accent,
+                    "Uncached input": palette.neutral
                 ])
                 .chartLegend(position: .bottom, alignment: .leading)
                 .chartXAxis {
                     AxisMarks(values: .automatic(desiredCount: 5)) { value in
-                        AxisGridLine()
+                        AxisGridLine().foregroundStyle(palette.grid)
                         AxisTick()
                         AxisValueLabel {
                             if let date = value.as(Date.self) {
@@ -33,7 +34,13 @@ struct RequestTimelinePlot: View {
                         }
                     }
                 }
-                .chartYAxis { AxisMarks(position: .leading) }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { _ in
+                        AxisGridLine().foregroundStyle(palette.grid)
+                        AxisTick()
+                        AxisValueLabel().foregroundStyle(palette.neutral)
+                    }
+                }
                 .chartYScale(range: .plotDimension(padding: RequestTimelineChartLayout.yAxisTopInset))
                 .frame(height: RequestTimelineChartLayout.chartHeight)
         }
@@ -62,7 +69,7 @@ struct RequestTimelinePlot: View {
             if bucket.eventCount > 0 || bucket.unknownRequestCount > 0 {
                 PointMark(x: .value("Time", bucket.timestamp), y: .value("Tokens", 0))
                     .symbol(.diamond)
-                    .foregroundStyle(bucket.unknownRequestCount > 0 ? Color.orange : Color.secondary)
+                    .foregroundStyle(bucket.unknownRequestCount > 0 ? palette.warning : palette.neutral)
                     .symbolSize(RequestTimelineChartLayout.eventSymbolSize)
                     .accessibilityLabel("\(bucket.eventCount) events, "
                         + "\(bucket.unknownRequestCount) unavailable requests")
@@ -87,18 +94,6 @@ struct RequestTimelinePlot: View {
 }
 
 extension TimelineEventKind {
-    var color: Color {
-        switch self {
-        case .usageRequest: .accentColor
-        case .humanTurn: .green
-        case .goalTurn: .indigo
-        case .compaction: .orange
-        case .tool: .purple
-        case .wait: .teal
-        case .unknown: .gray
-        }
-    }
-
     var label: String {
         switch self {
         case .usageRequest: "Usage request"
