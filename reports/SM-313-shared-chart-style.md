@@ -1,7 +1,7 @@
 # SM-313 — Shared chart style
 
 Date: 2026-09-20
-Status: locally implemented and verified; [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33) open.
+Status: delivered through [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33), merge `e32691d`.
 
 ## Result
 
