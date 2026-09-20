@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-313 реализована и локально проверена (2026-09-20); PR подготавливается:** общий визуальный стиль для cache-hit chart и request timeline.
+**SM-313 реализована и локально проверена (2026-09-20), [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33) открыт:** общий визуальный стиль для cache-hit chart и request timeline.
 SM-312 доставлена через [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32), merge `f9a369d`.
 Текущая ветка `feat/sm-313-shared-chart-style`.
 
@@ -461,7 +461,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   [Отчёт](reports/SM-312-dense-request-timeline.md).
 
 - [ ] **SM-313** — Унифицировать внешний стиль аналитических графиков.
-  Локальная реализация и проверки пройдены 2026-09-20; PR не создан. Вынести семантическую палитру/стили графиков в общий слой,
+  Локальная реализация и проверки пройдены 2026-09-20; [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33) открыт. Вынести семантическую палитру/стили графиков в общий слой,
   использовать её и в cache-hit chart (в sidebar и виджетах приложения), и в request timeline.
   Цвета категорий, известные/неизвестные данные, акцент, среднее, предупреждение, сетка и
   подписи должны задаваться общей конфигурацией с доступными system/monochrome palettes.
