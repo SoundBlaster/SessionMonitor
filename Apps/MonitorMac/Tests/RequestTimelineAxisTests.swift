@@ -203,6 +203,18 @@ final class RequestTimelineAxisTests: XCTestCase {
         )
     }
 
+    func testAccessibilityLabelsDistinguishSameClockTimeOnDifferentDays() throws {
+        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let first = timelineAccessibilityDateLabel(date(0), duration: 48 * 60 * 60, timeZone: timeZone)
+        let second = timelineAccessibilityDateLabel(
+            date(24 * 60 * 60), duration: 48 * 60 * 60, timeZone: timeZone
+        )
+
+        XCTAssertNotEqual(first, second)
+        XCTAssertTrue(first.contains("Jan"))
+        XCTAssertTrue(second.contains("Jan"))
+    }
+
     private func point(
         _ id: String,
         seconds: TimeInterval,

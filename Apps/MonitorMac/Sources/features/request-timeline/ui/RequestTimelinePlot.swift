@@ -66,7 +66,11 @@ struct RequestTimelinePlot: View {
                     .symbolSize(RequestTimelineChartLayout.eventSymbolSize)
                     .accessibilityLabel("\(bucket.eventCount) events, "
                         + "\(bucket.unknownRequestCount) unavailable requests")
-                    .accessibilityValue(bucket.timestamp.formatted(axisDateFormat(for: 0)))
+                    .accessibilityValue(timelineAccessibilityDateLabel(
+                        bucket.timestamp,
+                        duration: axis.visibleDomain.duration,
+                        timeZone: timeZone
+                    ))
             }
         }
     }

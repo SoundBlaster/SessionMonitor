@@ -28,7 +28,8 @@ session or query resets it. No oversized horizontal chart canvas is constructed.
 - `make test-macos XCODEBUILD_FLAGS='-skipMacroValidation -only-testing:MonitorMacTests/RequestTimelineAxisTests -only-testing:MonitorMacTests/RequestTimelineDensityTests -only-testing:MonitorMacTests/TimelineViewportTests'`: 22 passed.
 - Synthetic tests cover all-request token/count preservation under semantic floods,
   rare event counts, duplicate timestamps, viewport boundaries, empty/unknown/zero
-  data, finite width limits, from/to validation, zoom/pan clamps, refresh and reset.
+  data, finite width limits, from/to validation, zoom/pan clamps, refresh and reset,
+  and accessible labels for matching times on different dates.
 - Production plot ImageRenderer attachments: dark 1000 pt and light 560 pt, visually
   reviewed. Attachments are available in xcresult; no private data is checked in.
 - Native app on the reported real session: checked overview, zoom in, changed
@@ -36,6 +37,8 @@ session or query resets it. No oversized horizontal chart canvas is constructed.
   visibly match the report timezone. Native capture was dark; light verification
   uses the deterministic plot fixture.
 - `git diff --check`: passed. Full `make check` was not repeated for this GUI-only change.
+- PR review fix: accessibility event values now include the date for multi-day
+  visible domains; targeted checks pass (23 tests).
 
 ## Boundaries
 

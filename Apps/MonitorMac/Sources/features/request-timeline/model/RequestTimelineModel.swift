@@ -113,6 +113,15 @@ func timelineDateLabel(_ date: Date, timeZone: TimeZone) -> String {
     return date.formatted(format)
 }
 
+func timelineAccessibilityDateLabel(_ date: Date, duration: TimeInterval, timeZone: TimeZone) -> String {
+    var format = Date.FormatStyle(
+        date: duration >= 24 * 60 * 60 ? .abbreviated : .omitted,
+        time: .shortened
+    )
+    format.timeZone = timeZone
+    return date.formatted(format)
+}
+
 @MainActor
 @Observable
 final class RequestTimelineModel {
