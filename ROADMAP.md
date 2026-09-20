@@ -8,6 +8,8 @@
 
 **SM-313 доставлена через [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33), merge `e32691d` (2026-09-20):** общий визуальный стиль для cache-hit chart и request timeline.
 Следующий пункт — SM-308b.
+SM-707 — правило не использовать Git worktree в проекте — выполняется в ветке
+`docs/sm-707-no-worktrees` и будет доставлена через PR.
 
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
@@ -523,6 +525,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 7. Сопровождение и доставка
 
+- [ ] **SM-707** — Запретить Git worktree при работе над этим проектом.
+  Статус: в работе. Уточнить в `AGENTS.md`, что задачи выполняются в основном checkout
+  с обычными ветками; существующие worktree не удаляются этой задачей. Готово после
+  проверки документации и доставки изменения через PR с обязательным CI.
 - [ ] **SM-701** — Передать SpecificationCore fix upstream и вернуть remote SwiftPM dependency.
   Готово после доступного исправленного upstream revision/release и повторной integration verification;
   до этого локальный patch остаётся с provenance и regression test.
