@@ -6,8 +6,10 @@
 
 ## Текущая точка
 
-Следующий пункт — **SM-315**: стабилизировать request timeline при прокрутке.
-После неё продолжить **SM-308b**: activity rollups и явная классификация tool events.
+Следующий пункт — **SM-308b**: activity rollups и явная классификация tool events.
+SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
+merge `7557a2a` (2026-09-21); пользователь проверил интерактивную прокрутку и подтвердил,
+что анимация timeline работает корректно.
 
 **SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
 
@@ -372,7 +374,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   SM-308a доставлена через [PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30),
   merge `4058a83` (2026-09-20). Multi-account roadmap доставлен через
   [PR #31](https://github.com/SoundBlaster/SessionMonitor/pull/31).
-  После текущего UI follow-up SM-315 продолжить с SM-308b.
+  После доставки SM-315 продолжить с SM-308b.
   Версионированный parser/store и read-only `codex-monitor quota` покрыты синтетическими
   fixtures и `make check-core`; детали и ограничения — в
   [SM-308a report](reports/SM-308a-quota-snapshot-ingestion.md). В локальных rollout
@@ -481,17 +483,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
   (2026-09-21). Шкала вычисляется по полным данным сессии и остаётся постоянной при scroll/zoom;
   добавлены индекс точек, кэш Y-шкалы и regression tests.
   [Отчёт](reports/SM-314-request-timeline-fixed-y-scale.md).
-- [ ] **SM-315** — Стабилизировать request timeline при прокрутке.
-  **Статус: PR [#39](https://github.com/SoundBlaster/SessionMonitor/pull/39) открыт (2026-09-21); GitHub CI ожидается.** При изменении
-  viewport bucket IDs сейчас нумеруются от левого края видимого диапазона. Swift Charts повторно
-  использует эти IDs для других интервалов и анимирует их позиции и высоты, из-за чего бары
-  выглядят как перемещающиеся/меняющие данные. Привязать bucket identity и границы агрегации к
-  абсолютной временной сетке; отключить implicit interpolation во время интерактивного viewport
-  обновления, сохранив точный accounting и bounded aggregation. Готово, когда одинаковые
-  абсолютные интервалы сохраняют ID и значения при pan с неизменным zoom, chart не морфит бары
-  между разными интервалами, число bucket остаётся в pixel budget, а сборка и timeline tests проходят.
-  Targeted suite — 9/9; SwiftLint и FSD lint прошли. Кодовый результат проверен, live drag animation
-  не проверена вручную. [Отчёт](reports/SM-315-timeline-pan-animation.md).
+- [x] **SM-315** — Стабилизировать request timeline при прокрутке.
+  Доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39), merge
+  `7557a2a` (2026-09-21). Bucket identity и агрегация привязаны к абсолютной временной сетке;
+  implicit interpolation отключена для обновления viewport, а Y-шкала использует ту же ширину
+  bucket, что и агрегация. Targeted tests, SwiftLint, FSD и GitHub CI прошли; пользователь
+  проверил pan в приложении и подтвердил корректную анимацию. [Отчёт](reports/SM-315-timeline-pan-animation.md).
 
 ## 4. Системные macOS widgets
 

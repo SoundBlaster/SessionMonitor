@@ -25,4 +25,5 @@ viewport update.
 - `make lint-architecture` — passed, 0 errors/warnings.
 - `git diff --check` — passed.
 - `RequestTimelineDensityTests` renders the production chart in light/dark and narrow/wide configurations.
-- Live slider drag/animation was not manually verified.
+- After merge, the user tested interactive scrolling in the app and confirmed the
+  bars remain visually stable and the chart animation is acceptable.
