@@ -6,12 +6,13 @@
 
 ## Текущая точка
 
-Текущая задача — **SM-308c**: composable anomaly policies на SpecificationCore.
+Следующая задача — **SM-308c**: composable anomaly policies на SpecificationCore.
 Статус: SM-308b доставлена через PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
 merge `593512b` (2026-09-21); локальные проверки и GitHub CI прошли, review threads закрыты.
-Следующий implementation scope — policy layer SM-308c с typed findings, evidence,
-confidence и coverage; `Specification`/`DecisionSpec` из SpecificationCore должны быть
-частью исполняемого decision path, а не только зависимостью target.
+SM-308c запланирована на 2026-09-21; её implementation scope — policy layer с typed findings,
+evidence, confidence и coverage. Реализация начнётся после завершения roadmap sync PR;
+`Specification`/`DecisionSpec` из SpecificationCore должны быть частью исполняемого decision path,
+а не только зависимостью target.
 SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
 merge `7557a2a` (2026-09-21); пользователь проверил интерактивную прокрутку и подтвердил,
 что анимация timeline работает корректно.
@@ -420,7 +421,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Пороговые значения делать настраиваемыми или выводить из сопоставимого baseline/cohort, сохраняя
   evidence pointers, confidence, coverage/unknown reason и основание срабатывания; единичный дневной
   пример не становится hard-coded нормой.
-  Для SM-308c domain rules должны быть оформлены как композиции `SpecificationCore`
+  **SM-308c запланирована на 2026-09-21; реализация ещё не начата.** Domain rules должны быть
+  оформлены как композиции `SpecificationCore`
   `Specification`/`DecisionSpec` (при необходимости через `AnySpecification`/`FirstMatchSpec`)
   и выдавать typed findings с причиной и evidence metadata. Независимые сигналы должны
   оцениваться отдельно, чтобы один приоритетный match не скрывал остальные; tests должны
