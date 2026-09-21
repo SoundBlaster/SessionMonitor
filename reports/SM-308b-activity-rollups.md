@@ -26,7 +26,8 @@ records or totals.
 - Manual `activity` CLI smoke checks — human-readable and JSON output passed.
 - `git diff --check` — passed.
 - Pull request [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41) — open; all required
-  GitHub checks passed on implementation commit `4366291`; all three review threads were resolved.
+  GitHub checks passed on implementation commit `12abc71`; all three inline review threads were
+  resolved, and the general Codex review about call/output correlation was addressed.
 
 Review follow-up coverage adds preservation of all optional canonical counters, decoding a
 nested tool-event turn ID for model attribution, and deduplication of byte-identical mirrored
