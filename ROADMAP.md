@@ -482,7 +482,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   добавлены индекс точек, кэш Y-шкалы и regression tests.
   [Отчёт](reports/SM-314-request-timeline-fixed-y-scale.md).
 - [ ] **SM-315** — Стабилизировать request timeline при прокрутке.
-  **Статус: реализация готова (2026-09-21), ветка `fix/sm-315-timeline-pan-animation`; PR/CI ещё не созданы.** При изменении
+  **Статус: PR [#39](https://github.com/SoundBlaster/SessionMonitor/pull/39) открыт (2026-09-21); GitHub CI ожидается.** При изменении
   viewport bucket IDs сейчас нумеруются от левого края видимого диапазона. Swift Charts повторно
   использует эти IDs для других интервалов и анимирует их позиции и высоты, из-за чего бары
   выглядят как перемещающиеся/меняющие данные. Привязать bucket identity и границы агрегации к
