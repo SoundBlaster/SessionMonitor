@@ -1,6 +1,6 @@
 # SM-314 — Fixed request-timeline Y scale
 
-Implemented in `fix/sm-314-stable-timeline-y-scale`; [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36) is open and CI is pending.
+Implemented in `fix/sm-314-stable-timeline-y-scale`; [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36) is open. GitHub CI passed for revision `d2925be` (`Native checks`, `Workflow lint`, and `CI`).
 
 ## Behavior
 

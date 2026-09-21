@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-314 — PR [#36](https://github.com/SoundBlaster/SessionMonitor/pull/36) открыт (2026-09-21), CI ожидает; ветка `fix/sm-314-stable-timeline-y-scale`:** закрепить вертикальную шкалу request timeline по полным данным выбранной сессии, чтобы scroll/zoom не меняли Y-scale. После завершения приоритет возвращается к SM-308b.
+**SM-314 — PR [#36](https://github.com/SoundBlaster/SessionMonitor/pull/36) открыт (2026-09-21); GitHub CI прошёл на ревизии `d2925be`; ветка `fix/sm-314-stable-timeline-y-scale`:** закрепить вертикальную шкалу request timeline по полным данным выбранной сессии, чтобы scroll/zoom не меняли Y-scale. После завершения приоритет возвращается к SM-308b.
 
 SM-313 доставлена через [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33), merge `e32691d` (2026-09-20): общий визуальный стиль для cache-hit chart и request timeline.
 
@@ -472,7 +472,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   [Отчёт](reports/SM-313-shared-chart-style.md).
 
 - [ ] **SM-314** — Зафиксировать вертикальную шкалу request timeline на всём диапазоне сессии.
-  **Статус: PR [#36](https://github.com/SoundBlaster/SessionMonitor/pull/36) открыт, CI ожидает (2026-09-21), ветка `fix/sm-314-stable-timeline-y-scale`.** Сейчас Swift Charts
+  **Статус: PR [#36](https://github.com/SoundBlaster/SessionMonitor/pull/36) открыт; CI прошёл на ревизии `d2925be` (2026-09-21), ветка `fix/sm-314-stable-timeline-y-scale`.** Сейчас Swift Charts
   подбирает Y-domain по видимым buckets, поэтому при scroll/zoom высота одинаковых значений
   меняется. Вычислять Y-domain по всем данным выбранной сессии и неизменной navigation bounds,
   не пересчитывая его по видимому окну. Учитывать максимально возможную длительность bucket,
