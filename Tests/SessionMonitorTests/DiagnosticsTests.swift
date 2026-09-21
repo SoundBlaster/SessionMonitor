@@ -93,6 +93,7 @@ struct DiagnosticsTests {
         #expect(finding.affectedSessions == ["poll"])
         #expect(finding.evidence.observed.first?.source == "source_timeline_events")
         #expect(finding.evidence.inference.first?.source == "diagnostic_heuristic")
+        #expect(finding.evidence.inference.contains { $0.source == "specification_core_policy" })
     }
 
     @Test func startupOverheadRequiresRepeatedFirstTurnRequests() throws {
