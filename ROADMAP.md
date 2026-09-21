@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-20. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-21. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -524,8 +524,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
 ## 7. Сопровождение и доставка
 
 - [ ] **SM-701** — Передать SpecificationCore fix upstream и вернуть remote SwiftPM dependency.
-  Готово после доступного исправленного upstream revision/release и повторной integration verification;
-  до этого локальный patch остаётся с provenance и regression test.
+  Upstream fix доступен в SpecificationCore 1.1.0 (Swift 6.4 validation); сейчас выполняется
+  интеграционная проверка на ветке `fix/sm-701-upstream-specificationcore`.
 - [x] **SM-702** — Первый scoped commit и подключение выбранного Git remote.
   Готово 2026-09-12: [commit 9473271](https://github.com/SoundBlaster/SessionMonitor/commit/9473271622011f2ae80027df5c74230adb11ead8)
   содержит CLI/app, tests, build tooling, dependency patch и документацию.

@@ -175,10 +175,12 @@ IDs. Снимки и metadata находятся в [ResearchReferences/dogfoodi
 | NavigationSplitView | `94813a4e7fd44d0da836b42048429699bedc874f` | используется как reference source |
 | FSD | `21731b9dd7d5008b832af5caca6d19f7a36fe54f` | tag `v0.4.0`; developer tooling |
 
-Для первой сборки закреплены SpecificationKit 4.0.0 и локальная копия
+Для первой сборки закреплялись SpecificationKit 4.0.0 и локальная копия
 SpecificationCore 1.0.0 с [compatibility patch](Dependencies/README.md).
-FSD 0.4.0 используется как установленный CLI. Текущий main и release tag не
-объявляются эквивалентными; таблица выше сохраняет provenance исходного API inspection.
+После выхода upstream-исправления текущая dependency переведена на SpecificationCore
+1.1.0, закреплённый exact в `Package.swift`; resolved revision сохраняется в
+`Package.resolved`. FSD 0.4.0 используется как установленный CLI. Таблица выше
+сохраняет provenance исходного API inspection.
 
 - [SpecificationCore: DecisionSpec](https://github.com/SoundBlaster/SpecificationCore/blob/3e9af798feff7401962a40166cf3d6f41cbab867/Sources/SpecificationCore/Core/DecisionSpec.swift)
   и [FirstMatchSpec](https://github.com/SoundBlaster/SpecificationCore/blob/3e9af798feff7401962a40166cf3d6f41cbab867/Sources/SpecificationCore/Specs/FirstMatchSpec.swift).

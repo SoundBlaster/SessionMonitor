@@ -1,5 +1,5 @@
 {
-  "originHash" : "dad62b0ed798461e92a6b451b644f3f178963c5b81962811c81144e5b7bc153d",
+  "originHash" : "443b457a85307d70bddda39099f8fc137f5e2d2eb301c7630a55a863e81dfc58",
   "pins" : [
     {
       "identity" : "grdb.swift",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "b83108d10f42680d78f23fe4d4d80fc88dab3212",
         "version" : "7.11.1"
+      }
+    },
+    {
+      "identity" : "specificationcore",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SoundBlaster/SpecificationCore",
+      "state" : {
+        "revision" : "f3ed68ce29db42de54a4ae905a304b61bdc50ce7",
+        "version" : "1.1.0"
       }
     },
     {
