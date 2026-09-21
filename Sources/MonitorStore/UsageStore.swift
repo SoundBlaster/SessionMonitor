@@ -97,6 +97,13 @@ public final class UsageStore: Sendable {
                 CREATE INDEX timeline_event_sessions ON source_timeline_events(session, timestamp);
                 """)
         }
+        migrator.registerMigration("activity-event-classification-v1") { database in
+            try database.execute(sql: "ALTER TABLE source_timeline_events ADD COLUMN tool_name TEXT")
+            try database.execute(sql: "ALTER TABLE source_timeline_events ADD COLUMN model TEXT")
+            try database.execute(sql: "ALTER TABLE source_timeline_events ADD COLUMN activity_class TEXT")
+            try database.execute(sql: "UPDATE source_timeline_events SET activity_class = 'wait' WHERE kind = 'wait'")
+            try Self.backfillActivityEventClassifications(database)
+        }
         migrator.registerMigration("legacy-estimates-v1") { database in
             try database.execute(sql: """
                 CREATE TABLE source_legacy_estimates (
@@ -224,12 +231,7 @@ public final class UsageStore: Sendable {
                                   estimate.cacheWriteInputTokens, estimate.reasoningOutputTokens,
                                   estimate.totalTokens])
         }
-        for event in rollout.timelineEvents {
-            try database.execute(sql: """
-                INSERT INTO source_timeline_events VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, arguments: [source, event.sourceLine, event.sessionID, event.turnID,
-                                  event.timestamp.timeIntervalSince1970, event.kind.rawValue, event.evidence])
-        }
+        try Self.insertActivityEvents(rollout.timelineEvents, source: source, database: database)
         for snapshot in rollout.usageLimitSnapshots {
             try Self.insertUsageLimitSnapshot(snapshot, source: source, database: database)
         }

@@ -84,6 +84,13 @@ public actor SessionMonitor {
         try store.timeline(sessionID: sessionID, query: query)
     }
 
+    /// Returns a read-only activity rollup. A root scope includes explicitly related parent/subagent sessions.
+    public func activity(
+        query: UsageQuery, sessionID: String? = nil, rootSessionID: String? = nil
+    ) throws -> ActivityRollupReport {
+        try store.activity(query: query, sessionID: sessionID, rootSessionID: rootSessionID)
+    }
+
     /// Builds a privacy-safe, aggregated cache-hit report for presentation surfaces.
     /// The store supplies the requested period and immediately preceding equal period.
     public func cacheHitRateWidget(

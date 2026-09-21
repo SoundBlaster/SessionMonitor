@@ -506,8 +506,12 @@ private struct DecodeState {
         case .none: kind = nil
         }
         guard let kind, let sessionID = context.sessionID, let date = try? parseDate(timestamp) else { return }
+        let classification = kind == .tool
+            ? ActivityToolClass.classify(toolName: payload.name)
+            : nil
         appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
-                    kind: kind, evidence: payload.type ?? "response_item")
+                    kind: kind, evidence: payload.type ?? "response_item", toolName: payload.name,
+                    model: payload.turnID.flatMap { context.models[$0] }, activityClass: classification)
     }
 
     mutating func appendMessageEvent(_ payload: Payload, timestamp: String, line: Int) {
@@ -518,55 +522,43 @@ private struct DecodeState {
             guard rawType != nil, rawType != "task_started", rawType != "token_count",
                   rawType != "item_completed", rawType != "task_complete" else { return }
             appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
-                        kind: .unknown, evidence: rawType ?? "event_msg")
+                        kind: .unknown, evidence: rawType ?? "event_msg", toolName: payload.name,
+                        model: payload.turnID.flatMap { context.models[$0] })
             return
         }
+        let classification: ActivityToolClass?
+        if kind == .tool {
+            classification = ActivityToolClass.classify(toolName: payload.name)
+        } else if kind == .wait {
+            classification = .wait
+        } else if kind == .goalTurn {
+            classification = .goalContinuation
+        } else {
+            classification = nil
+        }
         appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
-                    kind: kind, evidence: rawType ?? "event_msg")
-    }
-
-    func explicitTurnKind(_ payload: Payload) -> TimelineEventKind? {
-        let value = (payload.turnKind ?? payload.continuationKind)?.lowercased()
-        switch value {
-        case "human", "user", "human_turn", "user_turn": return .humanTurn
-        case "goal", "goal_turn", "auto_continuation", "auto_continuation_turn": return .goalTurn
-        default: return nil
-        }
-    }
-
-    func explicitMessageKind(_ value: String?) -> TimelineEventKind? {
-        guard let value else { return nil }
-        let normalized = value.lowercased()
-        if ["compacted", "compaction", "context_compacted", "compaction_started"].contains(normalized) {
-            return .compaction
-        }
-        if normalized.hasPrefix("tool_") || ["tool_call", "tool_started", "tool_completed"].contains(normalized) {
-            return .tool
-        }
-        if normalized.hasPrefix("wait") || normalized.hasPrefix("waiting") {
-            return .wait
-        }
-        if ["human_turn_started", "user_turn_started"].contains(normalized) { return .humanTurn }
-        let goalTypes = ["goal_started", "goal_turn_started", "auto_continuation_started", "continuation_started"]
-        if goalTypes.contains(normalized) {
-            return .goalTurn
-        }
-        return nil
+                    kind: kind, evidence: rawType ?? "event_msg", toolName: payload.name,
+                    model: payload.turnID.flatMap { context.models[$0] }, activityClass: classification)
     }
 
     mutating func appendEvent(sessionID: String?, turnID: String?, timestamp: String, line: Int,
-                              kind: TimelineEventKind, evidence: String) {
+                              kind: TimelineEventKind, evidence: String, toolName: String? = nil,
+                              model: String? = nil, activityClass: ActivityToolClass? = nil) {
         guard let date = try? parseDate(timestamp) else { return }
         appendEvent(sessionID: sessionID, turnID: turnID, timestamp: date, line: line,
-                    kind: kind, evidence: evidence)
+                    kind: kind, evidence: evidence, toolName: toolName, model: model,
+                    activityClass: activityClass)
     }
 
     mutating func appendEvent(sessionID: String?, turnID: String?, timestamp: Date, line: Int,
-                              kind: TimelineEventKind, evidence: String) {
+                              kind: TimelineEventKind, evidence: String, toolName: String? = nil,
+                              model: String? = nil, activityClass: ActivityToolClass? = nil) {
         guard let sessionID else { return }
         result.timelineEvents.append(TimelineSourceEvent(sessionID: sessionID, turnID: turnID,
                                                          timestamp: timestamp, sourceLine: line,
-                                                         kind: kind, evidence: evidence))
+                                                         kind: kind, evidence: evidence,
+                                                         toolName: toolName, model: model,
+                                                         activityClass: activityClass))
     }
 
     mutating func append(_ payload: Payload, timestamp: String, line: Int) throws {
@@ -621,6 +613,29 @@ private struct DecodeState {
             relationship: relationship
         )
     }
+}
+
+private func explicitTurnKind(_ payload: Payload) -> TimelineEventKind? {
+    let value = (payload.turnKind ?? payload.continuationKind)?.lowercased()
+    switch value {
+    case "human", "user", "human_turn", "user_turn": return .humanTurn
+    case "goal", "goal_turn", "auto_continuation", "auto_continuation_turn": return .goalTurn
+    default: return nil
+    }
+}
+
+private func explicitMessageKind(_ value: String?) -> TimelineEventKind? {
+    guard let value else { return nil }
+    let normalized = value.lowercased()
+    if ["compacted", "compaction", "context_compacted", "compaction_started"].contains(normalized) {
+        return .compaction
+    }
+    if ["tool_call", "tool_started", "tool_completed"].contains(normalized) { return .tool }
+    if ["wait", "wait_started", "wait_completed"].contains(normalized) { return .wait }
+    if ["human_turn_started", "user_turn_started"].contains(normalized) { return .humanTurn }
+    let goalTypes = ["goal_started", "goal_turn_started", "auto_continuation_started", "continuation_started"]
+    if goalTypes.contains(normalized) { return .goalTurn }
+    return nil
 }
 
 private extension DecodeState {
