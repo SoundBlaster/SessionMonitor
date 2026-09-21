@@ -6,7 +6,9 @@
 
 ## Текущая точка
 
-**SM-314 — PR [#36](https://github.com/SoundBlaster/SessionMonitor/pull/36) открыт (2026-09-21); GitHub CI прошёл на ревизии `e5e62a3`; ветка `fix/sm-314-stable-timeline-y-scale`:** закрепить вертикальную шкалу request timeline по полным данным выбранной сессии, чтобы scroll/zoom не меняли Y-scale. После завершения приоритет возвращается к SM-308b.
+**SM-701 — вернуть remote SpecificationCore 1.1.0 — выполняется в [PR #37](https://github.com/SoundBlaster/SessionMonitor/pull/37), ветка `fix/sm-701-upstream-specificationcore`. Статус: в работе.** Upstream fix и локальная CLI/app integration verification готовы; обновлённые PR checks выполняются. После доставки следующий пункт — SM-308b.
+
+SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21): стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
 
 SM-313 доставлена через [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33), merge `e32691d` (2026-09-20): общий визуальный стиль для cache-hit chart и request timeline.
 
@@ -540,9 +542,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
 ## 7. Сопровождение и доставка
 
 - [ ] **SM-701** — Передать SpecificationCore fix upstream и вернуть remote SwiftPM dependency.
-  Upstream fix доступен в SpecificationCore 1.1.0 (Swift 6.4 validation). CLI/app integration
-  checks passed locally; [PR #37](https://github.com/SoundBlaster/SessionMonitor/pull/37) открыт,
-  GitHub CI проходит. Задача останется незавершённой до merge.
+  Статус: в работе. Upstream fix доступен в SpecificationCore 1.1.0 (Swift 6.4 validation);
+  exact remote dependency и CLI/app integration checks проверены. Доставка через
+  [PR #37](https://github.com/SoundBlaster/SessionMonitor/pull/37); задача останется
+  незавершённой до merge.
 - [x] **SM-702** — Первый scoped commit и подключение выбранного Git remote.
   Готово 2026-09-12: [commit 9473271](https://github.com/SoundBlaster/SessionMonitor/commit/9473271622011f2ae80027df5c74230adb11ead8)
   содержит CLI/app, tests, build tooling, dependency patch и документацию.
