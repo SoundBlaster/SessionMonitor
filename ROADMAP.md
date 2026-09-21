@@ -7,7 +7,7 @@
 ## Текущая точка
 
 Текущая задача — **SM-308b**: activity rollups и явная классификация tool events.
-Статус: в работе (2026-09-21), ветка `feat/sm-308b-activity-rollups`.
+Статус: PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41) открыт (2026-09-21), CI ожидается.
 SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
 merge `7557a2a` (2026-09-21); пользователь проверил интерактивную прокрутку и подтвердил,
 что анимация timeline работает корректно.
@@ -375,10 +375,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   SM-308a доставлена через [PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30),
   merge `4058a83` (2026-09-20). Multi-account roadmap доставлен через
   [PR #31](https://github.com/SoundBlaster/SessionMonitor/pull/31).
-  **SM-308b в работе (2026-09-21), ветка `feat/sm-308b-activity-rollups`:** activity
-  rollups и явная классификация tool events. Сохранять неизвестные tool/version как
-  unknown с evidence; не менять canonical token totals. Остаток фиксировать после
-  проверки доступных rollout event shapes.
+  **SM-308b в PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41) (2026-09-21):**
+  activity rollups и точная классификация tool events; локальные checks прошли, GitHub CI
+  ожидается. Неизвестные tool/version сохраняются как unknown с evidence; canonical token
+  totals не меняются. [Отчёт](reports/SM-308b-activity-rollups.md).
   Версионированный parser/store и read-only `codex-monitor quota` покрыты синтетическими
   fixtures и `make check-core`; детали и ограничения — в
   [SM-308a report](reports/SM-308a-quota-snapshot-ingestion.md). В локальных rollout
