@@ -1,6 +1,6 @@
 # SM-314 — Fixed request-timeline Y scale
 
-Implemented in `fix/sm-314-stable-timeline-y-scale`; [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36) is open. GitHub CI passed for implementation revision `e5e62a3` (`Native checks`, `Workflow lint`, and `CI`). A follow-up revision corrects the ROADMAP modification date raised in review.
+Implemented in `fix/sm-314-stable-timeline-y-scale`; [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36) is open. GitHub CI passed for the initial implementation (`e5e62a3`) and the responsiveness follow-up (`35f5a81`), including `Native checks`, `Workflow lint`, and `CI`.
 
 ## Behavior
 
@@ -30,8 +30,11 @@ in approximately 86 ms total (about 1.4 ms per projection). A local UI smoke tes
 dragged the enabled slider on the reported dense-data shape (2,545 requests); the
 range and chart updated. This validates the expensive projection path and basic
 interaction, but is not a measured FPS result: Instruments/frame-time capture was
-not available in this run, and the disk was nearly full, so a Release benchmark was
-not completed. The PR's CI run is the next build validation for this follow-up.
+not available in this run. The Release app target built successfully on arm64, but
+the Release test target could not compile because
+`CacheHitRateWidgetFixtures.swift` is guarded by `#if DEBUG` while its tests refer
+to those fixtures unconditionally. That test-configuration issue is outside this
+change; the optimized projection benchmark therefore remains Debug-only.
 
 ## Verification
 
@@ -43,6 +46,9 @@ not completed. The PR's CI run is the next build validation for this follow-up.
 - `RequestTimelineDensityTests` and `TimelineYAxisScaleTests`: 24/24 passed after
   the responsiveness follow-up. The dense 20,000-point/60-update benchmark is
   included in the targeted test suite.
+- `make build-macos CONFIGURATION=Release` (arm64, local signing disabled): passed.
+- The Release test attempt is blocked by the existing `#if DEBUG` fixture/test
+  mismatch described above; no unrelated test-target change was made.
 - `make lint lint-architecture`: passed after the responsiveness follow-up; 0
   SwiftLint violations and 0 FSD errors/warnings.
 - The production `RequestTimelinePlot` was rendered and visually checked with a
