@@ -49,23 +49,16 @@ extension UsageStore {
                 start, start, end, end, sessionID, sessionID, rootSessionID, rootSessionID, rootSessionID
             ]
             let usageRows = try Row.fetchAll(database, sql: """
-                SELECT session, model, input, cached, output
+                SELECT session, model, input, cached, output, cache_write, reasoning, total
                 FROM confirmed
                 WHERE \(timePredicate) \(scopePredicate)
                 ORDER BY session, model, timestamp, response
                 """, arguments: arguments)
             let usageRollup = Self.rollupUsage(usageRows)
 
-            let eventRows = try Row.fetchAll(database, sql: """
-                SELECT session, model, kind, activity_class, tool_name, evidence, line
-                FROM source_timeline_events
-                WHERE \(timePredicate)
-                  AND (kind = 'tool' OR activity_class IS NOT NULL
-                       OR (kind = 'unknown' AND tool_name IS NOT NULL))
-                  \(scopePredicate)
-                ORDER BY session, model, activity_class, tool_name, evidence, line
-                """, arguments: arguments)
-
+            let eventRows = try Self.fetchActivityEvents(
+                database, timePredicate: timePredicate, scopePredicate: scopePredicate, arguments: arguments
+            )
             let eventRollup = Self.rollupToolEvents(eventRows)
             let coverage = ActivityCoverage(
                 state: eventRollup.observed == 0 ? .unknown : .observed,
@@ -83,34 +76,50 @@ extension UsageStore {
         }
     }
 
+    private static func fetchActivityEvents(
+        _ database: Database, timePredicate: String, scopePredicate: String, arguments: StatementArguments
+    ) throws -> [Row] {
+        try Row.fetchAll(database, sql: """
+                SELECT session, model, kind, activity_class, tool_name, evidence, line
+                FROM (
+                    SELECT DISTINCT session, turn, timestamp, kind, activity_class, tool_name,
+                                    model, evidence, line
+                    FROM source_timeline_events
+                )
+                WHERE \(timePredicate)
+                  AND (kind = 'tool' OR activity_class IS NOT NULL
+                       OR (kind = 'unknown' AND tool_name IS NOT NULL))
+                  \(scopePredicate)
+                ORDER BY session, model, activity_class, tool_name, evidence, line
+                """, arguments: arguments)
+    }
+
     private static func rollupUsage(_ rows: [Row]) -> UsageRollupResult {
-        var threadTotals: [UsageGroupKey: UsageTotals] = [:]
-        var modelTotals: [String: UsageTotals] = [:]
-        var totals = UsageTotals()
+        var threadTotals: [UsageGroupKey: UsageTotalsAccumulator] = [:]
+        var modelTotals: [String: UsageTotalsAccumulator] = [:]
+        var totals = UsageTotalsAccumulator()
         for row in rows {
             let sessionID: String = row["session"]
             let model: String = row["model"]
-            let input: Int64 = row["input"]
-            let cached: Int64? = row["cached"]
-            let output: Int64 = row["output"]
-            Self.addUsage(input: input, cached: cached, output: output, to: &totals)
+            totals.add(row: row)
             let threadKey = UsageGroupKey(sessionID: sessionID, model: model)
-            Self.addUsage(input: input, cached: cached, output: output,
-                          to: &threadTotals[threadKey, default: UsageTotals()])
-            Self.addUsage(input: input, cached: cached, output: output,
-                          to: &modelTotals[model, default: UsageTotals()])
+            threadTotals[threadKey, default: UsageTotalsAccumulator()].add(row: row)
+            modelTotals[model, default: UsageTotalsAccumulator()].add(row: row)
         }
         var byThreadAndModel: [ActivityUsageRollup] = []
         for (key, value) in threadTotals {
-            byThreadAndModel.append(ActivityUsageRollup(sessionID: key.sessionID, model: key.model, totals: value))
+            byThreadAndModel.append(ActivityUsageRollup(sessionID: key.sessionID, model: key.model,
+                                                        totals: value.value))
         }
         byThreadAndModel.sort {
             $0.sessionID == $1.sessionID ? $0.model < $1.model : $0.sessionID < $1.sessionID
         }
         var byModel: [ActivityModelRollup] = []
-        for (model, value) in modelTotals { byModel.append(ActivityModelRollup(model: model, totals: value)) }
+        for (model, value) in modelTotals {
+            byModel.append(ActivityModelRollup(model: model, totals: value.value))
+        }
         byModel.sort { $0.model < $1.model }
-        return UsageRollupResult(totals: totals, byThreadAndModel: byThreadAndModel, byModel: byModel)
+        return UsageRollupResult(totals: totals.value, byThreadAndModel: byThreadAndModel, byModel: byModel)
     }
 
     private static func rollupToolEvents(_ rows: [Row]) -> ToolEventRollupResult {
@@ -155,16 +164,6 @@ extension UsageStore {
         return ToolEventRollupResult(items: items, observed: observed, unknown: unknown)
     }
 
-    private static func addUsage(input: Int64, cached: Int64?, output: Int64, to totals: inout UsageTotals) {
-        totals.requests += 1
-        totals.inputTokens += input
-        totals.outputTokens += output
-        if let cached {
-            totals.cachedInputTokens += cached
-        } else {
-            totals.unknownCacheRequests += 1
-        }
-    }
 }
 
 private struct UsageGroupKey: Hashable {
@@ -190,4 +189,44 @@ private struct UsageRollupResult {
     let totals: UsageTotals
     let byThreadAndModel: [ActivityUsageRollup]
     let byModel: [ActivityModelRollup]
+}
+
+private struct UsageTotalsAccumulator {
+    private var requests: Int64 = 0
+    private var inputTokens: Int64 = 0
+    private var cachedInputTokens: Int64 = 0
+    private var outputTokens: Int64 = 0
+    private var unknownCacheRequests: Int64 = 0
+    private var cacheWriteInputTokens: Int64 = 0
+    private var hasCompleteCacheWrite = true
+    private var reasoningOutputTokens: Int64 = 0
+    private var hasCompleteReasoning = true
+    private var totalTokens: Int64 = 0
+    private var hasCompleteTotal = true
+
+    mutating func add(row: Row) {
+        let input: Int64 = row["input"]
+        let cached: Int64? = row["cached"]
+        let output: Int64 = row["output"]
+        let cacheWrite: Int64? = row["cache_write"]
+        let reasoning: Int64? = row["reasoning"]
+        let total: Int64? = row["total"]
+        requests += 1
+        inputTokens += input
+        outputTokens += output
+        if let cached { cachedInputTokens += cached } else { unknownCacheRequests += 1 }
+        if let cacheWrite { cacheWriteInputTokens += cacheWrite } else { hasCompleteCacheWrite = false }
+        if let reasoning { reasoningOutputTokens += reasoning } else { hasCompleteReasoning = false }
+        if let total { totalTokens += total } else { hasCompleteTotal = false }
+    }
+
+    var value: UsageTotals {
+        UsageTotals(
+            requests: requests, inputTokens: inputTokens, cachedInputTokens: cachedInputTokens,
+            outputTokens: outputTokens, unknownCacheRequests: unknownCacheRequests,
+            cacheWriteInputTokens: hasCompleteCacheWrite && requests > 0 ? cacheWriteInputTokens : nil,
+            reasoningOutputTokens: hasCompleteReasoning && requests > 0 ? reasoningOutputTokens : nil,
+            totalTokens: hasCompleteTotal && requests > 0 ? totalTokens : nil
+        )
+    }
 }

@@ -18,13 +18,17 @@ records or totals.
 
 ## Validation
 
-- `make check-core` — passed (94 core tests and CLI/process smoke checks).
+- `make check-core` — passed (core tests, SwiftLint, CLI build, and CLI/process smoke checks).
 - `make lint-architecture` — passed, 0 warnings/errors.
 - `make test-architecture` — passed.
 - Manual `activity` CLI smoke checks — human-readable and JSON output passed.
 - `git diff --check` — passed.
 - Pull request [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41) — open; required
   GitHub CI is pending.
+
+Review follow-up coverage adds preservation of all optional canonical counters, decoding a
+nested tool-event turn ID for model attribution, and deduplication of byte-identical mirrored
+source events. Updated local checks are recorded on the PR revision after those fixes.
 
 ## Scope and limitations
 

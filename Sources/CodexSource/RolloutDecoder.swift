@@ -155,6 +155,11 @@ private struct Payload: Decodable {
     let turnKind: String?
     let continuationKind: String?
     let eventKind: String?
+    let internalChatMessageMetadataPassthrough: MessageMetadataPassthrough?
+
+    var resolvedTurnID: String? {
+        turnID ?? internalChatMessageMetadataPassthrough?.turnID
+    }
 
     enum CodingKeys: String, CodingKey {
         case type, id, timestamp, model, effort, usage, info, originator, role, name
@@ -173,6 +178,15 @@ private struct Payload: Decodable {
         case turnKind = "turn_kind"
         case continuationKind = "continuation_kind"
         case eventKind = "event_kind"
+        case internalChatMessageMetadataPassthrough = "internal_chat_message_metadata_passthrough"
+    }
+}
+
+private struct MessageMetadataPassthrough: Decodable {
+    let turnID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case turnID = "turn_id"
     }
 }
 
@@ -509,9 +523,10 @@ private struct DecodeState {
         let classification = kind == .tool
             ? ActivityToolClass.classify(toolName: payload.name)
             : nil
-        appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
+        let turnID = payload.resolvedTurnID
+        appendEvent(sessionID: sessionID, turnID: turnID, timestamp: date, line: line,
                     kind: kind, evidence: payload.type ?? "response_item", toolName: payload.name,
-                    model: payload.turnID.flatMap { context.models[$0] }, activityClass: classification)
+                    model: turnID.flatMap { context.models[$0] }, activityClass: classification)
     }
 
     mutating func appendMessageEvent(_ payload: Payload, timestamp: String, line: Int) {
@@ -521,9 +536,10 @@ private struct DecodeState {
         guard let kind else {
             guard rawType != nil, rawType != "task_started", rawType != "token_count",
                   rawType != "item_completed", rawType != "task_complete" else { return }
-            appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
+            let turnID = payload.resolvedTurnID
+            appendEvent(sessionID: sessionID, turnID: turnID, timestamp: date, line: line,
                         kind: .unknown, evidence: rawType ?? "event_msg", toolName: payload.name,
-                        model: payload.turnID.flatMap { context.models[$0] })
+                        model: turnID.flatMap { context.models[$0] })
             return
         }
         let classification: ActivityToolClass?
@@ -536,9 +552,10 @@ private struct DecodeState {
         } else {
             classification = nil
         }
-        appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
+        let turnID = payload.resolvedTurnID
+        appendEvent(sessionID: sessionID, turnID: turnID, timestamp: date, line: line,
                     kind: kind, evidence: rawType ?? "event_msg", toolName: payload.name,
-                    model: payload.turnID.flatMap { context.models[$0] }, activityClass: classification)
+                    model: turnID.flatMap { context.models[$0] }, activityClass: classification)
     }
 
     mutating func appendEvent(sessionID: String?, turnID: String?, timestamp: String, line: Int,

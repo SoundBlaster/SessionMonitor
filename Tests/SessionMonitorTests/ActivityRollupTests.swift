@@ -40,7 +40,13 @@ struct ActivityRollupTests {
 
         let all = try await runtime.activity(query: UsageQuery())
         #expect(all.totals == before.totals)
+        #expect(all.totals.cacheWriteInputTokens == 4)
+        #expect(all.totals.reasoningOutputTokens == 4)
+        #expect(all.totals.totalTokens == 147)
         #expect(all.usageByModel.map(\.model) == ["model-child", "model-parent"])
+        #expect(all.usageByModel.first?.cacheWriteInputTokens == 1)
+        #expect(all.usageByModel.last?.reasoningOutputTokens == 2)
+        #expect(all.usageByModel.reduce(0) { $0 + ($1.totalTokens ?? 0) } == 147)
         #expect(all.usageByThreadAndModel.map(\.sessionID) == ["child", "parent"])
         #expect(all.coverage.state == .observed)
         #expect(all.toolEvents.contains { $0.classification == .shell && $0.sessionID == "parent" })
@@ -112,6 +118,20 @@ struct ActivityRollupTests {
         #expect(event.sourceLines == [8])
         #expect(report.coverage.unknownClassEvents == 1)
     }
+
+    @Test func mirroredRolloutsDoNotDoubleCountActivityEvents() async throws {
+        let fixture = try ActivityFixture()
+        defer { fixture.remove() }
+        try fixture.writeParent()
+        try fixture.writeMirror()
+        let runtime = try SessionMonitor(databaseURL: fixture.database)
+        _ = try await runtime.importDirectory(fixture.directory)
+
+        let report = try await runtime.activity(query: UsageQuery())
+        #expect(report.totals.requests == 1)
+        #expect(report.toolEvents.reduce(0) { $0 + $1.count } == 9)
+        #expect(report.toolEvents.first { $0.toolName == "exec_command" }?.sourceLines == [5])
+    }
 }
 
 private struct ActivityFixture {
@@ -129,6 +149,9 @@ private struct ActivityFixture {
 
     func writeParent() throws { try parent().write(to: parentFile, atomically: true, encoding: .utf8) }
     func writeChild() throws { try child().write(to: childFile, atomically: true, encoding: .utf8) }
+    func writeMirror() throws {
+        try parent().write(to: directory.appending(path: "parent-copy.jsonl"), atomically: true, encoding: .utf8)
+    }
 
     func writeLegacyTimelineDatabase() throws {
         let database = try DatabaseQueue(path: self.database.path)
@@ -178,8 +201,8 @@ private struct ActivityFixture {
         {"timestamp":"1970-01-01T00:01:40Z","type":"session_meta","payload":{"id":"parent","timestamp":"1970-01-01T00:01:40Z","cli_version":"fixture-version"}}
         {"timestamp":"1970-01-01T00:01:41Z","type":"event_msg","payload":{"type":"task_started","turn_id":"P1","started_at":101}}
         {"timestamp":"1970-01-01T00:01:41Z","type":"turn_context","payload":{"turn_id":"P1","model":"model-parent"}}
-        {"timestamp":"1970-01-01T00:01:42Z","type":"token_usage_record","payload":{"thread_id":"parent","turn_id":"P1","response_id":"parent-response","usage":{"input_tokens":100,"cached_input_tokens":80,"output_tokens":10}}}
-        {"timestamp":"1970-01-01T00:01:43Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","turn_id":"P1"}}
+        {"timestamp":"1970-01-01T00:01:42Z","type":"token_usage_record","payload":{"thread_id":"parent","turn_id":"P1","response_id":"parent-response","usage":{"input_tokens":100,"cached_input_tokens":80,"output_tokens":10,"cache_write_input_tokens":3,"reasoning_output_tokens":2,"total_tokens":112}}}
+        {"timestamp":"1970-01-01T00:01:43Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","internal_chat_message_metadata_passthrough":{"turn_id":"P1"}}}
         {"timestamp":"1970-01-01T00:01:44Z","type":"response_item","payload":{"type":"custom_tool_call","name":"wait","turn_id":"P1"}}
         {"timestamp":"1970-01-01T00:01:45Z","type":"response_item","payload":{"type":"custom_tool_call","name":"write_stdin","turn_id":"P1"}}
         {"timestamp":"1970-01-01T00:01:46Z","type":"response_item","payload":{"type":"custom_tool_call","name":"wait_threads","turn_id":"P1"}}
@@ -197,7 +220,7 @@ private struct ActivityFixture {
         {"timestamp":"1970-01-01T00:01:40Z","type":"session_meta","payload":{"id":"child","timestamp":"1970-01-01T00:01:40Z","root_session_id":"parent","parent_thread_id":"parent","thread_source":"subagent"}}
         {"timestamp":"1970-01-01T00:01:41Z","type":"event_msg","payload":{"type":"task_started","turn_id":"C1","started_at":101}}
         {"timestamp":"1970-01-01T00:01:41Z","type":"turn_context","payload":{"turn_id":"C1","model":"model-child"}}
-        {"timestamp":"1970-01-01T00:01:42Z","type":"token_usage_record","payload":{"thread_id":"child","turn_id":"C1","response_id":"child-response","usage":{"input_tokens":30,"cached_input_tokens":20,"output_tokens":5}}}
+        {"timestamp":"1970-01-01T00:01:42Z","type":"token_usage_record","payload":{"thread_id":"child","turn_id":"C1","response_id":"child-response","usage":{"input_tokens":30,"cached_input_tokens":20,"output_tokens":5,"cache_write_input_tokens":1,"reasoning_output_tokens":2,"total_tokens":35}}}
         {"timestamp":"1970-01-01T00:01:43Z","type":"response_item","payload":{"type":"custom_tool_call","name":"wait_threads","turn_id":"C1"}}
 
         """

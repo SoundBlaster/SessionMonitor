@@ -29,6 +29,9 @@ public struct ActivityUsageRollup: Codable, Equatable, Sendable {
     public let uncachedInputTokens: Int64?
     public let outputTokens: Int64
     public let unknownCacheResponses: Int64
+    public let cacheWriteInputTokens: Int64?
+    public let reasoningOutputTokens: Int64?
+    public let totalTokens: Int64?
     public let cacheHitRatio: Double?
 
     public init(sessionID: String, model: String, totals: UsageTotals) {
@@ -42,6 +45,9 @@ public struct ActivityUsageRollup: Codable, Equatable, Sendable {
             : nil
         outputTokens = totals.outputTokens
         unknownCacheResponses = totals.unknownCacheRequests
+        cacheWriteInputTokens = totals.cacheWriteInputTokens
+        reasoningOutputTokens = totals.reasoningOutputTokens
+        totalTokens = totals.totalTokens
         cacheHitRatio = totals.cacheHitRatio
     }
 }
@@ -54,6 +60,9 @@ public struct ActivityModelRollup: Codable, Equatable, Sendable {
     public let uncachedInputTokens: Int64?
     public let outputTokens: Int64
     public let unknownCacheResponses: Int64
+    public let cacheWriteInputTokens: Int64?
+    public let reasoningOutputTokens: Int64?
+    public let totalTokens: Int64?
     public let cacheHitRatio: Double?
 
     public init(model: String, totals: UsageTotals) {
@@ -66,6 +75,9 @@ public struct ActivityModelRollup: Codable, Equatable, Sendable {
             : nil
         outputTokens = totals.outputTokens
         unknownCacheResponses = totals.unknownCacheRequests
+        cacheWriteInputTokens = totals.cacheWriteInputTokens
+        reasoningOutputTokens = totals.reasoningOutputTokens
+        totalTokens = totals.totalTokens
         cacheHitRatio = totals.cacheHitRatio
     }
 }
