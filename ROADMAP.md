@@ -6,9 +6,12 @@
 
 ## Текущая точка
 
-**SM-314 — PR [#36](https://github.com/SoundBlaster/SessionMonitor/pull/36) открыт (2026-09-21); GitHub CI прошёл на ревизии `e5e62a3`; ветка `fix/sm-314-stable-timeline-y-scale`:** закрепить вертикальную шкалу request timeline по полным данным выбранной сессии, чтобы scroll/zoom не меняли Y-scale. После завершения приоритет возвращается к SM-308b.
-
+**SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
+Следующий пункт — SM-308b.
 SM-313 доставлена через [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33), merge `e32691d` (2026-09-20): общий визуальный стиль для cache-hit chart и request timeline.
+SM-707 — правило не использовать Git worktree в проекте — выполняется в
+[PR #35](https://github.com/SoundBlaster/SessionMonitor/pull/35), ветка
+`docs/sm-707-no-worktrees`.
 
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
@@ -539,6 +542,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 7. Сопровождение и доставка
 
+- [ ] **SM-707** — Запретить Git worktree при работе над этим проектом.
+  Статус: в работе. Уточнить в `AGENTS.md`, что задачи выполняются в основном checkout
+  с обычными ветками; существующие worktree не удаляются этой задачей. Готово после
+  проверки документации и доставки изменения через PR с обязательным CI.
 - [ ] **SM-701** — Передать SpecificationCore fix upstream и вернуть remote SwiftPM dependency.
   Готово после доступного исправленного upstream revision/release и повторной integration verification;
   до этого локальный patch остаётся с provenance и regression test.
