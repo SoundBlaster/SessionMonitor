@@ -67,6 +67,8 @@ struct RequestTimelinePlot: View {
                 }
                 .chartYScale(domain: yScale.domain,
                              range: .plotDimension(padding: RequestTimelineChartLayout.yAxisTopInset))
+                // Viewport scrubbing should update marks directly, not interpolate one time bucket into another.
+                .transaction { $0.animation = nil }
                 .frame(height: RequestTimelineChartLayout.chartHeight)
         }
         .frame(width: max(1, width - 8), alignment: .leading)
