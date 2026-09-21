@@ -27,7 +27,7 @@ struct TimelineYAxisScale: Equatable {
         let duration = navigationDomain.duration.isFinite
             ? max(navigationDomain.duration, 0.001)
             : Double.greatestFiniteMagnitude
-        let referenceWindow = duration / Double(capacity)
+        let referenceWindow = TimelineAggregation.bucketInterval(for: navigationDomain, capacity: capacity)
         let maximum = Self.maximumKnownInputTotal(
             in: index.points,
             navigationDomain: navigationDomain,

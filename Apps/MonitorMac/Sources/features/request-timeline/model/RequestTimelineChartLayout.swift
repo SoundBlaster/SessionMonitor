@@ -18,14 +18,22 @@ struct TimelineBucket: Identifiable {
     let id: Int
     let start: Date
     let end: Date
+    let timestamp: Date
     var requestCount = 0
     var knownRequestCount = 0
     var cached: Double = 0
     var uncached: Double = 0
     var events: [TimelineEventKind: Int] = [:]
-    var timestamp: Date { start.addingTimeInterval(end.timeIntervalSince(start) / 2) }
     var unknownRequestCount: Int { requestCount - knownRequestCount }
     var eventCount: Int { events.values.reduce(0, +) }
+
+    init(id: Int, start: Date, end: Date, visibleDomain: DateInterval) {
+        self.id = id
+        self.start = start
+        self.end = end
+        let midpoint = start.addingTimeInterval(end.timeIntervalSince(start) / 2)
+        timestamp = min(max(midpoint, visibleDomain.start), visibleDomain.end)
+    }
 }
 
 /// Every visible observation belongs to one pixel-budget bucket. No downsampling.
@@ -46,10 +54,16 @@ struct TimelineAggregation {
         interval = Self.bucketInterval(for: domain, capacity: bucketCapacity)
         var grouped: [Int: TimelineBucket] = [:]
         for point in index.points(in: domain) {
-            let slot = min(capacity - 1, Int(point.timestamp.timeIntervalSince(domain.start) / interval))
-            let start = domain.start.addingTimeInterval(Double(slot) * interval)
+            let slot = bucketCapacity == 1
+                ? 0
+                : Int((point.timestamp.timeIntervalSince1970 / interval).rounded(.down))
+            let start = bucketCapacity == 1
+                ? domain.start
+                : Date(timeIntervalSince1970: Double(slot) * interval)
             var bucket = grouped[slot] ?? TimelineBucket(
-                id: slot, start: start, end: min(domain.end, start.addingTimeInterval(interval)))
+                id: slot, start: start,
+                end: bucketCapacity == 1 ? domain.end : start.addingTimeInterval(interval),
+                visibleDomain: domain)
             if point.kind == .usageRequest {
                 bucket.requestCount += 1
                 if let cached = point.cachedInputTokens, let uncached = point.uncachedInputTokens {
@@ -74,7 +88,7 @@ struct TimelineAggregation {
     }
 
     static func bucketInterval(for domain: DateInterval, capacity: Int) -> TimeInterval {
-        max(domain.duration, 0.001) / Double(max(1, capacity))
+        max(domain.duration, 0.001) / Double(max(1, capacity - 1))
     }
 
     var description: String {

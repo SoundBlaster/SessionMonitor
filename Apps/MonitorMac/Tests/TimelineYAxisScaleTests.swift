@@ -59,6 +59,31 @@ final class TimelineYAxisScaleTests: XCTestCase {
         }
     }
 
+    func testScaleCoversFullAbsoluteBucketWhenRequestsSpanMostOfItsInterval() {
+        let navigationStart = date(0)
+        let capacity = TimelineAggregation.bucketCapacity(for: 560)
+        let interval = TimelineAggregation.bucketInterval(
+            for: DateInterval(start: navigationStart, duration: 330),
+            capacity: capacity
+        )
+        let bucketStart = (navigationStart.timeIntervalSince1970 / interval).rounded(.up) * interval
+        let navigation = DateInterval(start: Date(timeIntervalSince1970: bucketStart), duration: 330)
+        let points = [
+            point("bucket-first", timestamp: Date(timeIntervalSince1970: bucketStart + 0.1),
+                  cached: 80, uncached: 20),
+            point("bucket-second", timestamp: Date(timeIntervalSince1970: bucketStart + interval - 0.1),
+                  cached: 80, uncached: 20)
+        ]
+
+        let scale = TimelineYAxisScale(points: points, navigationDomain: navigation, width: 560)
+        let aggregation = TimelineAggregation(points: points, domain: navigation, width: 560)
+        let aggregatedMaximum = aggregation.buckets.map { $0.cached + $0.uncached }.max() ?? 0
+
+        XCTAssertEqual(aggregatedMaximum, 200)
+        XCTAssertGreaterThanOrEqual(scale.maximumBucketTotal, aggregatedMaximum)
+        XCTAssertGreaterThanOrEqual(scale.domain.upperBound, aggregatedMaximum)
+    }
+
     func testEmptyUnknownAndZeroInputUseFiniteScale() {
         let navigation = DateInterval(start: date(0), end: date(600))
         let cases = [
@@ -125,7 +150,11 @@ final class TimelineYAxisScaleTests: XCTestCase {
     }
 
     private func point(_ id: String, seconds: Int, cached: Int64?, uncached: Int64?) -> RequestTimelinePoint {
-        RequestTimelinePoint(id: id, sessionID: "session", timestamp: date(seconds), kind: .usageRequest,
+        point(id, timestamp: date(seconds), cached: cached, uncached: uncached)
+    }
+
+    private func point(_ id: String, timestamp: Date, cached: Int64?, uncached: Int64?) -> RequestTimelinePoint {
+        RequestTimelinePoint(id: id, sessionID: "session", timestamp: timestamp, kind: .usageRequest,
                              cachedInputTokens: cached, uncachedInputTokens: uncached)
     }
 

@@ -29,6 +29,39 @@ final class RequestTimelineDensityTests: XCTestCase {
         XCTAssertEqual(narrow.requestCount, wide.requestCount)
     }
 
+    func testBucketIdentityAndValuesStayStableWhenPanningAtSameZoom() throws {
+        let points = (0...900).map { index in
+            point("pan-\(index)", index: index, kind: .usageRequest,
+                  cached: Int64(index), uncached: 1)
+        }
+        let firstDomain = DateInterval(start: date(100), end: date(700))
+        let secondDomain = DateInterval(start: date(160), end: date(760))
+        let first = TimelineAggregation(points: points, domain: firstDomain, width: 560)
+        let second = TimelineAggregation(points: points, domain: secondDomain, width: 560)
+        let target = date(400)
+        let firstBucket = try XCTUnwrap(first.buckets.first { $0.start <= target && target < $0.end })
+        let secondBucket = try XCTUnwrap(second.buckets.first { $0.start <= target && target < $0.end })
+
+        XCTAssertEqual(firstBucket.id, secondBucket.id)
+        XCTAssertEqual(firstBucket.timestamp, secondBucket.timestamp)
+        XCTAssertEqual(firstBucket.requestCount, secondBucket.requestCount)
+        XCTAssertEqual(firstBucket.cached, secondBucket.cached)
+        XCTAssertEqual(firstBucket.uncached, secondBucket.uncached)
+    }
+
+    func testSingleBucketWidthStillKeepsAllVisiblePointsTogether() {
+        let points = [point("narrow-first", index: 101, kind: .usageRequest, cached: 7, uncached: 1),
+                      point("narrow-last", index: 699, kind: .usageRequest, cached: 11, uncached: 2)]
+        let projection = TimelineAggregation(points: points,
+            domain: DateInterval(start: date(100), end: date(700)), width: 80)
+
+        XCTAssertEqual(projection.capacity, 1)
+        XCTAssertEqual(projection.buckets.count, 1)
+        XCTAssertEqual(projection.requestCount, 2)
+        XCTAssertEqual(projection.buckets[0].cached, 18)
+        XCTAssertEqual(projection.buckets[0].uncached, 3)
+    }
+
     func testMissingTokensStayUnknownAndZeroStaysKnown() {
         let points = [point("nil", index: 1, kind: .usageRequest),
                       point("zero", index: 2, kind: .usageRequest, cached: 0, uncached: 0),
