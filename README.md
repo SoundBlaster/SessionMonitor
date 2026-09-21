@@ -343,10 +343,10 @@ GitHub check `CI`. Workflow, runner, fixed tooling и воспроизведен
 ## Dogfooding и compatibility
 
 В `SpecificationCore 1.0.0` найдена неоднозначность overload в `FirstMatchSpec.Builder`
-на Swift 6.4. [Локальная dependency](Dependencies/README.md) содержит исходный release
-и минимальный patch с отдельным regression test. Это временная интеграционная копия;
-исходные пользовательские repositories не изменены. После upstream fix следует вернуть
-remote dependency. SpecificationKit 4.0.0 использует ту же локальную Core dependency.
+на Swift 6.4; upstream fix доступен в `SpecificationCore 1.1.0`. SessionMonitor использует
+точную remote SwiftPM dependency; provenance и compatibility evidence описаны в
+[Dependencies/README.md](Dependencies/README.md). Regression test для исправленной builder
+поведения остаётся в проекте. GUI по-прежнему закрепляет SpecificationKit 4.0.0.
 NavigationSplitViewKit остаётся референсом поведения; FSD применяется по Pages First.
 
 [Third-party notices](THIRD_PARTY_NOTICES.md) перечисляют зависимости и licenses.

@@ -13,7 +13,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", exact: "1.8.2"),
         .package(url: "https://github.com/groue/GRDB.swift", exact: "7.11.1"),
-        .package(path: "Dependencies/SpecificationCore")
+        .package(url: "https://github.com/SoundBlaster/SpecificationCore", exact: "1.1.0")
     ],
     targets: [
         .target(name: "MonitorCore"),

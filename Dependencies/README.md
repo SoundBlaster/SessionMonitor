@@ -1,16 +1,12 @@
-# SpecificationCore compatibility snapshot
+# SpecificationCore dependency provenance
 
-Source: https://github.com/SoundBlaster/SpecificationCore
-Version: 1.0.0, commit `af5b0642282541ae36baffd1328a5dd7c5e61146`. MIT license retained in `SpecificationCore/LICENSE`.
-Only Package.swift, Sources, Tests and LICENSE are copied; no local user checkout is modified.
+SessionMonitor uses the upstream Swift package from
+<https://github.com/SoundBlaster/SpecificationCore>, pinned to release `1.1.0`
+(commit `f3ed68ce29db42de54a4ae905a304b61bdc50ce7`). The release carries the
+Swift 6.4-compatible typed `FirstMatchSpec.Builder.build()` implementation that
+replaces the local compatibility snapshot previously recorded here.
 
-Swift 6.4 (Xcode 27 beta) rejects FirstMatchSpec.Builder.build() with ambiguous
-`init(_:includeMetadata:)`: its erased tuple array matches two public overloads.
-The only source change adds a private `init(erasedPairs:includeMetadata:)` and
-uses its explicit label in Builder.build(). Public initializers and behavior remain.
-A SessionMonitor regression test exercises the builder and its fallback.
-
-This local SwiftPM dependency takes precedence over SpecificationKit's remote
-SpecificationCore dependency. Replace it with an upstream fixed release after
-that release passes the same CLI/app build and tests. Keep this exception visible;
-other dependencies remain pinned remote SwiftPM packages.
+The package is pinned exactly in `Package.swift`; `Package.resolved` records the
+resolved commit. The package retains its upstream MIT license. The vendored
+`Dependencies/SpecificationCore` copy has been removed so CLI and GUI consumers
+resolve the same upstream package identity.
