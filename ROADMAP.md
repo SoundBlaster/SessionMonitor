@@ -6,11 +6,13 @@
 
 ## Текущая точка
 
-**SM-701 — вернуть remote SpecificationCore 1.1.0 — выполняется в [PR #37](https://github.com/SoundBlaster/SessionMonitor/pull/37), ветка `fix/sm-701-upstream-specificationcore`. Статус: в работе.** Upstream fix и локальная CLI/app integration verification готовы; обновлённые PR checks выполняются. После доставки следующий пункт — SM-308b.
+**SM-701 — вернуть remote SpecificationCore 1.1.0 — выполняется в [PR #37](https://github.com/SoundBlaster/SessionMonitor/pull/37), ветка `fix/sm-701-upstream-specificationcore`. Статус: в работе.** Upstream fix и локальная CLI/app integration verification готовы; перед merge нужны зелёные checks на текущей ревизии. После доставки следующий пункт — SM-308b.
 
-SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21): стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
+**SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
 
 SM-313 доставлена через [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33), merge `e32691d` (2026-09-20): общий визуальный стиль для cache-hit chart и request timeline.
+SM-707 доставлена через [PR #35](https://github.com/SoundBlaster/SessionMonitor/pull/35),
+merge `3d28e18` (2026-09-21): проект запрещает Git worktree при выполнении задач.
 
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
@@ -541,6 +543,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 7. Сопровождение и доставка
 
+- [x] **SM-707** — Запретить Git worktree при работе над этим проектом.
+  Готово 2026-09-21: `AGENTS.md` предписывает основной checkout и обычные ветки;
+  [PR #35](https://github.com/SoundBlaster/SessionMonitor/pull/35) merged в `3d28e18`
+  после успешных Workflow lint, Native checks и CI.
 - [ ] **SM-701** — Передать SpecificationCore fix upstream и вернуть remote SwiftPM dependency.
   Статус: в работе. Upstream fix доступен в SpecificationCore 1.1.0 (Swift 6.4 validation);
   exact remote dependency и CLI/app integration checks проверены. Доставка через
