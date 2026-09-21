@@ -11,6 +11,8 @@ struct RequestTimelinePlot: View {
 
     var body: some View {
         let aggregation = TimelineAggregation(points: points, domain: axis.visibleDomain, width: width)
+        let yScale = TimelineYAxisScale(points: points, navigationDomain: axis.navigationDomain,
+                                        width: Double(width))
         VStack(alignment: .leading, spacing: 8) {
             Text(aggregation.description)
                 .font(.caption).foregroundStyle(.secondary)
@@ -41,7 +43,8 @@ struct RequestTimelinePlot: View {
                         AxisValueLabel().foregroundStyle(palette.neutral)
                     }
                 }
-                .chartYScale(range: .plotDimension(padding: RequestTimelineChartLayout.yAxisTopInset))
+                .chartYScale(domain: yScale.domain,
+                             range: .plotDimension(padding: RequestTimelineChartLayout.yAxisTopInset))
                 .frame(height: RequestTimelineChartLayout.chartHeight)
         }
         .frame(width: max(1, width - 8), alignment: .leading)
