@@ -6,8 +6,9 @@
 
 ## Текущая точка
 
-**SM-313 доставлена через [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33), merge `e32691d` (2026-09-20):** общий визуальный стиль для cache-hit chart и request timeline.
-Следующий пункт — SM-308b.
+**SM-314 — PR [#36](https://github.com/SoundBlaster/SessionMonitor/pull/36) открыт (2026-09-21); GitHub CI прошёл на ревизии `e5e62a3`; ветка `fix/sm-314-stable-timeline-y-scale`:** закрепить вертикальную шкалу request timeline по полным данным выбранной сессии, чтобы scroll/zoom не меняли Y-scale. После завершения приоритет возвращается к SM-308b.
+
+SM-313 доставлена через [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33), merge `e32691d` (2026-09-20): общий визуальный стиль для cache-hit chart и request timeline.
 
 Первая версия CLI + GUI реализована и проверена. SM-101 добавляет persistent checkpoints:
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
@@ -469,6 +470,21 @@ deliverable — WidgetKit extension с App Group в SM-401.
   согласованно меняет обе визуализации, включая легенды/VoiceOver, и что стандартные цвета
   остаются читаемы в light/dark appearance. Snapshot renders проверены для обеих палитр.
   [Отчёт](reports/SM-313-shared-chart-style.md).
+
+- [ ] **SM-314** — Зафиксировать вертикальную шкалу request timeline на всём диапазоне сессии.
+  **Статус: PR [#36](https://github.com/SoundBlaster/SessionMonitor/pull/36) открыт; CI прошёл на ревизии `35f5a81` (2026-09-21), ветка `fix/sm-314-stable-timeline-y-scale`.**
+  После фикса шкалы пользователь сообщил о 1–2 FPS при прокрутке. В PR добавлены индекс точек с поиском видимого диапазона, кэш Y-шкалы и изоляция неизменяемого списка evidence. Debug-бенчмарк: 20 000 точек, 60 обновлений viewport — около 86 мс суммарно (~1,4 мс/обновление); drag локально проверен на сессии с 2 545 запросами. Release-сборка приложения прошла. Release XCTest заблокирован существующей компиляционной несовместимостью fixture-теста (`#if DEBUG`); точный FPS через Instruments не замерен.
+  Сейчас Swift Charts
+  подбирает Y-domain по видимым buckets, поэтому при scroll/zoom высота одинаковых значений
+  меняется. Вычислять Y-domain по всем данным выбранной сессии и неизменной navigation bounds,
+  не пересчитывая его по видимому окну. Учитывать максимально возможную длительность bucket,
+  чтобы bars не обрезались при переходе к более широкому окну. Не менять aggregation, timestamps,
+  accounting и evidence. Готово, когда off-screen peak входит в шкалу, Y-domain совпадает при
+  zoom/pan/range changes, все отображённые buckets помещаются в domain, а empty/zero/unknown
+  data и light/dark renders остаются корректными. Добавить pure regression tests и проверить
+  production SwiftUI chart via ImageRenderer в light/dark при fit/zoom; native window automation
+  не запускалась. После SM-314 продолжить с SM-308b.
+  [Отчёт](reports/SM-314-request-timeline-fixed-y-scale.md).
 
 ## 4. Системные macOS widgets
 
