@@ -6,10 +6,12 @@
 
 ## Текущая точка
 
-Текущая задача — **SM-308b**: activity rollups и явная классификация tool events.
-Статус: PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41) открыт (2026-09-21);
-локальные проверки и GitHub CI прошли на реализации `12abc71`, review threads закрыты;
-общий Codex review о корреляции tool outputs по `call_id` обработан.
+Текущая задача — **SM-308c**: composable anomaly policies на SpecificationCore.
+Статус: SM-308b доставлена через PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
+merge `593512b` (2026-09-21); локальные проверки и GitHub CI прошли, review threads закрыты.
+Следующий implementation scope — policy layer SM-308c с typed findings, evidence,
+confidence и coverage; `Specification`/`DecisionSpec` из SpecificationCore должны быть
+частью исполняемого decision path, а не только зависимостью target.
 SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
 merge `7557a2a` (2026-09-21); пользователь проверил интерактивную прокрутку и подтвердил,
 что анимация timeline работает корректно.
@@ -377,9 +379,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   SM-308a доставлена через [PR #30](https://github.com/SoundBlaster/SessionMonitor/pull/30),
   merge `4058a83` (2026-09-20). Multi-account roadmap доставлен через
   [PR #31](https://github.com/SoundBlaster/SessionMonitor/pull/31).
-  **SM-308b в PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41) (2026-09-21):**
-  activity rollups и точная классификация tool events; локальные checks и GitHub CI прошли на
-  реализации `12abc71`, review threads закрыты. Tool output records сопоставляются с вызовом по
+  **SM-308b доставлена через PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
+  merge `593512b` (2026-09-21):** activity rollups и точная классификация tool events;
+  локальные checks и GitHub CI прошли на реализации `12abc71`, review threads закрыты.
+  Tool output records сопоставляются с вызовом по
   `call_id`, неизвестные tool/version сохраняются как unknown с evidence; mirrored events
   дедуплицируются, canonical token totals не меняются.
   [Отчёт](reports/SM-308b-activity-rollups.md).
@@ -417,6 +420,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Пороговые значения делать настраиваемыми или выводить из сопоставимого baseline/cohort, сохраняя
   evidence pointers, confidence, coverage/unknown reason и основание срабатывания; единичный дневной
   пример не становится hard-coded нормой.
+  Для SM-308c domain rules должны быть оформлены как композиции `SpecificationCore`
+  `Specification`/`DecisionSpec` (при необходимости через `AnySpecification`/`FirstMatchSpec`)
+  и выдавать typed findings с причиной и evidence metadata. Независимые сигналы должны
+  оцениваться отдельно, чтобы один приоритетный match не скрывал остальные; tests должны
+  подтверждать, что policy decision path действительно проходит через эти спецификации.
   Production source для server usage snapshots — наблюдаемые usage-limit events в импортируемых
   Codex rollouts. Версионированный source adapter сохраняет в SQLite event timestamp, limit/window ID,
   duration, used percent, `resetsAt`, source/event identity и schema provenance; повторный импорт
