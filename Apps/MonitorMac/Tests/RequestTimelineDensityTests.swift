@@ -54,6 +54,53 @@ final class RequestTimelineDensityTests: XCTestCase {
         XCTAssertTrue(aggregate([]).buckets.isEmpty)
     }
 
+    func testPointIndexReturnsVisibleSliceAndSummarizesEventKinds() {
+        let points = [
+            point("event-after", index: 30, kind: .tool),
+            point("request-middle", index: 20, kind: .usageRequest, cached: 4, uncached: 2),
+            point("event-before", index: 10, kind: .tool),
+            point("request-start", index: 15, kind: .usageRequest, cached: 3, uncached: 1),
+            point("event-other", index: 20, kind: .wait)
+        ]
+        let index = TimelinePointIndex(points: points)
+        let interval = DateInterval(start: date(15), end: date(20))
+
+        XCTAssertEqual(index.dataBounds, DateInterval(start: date(10), end: date(30)))
+        XCTAssertEqual(index.points(in: interval).map(\.id), ["request-start", "event-other", "request-middle"])
+        XCTAssertEqual(index.eventCounts(in: interval).map(\.count), [1])
+        XCTAssertEqual(index.eventCounts(in: interval).map(\.kind), [.wait])
+    }
+
+    func testDenseViewportProjectionStaysBoundedAcrossManyUpdates() throws {
+        let points = (0..<20_000).map { index in
+            let kind: TimelineEventKind = index.isMultiple(of: 4) ? .tool : .usageRequest
+            return point("dense-\(index)", index: index * 3, kind: kind,
+                         cached: kind == .usageRequest ? 800 : nil,
+                         uncached: kind == .usageRequest ? 200 : nil)
+        }
+        let pointIndex = TimelinePointIndex(points: points)
+        let bounds = try XCTUnwrap(pointIndex.dataBounds)
+        let navigation = DateInterval(start: bounds.start, end: bounds.end)
+        let query = try UsageQuery()
+        let capacity = TimelineAggregation.bucketCapacity(for: 560)
+        let cachedScale = TimelineYAxisScale(index: pointIndex, navigationDomain: navigation, width: 560)
+
+        measure {
+            for frame in 0..<60 {
+                let position = Double(frame) / 59
+                let start = navigation.start.addingTimeInterval(navigation.duration * position * 0.75)
+                let visibleDomain = DateInterval(start: start, duration: navigation.duration / 4)
+                let axis = RequestTimelineAxis(dataBounds: bounds, query: query, mode: .custom,
+                                               customDomain: visibleDomain)
+                XCTAssertNotNil(axis)
+                let projection = TimelineAggregation(index: pointIndex, domain: visibleDomain, width: 560)
+                XCTAssertLessThanOrEqual(projection.buckets.count, capacity)
+                XCTAssertFalse(pointIndex.eventCounts(in: visibleDomain).isEmpty)
+                XCTAssertEqual(cachedScale.domain.lowerBound, 0)
+            }
+        }
+    }
+
     private func aggregate(_ points: [RequestTimelinePoint], width: Double = 560) -> TimelineAggregation {
         TimelineAggregation(points: points, domain: DateInterval(start: date(0), end: date(18_000)), width: width)
     }

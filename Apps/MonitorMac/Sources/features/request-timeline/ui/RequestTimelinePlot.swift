@@ -3,14 +3,38 @@ import MonitorCore
 import SwiftUI
 
 struct RequestTimelinePlot: View {
-    let points: [RequestTimelinePoint]
+    let pointIndex: TimelinePointIndex
     let axis: RequestTimelineAxis
     let timeZone: TimeZone
     let width: CGFloat
     var palette: UsageChartPalette = .system
+    private let cachedYAxisScale: TimelineYAxisScale?
+
+    init(points: [RequestTimelinePoint], axis: RequestTimelineAxis, timeZone: TimeZone, width: CGFloat,
+         palette: UsageChartPalette = .system) {
+        pointIndex = TimelinePointIndex(points: points)
+        self.axis = axis
+        self.timeZone = timeZone
+        self.width = width
+        self.palette = palette
+        cachedYAxisScale = nil
+    }
+
+    init(pointIndex: TimelinePointIndex, axis: RequestTimelineAxis, timeZone: TimeZone, width: CGFloat,
+         palette: UsageChartPalette = .system, yAxisScale: TimelineYAxisScale) {
+        self.pointIndex = pointIndex
+        self.axis = axis
+        self.timeZone = timeZone
+        self.width = width
+        self.palette = palette
+        cachedYAxisScale = yAxisScale
+    }
 
     var body: some View {
-        let aggregation = TimelineAggregation(points: points, domain: axis.visibleDomain, width: width)
+        let aggregation = TimelineAggregation(index: pointIndex, domain: axis.visibleDomain, width: Double(width))
+        let yScale = cachedYAxisScale ?? TimelineYAxisScale(
+            index: pointIndex, navigationDomain: axis.navigationDomain, width: Double(width)
+        )
         VStack(alignment: .leading, spacing: 8) {
             Text(aggregation.description)
                 .font(.caption).foregroundStyle(.secondary)
@@ -41,7 +65,8 @@ struct RequestTimelinePlot: View {
                         AxisValueLabel().foregroundStyle(palette.neutral)
                     }
                 }
-                .chartYScale(range: .plotDimension(padding: RequestTimelineChartLayout.yAxisTopInset))
+                .chartYScale(domain: yScale.domain,
+                             range: .plotDimension(padding: RequestTimelineChartLayout.yAxisTopInset))
                 .frame(height: RequestTimelineChartLayout.chartHeight)
         }
         .frame(width: max(1, width - 8), alignment: .leading)

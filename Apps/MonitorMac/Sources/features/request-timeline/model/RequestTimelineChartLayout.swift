@@ -9,6 +9,8 @@ enum RequestTimelineChartLayout {
     static let axisAllowance: Double = 80
     static let minimumMarkSpacing: Double = 14
     static let maximumBuckets = 120
+    static let minimumYAxisUpperBound: Double = 1
+    static let yAxisHeadroomFraction: Double = 0.08
     static let accessibilityLabel = "Known cached and uncached token sums over time"
 }
 
@@ -35,12 +37,15 @@ struct TimelineAggregation {
     var unknownRequestCount: Int { buckets.reduce(0) { $0 + $1.unknownRequestCount } }
 
     init(points: [RequestTimelinePoint], domain: DateInterval, width: Double) {
-        let safeWidth = width.isFinite ? width : RequestTimelineChartLayout.axisAllowance
-        capacity = max(1, Int(min(Double(RequestTimelineChartLayout.maximumBuckets), max(0,
-            safeWidth - RequestTimelineChartLayout.axisAllowance) / RequestTimelineChartLayout.minimumMarkSpacing)))
-        interval = max(domain.duration, 0.001) / Double(capacity)
+        self.init(index: TimelinePointIndex(points: points), domain: domain, width: width)
+    }
+
+    init(index: TimelinePointIndex, domain: DateInterval, width: Double) {
+        let bucketCapacity = Self.bucketCapacity(for: width)
+        capacity = bucketCapacity
+        interval = Self.bucketInterval(for: domain, capacity: bucketCapacity)
         var grouped: [Int: TimelineBucket] = [:]
-        for point in points where point.timestamp >= domain.start && point.timestamp <= domain.end {
+        for point in index.points(in: domain) {
             let slot = min(capacity - 1, Int(point.timestamp.timeIntervalSince(domain.start) / interval))
             let start = domain.start.addingTimeInterval(Double(slot) * interval)
             var bucket = grouped[slot] ?? TimelineBucket(
@@ -58,6 +63,18 @@ struct TimelineAggregation {
             grouped[slot] = bucket
         }
         buckets = grouped.values.sorted { $0.id < $1.id }
+    }
+
+    static func bucketCapacity(for width: Double) -> Int {
+        let safeWidth = width.isFinite ? width : RequestTimelineChartLayout.axisAllowance
+        let availableWidth = max(0, safeWidth - RequestTimelineChartLayout.axisAllowance)
+        let proposedCapacity = min(Double(RequestTimelineChartLayout.maximumBuckets),
+                                   availableWidth / RequestTimelineChartLayout.minimumMarkSpacing)
+        return max(1, Int(proposedCapacity))
+    }
+
+    static func bucketInterval(for domain: DateInterval, capacity: Int) -> TimeInterval {
+        max(domain.duration, 0.001) / Double(max(1, capacity))
     }
 
     var description: String {

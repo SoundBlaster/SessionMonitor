@@ -5,6 +5,7 @@ struct TimelineViewportControls: View {
     let axis: RequestTimelineAxis
     @State private var from = Date.distantPast
     @State private var until = Date.distantFuture
+    @State private var isEditingSlider = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -17,7 +18,8 @@ struct TimelineViewportControls: View {
                 Button { model.pan(by: -0.5) } label: { Image(systemName: "chevron.left") }
                     .accessibilityLabel("Earlier range")
                     .disabled(axis.visibleDomain.start <= axis.navigationDomain.start)
-                Slider(value: Binding(get: { model.scrollPosition }, set: { model.scroll(to: $0) }), in: 0...1)
+                Slider(value: Binding(get: { model.scrollPosition }, set: { model.scroll(to: $0) }),
+                       in: 0...1, onEditingChanged: sliderEditingChanged)
                     .accessibilityLabel("Timeline position")
                     .disabled(axis.visibleDomain.duration >= axis.navigationDomain.duration)
                 Button { model.pan(by: 0.5) } label: { Image(systemName: "chevron.right") }
@@ -37,9 +39,17 @@ struct TimelineViewportControls: View {
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .onChange(of: axis.visibleDomain, initial: true) { _, range in
+            guard !isEditingSlider else { return }
             from = range.start
             until = range.end
         }
+    }
+
+    private func sliderEditingChanged(_ isEditing: Bool) {
+        isEditingSlider = isEditing
+        guard !isEditing, let range = model.axis?.visibleDomain else { return }
+        from = range.start
+        until = range.end
     }
 
     @ViewBuilder
