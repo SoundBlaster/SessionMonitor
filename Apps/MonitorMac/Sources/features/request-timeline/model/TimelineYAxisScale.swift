@@ -6,14 +6,30 @@ struct TimelineYAxisScale: Equatable {
     let domain: ClosedRange<Double>
     let maximumBucketTotal: Double
 
+    struct CacheKey: Hashable {
+        let navigationStart: Date
+        let navigationEnd: Date
+        let bucketCapacity: Int
+
+        init(navigationDomain: DateInterval, width: Double) {
+            navigationStart = navigationDomain.start
+            navigationEnd = navigationDomain.end
+            bucketCapacity = TimelineAggregation.bucketCapacity(for: width)
+        }
+    }
+
     init(points: [RequestTimelinePoint], navigationDomain: DateInterval, width: Double) {
-        let capacity = TimelineAggregation.bucketCapacity(for: width)
+        self.init(index: TimelinePointIndex(points: points), navigationDomain: navigationDomain, width: width)
+    }
+
+    init(index: TimelinePointIndex, navigationDomain: DateInterval, width: Double) {
+        let capacity = Self.CacheKey(navigationDomain: navigationDomain, width: width).bucketCapacity
         let duration = navigationDomain.duration.isFinite
             ? max(navigationDomain.duration, 0.001)
             : Double.greatestFiniteMagnitude
         let referenceWindow = duration / Double(capacity)
         let maximum = Self.maximumKnownInputTotal(
-            in: points,
+            in: index.points,
             navigationDomain: navigationDomain,
             window: referenceWindow
         )
@@ -41,7 +57,7 @@ struct TimelineYAxisScale: Equatable {
             let total = Double(cached) + Double(uncached)
             guard total.isFinite else { return nil }
             return (point.timestamp, total)
-        }.sorted { $0.timestamp < $1.timestamp }
+        }
 
         var firstInWindow = 0
         var runningTotal = 0.0

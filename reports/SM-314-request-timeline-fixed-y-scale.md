@@ -15,6 +15,24 @@ or zero-input data.
 The chart's X range, temporal aggregation, source timestamps, evidence, and canonical
 accounting are unchanged.
 
+## Scroll responsiveness follow-up
+
+After the fixed-scale change, scrolling the dense timeline was reported to drop to
+1–2 FPS. The viewport path now prepares a timestamp-sorted point index once per
+timeline load, queries only the visible slice with binary search, and uses binary
+search for event counts. The Y-axis scale is cached for the unchanged navigation
+domain and chart width. The viewport controls and chart are isolated from the
+unchanged evidence list, and slider drags no longer update both date-picker states
+on every tick.
+
+The synthetic Debug benchmark uses 20,000 points and projects 60 viewport updates
+in approximately 86 ms total (about 1.4 ms per projection). A local UI smoke test
+dragged the enabled slider on the reported dense-data shape (2,545 requests); the
+range and chart updated. This validates the expensive projection path and basic
+interaction, but is not a measured FPS result: Instruments/frame-time capture was
+not available in this run, and the disk was nearly full, so a Release benchmark was
+not completed. The PR's CI run is the next build validation for this follow-up.
+
 ## Verification
 
 - Targeted timeline suites: 26 tests passed before the render fixture was added.
@@ -22,6 +40,11 @@ accounting are unchanged.
   invariance, viewport bucket coverage, empty/unknown/zero input, and fit/zoom renders.
 - `make lint lint-architecture`: passed; 0 SwiftLint violations and 0 FSD errors/warnings.
 - `git diff --check`: passed.
+- `RequestTimelineDensityTests` and `TimelineYAxisScaleTests`: 24/24 passed after
+  the responsiveness follow-up. The dense 20,000-point/60-update benchmark is
+  included in the targeted test suite.
+- `make lint lint-architecture`: passed after the responsiveness follow-up; 0
+  SwiftLint violations and 0 FSD errors/warnings.
 - The production `RequestTimelinePlot` was rendered and visually checked with a
   synthetic session in dark/system and light/monochrome, both fit and zoomed. The Y
   tick labels remain the same. Local `.xcresult` evidence is under

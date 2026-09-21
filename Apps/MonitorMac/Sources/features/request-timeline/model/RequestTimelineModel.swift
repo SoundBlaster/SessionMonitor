@@ -39,17 +39,12 @@ struct RequestTimelineAxis: Equatable {
     }
 
     init?(
-        points: [RequestTimelinePoint], query: UsageQuery,
-        mode: RequestTimelineRangeMode, recentWindow: TimeInterval = 15 * 60,
+        dataBounds: DateInterval,
+        query: UsageQuery,
+        mode: RequestTimelineRangeMode,
+        recentWindow: TimeInterval = 15 * 60,
         customDomain: DateInterval? = nil
     ) {
-        guard
-            let first = points.map(\.timestamp).min(),
-            let last = points.map(\.timestamp).max()
-        else {
-            return nil
-        }
-        let dataBounds = DateInterval(start: first, end: last)
         let dataDomain = Self.padded(dataBounds)
         let queryStart = query.since ?? dataDomain.start
         let queryEnd = query.until ?? dataDomain.end
@@ -76,6 +71,16 @@ struct RequestTimelineAxis: Equatable {
         self.visibleDomain = visibleDomain
         self.mode = mode
         queryHasBound = query.since != nil || query.until != nil
+    }
+
+    init?(
+        points: [RequestTimelinePoint], query: UsageQuery,
+        mode: RequestTimelineRangeMode, recentWindow: TimeInterval = 15 * 60,
+        customDomain: DateInterval? = nil
+    ) {
+        guard let first = points.map(\.timestamp).min(), let last = points.map(\.timestamp).max() else { return nil }
+        self.init(dataBounds: DateInterval(start: first, end: last), query: query, mode: mode,
+                  recentWindow: recentWindow, customDomain: customDomain)
     }
 
     func description(timeZone: TimeZone) -> String {
@@ -126,17 +131,28 @@ func timelineAccessibilityDateLabel(_ date: Date, duration: TimeInterval, timeZo
 @Observable
 final class RequestTimelineModel {
     private(set) var timeline: RequestTimeline?
+    private(set) var pointIndex: TimelinePointIndex?
     private(set) var isLoading = false
     private(set) var errorMessage: String?
     // A broad query must not manufacture empty chart canvas; Full query remains explicit.
     private(set) var customDomain: DateInterval?
     private(set) var rangeError: String?
     private(set) var rangeMode: RequestTimelineRangeMode = .fitToData
+    @ObservationIgnored private var yAxisScaleCache: [TimelineYAxisScale.CacheKey: TimelineYAxisScale] = [:]
 
     var axis: RequestTimelineAxis? {
-        guard let timeline else { return nil }
-        return RequestTimelineAxis(points: timeline.points, query: timeline.query, mode: rangeMode,
+        guard let timeline, let dataBounds = pointIndex?.dataBounds else { return nil }
+        return RequestTimelineAxis(dataBounds: dataBounds, query: timeline.query, mode: rangeMode,
                                    customDomain: customDomain)
+    }
+
+    func yAxisScale(for axis: RequestTimelineAxis, width: Double) -> TimelineYAxisScale? {
+        guard let pointIndex else { return nil }
+        let key = TimelineYAxisScale.CacheKey(navigationDomain: axis.navigationDomain, width: width)
+        if let cached = yAxisScaleCache[key] { return cached }
+        let scale = TimelineYAxisScale(index: pointIndex, navigationDomain: axis.navigationDomain, width: width)
+        yAxisScaleCache[key] = scale
+        return scale
     }
 
     var displayTimeZone: TimeZone {
@@ -163,6 +179,8 @@ final class RequestTimelineModel {
                 rangeError = nil
             }
             timeline = value
+            pointIndex = TimelinePointIndex(points: value.points)
+            yAxisScaleCache.removeAll(keepingCapacity: true)
         } catch {
             errorMessage = "Could not load request timeline. \(error.localizedDescription)"
         }
@@ -222,6 +240,8 @@ final class RequestTimelineModel {
 
     func reset() {
         timeline = nil
+        pointIndex = nil
+        yAxisScaleCache.removeAll(keepingCapacity: true)
         isLoading = false
         errorMessage = nil
         rangeMode = .fitToData

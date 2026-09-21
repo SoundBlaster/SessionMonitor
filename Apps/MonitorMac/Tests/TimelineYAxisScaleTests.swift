@@ -19,25 +19,19 @@ final class TimelineYAxisScaleTests: XCTestCase {
         await model.load(sessionID: timeline.sessionID, query: query, source: TimelineSource(value: timeline))
 
         let initialAxis = try XCTUnwrap(model.axis)
-        let initialScale = TimelineYAxisScale(
-            points: points, navigationDomain: initialAxis.navigationDomain, width: 560
-        )
+        let initialScale = try XCTUnwrap(model.yAxisScale(for: initialAxis, width: 560))
         XCTAssertGreaterThan(initialScale.maximumBucketTotal, 900_000)
 
         model.zoom(by: 0.5)
         let zoomedAxis = try XCTUnwrap(model.axis)
         XCTAssertFalse(zoomedAxis.visibleDomain.contains(date(9_500)))
-        let zoomedScale = TimelineYAxisScale(
-            points: points, navigationDomain: zoomedAxis.navigationDomain, width: 560
-        )
+        let zoomedScale = try XCTUnwrap(model.yAxisScale(for: zoomedAxis, width: 560))
         XCTAssertEqual(zoomedScale, initialScale)
 
         model.pan(by: 0.5)
         let pannedAxis = try XCTUnwrap(model.axis)
         XCTAssertTrue(pannedAxis.visibleDomain.contains(date(9_500)))
-        let pannedScale = TimelineYAxisScale(
-            points: points, navigationDomain: pannedAxis.navigationDomain, width: 560
-        )
+        let pannedScale = try XCTUnwrap(model.yAxisScale(for: pannedAxis, width: 560))
         XCTAssertEqual(pannedScale, initialScale)
     }
 
@@ -107,8 +101,11 @@ final class TimelineYAxisScaleTests: XCTestCase {
         ]
 
         for configuration in configurations {
-            let view = RequestTimelinePlot(points: points, axis: configuration.axis, timeZone: .gmt,
-                                           width: 560, palette: configuration.palette)
+            let pointIndex = TimelinePointIndex(points: points)
+            let scale = TimelineYAxisScale(index: pointIndex,
+                                           navigationDomain: configuration.axis.navigationDomain, width: 560)
+            let view = RequestTimelinePlot(pointIndex: pointIndex, axis: configuration.axis, timeZone: .gmt,
+                                           width: 560, palette: configuration.palette, yAxisScale: scale)
                 .frame(width: 560)
                 .background(configuration.colorScheme == .dark ? Color.black : Color.white)
                 .environment(\.colorScheme, configuration.colorScheme)

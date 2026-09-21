@@ -37,11 +37,15 @@ struct TimelineAggregation {
     var unknownRequestCount: Int { buckets.reduce(0) { $0 + $1.unknownRequestCount } }
 
     init(points: [RequestTimelinePoint], domain: DateInterval, width: Double) {
+        self.init(index: TimelinePointIndex(points: points), domain: domain, width: width)
+    }
+
+    init(index: TimelinePointIndex, domain: DateInterval, width: Double) {
         let bucketCapacity = Self.bucketCapacity(for: width)
         capacity = bucketCapacity
         interval = Self.bucketInterval(for: domain, capacity: bucketCapacity)
         var grouped: [Int: TimelineBucket] = [:]
-        for point in points where point.timestamp >= domain.start && point.timestamp <= domain.end {
+        for point in index.points(in: domain) {
             let slot = min(capacity - 1, Int(point.timestamp.timeIntervalSince(domain.start) / interval))
             let start = domain.start.addingTimeInterval(Double(slot) * interval)
             var bucket = grouped[slot] ?? TimelineBucket(
