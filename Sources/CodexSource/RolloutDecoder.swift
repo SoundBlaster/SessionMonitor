@@ -83,6 +83,8 @@ private struct DecoderContext: Codable {
     var nativeTurns = Set<String>()
     var models: [String: String] = [:]
     var efforts: [String: String] = [:]
+    var toolNamesByCallID: [String: String] = [:]
+    var toolTurnIDsByCallID: [String: String] = [:]
     var rootSessionID: String?
     var parentSessionID: String?
     var agentNickname: String?
@@ -102,6 +104,8 @@ private struct DecoderContext: Codable {
         nativeTurns = try values.decodeIfPresent(Set<String>.self, forKey: .nativeTurns) ?? []
         models = try values.decodeIfPresent([String: String].self, forKey: .models) ?? [:]
         efforts = try values.decodeIfPresent([String: String].self, forKey: .efforts) ?? [:]
+        toolNamesByCallID = try values.decodeIfPresent([String: String].self, forKey: .toolNamesByCallID) ?? [:]
+        toolTurnIDsByCallID = try values.decodeIfPresent([String: String].self, forKey: .toolTurnIDsByCallID) ?? [:]
         rootSessionID = try values.decodeIfPresent(String.self, forKey: .rootSessionID)
         parentSessionID = try values.decodeIfPresent(String.self, forKey: .parentSessionID)
         agentNickname = try values.decodeIfPresent(String.self, forKey: .agentNickname)
@@ -115,7 +119,8 @@ private struct DecoderContext: Codable {
 
     private enum CodingKeys: String, CodingKey {
         case sessionID, created, nativeTurns, models, efforts, rootSessionID, parentSessionID,
-             agentNickname, agentPath, originator, clientVersion, modelProvider, threadSource, legacyBaseline
+             agentNickname, agentPath, originator, clientVersion, modelProvider, threadSource,
+             legacyBaseline, toolNamesByCallID, toolTurnIDsByCallID
     }
 }
 
@@ -136,6 +141,7 @@ private struct Payload: Decodable {
     let threadID: String?
     let turnID: String?
     let responseID: String?
+    let callID: String?
     let startedAt: Int64?
     let model: String?
     let effort: String?
@@ -166,6 +172,7 @@ private struct Payload: Decodable {
         case threadID = "thread_id"
         case turnID = "turn_id"
         case responseID = "response_id"
+        case callID = "call_id"
         case startedAt = "started_at"
         case sessionID = "session_id"
         case rootSessionID = "root_session_id"
@@ -424,6 +431,8 @@ private struct DecodeState {
             context.nativeTurns.removeAll()
             context.models.removeAll()
             context.efforts.removeAll()
+            context.toolNamesByCallID.removeAll()
+            context.toolTurnIDsByCallID.removeAll()
             context.rootSessionID = payload.rootSessionID ?? payload.sessionID
             context.parentSessionID = payload.parentThreadID
             context.agentNickname = payload.agentNickname
@@ -515,18 +524,25 @@ private struct DecodeState {
         let kind: TimelineEventKind?
         switch payload.type {
         case "message" where payload.role == "user": kind = .humanTurn
-        case "function_call", "custom_tool_call", "custom_tool_call_output": kind = .tool
+        case "function_call", "custom_tool_call", "function_call_output", "custom_tool_call_output": kind = .tool
         case .some: kind = .unknown
         case .none: kind = nil
         }
         guard let kind, let sessionID = context.sessionID, let date = try? parseDate(timestamp) else { return }
-        let classification = kind == .tool
-            ? ActivityToolClass.classify(toolName: payload.name)
-            : nil
-        let turnID = payload.resolvedTurnID
+        let turnID = payload.resolvedTurnID ?? payload.callID.flatMap { context.toolTurnIDsByCallID[$0] }
+        let toolName = resolvedToolName(payload)
+        if ["function_call", "custom_tool_call"].contains(payload.type ?? ""), let callID = payload.callID {
+            if let name = payload.name { context.toolNamesByCallID[callID] = name }
+            if let turnID { context.toolTurnIDsByCallID[callID] = turnID }
+        }
+        let classification = kind == .tool ? ActivityToolClass.classify(toolName: toolName) : nil
         appendEvent(sessionID: sessionID, turnID: turnID, timestamp: date, line: line,
-                    kind: kind, evidence: payload.type ?? "response_item", toolName: payload.name,
+                    kind: kind, evidence: payload.type ?? "response_item", toolName: toolName,
                     model: turnID.flatMap { context.models[$0] }, activityClass: classification)
+    }
+
+    private func resolvedToolName(_ payload: Payload) -> String? {
+        payload.callID.flatMap { context.toolNamesByCallID[$0] } ?? payload.name
     }
 
     mutating func appendMessageEvent(_ payload: Payload, timestamp: String, line: Int) {

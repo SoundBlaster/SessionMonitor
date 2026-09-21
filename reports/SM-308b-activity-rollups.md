@@ -11,6 +11,8 @@ Tool classes use exact observed names (`exec_command`, `wait`, `write_stdin`,
 `wait_threads`, and `clock.sleep`/`clock__sleep`). Unknown names and unknown event versions
 remain `unknown` with their source evidence. Call and result/output source events remain
 separate; their counts are explicitly source-event counts, not inferred invocation counts.
+Function and custom tool outputs are joined to their call by `call_id`; name and turn/model
+attribution survive incremental checkpoints. An output with no matching call remains unknown.
 
 An additive SQLite migration stores event name, model, and activity class, and conservatively
 backfills pre-existing tool events as unknown. Activity queries do not mutate canonical
@@ -28,7 +30,8 @@ records or totals.
 
 Review follow-up coverage adds preservation of all optional canonical counters, decoding a
 nested tool-event turn ID for model attribution, and deduplication of byte-identical mirrored
-source events. Updated local checks are recorded on the PR revision after those fixes.
+source events. A further review follow-up covers `function_call_output` and
+`custom_tool_call_output` correlation by `call_id`, including checkpoint continuation.
 
 ## Scope and limitations
 

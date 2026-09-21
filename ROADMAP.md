@@ -8,7 +8,8 @@
 
 Текущая задача — **SM-308b**: activity rollups и явная классификация tool events.
 Статус: PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41) открыт (2026-09-21);
-локальные проверки и GitHub CI прошли на реализации `4366291`, review threads закрыты.
+локальные проверки прошли, review threads закрыты; устранено дополнительное замечание review
+о корреляции output records по `call_id`, CI новой ревизии ожидается.
 SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
 merge `7557a2a` (2026-09-21); пользователь проверил интерактивную прокрутку и подтвердил,
 что анимация timeline работает корректно.
@@ -377,9 +378,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   merge `4058a83` (2026-09-20). Multi-account roadmap доставлен через
   [PR #31](https://github.com/SoundBlaster/SessionMonitor/pull/31).
   **SM-308b в PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41) (2026-09-21):**
-  activity rollups и точная классификация tool events; локальные checks и GitHub CI прошли
-  на реализации `4366291`, review threads закрыты. Неизвестные tool/version сохраняются как
-  unknown с evidence; mirrored events дедуплицируются, canonical token totals не меняются.
+  activity rollups и точная классификация tool events; локальные checks прошли, review threads
+  закрыты. Tool output records сопоставляются с вызовом по `call_id`, неизвестные tool/version
+  сохраняются как unknown с evidence; mirrored events дедуплицируются, canonical token totals
+  не меняются. GitHub CI новой ревизии ожидается.
   [Отчёт](reports/SM-308b-activity-rollups.md).
   Версионированный parser/store и read-only `codex-monitor quota` покрыты синтетическими
   fixtures и `make check-core`; детали и ограничения — в
