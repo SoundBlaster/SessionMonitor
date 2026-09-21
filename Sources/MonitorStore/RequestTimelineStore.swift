@@ -47,7 +47,7 @@ extension UsageStore {
                     )
                 }
             let eventRows = try Row.fetchAll(database, sql: """
-                SELECT line, turn, timestamp, kind, evidence
+                SELECT line, turn, timestamp, kind, evidence, tool_name, model, activity_class
                 FROM source_timeline_events
                 WHERE session = ? AND \(predicate)
                 ORDER BY timestamp ASC, line ASC
@@ -58,7 +58,9 @@ extension UsageStore {
                 return RequestTimelinePoint(
                     id: "event:\(line):\(kind.rawValue)", sessionID: sessionID,
                     timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: kind,
-                    turnID: row["turn"], sourceLine: line, evidence: row["evidence"]
+                    turnID: row["turn"], sourceLine: line, evidence: row["evidence"],
+                    toolName: row["tool_name"], model: row["model"],
+                    activityClass: (row["activity_class"] as String?).flatMap(ActivityToolClass.init(rawValue:))
                 )
             })
             points.sort {

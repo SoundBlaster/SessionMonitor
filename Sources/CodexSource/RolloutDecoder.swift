@@ -83,6 +83,8 @@ private struct DecoderContext: Codable {
     var nativeTurns = Set<String>()
     var models: [String: String] = [:]
     var efforts: [String: String] = [:]
+    var toolNamesByCallID: [String: String] = [:]
+    var toolTurnIDsByCallID: [String: String] = [:]
     var rootSessionID: String?
     var parentSessionID: String?
     var agentNickname: String?
@@ -102,6 +104,8 @@ private struct DecoderContext: Codable {
         nativeTurns = try values.decodeIfPresent(Set<String>.self, forKey: .nativeTurns) ?? []
         models = try values.decodeIfPresent([String: String].self, forKey: .models) ?? [:]
         efforts = try values.decodeIfPresent([String: String].self, forKey: .efforts) ?? [:]
+        toolNamesByCallID = try values.decodeIfPresent([String: String].self, forKey: .toolNamesByCallID) ?? [:]
+        toolTurnIDsByCallID = try values.decodeIfPresent([String: String].self, forKey: .toolTurnIDsByCallID) ?? [:]
         rootSessionID = try values.decodeIfPresent(String.self, forKey: .rootSessionID)
         parentSessionID = try values.decodeIfPresent(String.self, forKey: .parentSessionID)
         agentNickname = try values.decodeIfPresent(String.self, forKey: .agentNickname)
@@ -115,7 +119,8 @@ private struct DecoderContext: Codable {
 
     private enum CodingKeys: String, CodingKey {
         case sessionID, created, nativeTurns, models, efforts, rootSessionID, parentSessionID,
-             agentNickname, agentPath, originator, clientVersion, modelProvider, threadSource, legacyBaseline
+             agentNickname, agentPath, originator, clientVersion, modelProvider, threadSource,
+             legacyBaseline, toolNamesByCallID, toolTurnIDsByCallID
     }
 }
 
@@ -136,6 +141,7 @@ private struct Payload: Decodable {
     let threadID: String?
     let turnID: String?
     let responseID: String?
+    let callID: String?
     let startedAt: Int64?
     let model: String?
     let effort: String?
@@ -155,12 +161,18 @@ private struct Payload: Decodable {
     let turnKind: String?
     let continuationKind: String?
     let eventKind: String?
+    let internalChatMessageMetadataPassthrough: MessageMetadataPassthrough?
+
+    var resolvedTurnID: String? {
+        turnID ?? internalChatMessageMetadataPassthrough?.turnID
+    }
 
     enum CodingKeys: String, CodingKey {
         case type, id, timestamp, model, effort, usage, info, originator, role, name
         case threadID = "thread_id"
         case turnID = "turn_id"
         case responseID = "response_id"
+        case callID = "call_id"
         case startedAt = "started_at"
         case sessionID = "session_id"
         case rootSessionID = "root_session_id"
@@ -173,6 +185,15 @@ private struct Payload: Decodable {
         case turnKind = "turn_kind"
         case continuationKind = "continuation_kind"
         case eventKind = "event_kind"
+        case internalChatMessageMetadataPassthrough = "internal_chat_message_metadata_passthrough"
+    }
+}
+
+private struct MessageMetadataPassthrough: Decodable {
+    let turnID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case turnID = "turn_id"
     }
 }
 
@@ -410,6 +431,8 @@ private struct DecodeState {
             context.nativeTurns.removeAll()
             context.models.removeAll()
             context.efforts.removeAll()
+            context.toolNamesByCallID.removeAll()
+            context.toolTurnIDsByCallID.removeAll()
             context.rootSessionID = payload.rootSessionID ?? payload.sessionID
             context.parentSessionID = payload.parentThreadID
             context.agentNickname = payload.agentNickname
@@ -501,13 +524,25 @@ private struct DecodeState {
         let kind: TimelineEventKind?
         switch payload.type {
         case "message" where payload.role == "user": kind = .humanTurn
-        case "function_call", "custom_tool_call", "custom_tool_call_output": kind = .tool
+        case "function_call", "custom_tool_call", "function_call_output", "custom_tool_call_output": kind = .tool
         case .some: kind = .unknown
         case .none: kind = nil
         }
         guard let kind, let sessionID = context.sessionID, let date = try? parseDate(timestamp) else { return }
-        appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
-                    kind: kind, evidence: payload.type ?? "response_item")
+        let turnID = payload.resolvedTurnID ?? payload.callID.flatMap { context.toolTurnIDsByCallID[$0] }
+        let toolName = resolvedToolName(payload)
+        if ["function_call", "custom_tool_call"].contains(payload.type ?? ""), let callID = payload.callID {
+            if let name = payload.name { context.toolNamesByCallID[callID] = name }
+            if let turnID { context.toolTurnIDsByCallID[callID] = turnID }
+        }
+        let classification = kind == .tool ? ActivityToolClass.classify(toolName: toolName) : nil
+        appendEvent(sessionID: sessionID, turnID: turnID, timestamp: date, line: line,
+                    kind: kind, evidence: payload.type ?? "response_item", toolName: toolName,
+                    model: turnID.flatMap { context.models[$0] }, activityClass: classification)
+    }
+
+    private func resolvedToolName(_ payload: Payload) -> String? {
+        payload.callID.flatMap { context.toolNamesByCallID[$0] } ?? payload.name
     }
 
     mutating func appendMessageEvent(_ payload: Payload, timestamp: String, line: Int) {
@@ -517,56 +552,46 @@ private struct DecodeState {
         guard let kind else {
             guard rawType != nil, rawType != "task_started", rawType != "token_count",
                   rawType != "item_completed", rawType != "task_complete" else { return }
-            appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
-                        kind: .unknown, evidence: rawType ?? "event_msg")
+            let turnID = payload.resolvedTurnID
+            appendEvent(sessionID: sessionID, turnID: turnID, timestamp: date, line: line,
+                        kind: .unknown, evidence: rawType ?? "event_msg", toolName: payload.name,
+                        model: turnID.flatMap { context.models[$0] })
             return
         }
-        appendEvent(sessionID: sessionID, turnID: payload.turnID, timestamp: date, line: line,
-                    kind: kind, evidence: rawType ?? "event_msg")
-    }
-
-    func explicitTurnKind(_ payload: Payload) -> TimelineEventKind? {
-        let value = (payload.turnKind ?? payload.continuationKind)?.lowercased()
-        switch value {
-        case "human", "user", "human_turn", "user_turn": return .humanTurn
-        case "goal", "goal_turn", "auto_continuation", "auto_continuation_turn": return .goalTurn
-        default: return nil
+        let classification: ActivityToolClass?
+        if kind == .tool {
+            classification = ActivityToolClass.classify(toolName: payload.name)
+        } else if kind == .wait {
+            classification = .wait
+        } else if kind == .goalTurn {
+            classification = .goalContinuation
+        } else {
+            classification = nil
         }
-    }
-
-    func explicitMessageKind(_ value: String?) -> TimelineEventKind? {
-        guard let value else { return nil }
-        let normalized = value.lowercased()
-        if ["compacted", "compaction", "context_compacted", "compaction_started"].contains(normalized) {
-            return .compaction
-        }
-        if normalized.hasPrefix("tool_") || ["tool_call", "tool_started", "tool_completed"].contains(normalized) {
-            return .tool
-        }
-        if normalized.hasPrefix("wait") || normalized.hasPrefix("waiting") {
-            return .wait
-        }
-        if ["human_turn_started", "user_turn_started"].contains(normalized) { return .humanTurn }
-        let goalTypes = ["goal_started", "goal_turn_started", "auto_continuation_started", "continuation_started"]
-        if goalTypes.contains(normalized) {
-            return .goalTurn
-        }
-        return nil
+        let turnID = payload.resolvedTurnID
+        appendEvent(sessionID: sessionID, turnID: turnID, timestamp: date, line: line,
+                    kind: kind, evidence: rawType ?? "event_msg", toolName: payload.name,
+                    model: turnID.flatMap { context.models[$0] }, activityClass: classification)
     }
 
     mutating func appendEvent(sessionID: String?, turnID: String?, timestamp: String, line: Int,
-                              kind: TimelineEventKind, evidence: String) {
+                              kind: TimelineEventKind, evidence: String, toolName: String? = nil,
+                              model: String? = nil, activityClass: ActivityToolClass? = nil) {
         guard let date = try? parseDate(timestamp) else { return }
         appendEvent(sessionID: sessionID, turnID: turnID, timestamp: date, line: line,
-                    kind: kind, evidence: evidence)
+                    kind: kind, evidence: evidence, toolName: toolName, model: model,
+                    activityClass: activityClass)
     }
 
     mutating func appendEvent(sessionID: String?, turnID: String?, timestamp: Date, line: Int,
-                              kind: TimelineEventKind, evidence: String) {
+                              kind: TimelineEventKind, evidence: String, toolName: String? = nil,
+                              model: String? = nil, activityClass: ActivityToolClass? = nil) {
         guard let sessionID else { return }
         result.timelineEvents.append(TimelineSourceEvent(sessionID: sessionID, turnID: turnID,
                                                          timestamp: timestamp, sourceLine: line,
-                                                         kind: kind, evidence: evidence))
+                                                         kind: kind, evidence: evidence,
+                                                         toolName: toolName, model: model,
+                                                         activityClass: activityClass))
     }
 
     mutating func append(_ payload: Payload, timestamp: String, line: Int) throws {
@@ -621,6 +646,29 @@ private struct DecodeState {
             relationship: relationship
         )
     }
+}
+
+private func explicitTurnKind(_ payload: Payload) -> TimelineEventKind? {
+    let value = (payload.turnKind ?? payload.continuationKind)?.lowercased()
+    switch value {
+    case "human", "user", "human_turn", "user_turn": return .humanTurn
+    case "goal", "goal_turn", "auto_continuation", "auto_continuation_turn": return .goalTurn
+    default: return nil
+    }
+}
+
+private func explicitMessageKind(_ value: String?) -> TimelineEventKind? {
+    guard let value else { return nil }
+    let normalized = value.lowercased()
+    if ["compacted", "compaction", "context_compacted", "compaction_started"].contains(normalized) {
+        return .compaction
+    }
+    if ["tool_call", "tool_started", "tool_completed"].contains(normalized) { return .tool }
+    if ["wait", "wait_started", "wait_completed"].contains(normalized) { return .wait }
+    if ["human_turn_started", "user_turn_started"].contains(normalized) { return .humanTurn }
+    let goalTypes = ["goal_started", "goal_turn_started", "auto_continuation_started", "continuation_started"]
+    if goalTypes.contains(normalized) { return .goalTurn }
+    return nil
 }
 
 private extension DecodeState {

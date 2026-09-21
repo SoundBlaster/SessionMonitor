@@ -4,6 +4,85 @@ import MonitorCore
 import MonitorRuntime
 
 extension MonitorCommand {
+    struct Activity: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Show auxiliary response and classified tool activity for an absolute period."
+        )
+        @OptionGroup var options: DatabaseOptions
+        @OptionGroup var queryOptions: UsageQueryOptions
+        @Option(help: "Restrict to one exact session ID.") var session: String?
+        @Option(help: "Include one root session and its explicitly related subagents.") var rootSession: String?
+        @Flag(help: "Emit stable structured JSON.") var json = false
+
+        mutating func run() async throws {
+            guard session == nil || rootSession == nil else {
+                throw ValidationError("Use only one of --session or --root-session.")
+            }
+            let monitor = try options.runtime()
+            let result = try await monitor.activity(
+                query: queryOptions.query(), sessionID: session, rootSessionID: rootSession
+            )
+            if json {
+                try printJSON(result)
+                return
+            }
+            printHumanReadable(result)
+        }
+
+        private func printHumanReadable(_ result: ActivityRollupReport) {
+            print("Canonical responses: \(result.totals.requests)")
+            print(
+                "Input: \(result.totals.inputTokens); cached: \(result.totals.cachedInputTokens); "
+                    + "output: \(result.totals.outputTokens)"
+            )
+            let uncached: String = result.totals.unknownCacheRequests == 0
+                ? String(result.totals.inputTokens - result.totals.cachedInputTokens)
+                : "unknown for \(result.totals.unknownCacheRequests) response(s)"
+            print("Uncached input: \(uncached)")
+            let hitRatio = result.totals.cacheHitRatio.map { String(format: "%.2f%%", $0 * 100) } ?? "unknown"
+            print("Cache hit: \(hitRatio)")
+            for item in result.usageByModel {
+                let description = usageDescription(
+                    ActivityUsageLine(item)
+                )
+                print("Model \(item.model): \(description)")
+            }
+            for item in result.usageByThreadAndModel {
+                let description = usageDescription(
+                    ActivityUsageLine(item)
+                )
+                print("Thread \(item.sessionID) / \(item.model): \(description)")
+            }
+            printToolEvents(result)
+        }
+
+        private func usageDescription(_ usage: ActivityUsageLine) -> String {
+            let uncached = usage.uncached.map(String.init) ?? "unknown"
+            let cache = usage.ratio.map { String(format: "%.2f%%", $0 * 100) } ?? "unknown"
+            return "responses=\(usage.responses) input=\(usage.input) cached=\(usage.cached) uncached=\(uncached) "
+                + "output=\(usage.output) cache=\(cache)"
+        }
+
+        private func printToolEvents(_ result: ActivityRollupReport) {
+            guard result.coverage.state == .observed else {
+                let reason = result.coverage.unknownReason ?? "No explicit activity events were observed."
+                print("Tool event coverage: unknown. \(reason)")
+                return
+            }
+            print("Observed activity tool events: \(result.coverage.observedToolEvents)")
+            print("Unknown classifications: \(result.coverage.unknownClassEvents)")
+            for event in result.toolEvents {
+                let tool = event.toolName ?? "unknown tool name"
+                let model = event.model ?? "unknown"
+                let lines = event.sourceLines.map(String.init).joined(separator: ",")
+                print(
+                    "  \(event.classification.rawValue): \(event.count) session=\(event.sessionID) "
+                        + "model=\(model) tool=\(tool) evidence=\(event.evidence) lines=\(lines)"
+                )
+            }
+        }
+    }
+
     struct Sessions: AsyncParsableCommand {
         static let configuration = CommandConfiguration(abstract: "List imported sessions without changing accounting.")
         @OptionGroup var options: DatabaseOptions
@@ -201,5 +280,32 @@ extension MonitorCommand {
         private static func iso8601(_ date: Date) -> String {
             ISO8601DateFormatter().string(from: date)
         }
+    }
+}
+
+private struct ActivityUsageLine {
+    let responses: Int64
+    let input: Int64
+    let cached: Int64
+    let uncached: Int64?
+    let output: Int64
+    let ratio: Double?
+
+    init(_ usage: ActivityUsageRollup) {
+        responses = usage.responses
+        input = usage.inputTokens
+        cached = usage.cachedInputTokens
+        uncached = usage.uncachedInputTokens
+        output = usage.outputTokens
+        ratio = usage.cacheHitRatio
+    }
+
+    init(_ usage: ActivityModelRollup) {
+        responses = usage.responses
+        input = usage.inputTokens
+        cached = usage.cachedInputTokens
+        uncached = usage.uncachedInputTokens
+        output = usage.outputTokens
+        ratio = usage.cacheHitRatio
     }
 }
