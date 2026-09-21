@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-314 — в работе (2026-09-21), ветка `fix/sm-314-stable-timeline-y-scale`:** закрепить вертикальную шкалу request timeline по полным данным выбранной сессии, чтобы scroll/zoom не меняли Y-scale. После этого приоритет возвращается к SM-308b.
+**SM-314 — PR [#36](https://github.com/SoundBlaster/SessionMonitor/pull/36) открыт (2026-09-21), CI ожидает; ветка `fix/sm-314-stable-timeline-y-scale`:** закрепить вертикальную шкалу request timeline по полным данным выбранной сессии, чтобы scroll/zoom не меняли Y-scale. После завершения приоритет возвращается к SM-308b.
 
 SM-313 доставлена через [PR #33](https://github.com/SoundBlaster/SessionMonitor/pull/33), merge `e32691d` (2026-09-20): общий визуальный стиль для cache-hit chart и request timeline.
 
@@ -472,7 +472,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   [Отчёт](reports/SM-313-shared-chart-style.md).
 
 - [ ] **SM-314** — Зафиксировать вертикальную шкалу request timeline на всём диапазоне сессии.
-  **Статус: в работе (2026-09-21), ветка `fix/sm-314-stable-timeline-y-scale`.** Сейчас Swift Charts
+  **Статус: PR [#36](https://github.com/SoundBlaster/SessionMonitor/pull/36) открыт, CI ожидает (2026-09-21), ветка `fix/sm-314-stable-timeline-y-scale`.** Сейчас Swift Charts
   подбирает Y-domain по видимым buckets, поэтому при scroll/zoom высота одинаковых значений
   меняется. Вычислять Y-domain по всем данным выбранной сессии и неизменной navigation bounds,
   не пересчитывая его по видимому окну. Учитывать максимально возможную длительность bucket,
@@ -480,7 +480,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   accounting и evidence. Готово, когда off-screen peak входит в шкалу, Y-domain совпадает при
   zoom/pan/range changes, все отображённые buckets помещаются в domain, а empty/zero/unknown
   data и light/dark renders остаются корректными. Добавить pure regression tests и проверить
-  реальный native chart. После SM-314 продолжить с SM-308b.
+  production SwiftUI chart via ImageRenderer в light/dark при fit/zoom; native window automation
+  не запускалась. После SM-314 продолжить с SM-308b.
+  [Отчёт](reports/SM-314-request-timeline-fixed-y-scale.md).
 
 ## 4. Системные macOS widgets
 
