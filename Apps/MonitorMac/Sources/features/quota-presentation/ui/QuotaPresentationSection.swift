@@ -46,7 +46,7 @@ private struct QuotaCoverageSummary: View {
             LabeledContent("Coverage", value: report.coverage.state.rawValue)
             LabeledContent("Windows", value: report.coverage.supportedWindowObservations.formatted())
             if let latest = report.coverage.latestObservedAt {
-                LabeledContent("Latest observation", value: latest.formatted(date: .abbreviated, time: .shortened))
+                LabeledContent("Latest observation", value: latest.formatted(dateFormat))
             }
             if let reason = report.coverage.unknownReason {
                 LabeledContent("Unknown reason", value: reason.rawValue)
@@ -54,6 +54,12 @@ private struct QuotaCoverageSummary: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Quota telemetry coverage")
+    }
+
+    private var dateFormat: Date.FormatStyle {
+        var format = Date.FormatStyle(date: .abbreviated, time: .shortened)
+        format.timeZone = TimeZone(identifier: report.query.timeZoneIdentifier) ?? .gmt
+        return format
     }
 }
 

@@ -126,6 +126,17 @@ final class SessionExplorerModel {
         }
     }
 
+    /// Returns the delay until the current quota projection crosses its freshness boundary.
+    /// Once the boundary has passed, the database watermark or the next explicit refresh
+    /// is responsible for loading newer observations.
+    func quotaFreshnessRefreshDelay(now: Date = Date()) -> TimeInterval? {
+        guard let report = quotaPresentationReport,
+              let latest = report.coverage.latestObservedAt else { return nil }
+        let boundary = latest.addingTimeInterval(report.freshnessThresholdSeconds)
+        let delay = boundary.timeIntervalSince(now)
+        return delay > 0 ? delay : nil
+    }
+
     func loadIfNeeded(query requestedQuery: UsageQuery? = nil) async {
         let requestedQuery = requestedQuery ?? query
         activate(requestedQuery)
