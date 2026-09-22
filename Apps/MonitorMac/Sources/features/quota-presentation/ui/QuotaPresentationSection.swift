@@ -60,6 +60,7 @@ private struct QuotaCoverageSummary: View {
 private struct QuotaWindowRow: View {
     let window: QuotaWindowPresentation
     let timeZoneIdentifier: String
+    @State private var isShowingResetDetails = false
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -76,8 +77,22 @@ private struct QuotaWindowRow: View {
             LabeledContent("Freshness", value: freshnessLabel)
             LabeledContent("Reset", value: resetValue)
             if window.isResetDiscontinuity {
-                Label("Reset discontinuity", systemImage: "arrow.triangle.2.circlepath")
-                    .foregroundStyle(.orange)
+                Button("Reset discontinuity") {
+                    isShowingResetDetails.toggle()
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.orange.opacity(0.15), in: Capsule())
+                .buttonStyle(.plain)
+                .accessibilityHint("Shows why the reset boundary changed and compares usage before and after it.")
+                .popover(isPresented: $isShowingResetDetails, arrowEdge: .leading) {
+                    ResetDiscontinuityPopover(
+                        transition: window.resetDiscontinuity,
+                        timeZoneIdentifier: timeZoneIdentifier
+                    )
+                }
             }
             if window.isAmbiguous {
                 Label("Conflicting observations at the same timestamp", systemImage: "questionmark.circle")
@@ -120,5 +135,64 @@ private struct QuotaWindowRow: View {
     private var accessibilityLabel: String {
         "\(windowTitle), \(usedValue), remaining \(remainingValue), "
             + "freshness \(freshnessLabel), reset \(resetValue)"
+    }
+}
+
+private struct ResetDiscontinuityPopover: View {
+    let transition: QuotaResetDiscontinuity?
+    let timeZoneIdentifier: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Quota reset changed")
+                .font(.headline)
+            Text("The source reported a new reset boundary for this quota window. "
+                + "Values before and after the boundary are separate quota cycles.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+
+            if let transition {
+                LabeledContent("Usage", value: percentageChange(
+                    from: transition.previousUsedPercent, current: transition.currentUsedPercent
+                ))
+                LabeledContent("Remaining", value: percentageChange(
+                    from: transition.previousRemainingPercent, current: transition.currentRemainingPercent
+                ))
+                LabeledContent("Reset", value: dateChange(
+                    from: transition.previousResetsAt, current: transition.currentResetsAt
+                ))
+                LabeledContent("Observed", value: dateChange(
+                    from: transition.previousObservedAt, current: transition.currentObservedAt
+                ))
+            } else {
+                Text("The source marked a reset discontinuity, but did not provide enough "
+                    + "paired observations to show the transition.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Text("Do not interpret the change as usage during one continuous window.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .frame(width: 320, alignment: .leading)
+    }
+
+    private func percentageChange(from: Double?, current: Double?) -> String {
+        "\(formatPercent(from)) → \(formatPercent(current))"
+    }
+
+    private func formatPercent(_ value: Double?) -> String {
+        value.map { $0.formatted(.number.precision(.fractionLength(1))) + "%" } ?? "Unknown"
+    }
+
+    private func dateChange(from: Date, current: Date) -> String {
+        "\(formatDate(from)) → \(formatDate(current))"
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        var format = Date.FormatStyle(date: .abbreviated, time: .shortened)
+        format.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .gmt
+        return date.formatted(format)
     }
 }

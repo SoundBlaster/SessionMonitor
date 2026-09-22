@@ -63,7 +63,7 @@ public struct QuotaPresentationDecision: DecisionSpec {
             snapshot.windows.map { WindowCandidate(snapshot: snapshot, window: $0) }
         }
         let grouped = Dictionary(grouping: candidates, by: \.key)
-        return grouped.values.compactMap { candidates in
+        return grouped.values.compactMap { candidates -> QuotaWindowPresentation? in
             let ordered = candidates.sorted { lhs, rhs in
                 if lhs.snapshot.timestamp != rhs.snapshot.timestamp {
                     return lhs.snapshot.timestamp < rhs.snapshot.timestamp
@@ -74,9 +74,8 @@ public struct QuotaPresentationDecision: DecisionSpec {
             let latestCandidates = ordered.filter { $0.snapshot.timestamp == latest.snapshot.timestamp }
             let isAmbiguous = Set(latestCandidates.map(\.fingerprint)).count > 1
             let latestReset = isAmbiguous ? nil : latest.window.resetsAt
-            let knownResets = ordered.compactMap { $0.window.resetsAt }
-            let discontinuity = !isAmbiguous && zip(knownResets, knownResets.dropFirst())
-                .contains { previous, next in previous != next }
+            let resetCandidates = ordered.filter { $0.window.resetsAt != nil }
+            let resetDiscontinuity = resetDiscontinuity(for: resetCandidates, isAmbiguous: isAmbiguous)
             let age = context.generatedAt.timeIntervalSince(latest.snapshot.timestamp)
             return QuotaWindowPresentation(
                 id: latest.key.identifier,
@@ -93,7 +92,8 @@ public struct QuotaPresentationDecision: DecisionSpec {
                 resetsAt: latestReset,
                 observedAt: latest.snapshot.timestamp,
                 freshness: freshness(age),
-                isResetDiscontinuity: discontinuity,
+                isResetDiscontinuity: resetDiscontinuity != nil,
+                resetDiscontinuity: resetDiscontinuity,
                 isAmbiguous: isAmbiguous
             )
         }.sorted { lhs, rhs in
@@ -115,6 +115,29 @@ public struct QuotaPresentationDecision: DecisionSpec {
             state = .current
         }
         return QuotaFreshness(state: state, ageSeconds: age)
+    }
+
+    private func resetDiscontinuity(
+        for candidates: [WindowCandidate], isAmbiguous: Bool
+    ) -> QuotaResetDiscontinuity? {
+        guard !isAmbiguous else { return nil }
+        let transitions = Array(zip(candidates, candidates.dropFirst()))
+        guard let transition = transitions.last(where: {
+            $0.0.window.resetsAt != $0.1.window.resetsAt
+        }), let previousReset = transition.0.window.resetsAt,
+              let currentReset = transition.1.window.resetsAt else {
+            return nil
+        }
+        return QuotaResetDiscontinuity(
+            previousObservedAt: transition.0.snapshot.timestamp,
+            previousUsedPercent: transition.0.window.usedPercent,
+            previousRemainingPercent: transition.0.window.remainingPercentDerived,
+            previousResetsAt: previousReset,
+            currentObservedAt: transition.1.snapshot.timestamp,
+            currentUsedPercent: transition.1.window.usedPercent,
+            currentRemainingPercent: transition.1.window.remainingPercentDerived,
+            currentResetsAt: currentReset
+        )
     }
 
     private func windowOrder(_ kind: UsageLimitWindowKind) -> Int {

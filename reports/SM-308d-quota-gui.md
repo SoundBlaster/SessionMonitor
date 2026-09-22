@@ -12,6 +12,11 @@ partial, unsupported, and no-window states remain visible as explanatory UI stat
 Quota telemetry is account/report scoped in this slice: the UI does not attribute a
 window to a session, model, or token total.
 
+Reset discontinuity is rendered as a compact capsule button. Its popover explains that
+the provider changed the reset boundary and compares the previous/current usage,
+remaining percentage, reset timestamp, and observation timestamp. A discontinuity is
+therefore inspectable without treating the transition as continuous quota consumption.
+
 ## Architecture
 
 - `SessionExplorerRuntime` exposes the shared quota projection boundary.

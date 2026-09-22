@@ -17,6 +17,32 @@ public struct QuotaFreshness: Codable, Equatable, Sendable {
     }
 }
 
+public struct QuotaResetDiscontinuity: Codable, Equatable, Sendable {
+    public let previousObservedAt: Date
+    public let previousUsedPercent: Double?
+    public let previousRemainingPercent: Double?
+    public let previousResetsAt: Date
+    public let currentObservedAt: Date
+    public let currentUsedPercent: Double?
+    public let currentRemainingPercent: Double?
+    public let currentResetsAt: Date
+
+    public init(
+        previousObservedAt: Date, previousUsedPercent: Double?, previousRemainingPercent: Double?,
+        previousResetsAt: Date, currentObservedAt: Date, currentUsedPercent: Double?,
+        currentRemainingPercent: Double?, currentResetsAt: Date
+    ) {
+        self.previousObservedAt = previousObservedAt
+        self.previousUsedPercent = previousUsedPercent
+        self.previousRemainingPercent = previousRemainingPercent
+        self.previousResetsAt = previousResetsAt
+        self.currentObservedAt = currentObservedAt
+        self.currentUsedPercent = currentUsedPercent
+        self.currentRemainingPercent = currentRemainingPercent
+        self.currentResetsAt = currentResetsAt
+    }
+}
+
 public struct QuotaWindowPresentation: Codable, Equatable, Identifiable, Sendable {
     public let id: String
     public let scope: UsageLimitScope
@@ -33,6 +59,7 @@ public struct QuotaWindowPresentation: Codable, Equatable, Identifiable, Sendabl
     public let observedAt: Date
     public let freshness: QuotaFreshness
     public let isResetDiscontinuity: Bool
+    public let resetDiscontinuity: QuotaResetDiscontinuity?
     public let isAmbiguous: Bool
 
     public init(
@@ -40,7 +67,8 @@ public struct QuotaWindowPresentation: Codable, Equatable, Identifiable, Sendabl
         limitName: String?, planType: String?, slot: UsageLimitWindowSlot,
         windowKind: UsageLimitWindowKind, windowMinutes: Int64?, usedPercent: Double?,
         remainingPercent: Double?, resetsAt: Date?, observedAt: Date, freshness: QuotaFreshness,
-        isResetDiscontinuity: Bool, isAmbiguous: Bool = false
+        isResetDiscontinuity: Bool, resetDiscontinuity: QuotaResetDiscontinuity? = nil,
+        isAmbiguous: Bool = false
     ) {
         self.id = id
         self.scope = scope
@@ -57,6 +85,7 @@ public struct QuotaWindowPresentation: Codable, Equatable, Identifiable, Sendabl
         self.observedAt = observedAt
         self.freshness = freshness
         self.isResetDiscontinuity = isResetDiscontinuity
+        self.resetDiscontinuity = resetDiscontinuity
         self.isAmbiguous = isAmbiguous
     }
 }

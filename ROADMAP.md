@@ -473,7 +473,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   показывает read-only quota telemetry через тот же `SessionMonitor.quotaPresentation` projection,
   keyed by selected query и snapshot watermark. UI явно различает current/stale/future/unknown
   freshness, reset discontinuity, same-timestamp ambiguity и unknown/partial/no-window coverage;
-  до attribution и pricing он не приписывает quota отдельным sessions или token totals.
+  reset discontinuity доступен как capsule button с popover, показывающим причину и переход
+  usage/reset между наблюдениями; до attribution и pricing он не приписывает quota отдельным
+  sessions или token totals.
 
   Multi-account follow-up добавлен 2026-09-20: аккаунт нельзя выводить из rollout session context;
   общий источник без явного разделения должен оставаться `unknown`/`mixed`.
