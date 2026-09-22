@@ -346,7 +346,8 @@ GitHub check `CI`. Workflow, runner, fixed tooling и воспроизведен
 на Swift 6.4; upstream fix доступен в `SpecificationCore 1.1.0`. SessionMonitor использует
 точную remote SwiftPM dependency; provenance и compatibility evidence описаны в
 [Dependencies/README.md](Dependencies/README.md). Regression test для исправленной builder
-поведения остаётся в проекте. GUI по-прежнему закрепляет SpecificationKit 4.0.0.
+поведения остаётся в проекте. GUI закрепляет SpecificationKit 4.0.1; upstream patch
+устраняет публикацию `@ObservedSatisfies` во время SwiftUI view update.
 NavigationSplitViewKit остаётся референсом поведения; FSD применяется по Pages First.
 
 [Third-party notices](THIRD_PARTY_NOTICES.md) перечисляют зависимости и licenses.

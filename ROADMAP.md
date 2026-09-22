@@ -621,6 +621,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Готово 2026-09-21: upstream SpecificationCore 1.1.0 устраняет Swift 6.4 overload ambiguity;
   exact remote dependency и CLI/app integration checks проверены. [PR #37](https://github.com/SoundBlaster/SessionMonitor/pull/37)
   merged в `caa1c36` после успешных Workflow lint, Native checks и CI; оба review threads resolved.
+- [ ] **SM-708** — Обновить GUI на SpecificationKit 4.0.1 patch release.
+  Статус: в работе, начато 2026-09-22, в [PR #48](https://github.com/SoundBlaster/SessionMonitor/pull/48), ветка
+  `chore/update-specificationkit-4-0-1`. Upstream [SpecificationKit #80](https://github.com/SoundBlaster/SpecificationKit/pull/80)
+  устраняет SwiftUI warning о публикации `@ObservedSatisfies` во время view update;
+  текущий pin и revision `d81e7f8` проверены package resolution, `make build-macos`,
+  SwiftLint и FSD lint. Результат — готовый dependency bump; дата завершения будет
+  зафиксирована после merge PR вместе с merge commit и CI evidence.
 - [x] **SM-702** — Первый scoped commit и подключение выбранного Git remote.
   Готово 2026-09-12: [commit 9473271](https://github.com/SoundBlaster/SessionMonitor/commit/9473271622011f2ae80027df5c74230adb11ead8)
   содержит CLI/app, tests, build tooling, dependency patch и документацию.
