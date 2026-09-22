@@ -60,7 +60,11 @@ struct SessionReportInspector: View {
                 }
             }
 
-            Section("Stored import diagnostics") {
+            Section("Service diagnostics") {
+                Text("Import diagnostics are database-wide counters for the selected store. "
+                    + "They are not attributed to the selected session.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 if model.report.diagnostics.isEmpty {
                     Text("No import diagnostics recorded.")
                         .foregroundStyle(.secondary)
