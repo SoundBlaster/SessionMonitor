@@ -171,7 +171,7 @@ IDs. Снимки и metadata находятся в [ResearchReferences/dogfoodi
 | Repository | Проверенный commit | Наблюдаемые version candidates |
 | --- | --- | --- |
 | SpecificationCore | `3e9af798feff7401962a40166cf3d6f41cbab867` | tag `1.0.0` |
-| SpecificationKit | `cc75fbb4bdee2c8bd20c9d492ee658e8414006ad` | tag `4.0.0`; manifest требует Core от `1.0.0` |
+| SpecificationKit | `d81e7f8a3586c9b4279044f984ae7830c6dd0b49` | tag `4.0.1`; manifest требует Core от `1.0.0` |
 | NavigationSplitView | `94813a4e7fd44d0da836b42048429699bedc874f` | используется как reference source |
 | FSD | `21731b9dd7d5008b832af5caca6d19f7a36fe54f` | tag `v0.4.0`; developer tooling |
 
@@ -179,13 +179,16 @@ IDs. Снимки и metadata находятся в [ResearchReferences/dogfoodi
 SpecificationCore 1.0.0 с [compatibility patch](Dependencies/README.md).
 После выхода upstream-исправления текущая dependency переведена на SpecificationCore
 1.1.0, закреплённый exact в `Package.swift`; resolved revision сохраняется в
-`Package.resolved`. FSD 0.4.0 используется как установленный CLI. Таблица выше
-сохраняет provenance исходного API inspection.
+`Package.resolved`. Текущий GUI pin — SpecificationKit 4.0.1 с upstream fix из
+[PR #80](https://github.com/SoundBlaster/SpecificationKit/pull/80); его интеграция
+проверена в SessionMonitor PR #48 через package resolution, native build, SwiftLint
+и FSD lint. FSD 0.4.0 используется как установленный CLI. Таблица выше сохраняет
+provenance исходного API inspection, а текущий resolved pin указан отдельно.
 
 - [SpecificationCore: DecisionSpec](https://github.com/SoundBlaster/SpecificationCore/blob/3e9af798feff7401962a40166cf3d6f41cbab867/Sources/SpecificationCore/Core/DecisionSpec.swift)
   и [FirstMatchSpec](https://github.com/SoundBlaster/SpecificationCore/blob/3e9af798feff7401962a40166cf3d6f41cbab867/Sources/SpecificationCore/Specs/FirstMatchSpec.swift).
-- [SpecificationKit: ObservedSatisfies](https://github.com/SoundBlaster/SpecificationKit/blob/cc75fbb4bdee2c8bd20c9d492ee658e8414006ad/Sources/SpecificationKit/Wrappers/ObservedSatisfies.swift)
-  и [ObservedDecides](https://github.com/SoundBlaster/SpecificationKit/blob/cc75fbb4bdee2c8bd20c9d492ee658e8414006ad/Sources/SpecificationKit/Wrappers/ObservedDecides.swift).
+- [SpecificationKit: ObservedSatisfies](https://github.com/SoundBlaster/SpecificationKit/blob/4.0.1/Sources/SpecificationKit/Wrappers/ObservedSatisfies.swift)
+  и [ObservedDecides](https://github.com/SoundBlaster/SpecificationKit/blob/4.0.1/Sources/SpecificationKit/Wrappers/ObservedDecides.swift).
 - [NavigationSplitViewKit: NavigationModel](https://github.com/SoundBlaster/NavigationSplitView/blob/94813a4e7fd44d0da836b42048429699bedc874f/Sources/NavigationSplitViewKit/Models/NavigationModel.swift).
 - [FSD: Architecture](https://github.com/SoundBlaster/FSD/blob/21731b9dd7d5008b832af5caca6d19f7a36fe54f/ARCHITECTURE.md),
   [configuration](https://github.com/SoundBlaster/FSD/blob/21731b9dd7d5008b832af5caca6d19f7a36fe54f/docs/configuration.md)
