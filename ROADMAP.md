@@ -6,9 +6,10 @@
 
 ## Текущая точка
 
-Текущая задача — **SM-308d**: quota/activity presentation и осторожная attribution поверх
-наблюдаемого telemetry ряда.
-Статус: SM-308b доставлена через PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
+Текущая задача — **SM-316**: вынести database-wide import diagnostics в служебный раздел
+инспектора.
+Статус: реализация и локальный SwiftLint завершены; [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49) открыт, CI проходит.
+Предыдущие этапы: SM-308b доставлена через PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
 merge `593512b` (2026-09-21); локальные проверки и GitHub CI прошли, review threads закрыты.
 SM-308c доставлена через PR [#43](https://github.com/SoundBlaster/SessionMonitor/pull/43),
 merge `08c4924` (2026-09-22); implementation scope — policy layer с typed findings,
@@ -537,6 +538,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
   implicit interpolation отключена для обновления viewport, а Y-шкала использует ту же ширину
   bucket, что и агрегация. Targeted tests, SwiftLint, FSD и GitHub CI прошли; пользователь
   проверил pan в приложении и подтвердил корректную анимацию. [Отчёт](reports/SM-315-timeline-pan-animation.md).
+
+- [ ] **SM-316** — Показывать общие import diagnostics как служебные данные.
+  Реализация завершена 2026-09-22 в [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49), статус PR: open.
+  Инспектор называет блок `Service diagnostics` и поясняет, что значения агрегированы по
+  импортированному хранилищу и не относятся к выбранной сессии. `make lint` и `git diff --check`
+  прошли; после merge отметить задачу завершённой и синхронизировать текущую точку.
 
 ## 4. Системные macOS widgets
 
