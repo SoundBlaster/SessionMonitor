@@ -109,7 +109,8 @@ Tracking and verification (2026-09-22): tracked separately as **SM-317** in
 [ROADMAP.md](../ROADMAP.md), delivered by [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46).
 `make test-widget` passed (16/16), `make lint` passed with 0 violations, and the exported
 `large-light` render fixture was visually inspected: Y-axis labels are legible against the
-light chart surface. GitHub checks must pass again on the review-fix revision before merge.
+light chart surface. Workflow lint, Native checks, and CI passed for the PR revision; PR #46
+merged as `e7abca5` on 2026-09-22.
 
 ## Предыдущие проверки (baseline, не повторялись целиком в visual follow-up)
 
