@@ -469,7 +469,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Integration test прогоняет обезличенный production-captured rollout через обычный import, проверяет
   provenance/dedup, сохранение после restart и одинаковый auxiliary series в CLI и GUI.
 
-  **SM-308d GUI slice доставляется отдельным PR после общего контракта (PR #45, open).** Session Report Inspector
+  **SM-308d GUI slice доставлен отдельным PR (PR #45, merged).** Session Report Inspector
   показывает read-only quota telemetry через тот же `SessionMonitor.quotaPresentation` projection,
   keyed by selected query и snapshot watermark. UI явно различает current/stale/future/unknown
   freshness, reset discontinuity, same-timestamp ambiguity и unknown/partial/no-window coverage;
