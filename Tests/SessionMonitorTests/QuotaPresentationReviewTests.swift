@@ -19,6 +19,12 @@ struct QuotaPresentationReviewTests {
 
         #expect(presentation.windows.count == 1)
         #expect(presentation.windows[0].isResetDiscontinuity)
+        #expect(presentation.windows[0].resetDiscontinuity?.previousUsedPercent == 20)
+        #expect(presentation.windows[0].resetDiscontinuity?.previousResetsAt
+            == Date(timeIntervalSince1970: 300))
+        #expect(presentation.windows[0].resetDiscontinuity?.currentUsedPercent == 40)
+        #expect(presentation.windows[0].resetDiscontinuity?.currentResetsAt
+            == Date(timeIntervalSince1970: 500))
     }
 
     @Test func preservesEqualTimestampAmbiguity() throws {

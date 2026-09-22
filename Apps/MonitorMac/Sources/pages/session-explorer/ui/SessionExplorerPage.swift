@@ -59,6 +59,7 @@ struct SessionExplorerPage: View {
             statusBar
         }
         .safeAreaPadding(.top)
+        .modifier(QuotaPresentationLoader(model: model))
     }
 
     private var sidebar: some View {
@@ -267,6 +268,34 @@ private struct CacheHitRateWidgetLoadID: Hashable {
     let period: CacheHitRateWidgetPeriod
     let revision: Int64?
     let timeZoneIdentifier: String
+}
+
+private struct QuotaPresentationLoadID: Hashable {
+    let query: UsageQuery
+    let revision: Int64?
+}
+
+private struct QuotaPresentationLoader: ViewModifier {
+    let model: SessionExplorerModel
+
+    func body(content: Content) -> some View {
+        content.task(id: QuotaPresentationLoadID(
+            query: model.query, revision: model.snapshot?.watermark.revision
+        )) {
+            guard model.snapshot != nil else { return }
+            await model.loadQuotaPresentation()
+            while !Task.isCancelled {
+                guard let delay = model.quotaFreshnessRefreshDelay() else { return }
+                do {
+                    try await Task.sleep(for: .seconds(delay))
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                await model.loadQuotaPresentation()
+            }
+        }
+    }
 }
 
 private struct SessionListRow: View {

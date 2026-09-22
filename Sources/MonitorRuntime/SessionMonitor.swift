@@ -139,6 +139,10 @@ public actor SessionMonitor {
         return QuotaPresentationDecision(configuration: configuration).presentation(for: context)
     }
 
+    public func quotaPresentation(query: UsageQuery, generatedAt: Date) throws -> QuotaPresentationReport {
+        try quotaPresentation(query: query, generatedAt: generatedAt, configuration: .init())
+    }
+
     public func watch(_ directory: URL, options: WatchOptions = WatchOptions()) async throws -> SessionWatch {
         try Task.checkCancellation()
         let root = directory.resolvingSymlinksInPath().standardizedFileURL

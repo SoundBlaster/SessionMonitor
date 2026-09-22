@@ -33,6 +33,10 @@ actor SharedReportRuntime: SessionExplorerRuntime {
         try await runtime.cacheHitRateWidget(period: period, referenceDate: referenceDate, timeZone: timeZone)
     }
 
+    func quotaPresentation(query: UsageQuery, generatedAt: Date) async throws -> QuotaPresentationReport {
+        try await runtime.quotaPresentation(query: query, generatedAt: generatedAt)
+    }
+
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
         let id = UUID()
         let (stream, continuation) = AsyncThrowingStream<UsageSnapshot, Error>.makeStream(

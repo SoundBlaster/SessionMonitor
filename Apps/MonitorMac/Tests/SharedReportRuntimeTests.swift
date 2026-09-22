@@ -209,6 +209,13 @@ private actor StubSharedRuntime: SessionExplorerRuntime {
         )
     }
 
+    func quotaPresentation(query: UsageQuery, generatedAt: Date) -> QuotaPresentationReport {
+        QuotaPresentationReport(
+            query: query, generatedAt: generatedAt, freshnessThresholdSeconds: 900,
+            coverage: UsageLimitTelemetryCoverage(snapshots: []), windows: []
+        )
+    }
+
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
         calls.snapshotStreams += 1
         let connection = calls.snapshotStreams
