@@ -111,11 +111,17 @@ struct CacheHitRateWidgetChart: View {
     }
 
     @AxisContentBuilder private var yAxis: some AxisContent {
-        AxisMarks(position: .leading, values: CacheHitRateWidgetAxis.ticks(for: domain)) { _ in
+        AxisMarks(position: .leading, values: CacheHitRateWidgetAxis.ticks(for: domain)) { value in
             if family != .small {
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
                     .foregroundStyle(appearance.palette.grid)
-                AxisValueLabel().foregroundStyle(appearance.palette.neutral)
+                AxisValueLabel {
+                    if let level = value.as(Double.self) {
+                        Text(level.formatted(.number.precision(.fractionLength(0))))
+                            .font(.caption2)
+                            .foregroundStyle(appearance.palette.neutral)
+                    }
+                }
             }
         }
     }

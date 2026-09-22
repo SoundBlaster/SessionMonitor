@@ -6,9 +6,12 @@
 
 ## Текущая точка
 
-Текущая точка — **SM-316 завершена** через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
-merge `91c36b2` (2026-09-22). Следующая запланированная задача — SM-308e.
-Предыдущие этапы: SM-308b доставлена через PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
+Текущий review follow-up — **SM-317**: контраст Y-axis labels cache-hit chart в light mode,
+PR [#46](https://github.com/SoundBlaster/SessionMonitor/pull/46). Реализация и проверки
+завершены; PR ожидает повторного CI и merge. После доставки продолжить **SM-308e**.
+SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
+merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
+[#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
 merge `593512b` (2026-09-21); локальные проверки и GitHub CI прошли, review threads закрыты.
 SM-308c доставлена через PR [#43](https://github.com/SoundBlaster/SessionMonitor/pull/43),
 merge `08c4924` (2026-09-22); implementation scope — policy layer с typed findings,
@@ -368,6 +371,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Small/medium/large, light/dark, responsive widths и fixtures проверены. Остаток SM-311:
   widget tap пока не ведёт на отдельную Cache Analytics страницу; WidgetKit/App Group
   delivery отслеживаются отдельно в SM-401/SM-402.
+- [ ] **SM-317** — Исправить контраст Y-axis labels cache-hit chart в light mode.
+  **Статус: review fixes готовы, PR #46 открыт.** 2026-09-22: Y-axis labels используют
+  neutral palette role, совпадающий с date labels. `make test-widget` — 16/16 passed;
+  `make lint` — 0 violations. Exported `large-light` fixture визуально подтверждает читаемые
+  тёмно-серые подписи на светлой поверхности. Остаток: GitHub CI после обновления PR и merge.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
   **Статус: в работе (2026-09-20), ветка `feat/sm-308-anomaly-analytics`.** Реализация
   будет идти вертикальными частями: activity metrics/evidence; наблюдения quota из rollout

@@ -98,6 +98,19 @@ Xcode MCP BuildProject/RunProject и CLI build прошли; SwiftLint/FSD — �
 Native screenshot на текущей базе подтвердил встроенный график без обрамления (96.9%, +0.7pp).
 При AX-проверке также убран лишний children-ignore с Text, скрывавший bucket descriptions.
 
+## Light-mode axis-label contrast — 2026-09-22
+
+The cache-level labels on the leading Y axis now use an explicit `AxisValueLabel` text
+with the same neutral semantic palette role as the date labels rendered through
+`ChartProxy`. This prevents the Charts default white label style from disappearing on
+the light surface while preserving the selected system/monochrome palette.
+
+Tracking and verification (2026-09-22): tracked separately as **SM-317** in
+[ROADMAP.md](../ROADMAP.md), delivered by [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46).
+`make test-widget` passed (16/16), `make lint` passed with 0 violations, and the exported
+`large-light` render fixture was visually inspected: Y-axis labels are legible against the
+light chart surface. GitHub checks must pass again on the review-fix revision before merge.
+
 ## Предыдущие проверки (baseline, не повторялись целиком в visual follow-up)
 
 - `make check-core` — полный core/CLI/performance smoke passed; новые 7 core tests passed.
