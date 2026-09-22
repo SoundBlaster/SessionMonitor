@@ -6,9 +6,10 @@
 
 ## Текущая точка
 
-Текущий review follow-up — **SM-317**: контраст Y-axis labels cache-hit chart в light mode,
-PR [#46](https://github.com/SoundBlaster/SessionMonitor/pull/46). Реализация и проверки
-завершены; PR ожидает повторного CI и merge. После доставки продолжить **SM-308e**.
+SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
+merge `e7abca5` (2026-09-22). Текущий review follow-up — **SM-318**
+([PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47)); он ожидает повторного
+CI/merge. После доставки продолжить **SM-308e**.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -371,11 +372,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Small/medium/large, light/dark, responsive widths и fixtures проверены. Остаток SM-311:
   widget tap пока не ведёт на отдельную Cache Analytics страницу; WidgetKit/App Group
   delivery отслеживаются отдельно в SM-401/SM-402.
-- [ ] **SM-317** — Исправить контраст Y-axis labels cache-hit chart в light mode.
-  **Статус: review fixes готовы, PR #46 открыт.** 2026-09-22: Y-axis labels используют
+- [x] **SM-317** — Исправить контраст Y-axis labels cache-hit chart в light mode.
+  Готово 2026-09-22 через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
+  merge `e7abca5`. Y-axis labels используют
   neutral palette role, совпадающий с date labels. `make test-widget` — 16/16 passed;
   `make lint` — 0 violations. Exported `large-light` fixture визуально подтверждает читаемые
-  тёмно-серые подписи на светлой поверхности. Остаток: GitHub CI после обновления PR и merge.
+  тёмно-серые подписи на светлой поверхности. Workflow lint, Native checks и CI прошли;
+  обе review threads закрыты.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
   **Статус: в работе (2026-09-20), ветка `feat/sm-308-anomaly-analytics`.** Реализация
   будет идти вертикальными частями: activity metrics/evidence; наблюдения quota из rollout
@@ -605,6 +608,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 7. Сопровождение и доставка
 
+- [ ] **SM-318** — Удалить устаревшие Xcode warnings в watch controller и timeline scale.
+  **Статус: review fixes готовы, PR #47 открыт.** Начато 2026-09-22: удалены `await` перед
+  синхронными вызовами и неиспользуемый `duration`. Workflow lint, Native checks и CI прошли
+  на исходной ревизии PR; после обновления ветки ожидаются повторные checks. Остаток: дождаться
+  зелёного CI и merge PR.
 - [x] **SM-707** — Запретить Git worktree при работе над этим проектом.
   Готово 2026-09-21: `AGENTS.md` предписывает основной checkout и обычные ветки;
   [PR #35](https://github.com/SoundBlaster/SessionMonitor/pull/35) merged в `3d28e18`
