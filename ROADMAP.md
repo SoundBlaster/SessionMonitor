@@ -427,10 +427,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
   и выдавать typed findings с причиной и evidence metadata. Независимые сигналы должны
   оцениваться отдельно, чтобы один приоритетный match не скрывал остальные; tests должны
   подтверждать, что policy decision path действительно проходит через эти спецификации.
-  Текущий slice переносит repetitive polling, startup overhead и cache drop в общий
-  `AnomalyPolicyEngine`; high-spend, dominant-thread, uncached-burst и quota-aware rules
-  остаются следующим расширением SM-308c/SM-308d.
-  Локальные `make check-core`, `make lint-architecture` и `git diff --check` прошли;
+  Текущий slice переносит repetitive polling, startup overhead и cache policies в общий
+  `AnomalyPolicyEngine`; добавлены независимые high-absolute-usage, dominant-session и
+  uncached-burst decisions. Исправлены median, session scope, polling sequence bounds,
+  cache directionality, configuration validation, coverage propagation и stable finding IDs.
+  Quota-aware rules, progress/retry evidence и явные not-applicable outcomes остаются
+  следующим расширением SM-308c/SM-308d. Локальные проверки для correction slice проходят;
   delivery ожидает PR и GitHub CI. [Отчёт](reports/SM-308c-anomaly-policies.md).
   Production source для server usage snapshots — наблюдаемые usage-limit events в импортируемых
   Codex rollouts. Версионированный source adapter сохраняет в SQLite event timestamp, limit/window ID,

@@ -2,6 +2,7 @@ import CodexSource
 import Darwin
 import Foundation
 import MonitorCore
+import MonitorPolicies
 import MonitorStore
 
 public actor SessionMonitor {
@@ -115,8 +116,10 @@ public actor SessionMonitor {
         try store.inspect(sessionID: sessionID, query: query)
     }
 
-    public func doctor(query: UsageQuery) throws -> DiagnosticReport {
-        try store.doctor(query: query)
+    public func doctor(
+        query: UsageQuery, configuration: AnomalyPolicyConfiguration = .init()
+    ) throws -> DiagnosticReport {
+        try store.doctor(query: query, configuration: configuration)
     }
 
     /// Returns imported quota observations and freshness metadata without polling a provider.

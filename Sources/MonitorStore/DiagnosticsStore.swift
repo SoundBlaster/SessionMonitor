@@ -94,19 +94,22 @@ extension UsageStore {
     }
 
     // swiftlint:disable:next function_body_length cyclomatic_complexity
-    public func doctor(query: UsageQuery) throws -> DiagnosticReport {
+    public func doctor(
+        query: UsageQuery, configuration: AnomalyPolicyConfiguration = .init()
+    ) throws -> DiagnosticReport {
         let snapshot = try diagnosticSnapshot(query: query)
         let states = Self.treeStates(sessions: snapshot.report.sessions, provenance: snapshot.provenance)
         let timelines = Dictionary(uniqueKeysWithValues: try snapshot.report.sessions.map { session in
             (session.id, try self.timeline(sessionID: session.id, query: query))
         })
         var findings: [DiagnosticFinding] = []
-        let policyEngine = AnomalyPolicyEngine()
+        let policyEngine = AnomalyPolicyEngine(configuration: configuration)
+        let cohort = snapshot.report.sessions
 
         for session in snapshot.report.sessions {
             guard let timeline = timelines[session.id] else { continue }
             findings.append(contentsOf: policyEngine.evaluate(
-                AnomalyPolicyContext(session: session, timeline: timeline)
+                AnomalyPolicyContext(session: session, timeline: timeline, cohort: cohort)
             ).map { $0.asDiagnosticFinding() })
         }
 

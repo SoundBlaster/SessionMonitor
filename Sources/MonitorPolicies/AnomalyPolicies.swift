@@ -6,20 +6,48 @@ import SpecificationCore
 public struct AnomalyPolicyConfiguration: Equatable, Sendable {
     public let minimumPollingPairs: Int
     public let pollingPairWindow: TimeInterval
+    public let pollingSequenceWindow: TimeInterval
     public let startupMultiplier: Double
     public let minimumCacheSamples: Int
     public let cacheChangeRatio: Double
+    public let minimumCacheInputTokens: Int64
+    public let cacheComparisonWindow: TimeInterval
+    public let minimumAbsoluteInputTokens: Int64
+    public let minimumAbsoluteRequests: Int64
+    public let dominantSessionShare: Double
+    public let minimumDominantInputTokens: Int64
+    public let minimumUncachedInputTokens: Int64
 
     public init(
         minimumPollingPairs: Int = 3, pollingPairWindow: TimeInterval = 60,
-        startupMultiplier: Double = 2, minimumCacheSamples: Int = 2,
-        cacheChangeRatio: Double = 0.5
+        pollingSequenceWindow: TimeInterval = 300, startupMultiplier: Double = 2,
+        minimumCacheSamples: Int = 2, cacheChangeRatio: Double = 0.5,
+        minimumCacheInputTokens: Int64 = 1_000, cacheComparisonWindow: TimeInterval = 3_600,
+        minimumAbsoluteInputTokens: Int64 = 50_000_000, minimumAbsoluteRequests: Int64 = 500,
+        dominantSessionShare: Double = 0.5, minimumDominantInputTokens: Int64 = 10_000_000,
+        minimumUncachedInputTokens: Int64 = 1_000_000
     ) {
-        self.minimumPollingPairs = minimumPollingPairs
-        self.pollingPairWindow = pollingPairWindow
-        self.startupMultiplier = startupMultiplier
-        self.minimumCacheSamples = minimumCacheSamples
-        self.cacheChangeRatio = cacheChangeRatio
+        self.minimumPollingPairs = max(1, minimumPollingPairs)
+        self.pollingPairWindow = Self.validWindow(pollingPairWindow, fallback: 60)
+        self.pollingSequenceWindow = Self.validWindow(pollingSequenceWindow, fallback: 300)
+        self.startupMultiplier = Self.validPositive(startupMultiplier, fallback: 2)
+        self.minimumCacheSamples = max(2, minimumCacheSamples)
+        self.cacheChangeRatio = min(max(cacheChangeRatio.isFinite ? cacheChangeRatio : 0.5, 0.01), 1)
+        self.minimumCacheInputTokens = max(1, minimumCacheInputTokens)
+        self.cacheComparisonWindow = Self.validWindow(cacheComparisonWindow, fallback: 3_600)
+        self.minimumAbsoluteInputTokens = max(1, minimumAbsoluteInputTokens)
+        self.minimumAbsoluteRequests = max(1, minimumAbsoluteRequests)
+        self.dominantSessionShare = min(max(dominantSessionShare.isFinite ? dominantSessionShare : 0.5, 0.01), 1)
+        self.minimumDominantInputTokens = max(1, minimumDominantInputTokens)
+        self.minimumUncachedInputTokens = max(1, minimumUncachedInputTokens)
+    }
+
+    private static func validWindow(_ value: TimeInterval, fallback: TimeInterval) -> TimeInterval {
+        value.isFinite && value > 0 ? value : fallback
+    }
+
+    private static func validPositive(_ value: Double, fallback: Double) -> Double {
+        value.isFinite && value > 0 ? value : fallback
     }
 }
 
@@ -27,66 +55,13 @@ public struct AnomalyPolicyConfiguration: Equatable, Sendable {
 public struct AnomalyPolicyContext: Sendable {
     public let session: SessionSummary
     public let timeline: RequestTimeline
+    public let cohort: [SessionSummary]
 
-    public init(session: SessionSummary, timeline: RequestTimeline) {
+    public init(session: SessionSummary, timeline: RequestTimeline, cohort: [SessionSummary] = []) {
         self.session = session
         self.timeline = timeline
+        self.cohort = cohort.isEmpty ? [session] : cohort
     }
-}
-
-private enum AnomalyPolicySupport {
-    static func requestPoints(_ context: AnomalyPolicyContext) -> [RequestTimelinePoint] {
-        context.timeline.points.filter { $0.kind == .usageRequest }.sorted { $0.timestamp < $1.timestamp }
-    }
-
-    static func pollingPoints(_ context: AnomalyPolicyContext) -> [RequestTimelinePoint] {
-        context.timeline.points.filter { point in
-            switch point.activityClass {
-            case .wait, .waitThreads: return true
-            case .processWait, .clockSleep, .goalContinuation, .shell, .unknown: return false
-            case nil: return point.kind == .wait
-            }
-        }.sorted { $0.timestamp < $1.timestamp }
-    }
-
-    static func pollingPairs(
-        _ context: AnomalyPolicyContext, configuration: AnomalyPolicyConfiguration
-    ) -> [(wait: RequestTimelinePoint, request: RequestTimelinePoint)] {
-        let waits = pollingPoints(context)
-        let requests = requestPoints(context)
-        var requestIndex = 0
-        var pairs: [(wait: RequestTimelinePoint, request: RequestTimelinePoint)] = []
-        for wait in waits {
-            while requestIndex < requests.count && requests[requestIndex].timestamp < wait.timestamp {
-                requestIndex += 1
-            }
-            guard requestIndex < requests.count,
-                  requests[requestIndex].timestamp.timeIntervalSince(wait.timestamp)
-                    <= configuration.pollingPairWindow else { continue }
-            pairs.append((wait, requests[requestIndex]))
-            requestIndex += 1
-        }
-        return pairs
-    }
-
-    static func inputTokens(_ point: RequestTimelinePoint) -> Int64? {
-        guard let cached = point.cachedInputTokens, let uncached = point.uncachedInputTokens else { return nil }
-        return cached + uncached
-    }
-
-    static func cacheRatio(_ point: RequestTimelinePoint) -> Double? {
-        guard let input = inputTokens(point), input > 0, let cached = point.cachedInputTokens else { return nil }
-        return Double(cached) / Double(input)
-    }
-
-    static func median(_ values: [Int64]) -> Double? {
-        guard !values.isEmpty else { return nil }
-        if values.count % 2 == 1 { return Double(values[values.count / 2]) }
-        let upper = values.count / 2
-        return Double(values[upper - 1] + values[upper]) / 2
-    }
-
-    static func percentage(_ value: Double) -> String { "\(Int((value * 100).rounded()))%" }
 }
 
 private struct HasRequestSamplesSpec: Specification {
@@ -120,14 +95,7 @@ private struct HasCacheChangeSpec: Specification {
     let configuration: AnomalyPolicyConfiguration
 
     func isSatisfiedBy(_ candidate: AnomalyPolicyContext) -> Bool {
-        let known = AnomalyPolicySupport.requestPoints(candidate).filter { point in
-            AnomalyPolicySupport.inputTokens(point).map { $0 > 0 } == true && point.cachedInputTokens != nil
-        }
-        return zip(known, known.dropFirst()).contains { before, after in
-            guard let beforeRatio = AnomalyPolicySupport.cacheRatio(before),
-                  let afterRatio = AnomalyPolicySupport.cacheRatio(after) else { return false }
-            return abs(afterRatio - beforeRatio) >= configuration.cacheChangeRatio
-        }
+        !AnomalyPolicySupport.comparableCachePairs(candidate, configuration: configuration).isEmpty
     }
 }
 
@@ -237,7 +205,10 @@ public struct AnomalyPolicyEngine {
         decisions = [
             AnyDecisionSpec(RepetitivePollingDecision(configuration: configuration)),
             AnyDecisionSpec(ExcessiveStartupDecision(configuration: configuration)),
-            AnyDecisionSpec(UnusualCacheChangeDecision(configuration: configuration))
+            AnyDecisionSpec(UnusualCacheChangeDecision(configuration: configuration)),
+            AnyDecisionSpec(HighAbsoluteUsageDecision(configuration: configuration)),
+            AnyDecisionSpec(DominantSessionDecision(configuration: configuration)),
+            AnyDecisionSpec(UncachedBurstDecision(configuration: configuration))
         ]
     }
 
@@ -253,7 +224,7 @@ public extension AnomalyFinding {
         DiagnosticFinding(
             id: id, severity: severity, title: title, explanation: reason,
             evidence: evidence, confidence: confidence, affectedSessions: affectedSessions,
-            suggestedNextAction: suggestedNextAction
+            suggestedNextAction: suggestedNextAction, coverage: coverage
         )
     }
 }
@@ -315,21 +286,10 @@ private struct UnusualCacheChangeDecision: DecisionSpec {
 
     let configuration: AnomalyPolicyConfiguration
 
-    // swiftlint:disable:next function_body_length
     func decide(_ context: Context) -> Result? {
         guard UnusualCacheChangeSpec(configuration: configuration).isSatisfiedBy(context) else { return nil }
-        let known = AnomalyPolicySupport.requestPoints(context).filter { point in
-            AnomalyPolicySupport.inputTokens(point).map { $0 > 0 } == true && point.cachedInputTokens != nil
-        }
-        var largest: CacheChangeCandidate?
-        for pair in zip(known, known.dropFirst()) {
-            guard let before = AnomalyPolicySupport.cacheRatio(pair.0),
-                  let after = AnomalyPolicySupport.cacheRatio(pair.1) else { continue }
-            let change = abs(after - before)
-            if change >= configuration.cacheChangeRatio, largest.map({ change > $0.change }) ?? true {
-                largest = CacheChangeCandidate(before: pair.0, after: pair.1, change: change)
-            }
-        }
+        let largest = AnomalyPolicySupport.comparableCachePairs(context, configuration: configuration)
+            .max { $0.change < $1.change }
         guard let largest, let before = AnomalyPolicySupport.cacheRatio(largest.before),
               let after = AnomalyPolicySupport.cacheRatio(largest.after) else { return nil }
         let unknownRequests = context.timeline.points.filter {
@@ -343,9 +303,14 @@ private struct UnusualCacheChangeDecision: DecisionSpec {
         let coverage: AnomalyCoverage = unknownRequests > 0
             ? .partial(reason: "Some request cache values were unknown and excluded from comparison.")
             : .observed
+        let isDrop = after < before
+        let kind: AnomalyKind = isDrop ? .cacheDrop : .cacheRecovery
+        let title = isDrop ? "Cache coverage drop" : "Cache coverage recovery"
+        let reason = isDrop
+            ? "Known cache coverage drops sharply between comparable observed requests."
+            : "Known cache coverage recovers sharply between comparable observed requests."
         return AnomalyFinding(
-            kind: .cacheDrop, title: "Unusual cache changes",
-            reason: "Known cache coverage changes sharply between adjacent observed requests.", severity: .warning,
+            kind: kind, title: title, reason: reason, severity: isDrop ? .warning : .info,
             evidence: DiagnosticEvidence(
                 observed: [DiagnosticEvidenceItem(
                     source: "confirmed",
@@ -357,7 +322,7 @@ private struct UnusualCacheChangeDecision: DecisionSpec {
                 inference: [
                     DiagnosticEvidenceItem(
                         source: "diagnostic_heuristic",
-                        detail: "The absolute cache-ratio change exceeds the configured threshold.",
+                        detail: "The cache-ratio change exceeds the configured threshold for comparable requests.",
                         sessionIDs: [context.session.id]
                     ),
                     DiagnosticEvidenceItem(
@@ -368,14 +333,9 @@ private struct UnusualCacheChangeDecision: DecisionSpec {
                 ], unknown: unknown,
                 limitations: ["Unknown cache values are excluded and are never treated as a zero cache hit."]
             ), confidence: .medium, coverage: coverage, affectedSessions: [context.session.id],
-            suggestedNextAction: "Inspect the adjacent requests and verify whether the cache boundary reflects "
-                + "a real context change."
+            suggestedNextAction: isDrop
+                ? "Inspect the adjacent requests and verify whether the cache boundary reflects a real context change."
+                : "Inspect the recovered cache boundary and verify whether the context became stable again."
         )
     }
-}
-
-private struct CacheChangeCandidate {
-    let before: RequestTimelinePoint
-    let after: RequestTimelinePoint
-    let change: Double
 }
