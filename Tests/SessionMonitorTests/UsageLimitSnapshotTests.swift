@@ -1,6 +1,7 @@
 import CodexSource
 import Foundation
 import MonitorCore
+import MonitorPolicies
 import MonitorRuntime
 import MonitorStore
 import Testing
@@ -177,6 +178,67 @@ struct UsageLimitSnapshotTests {
         #expect(report.snapshots[1].windows[0].usedPercent == 89)
         #expect(report.snapshots[0].windows[0].remainingPercentDerived == 18)
         #expect(try await runtime.report().totals.requests == 0)
+    }
+
+    @Test func quotaPresentationDerivesRemainingFreshnessAndResetDiscontinuity() throws {
+        let query = try UsageQuery()
+        let first = UsageLimitSnapshotObservation(
+            eventIdentity: "first", timestamp: Date(timeIntervalSince1970: 100), sourceLine: 1,
+            sourceContextSessionID: "session", sourceSchema: "fixture", state: .observed,
+            scope: .account, scopeIdentifier: "account-a", limitID: "limit-a", limitName: nil,
+            planType: "fixture", windows: [UsageLimitWindowObservation(
+                slot: .primary, windowMinutes: 300, usedPercent: 82,
+                resetsAt: Date(timeIntervalSince1970: 300)
+            )]
+        )
+        let second = UsageLimitSnapshotObservation(
+            eventIdentity: "second", timestamp: Date(timeIntervalSince1970: 200), sourceLine: 2,
+            sourceContextSessionID: "session", sourceSchema: "fixture", state: .observed,
+            scope: .account, scopeIdentifier: "account-a", limitID: "limit-a", limitName: nil,
+            planType: "fixture", windows: [UsageLimitWindowObservation(
+                slot: .primary, windowMinutes: 300, usedPercent: 89,
+                resetsAt: Date(timeIntervalSince1970: 500)
+            )]
+        )
+        let report = UsageLimitSnapshotReport(
+            query: query, generatedAt: Date(timeIntervalSince1970: 200), snapshots: [first, second]
+        )
+        let presentation = try #require(
+            QuotaPresentationDecision(configuration: .init(freshnessThreshold: 30))
+                .decide(QuotaPresentationContext(report: report))
+        )
+        let window = try #require(presentation.windows.first)
+
+        #expect(presentation.windows.count == 1)
+        #expect(window.usedPercent == 89)
+        #expect(window.remainingPercent == 11)
+        #expect(window.freshness.state == .current)
+        #expect(window.freshness.ageSeconds == 0)
+        #expect(window.isResetDiscontinuity)
+    }
+
+    @Test func quotaPresentationKeepsPartialUnknownWithoutInventingValues() throws {
+        let snapshot = UsageLimitSnapshotObservation(
+            eventIdentity: "partial", timestamp: Date(timeIntervalSince1970: 100), sourceLine: 1,
+            sourceContextSessionID: nil, sourceSchema: "fixture", state: .partial,
+            scope: .unknown, scopeIdentifier: nil, limitID: "limit-a", limitName: nil,
+            planType: nil, windows: [UsageLimitWindowObservation(
+                slot: .secondary, windowMinutes: 10_080, usedPercent: nil, resetsAt: nil
+            )]
+        )
+        let report = UsageLimitSnapshotReport(
+            query: try UsageQuery(), generatedAt: Date(timeIntervalSince1970: 100), snapshots: [snapshot]
+        )
+        let presentation = try #require(QuotaPresentationDecision().decide(
+            QuotaPresentationContext(report: report)
+        ))
+        let window = try #require(presentation.windows.first)
+
+        #expect(presentation.coverage.state == .partial)
+        #expect(window.usedPercent == nil)
+        #expect(window.remainingPercent == nil)
+        #expect(window.freshness.state == .current)
+        #expect(!window.isResetDiscontinuity)
     }
 }
 

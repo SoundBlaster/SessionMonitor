@@ -1,15 +1,17 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-21. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-22. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
 
-Текущая задача — **SM-308c**: composable anomaly policies на SpecificationCore.
+Текущая задача — **SM-308d**: quota/activity presentation и осторожная attribution поверх
+наблюдаемого telemetry ряда.
 Статус: SM-308b доставлена через PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
 merge `593512b` (2026-09-21); локальные проверки и GitHub CI прошли, review threads закрыты.
-SM-308c начата 2026-09-21; implementation scope — policy layer с typed findings,
+SM-308c доставлена через PR [#43](https://github.com/SoundBlaster/SessionMonitor/pull/43),
+merge `08c4924` (2026-09-22); implementation scope — policy layer с typed findings,
 evidence, confidence и coverage.
 `Specification`/`DecisionSpec` из SpecificationCore должны быть частью исполняемого decision path,
 а не только зависимостью target.
@@ -421,7 +423,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Пороговые значения делать настраиваемыми или выводить из сопоставимого baseline/cohort, сохраняя
   evidence pointers, confidence, coverage/unknown reason и основание срабатывания; единичный дневной
   пример не становится hard-coded нормой.
-  **SM-308c в работе с 2026-09-21, ветка `feat/sm-308c-anomaly-policies`.** Domain rules должны быть
+  **SM-308c доставлена через PR [#43](https://github.com/SoundBlaster/SessionMonitor/pull/43),
+  merge `08c4924` (2026-09-22), ветка `feat/sm-308c-anomaly-policies`.** Domain rules должны быть
   оформлены как композиции `SpecificationCore`
   `Specification`/`DecisionSpec` (при необходимости через `AnySpecification`/`FirstMatchSpec`)
   и выдавать typed findings с причиной и evidence metadata. Независимые сигналы должны
@@ -434,8 +437,16 @@ deliverable — WidgetKit extension с App Group в SM-401.
   cache comparability и stable finding IDs. Regression tests покрывают late polling outliers,
   recovery после drop, неизвестные startup samples и смену модели в timeline. Quota-aware rules,
   progress/retry evidence и явные not-applicable outcomes остаются следующим расширением
-  SM-308c/SM-308d. Локальные проверки review correction slice проходят; delivery ожидает PR и
-  GitHub CI. [Отчёт](reports/SM-308c-anomaly-policies.md).
+  SM-308c/SM-308d. Локальные проверки и GitHub CI прошли; review threads закрыты.
+  [Отчёт](reports/SM-308c-anomaly-policies.md).
+  **SM-308d начата 2026-09-22, ветка `feat/sm-308d-quota-presentation`.** Первый вертикальный
+  срез: общий quota presentation contract для CLI/GUI поверх импортированных observations;
+  он обязан показывать observed used/derived remaining, reset и freshness, отмечать смену
+  `resetsAt` как discontinuity и сохранять unknown/partial coverage. Attribution и estimates
+  будут добавляться после стабилизации этого контракта; token totals не используются как quota.
+  Projection и `SpecificationCore` decision path реализованы, человекочитаемый `codex-monitor quota`
+  использует projection, а JSON schema сохранена для automation. `make check-core` прошёл на 112
+  тестах; GUI, attribution и pricing остаются следующим срезом. [Отчёт](reports/SM-308d-quota-presentation.md).
   Production source для server usage snapshots — наблюдаемые usage-limit events в импортируемых
   Codex rollouts. Версионированный source adapter сохраняет в SQLite event timestamp, limit/window ID,
   duration, used percent, `resetsAt`, source/event identity и schema provenance; повторный импорт
