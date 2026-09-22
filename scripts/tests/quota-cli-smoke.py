@@ -72,7 +72,32 @@ def main() -> int:
         usage = json.loads(usage_result.stdout)
         assert usage["totals"]["requests"] == 0
 
-    print("Quota CLI smoke passed: observed snapshot, derived remaining and isolated accounting")
+        unsupported_database = directory / "unsupported.sqlite"
+        unsupported_rollout = directory / "unsupported.jsonl"
+        unsupported_event = {
+            "timestamp": "2026-09-20T10:01:00Z",
+            "type": "event_msg",
+            "payload": {"type": "token_count", "rate_limits": "future-schema"},
+        }
+        unsupported_rollout.write_text(json.dumps(unsupported_event) + "\n", encoding="utf-8")
+        subprocess.run(
+            [str(binary), "import", str(unsupported_rollout), "--database", str(unsupported_database)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        unsupported_result = subprocess.run(
+            [str(binary), "quota", "--database", str(unsupported_database)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert "Quota events were observed, but no supported window observation was available" in (
+            unsupported_result.stdout
+        )
+        assert "No quota event was observed in this interval" not in unsupported_result.stdout
+
+    print("Quota CLI smoke passed: observed snapshot, unsupported coverage, derived remaining and isolated accounting")
     return 0
 
 

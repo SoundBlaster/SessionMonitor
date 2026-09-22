@@ -129,6 +129,16 @@ public actor SessionMonitor {
         try store.usageLimitSnapshots(query: query, generatedAt: generatedAt)
     }
 
+    /// Returns the shared quota presentation projection without polling a provider.
+    public func quotaPresentation(
+        query: UsageQuery, generatedAt: Date = Date(),
+        configuration: QuotaPresentationConfiguration = .init()
+    ) throws -> QuotaPresentationReport {
+        let report = try store.usageLimitSnapshots(query: query, generatedAt: generatedAt)
+        let context = QuotaPresentationContext(report: report, generatedAt: generatedAt)
+        return QuotaPresentationDecision(configuration: configuration).presentation(for: context)
+    }
+
     public func watch(_ directory: URL, options: WatchOptions = WatchOptions()) async throws -> SessionWatch {
         try Task.checkCancellation()
         let root = directory.resolvingSymlinksInPath().standardizedFileURL
