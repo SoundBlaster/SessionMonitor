@@ -31,7 +31,7 @@ extension UsageStore {
             let end = query.until?.timeIntervalSince1970
             let arguments: StatementArguments = [sessionID, start, start, end, end]
             var points: [RequestTimelinePoint] = try Row.fetchAll(database, sql: """
-                SELECT response, turn, timestamp, input, cached
+                SELECT response, turn, timestamp, input, cached, model
                 FROM confirmed
                 WHERE session = ? AND \(predicate)
                 ORDER BY timestamp ASC, response ASC
@@ -43,7 +43,8 @@ extension UsageStore {
                         timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: .usageRequest,
                         turnID: row["turn"], responseID: row["response"],
                         cachedInputTokens: cached,
-                        uncachedInputTokens: cached.map { input - $0 }, evidence: "token_usage_record"
+                        uncachedInputTokens: cached.map { input - $0 }, evidence: "token_usage_record",
+                        model: row["model"]
                     )
                 }
             let eventRows = try Row.fetchAll(database, sql: """

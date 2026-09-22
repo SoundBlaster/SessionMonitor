@@ -20,11 +20,13 @@ The runtime `doctor` path calls `AnomalyPolicyEngine`, whose heterogeneous decis
 are stored as `AnyDecisionSpec` and evaluated without first-match short-circuiting.
 
 The correction pass validates policy configuration, sorts values before median calculation,
-limits polling to one short sequence, scopes points to the selected session, separates
-cache degradation from recovery, requires comparable cache samples, and gives findings a
-stable scope-aware identity. The engine also exposes configurable absolute-usage,
-dominant-session and uncached-burst decisions. Recovery is informational; degradation and
-uncached bursts remain warnings.
+limits polling to a sliding short sequence, scopes points to the selected session, separates
+cache degradation from recovery, requires comparable non-optional model samples, and gives
+findings a stable scope-aware identity. Startup detection requires enough known samples and
+preserves partial coverage evidence when additional samples are unknown. The timeline store
+now carries the confirmed request model into the policy path. The engine also exposes
+configurable absolute-usage, dominant-session and uncached-burst decisions. Recovery is
+informational; degradation and uncached bursts remain warnings.
 
 ## Validation
 
@@ -37,6 +39,9 @@ uncached bursts remain warnings.
 - JSON round-trip covers machine-readable partial coverage.
 - Regression fixtures cover unsorted median input, sparse waits, cache recovery, invalid
   configuration, high usage with high cache hit, dominant session share and uncached bursts.
+- Review regressions cover a valid polling sequence before a late pair, independent drop and
+  recovery findings, insufficient/partial startup samples, and no cache comparison across
+  model changes through `doctor`.
 
 ## Remaining scope
 

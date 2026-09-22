@@ -429,11 +429,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
   подтверждать, что policy decision path действительно проходит через эти спецификации.
   Текущий slice переносит repetitive polling, startup overhead и cache policies в общий
   `AnomalyPolicyEngine`; добавлены независимые high-absolute-usage, dominant-session и
-  uncached-burst decisions. Исправлены median, session scope, polling sequence bounds,
-  cache directionality, configuration validation, coverage propagation и stable finding IDs.
-  Quota-aware rules, progress/retry evidence и явные not-applicable outcomes остаются
-  следующим расширением SM-308c/SM-308d. Локальные проверки для correction slice проходят;
-  delivery ожидает PR и GitHub CI. [Отчёт](reports/SM-308c-anomaly-policies.md).
+  uncached-burst decisions. Исправлены median, session scope, sliding polling sequence bounds,
+  независимые cache drop/recovery, configuration validation, startup partial coverage, model-aware
+  cache comparability и stable finding IDs. Regression tests покрывают late polling outliers,
+  recovery после drop, неизвестные startup samples и смену модели в timeline. Quota-aware rules,
+  progress/retry evidence и явные not-applicable outcomes остаются следующим расширением
+  SM-308c/SM-308d. Локальные проверки review correction slice проходят; delivery ожидает PR и
+  GitHub CI. [Отчёт](reports/SM-308c-anomaly-policies.md).
   Production source для server usage snapshots — наблюдаемые usage-limit events в импортируемых
   Codex rollouts. Версионированный source adapter сохраняет в SQLite event timestamp, limit/window ID,
   duration, used percent, `resetsAt`, source/event identity и schema provenance; повторный импорт

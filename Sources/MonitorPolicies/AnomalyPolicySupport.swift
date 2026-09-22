@@ -45,11 +45,21 @@ enum AnomalyPolicySupport {
             pairs.append((wait, requests[requestIndex]))
             requestIndex += 1
         }
-        guard pairs.count >= configuration.minimumPollingPairs,
-              let first = pairs.first?.wait.timestamp,
-              let last = pairs.last?.request.timestamp,
-              last.timeIntervalSince(first) <= configuration.pollingSequenceWindow else { return [] }
-        return pairs
+        guard pairs.count >= configuration.minimumPollingPairs else { return [] }
+        var windowStart = 0
+        var best: ArraySlice<(wait: RequestTimelinePoint, request: RequestTimelinePoint)> = []
+        for end in pairs.indices {
+            while windowStart < end,
+                  pairs[end].request.timestamp.timeIntervalSince(pairs[windowStart].wait.timestamp)
+                    > configuration.pollingSequenceWindow {
+                windowStart += 1
+            }
+            let candidate = pairs[windowStart...end]
+            if candidate.count >= configuration.minimumPollingPairs && candidate.count > best.count {
+                best = candidate
+            }
+        }
+        return Array(best)
     }
 
     static func inputTokens(_ point: RequestTimelinePoint) -> Int64? {
@@ -74,7 +84,7 @@ enum AnomalyPolicySupport {
             let gap = after.timestamp.timeIntervalSince(before.timestamp)
             guard abs(afterRatio - beforeRatio) >= configuration.cacheChangeRatio,
                   gap >= 0, gap <= configuration.cacheComparisonWindow,
-                  before.model == nil || after.model == nil || before.model == after.model,
+                  before.model != nil, after.model != nil, before.model == after.model,
                   (inputTokens(before) ?? 0) >= configuration.minimumCacheInputTokens,
                   (inputTokens(after) ?? 0) >= configuration.minimumCacheInputTokens else { return nil }
             return CacheChangePair(before: before, after: after, change: abs(afterRatio - beforeRatio))

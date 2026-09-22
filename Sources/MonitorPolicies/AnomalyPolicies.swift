@@ -8,6 +8,7 @@ public struct AnomalyPolicyConfiguration: Equatable, Sendable {
     public let pollingPairWindow: TimeInterval
     public let pollingSequenceWindow: TimeInterval
     public let startupMultiplier: Double
+    public let minimumStartupSamples: Int
     public let minimumCacheSamples: Int
     public let cacheChangeRatio: Double
     public let minimumCacheInputTokens: Int64
@@ -20,7 +21,7 @@ public struct AnomalyPolicyConfiguration: Equatable, Sendable {
 
     public init(
         minimumPollingPairs: Int = 3, pollingPairWindow: TimeInterval = 60,
-        pollingSequenceWindow: TimeInterval = 300, startupMultiplier: Double = 2,
+        pollingSequenceWindow: TimeInterval = 300, startupMultiplier: Double = 2, minimumStartupSamples: Int = 2,
         minimumCacheSamples: Int = 2, cacheChangeRatio: Double = 0.5,
         minimumCacheInputTokens: Int64 = 1_000, cacheComparisonWindow: TimeInterval = 3_600,
         minimumAbsoluteInputTokens: Int64 = 50_000_000, minimumAbsoluteRequests: Int64 = 500,
@@ -31,6 +32,7 @@ public struct AnomalyPolicyConfiguration: Equatable, Sendable {
         self.pollingPairWindow = Self.validWindow(pollingPairWindow, fallback: 60)
         self.pollingSequenceWindow = Self.validWindow(pollingSequenceWindow, fallback: 300)
         self.startupMultiplier = Self.validPositive(startupMultiplier, fallback: 2)
+        self.minimumStartupSamples = max(2, minimumStartupSamples)
         self.minimumCacheSamples = max(2, minimumCacheSamples)
         self.cacheChangeRatio = min(max(cacheChangeRatio.isFinite ? cacheChangeRatio : 0.5, 0.01), 1)
         self.minimumCacheInputTokens = max(1, minimumCacheInputTokens)
@@ -125,12 +127,13 @@ public struct ExcessiveStartupSpec: Specification {
         guard requests.count >= 3, let firstTurn = requests.first?.turnID else { return false }
         let firstTurnRequests = Array(requests.prefix { $0.turnID == firstTurn })
         let laterRequests = Array(requests.dropFirst(firstTurnRequests.count))
-        guard firstTurnRequests.count >= 2, !laterRequests.isEmpty else { return false }
+        guard firstTurnRequests.count >= configuration.minimumStartupSamples,
+              !laterRequests.isEmpty else { return false }
         guard let baseline = AnomalyPolicySupport.median(laterRequests.compactMap(AnomalyPolicySupport.inputTokens)),
               baseline > 0 else { return false }
         let startupInputs = firstTurnRequests.compactMap(AnomalyPolicySupport.inputTokens)
-        guard !startupInputs.isEmpty else { return false }
-        let startupAverage = Double(startupInputs.reduce(0, +)) / Double(startupInputs.count)
+        guard startupInputs.count >= configuration.minimumStartupSamples else { return false }
+        let startupAverage = startupInputs.map(Double.init).reduce(0, +) / Double(startupInputs.count)
         return startupAverage >= baseline * configuration.startupMultiplier
     }
 }
@@ -205,7 +208,8 @@ public struct AnomalyPolicyEngine {
         decisions = [
             AnyDecisionSpec(RepetitivePollingDecision(configuration: configuration)),
             AnyDecisionSpec(ExcessiveStartupDecision(configuration: configuration)),
-            AnyDecisionSpec(UnusualCacheChangeDecision(configuration: configuration)),
+            AnyDecisionSpec(UnusualCacheChangeDecision(configuration: configuration, direction: .drop)),
+            AnyDecisionSpec(UnusualCacheChangeDecision(configuration: configuration, direction: .recovery)),
             AnyDecisionSpec(HighAbsoluteUsageDecision(configuration: configuration)),
             AnyDecisionSpec(DominantSessionDecision(configuration: configuration)),
             AnyDecisionSpec(UncachedBurstDecision(configuration: configuration))
@@ -235,6 +239,7 @@ private struct ExcessiveStartupDecision: DecisionSpec {
 
     let configuration: AnomalyPolicyConfiguration
 
+    // swiftlint:disable:next function_body_length
     func decide(_ context: Context) -> Result? {
         guard ExcessiveStartupSpec(configuration: configuration).isSatisfiedBy(context) else { return nil }
         let requests = AnomalyPolicySupport.requestPoints(context)
@@ -243,8 +248,19 @@ private struct ExcessiveStartupDecision: DecisionSpec {
         let laterRequests = Array(requests.dropFirst(firstTurnRequests.count))
         let baseline = AnomalyPolicySupport.median(laterRequests.compactMap(AnomalyPolicySupport.inputTokens)) ?? 0
         let startupInputs = firstTurnRequests.compactMap(AnomalyPolicySupport.inputTokens)
-        let startupAverage = Double(startupInputs.reduce(0, +)) / Double(startupInputs.count)
+        let startupAverage = startupInputs.map(Double.init).reduce(0, +) / Double(startupInputs.count)
         let startupResponses = firstTurnRequests.compactMap(\.responseID).sorted()
+        let unknownStartupSamples = firstTurnRequests.count - startupInputs.count
+        let startupCoverage: AnomalyCoverage = unknownStartupSamples > 0
+            ? .partial(reason: "Some first-turn cache values were unknown and excluded from startup comparison.")
+            : .observed
+        let startupUnknownEvidence = unknownStartupSamples > 0
+            ? [DiagnosticEvidenceItem(
+                source: "confirmed",
+                detail: "\(unknownStartupSamples) first-turn request(s) with unknown cache were excluded.",
+                sessionIDs: [context.session.id]
+            )]
+            : []
         return AnomalyFinding(
             kind: .startupOverhead, title: "Excessive startup overhead",
             reason: "Multiple requests in the first observed turn have substantially larger input than later requests.",
@@ -268,12 +284,12 @@ private struct ExcessiveStartupDecision: DecisionSpec {
                         sessionIDs: [context.session.id]
                     )
                 ],
-                unknown: [DiagnosticEvidenceItem(
+                unknown: startupUnknownEvidence + [DiagnosticEvidenceItem(
                     source: "confirmed",
                     detail: "The source does not identify whether the startup work was necessary.",
                     sessionIDs: [context.session.id]
                 )], limitations: ["One first request alone is not classified as startup overhead."]
-            ), confidence: .medium, coverage: .observed, affectedSessions: [context.session.id],
+            ), confidence: .medium, coverage: startupCoverage, affectedSessions: [context.session.id],
             suggestedNextAction: "Inspect the first-turn request sequence for duplicate initialization or "
                 + "avoidable context loading."
         )
@@ -285,10 +301,17 @@ private struct UnusualCacheChangeDecision: DecisionSpec {
     typealias Result = AnomalyFinding
 
     let configuration: AnomalyPolicyConfiguration
+    let direction: CacheChangeDirection
 
+    // swiftlint:disable:next function_body_length
     func decide(_ context: Context) -> Result? {
         guard UnusualCacheChangeSpec(configuration: configuration).isSatisfiedBy(context) else { return nil }
         let largest = AnomalyPolicySupport.comparableCachePairs(context, configuration: configuration)
+            .filter { pair in
+                guard let before = AnomalyPolicySupport.cacheRatio(pair.before),
+                      let after = AnomalyPolicySupport.cacheRatio(pair.after) else { return false }
+                return direction == .drop ? after < before : after > before
+            }
             .max { $0.change < $1.change }
         guard let largest, let before = AnomalyPolicySupport.cacheRatio(largest.before),
               let after = AnomalyPolicySupport.cacheRatio(largest.after) else { return nil }
@@ -303,7 +326,7 @@ private struct UnusualCacheChangeDecision: DecisionSpec {
         let coverage: AnomalyCoverage = unknownRequests > 0
             ? .partial(reason: "Some request cache values were unknown and excluded from comparison.")
             : .observed
-        let isDrop = after < before
+        let isDrop = direction == .drop
         let kind: AnomalyKind = isDrop ? .cacheDrop : .cacheRecovery
         let title = isDrop ? "Cache coverage drop" : "Cache coverage recovery"
         let reason = isDrop
@@ -339,3 +362,5 @@ private struct UnusualCacheChangeDecision: DecisionSpec {
         )
     }
 }
+
+private enum CacheChangeDirection { case drop, recovery }

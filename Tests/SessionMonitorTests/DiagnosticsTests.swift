@@ -131,6 +131,29 @@ struct DiagnosticsTests {
         #expect(try store.snapshot(query: UsageQuery())?.report.totals.unknownCacheRequests == 1)
     }
 
+    @Test func doctorDoesNotCompareCacheSamplesAcrossModels() throws {
+        let fixture = try DiagnosticsFixture()
+        defer { fixture.remove() }
+        let store = try UsageStore(url: fixture.database)
+        try store.replace(source: "models", rollout: fixture.rollout(records: [
+            fixture.record(
+                session: "models", id: "M1", turn: "T1", input: 1_000,
+                cached: 1_000, model: "alpha", line: 1
+            ),
+            fixture.record(
+                session: "models", id: "M2", turn: "T2", timestamp: 1,
+                input: 1_000, cached: 0, model: "beta", line: 2
+            ),
+            fixture.record(
+                session: "models", id: "M3", turn: "T3", timestamp: 2,
+                input: 1_000, cached: 0, model: "beta", line: 3
+            )
+        ]))
+
+        let findings = try store.doctor(query: UsageQuery()).findings
+        #expect(!findings.contains { $0.id.hasPrefix("unusual_cache_changes|") })
+    }
+
     @Test func missingProvenanceAndRelationshipStatesAreExplicit() throws {
         let fixture = try DiagnosticsFixture()
         defer { fixture.remove() }
