@@ -145,7 +145,7 @@ private struct WindowKey: Hashable {
 
         var identifier: String {
             switch self {
-            case let .id(value): "id:\(value)"
+            case let .id(value): value
             case let .name(value): "name:\(value)"
             case .anonymous: "unknown"
             }
@@ -167,7 +167,8 @@ private struct WindowCandidate {
     var fingerprint: Fingerprint {
         Fingerprint(
             state: snapshot.state, windowMinutes: window.windowMinutes,
-            usedPercent: window.usedPercent, resetsAt: window.resetsAt
+            usedPercent: window.usedPercent, resetsAt: window.resetsAt,
+            planType: snapshot.planType
         )
     }
 
@@ -188,4 +189,5 @@ private struct Fingerprint: Hashable {
     let windowMinutes: Int64?
     let usedPercent: Double?
     let resetsAt: Date?
+    let planType: String?
 }
