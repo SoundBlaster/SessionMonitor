@@ -88,11 +88,12 @@ struct DiagnosticsTests {
         }
         try store.replace(source: "poll", rollout: fixture.rollout(records: records, events: events))
         let finding = try #require(try store.doctor(query: UsageQuery()).findings.first {
-            $0.id == "repetitive_polling"
+            $0.id.hasPrefix("repetitive_polling|")
         })
         #expect(finding.affectedSessions == ["poll"])
         #expect(finding.evidence.observed.first?.source == "source_timeline_events")
         #expect(finding.evidence.inference.first?.source == "diagnostic_heuristic")
+        #expect(finding.evidence.inference.contains { $0.source == "specification_core_policy" })
     }
 
     @Test func startupOverheadRequiresRepeatedFirstTurnRequests() throws {
@@ -108,7 +109,7 @@ struct DiagnosticsTests {
             fixture.record(session: "startup", id: "S3", turn: "later", timestamp: 2, input: 100, cached: 90, line: 3)
         ]))
         let finding = try #require(try store.doctor(query: UsageQuery()).findings.first {
-            $0.id == "excessive_startup_overhead"
+            $0.id.hasPrefix("excessive_startup_overhead|")
         })
         #expect(finding.affectedSessions == ["startup"])
         #expect(finding.evidence.limitations.contains("One first request alone is not classified as startup overhead."))
@@ -119,15 +120,38 @@ struct DiagnosticsTests {
         defer { fixture.remove() }
         let store = try UsageStore(url: fixture.database)
         try store.replace(source: "cache", rollout: fixture.rollout(records: [
-            fixture.record(session: "cache", id: "C1", turn: "T1", input: 100, cached: 100, line: 1),
-            fixture.record(session: "cache", id: "C2", turn: "T2", timestamp: 1, input: 100, cached: 0, line: 2),
-            fixture.record(session: "cache", id: "C3", turn: "T3", timestamp: 2, input: 100, cached: nil, line: 3)
+            fixture.record(session: "cache", id: "C1", turn: "T1", input: 1_000, cached: 1_000, line: 1),
+            fixture.record(session: "cache", id: "C2", turn: "T2", timestamp: 1, input: 1_000, cached: 0, line: 2),
+            fixture.record(session: "cache", id: "C3", turn: "T3", timestamp: 2, input: 1_000, cached: nil, line: 3)
         ]))
         let finding = try #require(try store.doctor(query: UsageQuery()).findings.first {
-            $0.id == "unusual_cache_changes"
+            $0.id.hasPrefix("unusual_cache_changes|")
         })
         #expect(finding.evidence.unknown.first?.detail.contains("unknown cache") == true)
         #expect(try store.snapshot(query: UsageQuery())?.report.totals.unknownCacheRequests == 1)
+    }
+
+    @Test func doctorDoesNotCompareCacheSamplesAcrossModels() throws {
+        let fixture = try DiagnosticsFixture()
+        defer { fixture.remove() }
+        let store = try UsageStore(url: fixture.database)
+        try store.replace(source: "models", rollout: fixture.rollout(records: [
+            fixture.record(
+                session: "models", id: "M1", turn: "T1", input: 1_000,
+                cached: 1_000, model: "alpha", line: 1
+            ),
+            fixture.record(
+                session: "models", id: "M2", turn: "T2", timestamp: 1,
+                input: 1_000, cached: 0, model: "beta", line: 2
+            ),
+            fixture.record(
+                session: "models", id: "M3", turn: "T3", timestamp: 2,
+                input: 1_000, cached: 0, model: "beta", line: 3
+            )
+        ]))
+
+        let findings = try store.doctor(query: UsageQuery()).findings
+        #expect(!findings.contains { $0.id.hasPrefix("unusual_cache_changes|") })
     }
 
     @Test func missingProvenanceAndRelationshipStatesAreExplicit() throws {

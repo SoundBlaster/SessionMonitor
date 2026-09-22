@@ -6,11 +6,11 @@
 
 ## Текущая точка
 
-Следующая задача — **SM-308c**: composable anomaly policies на SpecificationCore.
+Текущая задача — **SM-308c**: composable anomaly policies на SpecificationCore.
 Статус: SM-308b доставлена через PR [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
 merge `593512b` (2026-09-21); локальные проверки и GitHub CI прошли, review threads закрыты.
-SM-308c запланирована на 2026-09-21; её implementation scope — policy layer с typed findings,
-evidence, confidence и coverage. Реализация начнётся после завершения roadmap sync PR;
+SM-308c начата 2026-09-21; implementation scope — policy layer с typed findings,
+evidence, confidence и coverage.
 `Specification`/`DecisionSpec` из SpecificationCore должны быть частью исполняемого decision path,
 а не только зависимостью target.
 SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
@@ -421,12 +421,21 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Пороговые значения делать настраиваемыми или выводить из сопоставимого baseline/cohort, сохраняя
   evidence pointers, confidence, coverage/unknown reason и основание срабатывания; единичный дневной
   пример не становится hard-coded нормой.
-  **SM-308c запланирована на 2026-09-21; реализация ещё не начата.** Domain rules должны быть
+  **SM-308c в работе с 2026-09-21, ветка `feat/sm-308c-anomaly-policies`.** Domain rules должны быть
   оформлены как композиции `SpecificationCore`
   `Specification`/`DecisionSpec` (при необходимости через `AnySpecification`/`FirstMatchSpec`)
   и выдавать typed findings с причиной и evidence metadata. Независимые сигналы должны
   оцениваться отдельно, чтобы один приоритетный match не скрывал остальные; tests должны
   подтверждать, что policy decision path действительно проходит через эти спецификации.
+  Текущий slice переносит repetitive polling, startup overhead и cache policies в общий
+  `AnomalyPolicyEngine`; добавлены независимые high-absolute-usage, dominant-session и
+  uncached-burst decisions. Исправлены median, session scope, sliding polling sequence bounds,
+  независимые cache drop/recovery, configuration validation, startup partial coverage, model-aware
+  cache comparability и stable finding IDs. Regression tests покрывают late polling outliers,
+  recovery после drop, неизвестные startup samples и смену модели в timeline. Quota-aware rules,
+  progress/retry evidence и явные not-applicable outcomes остаются следующим расширением
+  SM-308c/SM-308d. Локальные проверки review correction slice проходят; delivery ожидает PR и
+  GitHub CI. [Отчёт](reports/SM-308c-anomaly-policies.md).
   Production source для server usage snapshots — наблюдаемые usage-limit events в импортируемых
   Codex rollouts. Версионированный source adapter сохраняет в SQLite event timestamp, limit/window ID,
   duration, used percent, `resetsAt`, source/event identity и schema provenance; повторный импорт

@@ -22,7 +22,7 @@ let package = Package(
         ]),
         .target(name: "CodexSource", dependencies: ["MonitorCore"]),
         .target(name: "MonitorStore", dependencies: [
-            "MonitorCore", .product(name: "GRDB", package: "GRDB.swift")
+            "MonitorCore", "MonitorPolicies", .product(name: "GRDB", package: "GRDB.swift")
         ]),
         .target(name: "MonitorRuntime", dependencies: [
             "MonitorCore", "MonitorPolicies", "CodexSource", "MonitorStore"

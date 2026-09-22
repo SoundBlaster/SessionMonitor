@@ -1,6 +1,7 @@
 import Foundation
 import GRDB
 import MonitorCore
+import MonitorPolicies
 
 public enum DiagnosticsQueryError: Error {
     case snapshotUnavailable
@@ -93,19 +94,23 @@ extension UsageStore {
     }
 
     // swiftlint:disable:next function_body_length cyclomatic_complexity
-    public func doctor(query: UsageQuery) throws -> DiagnosticReport {
+    public func doctor(
+        query: UsageQuery, configuration: AnomalyPolicyConfiguration = .init()
+    ) throws -> DiagnosticReport {
         let snapshot = try diagnosticSnapshot(query: query)
         let states = Self.treeStates(sessions: snapshot.report.sessions, provenance: snapshot.provenance)
         let timelines = Dictionary(uniqueKeysWithValues: try snapshot.report.sessions.map { session in
             (session.id, try self.timeline(sessionID: session.id, query: query))
         })
         var findings: [DiagnosticFinding] = []
+        let policyEngine = AnomalyPolicyEngine(configuration: configuration)
+        let cohort = snapshot.report.sessions
 
         for session in snapshot.report.sessions {
             guard let timeline = timelines[session.id] else { continue }
-            if let finding = Self.pollingFinding(session: session, timeline: timeline) { findings.append(finding) }
-            if let finding = Self.startupFinding(session: session, timeline: timeline) { findings.append(finding) }
-            if let finding = Self.cacheFinding(session: session, timeline: timeline) { findings.append(finding) }
+            findings.append(contentsOf: policyEngine.evaluate(
+                AnomalyPolicyContext(session: session, timeline: timeline, cohort: cohort)
+            ).map { $0.asDiagnosticFinding() })
         }
 
         let missingProvenance = snapshot.report.sessions.filter { snapshot.provenance[$0.id] == nil }
@@ -223,131 +228,4 @@ extension UsageStore {
         SessionTreeBuilder.build(sessions: sessions, provenance: provenance).forEach(visit)
         return result
     }
-
-    private static func pollingFinding(session: SessionSummary, timeline: RequestTimeline) -> DiagnosticFinding? {
-        let waits = timeline.points.filter { $0.kind == .wait }.sorted { $0.timestamp < $1.timestamp }
-        let requests = timeline.points.filter { $0.kind == .usageRequest }.sorted { $0.timestamp < $1.timestamp }
-        guard waits.count >= 3, requests.count >= 3 else { return nil }
-        var requestIndex = 0
-        var pairs: [(RequestTimelinePoint, RequestTimelinePoint)] = []
-        for wait in waits {
-            while requestIndex < requests.count && requests[requestIndex].timestamp < wait.timestamp {
-                requestIndex += 1
-            }
-            guard requestIndex < requests.count,
-                  requests[requestIndex].timestamp.timeIntervalSince(wait.timestamp) <= 60 else { continue }
-            pairs.append((wait, requests[requestIndex]))
-            requestIndex += 1
-        }
-        guard pairs.count >= 3 else { return nil }
-        let waitLines = pairs.flatMap { [$0.0.sourceLine].compactMap { $0 } }.sorted()
-        let responseIDs = pairs.compactMap { $0.1.responseID }.sorted()
-        return DiagnosticFinding(
-            id: "repetitive_polling", severity: .warning, title: "Repetitive polling",
-            explanation: "Explicit wait events repeatedly precede usage requests in a short interval.",
-            evidence: DiagnosticEvidence(
-                observed: [DiagnosticEvidenceItem(
-                    source: "source_timeline_events",
-                    detail: "\(pairs.count) wait-to-request pairs were observed within 60 seconds.",
-                    sessionIDs: [session.id], responseIDs: responseIDs, sourceLines: waitLines
-                )],
-                inference: [DiagnosticEvidenceItem(
-                    source: "diagnostic_heuristic",
-                    detail: "The repeated wait/request sequence is classified as polling-like.",
-                    sessionIDs: [session.id]
-                )],
-                unknown: [DiagnosticEvidenceItem(
-                    source: "source_timeline_events",
-                    detail: "The source does not establish whether the polling was intentional.",
-                    sessionIDs: [session.id]
-                )], limitations: ["A single or normally long wait is not classified as polling."]
-            ), confidence: .medium, affectedSessions: [session.id],
-            suggestedNextAction: "Inspect the wait cadence and add backoff or event-driven completion if the polling "
-                + "is unintentional."
-        )
-    }
-
-    private static func startupFinding(session: SessionSummary, timeline: RequestTimeline) -> DiagnosticFinding? {
-        let requests = timeline.points.filter { $0.kind == .usageRequest }.sorted { $0.timestamp < $1.timestamp }
-        guard requests.count >= 3, let firstTurn = requests.first?.turnID else { return nil }
-        let firstTurnRequests = Array(requests.prefix { $0.turnID == firstTurn })
-        let laterRequests = Array(requests.dropFirst(firstTurnRequests.count))
-        guard firstTurnRequests.count >= 2, !laterRequests.isEmpty else { return nil }
-        let laterInputs = laterRequests.compactMap(Self.inputTokens).sorted()
-        guard let baseline = median(laterInputs), baseline > 0 else { return nil }
-        let startupAverage = Double(firstTurnRequests.compactMap(Self.inputTokens).reduce(0, +))
-            / Double(firstTurnRequests.count)
-        guard startupAverage >= baseline * 2 else { return nil }
-        let startupResponses = firstTurnRequests.compactMap(\.responseID).sorted()
-        return DiagnosticFinding(
-            id: "excessive_startup_overhead", severity: .warning, title: "Excessive startup overhead",
-            explanation: "Multiple requests in the first observed turn have substantially larger input "
-                + "than later requests.",
-            evidence: DiagnosticEvidence(
-                observed: [DiagnosticEvidenceItem(
-                    source: "confirmed", detail: "First-turn average input is at least twice the later-request median.",
-                    sessionIDs: [session.id], responseIDs: startupResponses
-                )],
-                inference: [DiagnosticEvidenceItem(
-                    source: "diagnostic_heuristic",
-                    detail: "The repeated first-turn input is classified as startup overhead.",
-                    sessionIDs: [session.id]
-                )],
-                unknown: [DiagnosticEvidenceItem(
-                    source: "confirmed", detail: "The source does not identify whether the startup work was necessary.",
-                    sessionIDs: [session.id]
-                )], limitations: ["One first request alone is not classified as startup overhead."]
-            ), confidence: .medium, affectedSessions: [session.id],
-            suggestedNextAction: "Inspect the first-turn request sequence for duplicate initialization or "
-                + "avoidable context loading."
-        )
-    }
-
-    private static func cacheFinding(session: SessionSummary, timeline: RequestTimeline) -> DiagnosticFinding? {
-        let known = timeline.points.filter { point in
-            point.kind == .usageRequest && inputTokens(point).map { $0 > 0 } == true && point.cachedInputTokens != nil
-        }.sorted { $0.timestamp < $1.timestamp }
-        guard known.count >= 2 else { return nil }
-        var largest: CacheChange?
-        for pair in zip(known, known.dropFirst()) {
-            guard let before = cacheRatio(pair.0), let after = cacheRatio(pair.1) else { continue }
-            let change = abs(after - before)
-            if change >= 0.5, largest.map({ change > $0.change }) ?? true {
-                largest = CacheChange(before: pair.0, after: pair.1, change: change)
-            }
-        }
-        guard let largest, let before = cacheRatio(largest.before), let after = cacheRatio(largest.after) else {
-            return nil
-        }
-        let responseIDs = [largest.before.responseID, largest.after.responseID].compactMap { $0 }
-        var unknown: [DiagnosticEvidenceItem] = []
-        let unknownRequests = timeline.points.filter { $0.kind == .usageRequest && $0.cachedInputTokens == nil }.count
-        if unknownRequests > 0 {
-            unknown.append(DiagnosticEvidenceItem(
-                source: "confirmed",
-                detail: "\(unknownRequests) request(s) with unknown cache were excluded from the comparison.",
-                sessionIDs: [session.id]
-            ))
-        }
-        return DiagnosticFinding(
-            id: "unusual_cache_changes", severity: .warning, title: "Unusual cache changes",
-            explanation: "Known cache coverage changes sharply between adjacent observed requests.",
-            evidence: DiagnosticEvidence(
-                observed: [DiagnosticEvidenceItem(
-                    source: "confirmed",
-                    detail: "Cache ratio changed from \(percentage(before)) to \(percentage(after)).",
-                    sessionIDs: [session.id], responseIDs: responseIDs
-                )],
-                inference: [DiagnosticEvidenceItem(
-                    source: "diagnostic_heuristic",
-                    detail: "The absolute cache-ratio change is at least 50 percentage points.",
-                    sessionIDs: [session.id]
-                )], unknown: unknown,
-                limitations: ["Unknown cache values are excluded and are never treated as a zero cache hit."]
-            ), confidence: .medium, affectedSessions: [session.id],
-            suggestedNextAction: "Inspect the adjacent requests and verify whether the cache boundary "
-                + "reflects a real context change."
-        )
-    }
-
 }

@@ -57,13 +57,14 @@ public struct DiagnosticFinding: Codable, Equatable, Identifiable, Sendable {
     public let explanation: String
     public let evidence: DiagnosticEvidence
     public let confidence: DiagnosticConfidence
+    public let coverage: AnomalyCoverage?
     public let affectedSessions: [String]
     public let suggestedNextAction: String
 
     public init(
         id: String, severity: DiagnosticSeverity, title: String, explanation: String,
         evidence: DiagnosticEvidence, confidence: DiagnosticConfidence,
-        affectedSessions: [String], suggestedNextAction: String
+        affectedSessions: [String], suggestedNextAction: String, coverage: AnomalyCoverage? = nil
     ) {
         self.id = id
         self.severity = severity
@@ -71,6 +72,7 @@ public struct DiagnosticFinding: Codable, Equatable, Identifiable, Sendable {
         self.explanation = explanation
         self.evidence = evidence
         self.confidence = confidence
+        self.coverage = coverage
         self.affectedSessions = affectedSessions
         self.suggestedNextAction = suggestedNextAction
     }
