@@ -70,7 +70,7 @@ final class AppWatchController {
                     activity: activity
                 )
             } catch {
-                await failStart(
+                failStart(
                     error,
                     directory: directory,
                     generation: generation,
@@ -241,7 +241,7 @@ final class AppWatchController {
         statusTask = Task { [weak self] in
             for await value in updates {
                 guard !Task.isCancelled else { return }
-                await self?.receive(value, generation: generation)
+                self?.receive(value, generation: generation)
             }
         }
     }
