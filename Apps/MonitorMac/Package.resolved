@@ -1,5 +1,5 @@
 {
-  "originHash" : "141f30074ccbe16774362fc1b9cb061ad229de19b99e11eadb487318600c4dc7",
+  "originHash" : "4a578deee2704057cf698327970a8f02e701b7d75cb0fab6b557b21675815c90",
   "pins" : [
     {
       "identity" : "grdb.swift",
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SoundBlaster/SpecificationKit",
       "state" : {
-        "revision" : "330fa5d34215aa92f1cd33d174e4b76c4d27664f",
-        "version" : "4.0.0"
+        "revision" : "d81e7f8a3586c9b4279044f984ae7830c6dd0b49",
+        "version" : "4.0.1"
       }
     },
     {

@@ -8,7 +8,7 @@ packages:
     path: ../..
   SpecificationKit:
     url: https://github.com/SoundBlaster/SpecificationKit
-    exactVersion: 4.0.0
+    exactVersion: 4.0.1
 settings:
   base:
     SWIFT_VERSION: "6.0"
