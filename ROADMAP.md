@@ -367,7 +367,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   border и rounded container; card appearance остаётся отдельной опцией для внешнего host.
   Small/medium/large, light/dark, responsive widths и fixtures проверены. Остаток SM-311:
   widget tap пока не ведёт на отдельную Cache Analytics страницу; WidgetKit/App Group
-  delivery отслеживаются отдельно в SM-401/SM-402.
+  delivery отслеживаются отдельно в SM-401/SM-402. Contrast follow-up: Y-axis cache-level
+  labels теперь используют явный neutral palette role, совпадающий с date labels в light mode.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
   **Статус: в работе (2026-09-20), ветка `feat/sm-308-anomaly-analytics`.** Реализация
   будет идти вертикальными частями: activity metrics/evidence; наблюдения quota из rollout
