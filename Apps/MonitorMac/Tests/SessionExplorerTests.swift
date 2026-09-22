@@ -196,6 +196,23 @@ final class SessionExplorerTests: XCTestCase {
         XCTAssertNil(model.timelineModel.timeline)
     }
 
+    func testQuotaPresentationUsesCurrentQuery() async throws {
+        let runtime = StubExplorerRuntime(report: report([session("one", model: "model-a")]))
+        let model = SessionExplorerModel { runtime }
+        let query = try UsageQuery(
+            since: Date(timeIntervalSince1970: 100),
+            until: Date(timeIntervalSince1970: 200),
+            timeZoneIdentifier: "Europe/Moscow"
+        )
+
+        await model.loadIfNeeded(query: query)
+        let generatedAt = Date(timeIntervalSince1970: 300)
+        await model.loadQuotaPresentation(generatedAt: generatedAt)
+
+        XCTAssertEqual(model.quotaPresentationReport?.query, query)
+        XCTAssertEqual(model.quotaPresentationReport?.generatedAt, generatedAt)
+    }
+
     func testGUIObservesExternalProcessCommit() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -305,6 +322,13 @@ actor StubExplorerRuntime: SessionExplorerRuntime {
     ) -> CacheHitRateWidgetReport {
         CacheHitRateWidgetBuilder.build(
             observations: [], period: period, referenceDate: referenceDate, timeZone: timeZone
+        )
+    }
+
+    func quotaPresentation(query: UsageQuery, generatedAt: Date) -> QuotaPresentationReport {
+        QuotaPresentationReport(
+            query: query, generatedAt: generatedAt, freshnessThresholdSeconds: 900,
+            coverage: UsageLimitTelemetryCoverage(snapshots: []), windows: []
         )
     }
 

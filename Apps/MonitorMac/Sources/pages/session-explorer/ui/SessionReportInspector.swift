@@ -31,6 +31,8 @@ struct SessionReportInspector: View {
                 }
             }
 
+            QuotaPresentationSection(report: model.quotaPresentationReport)
+
             if let session = model.selectedSession {
                 Section("Selection") {
                     if let provenance = model.provenance[session.id] {

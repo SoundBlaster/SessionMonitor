@@ -10,6 +10,7 @@ protocol SessionExplorerRuntime: RequestTimelineSource, Sendable {
     func cacheHitRateWidget(
         period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone
     ) async throws -> CacheHitRateWidgetReport
+    func quotaPresentation(query: UsageQuery, generatedAt: Date) async throws -> QuotaPresentationReport
 }
 
 extension MonitorRuntime.SessionMonitor: SessionExplorerRuntime {}
@@ -33,6 +34,7 @@ final class SessionExplorerModel {
     private(set) var importedDirectory: URL?
     private(set) var lastUpdated: Date?
     private(set) var cacheHitRateWidgetReport: CacheHitRateWidgetReport?
+    private(set) var quotaPresentationReport: QuotaPresentationReport?
     private(set) var filter = ""
     var navigation = SessionNavigationState()
 
@@ -110,6 +112,17 @@ final class SessionExplorerModel {
             )
         } catch {
             errorMessage = "Could not load the cache hit widget. \(error.localizedDescription)"
+        }
+    }
+
+    func loadQuotaPresentation(generatedAt: Date = Date()) async {
+        do {
+            let runtime = try await resolvedRuntime()
+            quotaPresentationReport = try await runtime.quotaPresentation(
+                query: query, generatedAt: generatedAt
+            )
+        } catch {
+            quotaPresentationReport = nil
         }
     }
 
@@ -199,6 +212,7 @@ final class SessionExplorerModel {
         navigation.reconcile(with: [])
         lastUpdated = nil
         cacheHitRateWidgetReport = nil
+        quotaPresentationReport = nil
         publishSnapshot()
     }
 

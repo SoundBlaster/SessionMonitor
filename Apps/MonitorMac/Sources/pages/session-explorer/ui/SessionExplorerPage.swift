@@ -59,6 +59,12 @@ struct SessionExplorerPage: View {
             statusBar
         }
         .safeAreaPadding(.top)
+        .task(id: QuotaPresentationLoadID(
+            query: model.query, revision: model.snapshot?.watermark.revision
+        )) {
+            guard model.snapshot != nil else { return }
+            await model.loadQuotaPresentation()
+        }
     }
 
     private var sidebar: some View {
@@ -267,6 +273,11 @@ private struct CacheHitRateWidgetLoadID: Hashable {
     let period: CacheHitRateWidgetPeriod
     let revision: Int64?
     let timeZoneIdentifier: String
+}
+
+private struct QuotaPresentationLoadID: Hashable {
+    let query: UsageQuery
+    let revision: Int64?
 }
 
 private struct SessionListRow: View {
