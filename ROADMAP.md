@@ -7,9 +7,10 @@
 ## Текущая точка
 
 SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
-merge `e7abca5` (2026-09-22). Текущий review follow-up — **SM-318**
-([PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47)); он ожидает повторного
-CI/merge. После доставки продолжить **SM-308e**.
+merge `e7abca5`; SM-318 — через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
+merge `9b8a491` (2026-09-22). Текущий review follow-up — **SM-708**
+([PR #48](https://github.com/SoundBlaster/SessionMonitor/pull/48)); после доставки продолжить
+**SM-308e**.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -608,11 +609,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 7. Сопровождение и доставка
 
-- [ ] **SM-318** — Удалить устаревшие Xcode warnings в watch controller и timeline scale.
-  **Статус: review fixes готовы, PR #47 открыт.** Начато 2026-09-22: удалены `await` перед
-  синхронными вызовами и неиспользуемый `duration`. Workflow lint, Native checks и CI прошли
-  на исходной ревизии PR; после обновления ветки ожидаются повторные checks. Остаток: дождаться
-  зелёного CI и merge PR.
+- [x] **SM-318** — Удалить устаревшие Xcode warnings в watch controller и timeline scale.
+  Готово 2026-09-22 через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
+  merge `9b8a491`: удалены `await` перед синхронными вызовами и неиспользуемый `duration`.
+  Workflow lint, Native checks и CI прошли на обновлённой ветке; review thread закрыт.
 - [x] **SM-707** — Запретить Git worktree при работе над этим проектом.
   Готово 2026-09-21: `AGENTS.md` предписывает основной checkout и обычные ветки;
   [PR #35](https://github.com/SoundBlaster/SessionMonitor/pull/35) merged в `3d28e18`
