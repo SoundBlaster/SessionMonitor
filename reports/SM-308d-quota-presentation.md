@@ -19,6 +19,18 @@ The decision path uses `SpecificationCore` availability specifications before
 building the typed projection. Unknown values remain optional and are not converted
 to zero.
 
+## Review hardening
+
+The projection now preserves evidence boundaries when observations are incomplete or
+ambiguous:
+
+- reset discontinuities compare consecutive known reset epochs across partial samples;
+- conflicting observations at the same timestamp remain explicitly ambiguous instead
+  of selecting a content-hash winner;
+- a missing `limit_id` falls back to a non-empty `limit_name`, so distinct named pools
+  do not collapse into one window;
+- human CLI output distinguishes no imported snapshot from unsupported/no-window data.
+
 ## CLI behavior
 
 `codex-monitor quota` keeps its existing JSON schema (`UsageLimitSnapshotReport`) for
@@ -27,9 +39,11 @@ automation compatibility. Human-readable output uses the shared projection and a
 
 ## Validation
 
-- `UsageLimitSnapshotTests` — 8 tests passed, including derived remaining, freshness,
-  reset discontinuity, and partial unknown values.
-- `make check-core` — 112 tests in 17 suites, SwiftLint, CLI watch/snapshot/quota and
+- `UsageLimitSnapshotTests` — 8 tests passed; `QuotaPresentationReviewTests` — 3 tests
+  passed, covering derived remaining, freshness, reset discontinuity across unknown
+  samples, equal-timestamp ambiguity, named limits without IDs, and partial unknown
+  values.
+- `make check-core` — 115 tests in 18 suites, SwiftLint, CLI watch/snapshot/quota and
   performance smoke passed.
 - `git diff --check` — passed.
 

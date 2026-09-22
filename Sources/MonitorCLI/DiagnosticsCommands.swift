@@ -254,7 +254,12 @@ extension MonitorCommand {
                 print("Freshness: unknown; no imported snapshot in the selected period")
             }
             guard !report.windows.isEmpty else {
-                print("No quota event was observed in this interval; quota usage is unknown.")
+                if report.coverage.unknownReason == .noSnapshotInPeriod {
+                    print("No quota event was observed in this interval; quota usage is unknown.")
+                } else {
+                    print("Quota events were observed, but no supported window observation was "
+                          + "available; quota usage is unknown.")
+                }
                 return
             }
             for window in report.windows {
@@ -265,10 +270,11 @@ extension MonitorCommand {
                 let reset = window.resetsAt.map(Self.iso8601) ?? "unknown"
                 let limit = window.limitID ?? "unknown"
                 let discontinuity = window.isResetDiscontinuity ? " discontinuity=reset" : ""
+                let ambiguity = window.isAmbiguous ? " ambiguity=equal-timestamp" : ""
                 print("\(Self.iso8601(window.observedAt)) scope=\(window.scope.rawValue) "
                       + "limit=\(limit) window=\(window.windowKind.rawValue) "
                       + "used=\(used) remaining=\(remaining) reset=\(reset) "
-                      + "freshness=\(window.freshness.state.rawValue)\(discontinuity)")
+                      + "freshness=\(window.freshness.state.rawValue)\(discontinuity)\(ambiguity)")
             }
             print("Scope is unknown unless the source identifies it; rollout thread context is not quota ownership.")
         }

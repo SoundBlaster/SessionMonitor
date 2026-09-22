@@ -68,15 +68,15 @@ public struct QuotaPresentationDecision: DecisionSpec {
                 if lhs.snapshot.timestamp != rhs.snapshot.timestamp {
                     return lhs.snapshot.timestamp < rhs.snapshot.timestamp
                 }
-                return lhs.snapshot.eventIdentity < rhs.snapshot.eventIdentity
+                return lhs.snapshot.sourceLine < rhs.snapshot.sourceLine
             }
             guard let latest = ordered.last else { return nil }
-            let latestReset = latest.window.resetsAt
-            let discontinuity = zip(ordered, ordered.dropFirst()).contains { previous, next in
-                guard let previousReset = previous.window.resetsAt,
-                      let nextReset = next.window.resetsAt else { return false }
-                return previousReset != nextReset
-            }
+            let latestCandidates = ordered.filter { $0.snapshot.timestamp == latest.snapshot.timestamp }
+            let isAmbiguous = Set(latestCandidates.map(\.fingerprint)).count > 1
+            let latestReset = isAmbiguous ? nil : latest.window.resetsAt
+            let knownResets = ordered.compactMap { $0.window.resetsAt }
+            let discontinuity = !isAmbiguous && zip(knownResets, knownResets.dropFirst())
+                .contains { previous, next in previous != next }
             let age = context.generatedAt.timeIntervalSince(latest.snapshot.timestamp)
             return QuotaWindowPresentation(
                 id: latest.key.identifier,
@@ -88,12 +88,13 @@ public struct QuotaPresentationDecision: DecisionSpec {
                 slot: latest.window.slot,
                 windowKind: latest.window.windowKind,
                 windowMinutes: latest.window.windowMinutes,
-                usedPercent: latest.window.usedPercent,
-                remainingPercent: latest.window.remainingPercentDerived,
+                usedPercent: isAmbiguous ? nil : latest.window.usedPercent,
+                remainingPercent: isAmbiguous ? nil : latest.window.remainingPercentDerived,
                 resetsAt: latestReset,
                 observedAt: latest.snapshot.timestamp,
                 freshness: freshness(age),
-                isResetDiscontinuity: discontinuity
+                isResetDiscontinuity: discontinuity,
+                isAmbiguous: isAmbiguous
             )
         }.sorted { lhs, rhs in
             if lhs.windowKind != rhs.windowKind {
@@ -129,12 +130,26 @@ public struct QuotaPresentationDecision: DecisionSpec {
 private struct WindowKey: Hashable {
     let scope: UsageLimitScope
     let scopeIdentifier: String?
-    let limitID: String?
+    let limitIdentity: LimitIdentity
     let slot: UsageLimitWindowSlot
 
     var identifier: String {
-        [scope.rawValue, scopeIdentifier ?? "unknown", limitID ?? "unknown", slot.rawValue]
+        [scope.rawValue, scopeIdentifier ?? "unknown", limitIdentity.identifier, slot.rawValue]
             .joined(separator: "|")
+    }
+
+    enum LimitIdentity: Hashable {
+        case id(String)
+        case name(String)
+        case anonymous
+
+        var identifier: String {
+            switch self {
+            case let .id(value): "id:\(value)"
+            case let .name(value): "name:\(value)"
+            case .anonymous: "unknown"
+            }
+        }
     }
 }
 
@@ -145,7 +160,32 @@ private struct WindowCandidate {
     var key: WindowKey {
         WindowKey(
             scope: snapshot.scope, scopeIdentifier: snapshot.scopeIdentifier,
-            limitID: snapshot.limitID, slot: window.slot
+            limitIdentity: Self.limitIdentity(snapshot), slot: window.slot
         )
     }
+
+    var fingerprint: Fingerprint {
+        Fingerprint(
+            state: snapshot.state, windowMinutes: window.windowMinutes,
+            usedPercent: window.usedPercent, resetsAt: window.resetsAt
+        )
+    }
+
+    private static func limitIdentity(_ snapshot: UsageLimitSnapshotObservation)
+        -> WindowKey.LimitIdentity {
+        if let limitID = snapshot.limitID, !limitID.isEmpty {
+            return .id(limitID)
+        }
+        if let limitName = snapshot.limitName, !limitName.isEmpty {
+            return .name(limitName)
+        }
+        return .anonymous
+    }
+}
+
+private struct Fingerprint: Hashable {
+    let state: UsageLimitSnapshotState
+    let windowMinutes: Int64?
+    let usedPercent: Double?
+    let resetsAt: Date?
 }

@@ -445,8 +445,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `resetsAt` как discontinuity и сохранять unknown/partial coverage. Attribution и estimates
   будут добавляться после стабилизации этого контракта; token totals не используются как quota.
   Projection и `SpecificationCore` decision path реализованы, человекочитаемый `codex-monitor quota`
-  использует projection, а JSON schema сохранена для automation. `make check-core` прошёл на 112
-  тестах; GUI, attribution и pricing остаются следующим срезом. [Отчёт](reports/SM-308d-quota-presentation.md).
+  использует projection, а JSON schema сохранена для automation. `make check-core` прошёл на 115
+  тестах; review hardening добавляет сохранение ambiguity, partial reset continuity,
+  provenance-aware limit identity и различает unsupported/no-window CLI coverage. GUI,
+  attribution и pricing остаются следующим срезом. [Отчёт](reports/SM-308d-quota-presentation.md).
   Production source для server usage snapshots — наблюдаемые usage-limit events в импортируемых
   Codex rollouts. Версионированный source adapter сохраняет в SQLite event timestamp, limit/window ID,
   duration, used percent, `resetsAt`, source/event identity и schema provenance; повторный импорт

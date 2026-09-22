@@ -33,13 +33,14 @@ public struct QuotaWindowPresentation: Codable, Equatable, Identifiable, Sendabl
     public let observedAt: Date
     public let freshness: QuotaFreshness
     public let isResetDiscontinuity: Bool
+    public let isAmbiguous: Bool
 
     public init(
         id: String, scope: UsageLimitScope, scopeIdentifier: String?, limitID: String?,
         limitName: String?, planType: String?, slot: UsageLimitWindowSlot,
         windowKind: UsageLimitWindowKind, windowMinutes: Int64?, usedPercent: Double?,
         remainingPercent: Double?, resetsAt: Date?, observedAt: Date, freshness: QuotaFreshness,
-        isResetDiscontinuity: Bool
+        isResetDiscontinuity: Bool, isAmbiguous: Bool = false
     ) {
         self.id = id
         self.scope = scope
@@ -56,6 +57,7 @@ public struct QuotaWindowPresentation: Codable, Equatable, Identifiable, Sendabl
         self.observedAt = observedAt
         self.freshness = freshness
         self.isResetDiscontinuity = isResetDiscontinuity
+        self.isAmbiguous = isAmbiguous
     }
 }
 
