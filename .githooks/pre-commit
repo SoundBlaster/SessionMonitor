@@ -17,6 +17,6 @@ if [ -x "$pinned_xcodegen" ]; then
 elif command -v xcodegen >/dev/null 2>&1; then
     make generate
 else
-    printf '%s\n' 'XcodeGen is required. Run `rtk proxy bash scripts/ci/install-tools.sh native` or install the project-pinned XcodeGen, then retry the commit.' >&2
+    printf '%s\n' 'XcodeGen is required. Run rtk proxy bash scripts/ci/install-tools.sh native or install the project-pinned XcodeGen, then retry the commit.' >&2
     exit 1
 fi
