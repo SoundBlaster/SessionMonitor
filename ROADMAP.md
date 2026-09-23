@@ -9,13 +9,15 @@
 SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
 merge `e7abca5`; SM-318 — через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
 merge `9b8a491`; SM-708 — через [PR #48](https://github.com/SoundBlaster/SessionMonitor/pull/48),
-merge `87e71eb` (2026-09-22). SM-319 частично реализована через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52),
-но runtime AX-проверка выявила, что Inspector остался в overflow. Код SM-320 доставлен через
-[PR #53](https://github.com/SoundBlaster/SessionMonitor/pull/53) (merge `6b2156e`, 2026-09-23);
-runtime AX-проверка новой сборки ещё не выполнена, поэтому SM-320 остаётся в работе.
-**SM-321 — автоматическая генерация Xcode-проекта перед commit — в работе (PR #54)** после
-обнаружения устаревшего локального `.xcodeproj`. После merge SM-321 повторить сборку и runtime
-AX-проверку SM-320; затем возобновить **SM-308e**.
+merge `87e71eb` (2026-09-22). SM-319 частично реализована через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52).
+Код SM-320 доставлен через [PR #53](https://github.com/SoundBlaster/SessionMonitor/pull/53)
+(merge `6b2156e`); follow-up [PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55)
+перенёс Inspector action в toolbar detail-колонки. Пользователь собрал приложение в Xcode,
+runtime AX подтвердил самостоятельную кнопку; CI зелёный, PR #55 ожидает merge.
+**SM-321 доставлена через PR #54** (merge `2a939df`, 2026-09-23).
+Новая активная задача **SM-322**: Update перечитывает SQLite snapshot, но не импортирует новые
+JSONL из ранее выбранной папки; 24 сегодняшних файла в локальном Codex sessions directory
+отсутствуют среди импортированных sources. После SM-322 и merge PR #55 возобновить **SM-308e**.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -622,17 +624,23 @@ deliverable — WidgetKit extension с App Group в SM-401.
 - [ ] **SM-320** — Удерживать Inspector action вне toolbar overflow.
   Статус: код доставлен через PR #53 (merge `6b2156e`, 2026-09-23): на macOS 26.1+
   Inspector получает высокий toolbar visibility priority, вторичные действия — низкий;
-  для deployment target macOS 15 предусмотрен availability fallback. Локальная сборка
-  через Xcode MCP пока заблокирована повторным подтверждением package macros, поэтому
-  runtime AX-проверка остаётся незавершённой. Готово, когда runtime AX показывает
-  Show/Hide Inspector самостоятельной toolbar button, клик открывает и закрывает inspector,
-  а overflow больше не содержит этот пункт.
-- [ ] **SM-321** — Автоматически обновлять локальный Xcode-проект перед commit.
-  Статус: в работе, PR #54. Установленный Git pre-commit hook должен запускать
-  `make generate` при staged изменениях app sources, `project.yml` или `Package.resolved`;
-  безопасно устанавливаться без перезаписи существующего hook и без изменения `core.hooksPath`.
-  Готово, когда добавление/удаление исходника перед commit отражается в игнорируемом
-  `.xcodeproj`, документация описывает установку и требование XcodeGen, а hook покрыт shell checks.
+  для deployment target macOS 15 предусмотрен availability fallback. Follow-up PR #55
+  переносит action в toolbar detail-колонки по примеру NavigationSplitView demo. Пользователь
+  собрал приложение в Xcode, runtime AX подтвердил standalone Show/Hide Inspector рядом с Search;
+  CI прошёл, PR ожидает merge. Готово после merge PR #55.
+- [x] **SM-321** — Автоматически обновлять локальный Xcode-проект перед commit.
+  Готово 2026-09-23 через [PR #54](https://github.com/SoundBlaster/SessionMonitor/pull/54),
+  merge `2a939df`: pre-commit hook синхронизирует локальный Xcode-проект; Workflow lint,
+  Native checks и CI прошли.
+- [ ] **SM-322** — Обновлять список сессий из последней импортированной папки.
+  Статус: в работе, ветка `fix/sm-322-update-imports-latest-rollouts`. Сейчас toolbar Refresh
+  только перечитывает сохранённый snapshot, а путь импортированной папки теряется при закрытии
+  окна/перезапуске. Update должен импортировать новые и дописанные JSONL из последнего источника,
+  сохранять выбранную папку между запусками и затем публиковать свежий snapshot. При отсутствии
+  сохранённого источника Update должен предложить выбрать папку. Проверить тестами появление
+  новой сессии после Update, сохранение источника, поведение при недоступной папке и сохранение
+  прежнего snapshot при ошибке импорта. Локально: 24 rollout-файла с сегодняшней датой не имеют
+  checkpoint в основной базе; raw данные не добавлять в репозиторий.
 - [x] **SM-318** — Удалить устаревшие Xcode warnings в watch controller и timeline scale.
   Готово 2026-09-22 через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
   merge `9b8a491`: удалены `await` перед синхронными вызовами и неиспользуемый `duration`.

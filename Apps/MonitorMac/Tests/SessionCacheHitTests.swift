@@ -40,7 +40,7 @@ final class SessionCacheHitTests: XCTestCase {
     func testPeriodChangeReplacesSidebarCacheHitForSameSessionIdentity() async throws {
         let allTimeSession = session("same", model: "model-a", inputTokens: 100, cachedInputTokens: 0)
         let runtime = StubExplorerRuntime(report: report([allTimeSession]))
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         await model.loadIfNeeded()
         let initialSession = try XCTUnwrap(model.selectedSession)
         XCTAssertEqual(SessionCacheHitPresentation(totals: initialSession.totals).ratio, 0)
@@ -63,7 +63,7 @@ final class SessionCacheHitTests: XCTestCase {
         let runtime = StubExplorerRuntime(report: report([
             session("live", model: "model-a", inputTokens: 100, cachedInputTokens: 0)
         ]))
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         await model.loadIfNeeded()
         let observation = Task { await model.observe() }
         defer { observation.cancel() }
@@ -89,7 +89,7 @@ final class SessionCacheHitTests: XCTestCase {
         let first = session("first", model: "model-a", inputTokens: 100, cachedInputTokens: 0)
         let second = session("second", model: "model-b", inputTokens: 100, cachedInputTokens: 100)
         let runtime = StubExplorerRuntime(report: report([first, second]))
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         await model.loadIfNeeded()
         model.selectSession(second.id)
 
@@ -122,4 +122,16 @@ final class SessionCacheHitTests: XCTestCase {
         }
         return UsageReport(totals: totals, sessions: sessions, diagnostics: [:])
     }
+    private func makeModel(_ runtime: any SessionExplorerRuntime) -> SessionExplorerModel {
+        let suiteName = "SessionCacheHitTests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("Could not create isolated UserDefaults suite")
+            return SessionExplorerModel(runtimeFactory: { runtime })
+        }
+        return SessionExplorerModel(
+            runtimeFactory: { runtime },
+            importedDirectorySettings: ImportedDirectorySettings(defaults: defaults)
+        )
+    }
+
 }
