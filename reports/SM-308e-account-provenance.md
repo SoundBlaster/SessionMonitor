@@ -36,7 +36,7 @@ arbitrarily assigned. Session metadata remains independent from account profile 
 - `make build-macos` — passed.
 - `make lint-architecture test-architecture` — passed; strict FSD lint reported 0 errors and 0 warnings.
 - `git diff --check` — passed.
-- GitHub CI — passed for [PR #58](https://github.com/SoundBlaster/SessionMonitor/pull/58) (`Native checks`, `Workflow lint`, aggregate `CI`).
+- GitHub CI passed for the implementation revision of [PR #58](https://github.com/SoundBlaster/SessionMonitor/pull/58) (`Native checks`, `Workflow lint`, aggregate `CI`). A later docs-only revision adds the no-wait project rule; its checks are left running on GitHub.
 
 ## Boundaries
 

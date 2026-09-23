@@ -503,7 +503,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   общий источник без явного разделения должен оставаться `unknown`/`mixed`.
   - [ ] **SM-308e** — Задать account profile provenance для импортируемых источников.
     Статус: PR [#58](https://github.com/SoundBlaster/SessionMonitor/pull/58) открыт; локальные
-    проверки пройдены, GitHub CI зелёный для текущего кода. Ветка `feat/sm-308e-account-provenance`
+    проверки пройдены, GitHub CI прошёл на ревизии реализации; финальная docs-only ревизия
+    с правилом no-wait отправлена и оставлена проверяться на GitHub. Ветка `feat/sm-308e-account-provenance`
     (2026-09-23; приоритет пользователя переопределил ожидание merge PR #55, конфликтующего с `main`).
     Предпосылка: завершена часть SM-308 по импорту quota snapshots. Поддержать явный non-secret
     account identity из формата источника и
