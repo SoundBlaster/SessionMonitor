@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import GRDB
 import MonitorCore
@@ -37,15 +38,17 @@ extension UsageStore {
             ]
             let accountPredicate = Self.accountScopePredicate()
             var points: [RequestTimelinePoint] = try Row.fetchAll(database, sql: """
-                SELECT response, turn, timestamp, input, cached, model
+                SELECT response, turn, timestamp, input, cached, model, account_scope_key
                 FROM confirmed
                 WHERE session = ? AND \(predicate) \(accountPredicate)
                 ORDER BY timestamp ASC, response ASC
                 """, arguments: arguments).map { row in
                     let input: Int64 = row["input"]
                     let cached: Int64? = row["cached"]
+                    let scopeKey: String = row["account_scope_key"]
                     return RequestTimelinePoint(
-                        id: "request:\(row["response"] as String)", sessionID: sessionID,
+                        id: Self.requestPointID(scopeKey: scopeKey, responseID: row["response"]),
+                        sessionID: sessionID,
                         timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: .usageRequest,
                         turnID: row["turn"], responseID: row["response"],
                         cachedInputTokens: cached,
@@ -83,4 +86,10 @@ extension UsageStore {
         }
     }
     // swiftlint:enable function_body_length
+
+    private static func requestPointID(scopeKey: String, responseID: String) -> String {
+        let scopeDigest = SHA256.hash(data: Data(scopeKey.utf8))
+            .map { String(format: "%02x", $0) }.joined()
+        return "request:\(scopeDigest):\(responseID)"
+    }
 }

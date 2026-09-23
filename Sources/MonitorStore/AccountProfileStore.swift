@@ -35,17 +35,20 @@ extension UsageStore {
                     user_id TEXT
                 );
                 """)
-            try database.execute(sql: """
-                INSERT INTO source_account_scope(source, scope_key, state)
-                SELECT source, 'unknown:legacy', 'unknown' FROM (
+            let legacySources = try String.fetchAll(database, sql: """
+                SELECT source FROM (
                     SELECT source FROM source_records
                     UNION SELECT source FROM source_timeline_events
                     UNION SELECT source FROM source_legacy_estimates
                     UNION SELECT source FROM source_usage_limit_snapshots
                 )
-                WHERE 1
-                ON CONFLICT(source) DO NOTHING
                 """)
+            for source in legacySources {
+                try database.execute(sql: """
+                    INSERT INTO source_account_scope(source, scope_key, state) VALUES (?, ?, 'unknown')
+                    ON CONFLICT(source) DO NOTHING
+                    """, arguments: [source, Self.unknownScopeKey(source)])
+            }
             try database.execute(sql: "DROP VIEW confirmed")
             try createConfirmedView(database)
         }
@@ -83,13 +86,16 @@ extension UsageStore {
                 INSERT INTO account_profiles(profile_id, label) VALUES (?, ?)
                 ON CONFLICT(profile_id) DO UPDATE SET label = excluded.label
                 """, arguments: [profileID, label.trimmingCharacters(in: .whitespacesAndNewlines)])
-            let identities = try Row.fetchAll(database, sql: """
+            let sourceIdentities = try Row.fetchAll(database, sql: """
                 SELECT source, account_id, user_id FROM source_account_scope
                 WHERE source = ? OR substr(source, 1, length(?) + 1) = ? || '/'
                 """, arguments: [root, root, root])
-            let keys = Set(identities.compactMap { row -> String? in
-                let identity = SourceAccountIdentity(accountID: row["account_id"], userID: row["user_id"])
-                return identity.deduplicationKey
+            let quotaIdentities = try Self.quotaIdentities(under: root, database: database)
+            let sourceIdentityValues = sourceIdentities.map { row in
+                SourceAccountIdentity(accountID: row["account_id"], userID: row["user_id"])
+            }
+            let keys = Set((sourceIdentityValues + quotaIdentities).compactMap { identity -> String? in
+                identity.deduplicationKey
             })
             let isMixed = keys.count > 1
             let observed = keys.count == 1 ? keys.first : nil
@@ -100,11 +106,11 @@ extension UsageStore {
                     mapping_state = excluded.mapping_state, observed_identity_key = excluded.observed_identity_key
                 """, arguments: [root, profileID, isMixed ? "mixed" : "assigned", observed])
 
-            for row in identities {
+            for row in sourceIdentities {
                 let source: String = row["source"]
                 let identity = SourceAccountIdentity(accountID: row["account_id"], userID: row["user_id"])
                 let identityKey = identity.deduplicationKey.map(Self.identityScopeKey)
-                let key = isMixed ? (identityKey ?? Self.unknownScopeKey(source)) : "profile:\(profileID)"
+                let key = isMixed ? (identityKey ?? Self.mixedSourceScopeKey(source)) : "profile:\(profileID)"
                 try database.execute(sql: """
                     UPDATE source_account_scope SET profile_id = ?, scope_key = ?, state = ? WHERE source = ?
                     """, arguments: [isMixed ? nil : profileID, key, isMixed ? "mixed" : "assigned", source])
@@ -135,7 +141,10 @@ extension UsageStore {
     }
 
     // swiftlint:disable:next function_body_length
-    static func updateAccountScope(source: String, identity: SourceAccountIdentity?, database: Database) throws {
+    static func updateAccountScope(
+        source: String, identity: SourceAccountIdentity?, quotaIdentities: [SourceAccountIdentity] = [],
+        database: Database
+    ) throws {
         let root = try Row.fetchOne(database, sql: """
             SELECT source_root, profile_id, mapping_state, observed_identity_key
             FROM account_source_roots
@@ -148,26 +157,36 @@ extension UsageStore {
             let profileID: String = root["profile_id"]
             let state: String = root["mapping_state"]
             let observed: String? = root["observed_identity_key"]
-            if state == "assigned", let observed, let identityKey, observed != identityKey {
+            let incomingIdentities = [identity].compactMap { $0 } + quotaIdentities
+            let incomingKeys = Set(incomingIdentities.compactMap(\.deduplicationKey))
+            let existingKeys = Set(try Self.quotaIdentities(under: path, database: database)
+                .compactMap(\.deduplicationKey))
+            let observedKeys = incomingKeys.union(existingKeys)
+            let hasIdentityConflict = observedKeys.count > 1
+                || (observed.map { expected in observedKeys.contains { $0 != expected } } ?? false)
+            if state == "assigned", hasIdentityConflict {
                 try database.execute(sql: """
-                    UPDATE account_source_roots SET mapping_state = 'mixed' WHERE source_root = ?
+                    UPDATE account_source_roots SET mapping_state = 'mixed', observed_identity_key = NULL
+                    WHERE source_root = ?
                     """, arguments: [path])
                 try markRootSourcesMixed(path, database: database)
                 try upsertAccountScope(
                     source: source,
                     binding: AccountSourceScopeBinding(
-                        profileID: nil, scopeKey: identityScopeKey(identityKey), state: "mixed", identity: identity
+                        profileID: nil,
+                        scopeKey: identityKey.map(identityScopeKey) ?? mixedSourceScopeKey(source),
+                        state: "mixed", identity: identity
                     ), database: database
                 )
                 return
             }
-            if state == "assigned", observed == nil, let identityKey {
+            if state == "assigned", observed == nil, observedKeys.count == 1, let observedKey = observedKeys.first {
                 try database.execute(sql: """
                     UPDATE account_source_roots SET observed_identity_key = ? WHERE source_root = ?
-                    """, arguments: [identityKey, path])
+                    """, arguments: [observedKey, path])
             }
-            if state == "mixed" {
-                let key = identityKey.map(identityScopeKey) ?? unknownScopeKey(source)
+            if state == "mixed" || hasIdentityConflict {
+                let key = identityKey.map(identityScopeKey) ?? mixedSourceScopeKey(source)
                 try upsertAccountScope(
                     source: source,
                     binding: AccountSourceScopeBinding(profileID: nil, scopeKey: key, state: "mixed",
@@ -200,11 +219,21 @@ extension UsageStore {
         for row in sources {
             let source: String = row["source"]
             let identity = SourceAccountIdentity(accountID: row["account_id"], userID: row["user_id"])
-            let key = identity.deduplicationKey.map(identityScopeKey) ?? unknownScopeKey(source)
+            let key = identity.deduplicationKey.map(identityScopeKey) ?? mixedSourceScopeKey(source)
             try database.execute(sql: """
                 UPDATE source_account_scope SET profile_id = NULL, scope_key = ?, state = 'mixed'
                 WHERE source = ?
                 """, arguments: [key, source])
+        }
+    }
+
+    private static func quotaIdentities(under root: String, database: Database) throws -> [SourceAccountIdentity] {
+        try Row.fetchAll(database, sql: """
+            SELECT DISTINCT snapshots.account_id, snapshots.user_id
+            FROM source_usage_limit_snapshots AS snapshots
+            WHERE snapshots.source = ? OR substr(snapshots.source, 1, length(?) + 1) = ? || '/'
+            """, arguments: [root, root, root]).map { row in
+            SourceAccountIdentity(accountID: row["account_id"], userID: row["user_id"])
         }
     }
 
@@ -230,6 +259,10 @@ extension UsageStore {
     private static func unknownScopeKey(_ source: String) -> String {
         let root = URL(fileURLWithPath: source).standardizedFileURL.deletingLastPathComponent().path
         return "unknown:\(root)"
+    }
+
+    private static func mixedSourceScopeKey(_ source: String) -> String {
+        identityScopeKey("mixed-source:\(source)")
     }
 
     static func canonicalPath(_ url: URL) -> String {

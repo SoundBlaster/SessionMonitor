@@ -30,13 +30,14 @@ arbitrarily assigned. Session metadata remains independent from account profile 
 
 ## Validation
 
-- `swift test --filter AccountProfileTests` — 6 tests passed.
-- `swift test` — 122 tests across 19 suites passed.
+- `swift test --filter AccountProfileTests` — 8 tests passed, including review regressions.
 - `make check-core` — passed, including SwiftLint and CLI smoke checks.
 - `make build-macos` — passed.
 - `make lint-architecture test-architecture` — passed; strict FSD lint reported 0 errors and 0 warnings.
 - `git diff --check` — passed.
-- GitHub CI passed for the implementation revision of [PR #58](https://github.com/SoundBlaster/SessionMonitor/pull/58) (`Native checks`, `Workflow lint`, aggregate `CI`). A later docs-only revision adds the no-wait project rule; its checks are left running on GitHub.
+- Review follow-up: quota event identities now participate in mapped-root conflict detection; migration isolates legacy unknown sources by source root; provenance queries apply the report's account scope; timeline point IDs include a privacy-safe account-scope digest.
+- Regression coverage includes conflicting quota identities in one mapped root, legacy cross-root response-ID collisions, profile-scoped provenance, and unique all-account timeline point IDs.
+- [PR #58](https://github.com/SoundBlaster/SessionMonitor/pull/58) checks are left running on GitHub under the project's no-wait rule; they are not polled after this update.
 
 ## Boundaries
 

@@ -128,7 +128,10 @@ public final class UsageStore: Sendable {
     public func replace(source: String, rollout: ParsedRollout) throws {
         try database.write { database in
             try Self.clear(source: source, database: database)
-            try Self.updateAccountScope(source: source, identity: rollout.accountIdentity, database: database)
+            try Self.updateAccountScope(
+                source: source, identity: rollout.accountIdentity,
+                quotaIdentities: rollout.usageLimitSnapshots.compactMap(\.accountIdentity), database: database
+            )
             try Self.insert(rollout, source: source, database: database)
             try database.execute(sql: "DELETE FROM source_checkpoints WHERE source = ?", arguments: [source])
             try Self.advanceWatermark(database)
@@ -166,7 +169,10 @@ public final class UsageStore: Sendable {
             }
             guard let provenance = update.rollout.provenance,
                   try Self.hasMissingProvenance(source: source, database: database) else { return false }
-            try Self.updateAccountScope(source: source, identity: update.rollout.accountIdentity, database: database)
+            try Self.updateAccountScope(
+                source: source, identity: update.rollout.accountIdentity,
+                quotaIdentities: update.rollout.usageLimitSnapshots.compactMap(\.accountIdentity), database: database
+            )
             try Self.insertProvenance(provenance, source: source, database: database)
             try Self.clearUsageLimitSnapshots(source: source, database: database)
             for snapshot in update.rollout.usageLimitSnapshots {
@@ -195,7 +201,10 @@ public final class UsageStore: Sendable {
             // partialTails describes the current tail; all other diagnostics accumulate on append.
             try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ? AND kind = 'partialTails'",
                                  arguments: [source])
-            try Self.updateAccountScope(source: source, identity: update.rollout.accountIdentity, database: database)
+            try Self.updateAccountScope(
+                source: source, identity: update.rollout.accountIdentity,
+                quotaIdentities: update.rollout.usageLimitSnapshots.compactMap(\.accountIdentity), database: database
+            )
             try Self.insert(update.rollout, source: source, database: database)
             try database.execute(sql: """
                 INSERT INTO source_checkpoints VALUES (?, ?)
@@ -276,10 +285,6 @@ public final class UsageStore: Sendable {
             ])
     }
 
-    public func report(since: Date?, until: Date?) throws -> UsageReport {
-        try database.read { try Self.report($0, since: since, until: until, accountScope: .allAccounts) }
-    }
-
     /// Returns legacy deltas separately. They are estimates, never part of `report`.
     public func legacyEstimates(since: Date? = nil, until: Date? = nil) throws -> [LegacyUsageEstimate] {
         try database.read { database in
@@ -315,7 +320,9 @@ public final class UsageStore: Sendable {
                                          accountScope: query.accountScope)
             return UsageSnapshot(query: query, watermark: watermark,
                                  report: report,
-                                 provenance: try Self.provenance(database, sessionIDs: report.sessions.map(\.id)))
+                                 provenance: try Self.provenance(
+                                    database, sessionIDs: report.sessions.map(\.id), accountScope: query.accountScope
+                                 ))
         }
     }
 
@@ -325,8 +332,8 @@ public final class UsageStore: Sendable {
             """, arguments: [Date().timeIntervalSince1970])
     }
 
-    private static func report(_ database: Database, since: Date?, until: Date?,
-                               accountScope: UsageAccountScope) throws -> UsageReport {
+    static func report(_ database: Database, since: Date?, until: Date?,
+                       accountScope: UsageAccountScope) throws -> UsageReport {
         let predicate = "(? IS NULL OR timestamp >= ?) AND (? IS NULL OR timestamp < ?)"
         let start = since?.timeIntervalSince1970
         let end = until?.timeIntervalSince1970
