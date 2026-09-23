@@ -17,8 +17,10 @@ Xcode-проект. SM-320 возобновлена: пользователь п
 где Inspector action привязан к toolbar detail-колонки; в SessionMonitor он пока задан на
 уровне всего split view. В follow-up [PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55)
 action перенесён в toolbar detail-колонки; Workflow lint, Native checks и CI прошли.
-Свежий локальный runtime build пока заблокирован повторным разрешением package macros.
-После разрешения проверить расположение/переключение и затем возобновить **SM-308e**.
+Пользователь собрал приложение в Xcode; Computer Use подтвердил runtime: Sidebar controls
+остались в левой группе, standalone Inspector action появился справа рядом с Search,
+открывает/закрывает inspector, а period/timezone открывается отдельным popover. После merge PR #55
+возобновить **SM-308e**.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -629,9 +631,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
   generated project; следующий runtime запуск подтвердил кликабельность action, но пользователь
   показал `NavigationSplitView` reference, где Inspector action задан в toolbar detail-колонки.
   Follow-up через [PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55) переносит
-  action в detail toolbar; Workflow lint, Native checks и CI прошли. Runtime-проверка соседства
-  с системной sidebar кнопкой, независимости меню периода/UTC и открытия/закрытия inspector
-  ждёт разрешения Xcode для `SpecificationCoreMacros` и `SpecificationKitMacros`.
+  action в detail toolbar по образцу demo. Workflow lint, Native checks и CI прошли; пользователь
+  успешно собрал приложение в Xcode. Computer Use подтвердил справа standalone `Show/Hide
+  Inspector` рядом с Search, слева — Sidebar controls; кнопка открывает и закрывает inspector,
+  а period/timezone остаётся отдельным popover. Xcode MCP BuildProject/RunProject в этой сессии
+  всё ещё вернули package macro approval error, поэтому runtime evidence получен из запущенного
+  Xcode продукта, не из MCP RunProject. SM-320 завершена после merge PR #55.
 - [ ] **SM-321** — Автоматически обновлять локальный Xcode-проект перед commit.
   Статус: в работе, PR #54. Установленный Git pre-commit hook должен запускать
   `make generate` при staged изменениях app sources, `project.yml` или `Package.resolved`;
