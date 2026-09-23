@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-22. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-23. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -10,8 +10,10 @@ SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/
 merge `e7abca5`; SM-318 — через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
 merge `9b8a491`; SM-708 — через [PR #48](https://github.com/SoundBlaster/SessionMonitor/pull/48),
 merge `87e71eb` (2026-09-22). SM-319 частично реализована через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52),
-но runtime AX-проверка выявила, что Inspector остался в overflow; **SM-320 — исправление видимости Inspector в toolbar — в работе**.
-После завершения SM-320 возобновить **SM-308e**.
+но runtime AX-проверка выявила, что Inspector остался в overflow. Код SM-320 доставлен через
+[PR #53](https://github.com/SoundBlaster/SessionMonitor/pull/53) (merge `6b2156e`, 2026-09-23);
+runtime AX-проверка новой сборки ещё не выполнена, поэтому **SM-320 остаётся в работе**.
+После подтверждения видимости и переключения Inspector возобновить **SM-308e**.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -616,11 +618,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
   что действие всё ещё находится внутри системного overflow menu; критерий прямой кнопки
   не выполнен. Исправление и подтверждение вынесены в SM-320.
 - [ ] **SM-320** — Удерживать Inspector action вне toolbar overflow.
-  Статус: в работе, ветка `feat/sm-320-toolbar-visibility`. Использовать документированный
-  toolbar visibility priority для высокой приоритетности Inspector и низкой приоритетности
-  вторичной группы с availability fallback для deployment target macOS 15. Готово, когда
-  runtime AX показывает Show/Hide Inspector самостоятельной toolbar button, клик открывает
-  и закрывает inspector, а overflow больше не содержит этот пункт.
+  Статус: код доставлен через PR #53 (merge `6b2156e`, 2026-09-23): на macOS 26.1+
+  Inspector получает высокий toolbar visibility priority, вторичные действия — низкий;
+  для deployment target macOS 15 предусмотрен availability fallback. Локальная сборка
+  через Xcode MCP пока заблокирована повторным подтверждением package macros, поэтому
+  runtime AX-проверка остаётся незавершённой. Готово, когда runtime AX показывает
+  Show/Hide Inspector самостоятельной toolbar button, клик открывает и закрывает inspector,
+  а overflow больше не содержит этот пункт.
 - [x] **SM-318** — Удалить устаревшие Xcode warnings в watch controller и timeline scale.
   Готово 2026-09-22 через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
   merge `9b8a491`: удалены `await` перед синхронными вызовами и неиспользуемый `duration`.
