@@ -12,15 +12,14 @@ merge `9b8a491`; SM-708 — через [PR #48](https://github.com/SoundBlaster/
 merge `87e71eb` (2026-09-22). SM-319 частично реализована через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52),
 но runtime AX-проверка выявила, что Inspector остался в overflow. Код SM-320 доставлен через
 [PR #53](https://github.com/SoundBlaster/SessionMonitor/pull/53) (merge `6b2156e`, 2026-09-23).
-**SM-321 доставлена через PR #54** (2026-09-23): pre-commit hook синхронизирует локальный
-Xcode-проект. SM-320 возобновлена: пользователь показал референс `NavigationSplitView` demo,
-где Inspector action привязан к toolbar detail-колонки; в SessionMonitor он пока задан на
-уровне всего split view. В follow-up [PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55)
-action перенесён в toolbar detail-колонки; Workflow lint, Native checks и CI прошли.
-Пользователь собрал приложение в Xcode; Computer Use подтвердил runtime: Sidebar controls
-остались в левой группе, standalone Inspector action появился справа рядом с Search,
-открывает/закрывает inspector, а period/timezone открывается отдельным popover. После merge PR #55
-возобновить **SM-308e**.
+**SM-321 доставлена через PR #54** (merge `2a939df`, 2026-09-23): pre-commit hook
+синхронизирует локальный Xcode-проект. По референсу `NavigationSplitView` demo реализация
+SM-320 перенесла Inspector action из toolbar всего split view в toolbar detail-колонки в
+[PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55). Workflow lint, Native checks
+и CI прошли. Пользователь успешно собрал приложение в Xcode; Computer Use подтвердил runtime:
+Sidebar controls остались в левой группе, standalone Inspector action появился справа рядом с
+Search, открывает/закрывает inspector, а period/timezone открывается отдельным popover. После
+merge PR #55 возобновить **SM-308e**.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -637,12 +636,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
   а period/timezone остаётся отдельным popover. Xcode MCP BuildProject/RunProject в этой сессии
   всё ещё вернули package macro approval error, поэтому runtime evidence получен из запущенного
   Xcode продукта, не из MCP RunProject. SM-320 завершена после merge PR #55.
-- [ ] **SM-321** — Автоматически обновлять локальный Xcode-проект перед commit.
-  Статус: в работе, PR #54. Установленный Git pre-commit hook должен запускать
-  `make generate` при staged изменениях app sources, `project.yml` или `Package.resolved`;
-  безопасно устанавливаться без перезаписи существующего hook и без изменения `core.hooksPath`.
-  Готово, когда добавление/удаление исходника перед commit отражается в игнорируемом
-  `.xcodeproj`, документация описывает установку и требование XcodeGen, а hook покрыт shell checks.
+- [x] **SM-321** — Автоматически обновлять локальный Xcode-проект перед commit.
+  Готово 2026-09-23 через [PR #54](https://github.com/SoundBlaster/SessionMonitor/pull/54),
+  merge `2a939df`: pre-commit hook запускает `make generate` при staged изменениях app sources,
+  `project.yml` или `Package.resolved`; установка сохраняет существующий hook и `core.hooksPath`.
+  Добавление/удаление исходника отражается в игнорируемом `.xcodeproj`, документация описывает
+  установку и требование XcodeGen, hook покрыт shell checks. Workflow lint, Native checks и CI
+  прошли.
 - [x] **SM-318** — Удалить устаревшие Xcode warnings в watch controller и timeline scale.
   Готово 2026-09-22 через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
   merge `9b8a491`: удалены `await` перед синхронными вызовами и неиспользуемый `duration`.
