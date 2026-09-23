@@ -15,8 +15,10 @@ merge `87e71eb` (2026-09-22). SM-319 частично реализована ч�
 **SM-321 доставлена через PR #54** (2026-09-23): pre-commit hook синхронизирует локальный
 Xcode-проект. SM-320 возобновлена: пользователь показал референс `NavigationSplitView` demo,
 где Inspector action привязан к toolbar detail-колонки; в SessionMonitor он пока задан на
-уровне всего split view. Перенести action к detail toolbar и проверить расположение/переключение
-в свежем runtime build; затем возобновить **SM-308e**.
+уровне всего split view. В follow-up [PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55)
+action перенесён в toolbar detail-колонки; Workflow lint, Native checks и CI прошли.
+Свежий локальный runtime build пока заблокирован повторным разрешением package macros.
+После разрешения проверить расположение/переключение и затем возобновить **SM-308e**.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -626,8 +628,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   для deployment target macOS 15 предусмотрен availability fallback. PR #54 синхронизировал
   generated project; следующий runtime запуск подтвердил кликабельность action, но пользователь
   показал `NavigationSplitView` reference, где Inspector action задан в toolbar detail-колонки.
-  Текущая follow-up работа переносит action в этот scope, затем проверит его соседство с
-  системной sidebar кнопкой, независимость меню периода/UTC и открытие/закрытие inspector.
+  Follow-up через [PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55) переносит
+  action в detail toolbar; Workflow lint, Native checks и CI прошли. Runtime-проверка соседства
+  с системной sidebar кнопкой, независимости меню периода/UTC и открытия/закрытия inspector
+  ждёт разрешения Xcode для `SpecificationCoreMacros` и `SpecificationKitMacros`.
 - [ ] **SM-321** — Автоматически обновлять локальный Xcode-проект перед commit.
   Статус: в работе, PR #54. Установленный Git pre-commit hook должен запускать
   `make generate` при staged изменениях app sources, `project.yml` или `Package.resolved`;
