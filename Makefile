@@ -40,18 +40,21 @@ ifeq ($(ALLOW_PROVISIONING_UPDATES),YES)
 SIGNING_ARGS += -allowProvisioningUpdates
 endif
 
-.PHONY: help doctor generate guard-package guard-app lint-version resolve build-cli test-core build-mcp
+.PHONY: help doctor generate install-hooks guard-package guard-app lint-version resolve build-cli test-core build-mcp
 .PHONY: lint-core lint lint-architecture build-macos test-macos test-widget check-core check archive
 .PHONY: ci lint-ci test-architecture test-cli build-cli-release benchmark release-local
 
 help:
-	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate build-macos build-mcp test-macos lint lint-architecture check archive' 'ci lint-ci test-architecture build-cli-release benchmark release-local'
+	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate install-hooks build-macos build-mcp test-macos lint lint-architecture check archive' 'ci lint-ci test-architecture build-cli-release benchmark release-local'
 
 generate:
 	@test -f Apps/MonitorMac/Local.xcconfig || printf '%s\n' '// Local signing overrides (not committed).' 'CODE_SIGN_IDENTITY = -' > Apps/MonitorMac/Local.xcconfig
 	$(XCODEGEN) generate --spec Apps/MonitorMac/project.yml
 	@mkdir -p "$(PROJECT)/project.xcworkspace/xcshareddata/swiftpm"
 	cp Apps/MonitorMac/Package.resolved "$(PROJECT)/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+
+install-hooks:
+	sh scripts/git-hooks/install.sh
 
 doctor:
 	$(SWIFT) --version
@@ -109,7 +112,8 @@ test-architecture:
 
 lint-ci:
 	$(ACTIONLINT) -color
-	bash -n scripts/ci/install-tools.sh scripts/ci/check-fsd-boundary.sh
+	bash -n scripts/ci/install-tools.sh scripts/ci/check-fsd-boundary.sh scripts/git-hooks/install.sh
+	sh -n .githooks/pre-commit
 
 build-macos: guard-app
 	$(XCODEBUILD) $(XCODEBUILD_FLAGS) -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIGURATION)" -destination "$(DESTINATION)" -derivedDataPath "$(DERIVED_DATA)" $(SIGNING_ARGS) build

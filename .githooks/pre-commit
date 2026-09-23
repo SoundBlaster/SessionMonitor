@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+repository_root=$(git rev-parse --show-toplevel)
+cd "$repository_root"
+
+if ! git diff --cached --no-renames --name-only --diff-filter=ACMRD \
+    | grep -Eq '^(Apps/MonitorMac/project\.yml|Apps/MonitorMac/Package\.resolved|Apps/MonitorMac/Sources/)'; then
+    exit 0
+fi
+
+printf '%s\n' 'SessionMonitor: regenerating the local Xcode project for staged app changes.'
+
+pinned_xcodegen="$repository_root/.build/ci-tools/bin/xcodegen"
+if [ -x "$pinned_xcodegen" ]; then
+    XCODEGEN="$pinned_xcodegen" make generate
+elif command -v xcodegen >/dev/null 2>&1; then
+    make generate
+else
+    printf '%s\n' 'XcodeGen is required. Run rtk proxy bash scripts/ci/install-tools.sh native or install the project-pinned XcodeGen, then retry the commit.' >&2
+    exit 1
+fi
