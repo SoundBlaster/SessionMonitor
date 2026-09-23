@@ -122,7 +122,7 @@ final class SessionCacheHitTests: XCTestCase {
         }
         return UsageReport(totals: totals, sessions: sessions, diagnostics: [:])
     }
-    private func makeModel(_ runtime: StubExplorerRuntime) -> SessionExplorerModel {
+    private func makeModel(_ runtime: any SessionExplorerRuntime) -> SessionExplorerModel {
         let suiteName = "SessionCacheHitTests.\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suiteName) else {
             XCTFail("Could not create isolated UserDefaults suite")
