@@ -45,10 +45,19 @@ struct SessionExplorerPage: View {
                 .keyboardShortcut("r")
                 .disabled(model.isBusy)
                 ReportScopeControls(model: reportScope)
-                Button("Show Inspector", systemImage: "sidebar.right") {
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
                     model.navigation.showsInspector.toggle()
+                } label: {
+                    Label(
+                        model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector",
+                        systemImage: "sidebar.right"
+                    )
                 }
-                .help("Show report coverage and import diagnostics")
+                .labelStyle(.iconOnly)
+                .help(model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector")
+                .accessibilityLabel(model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector")
             }
         }
         .inspector(isPresented: $model.navigation.showsInspector) {
