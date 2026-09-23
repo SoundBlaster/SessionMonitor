@@ -35,30 +35,11 @@ struct SessionExplorerPage: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .toolbar {
-            ToolbarItemGroup {
-                Button("Import Folder…", systemImage: "folder.badge.plus", action: chooseImportDirectory)
-                    .keyboardShortcut("o")
-                    .disabled(model.isBusy)
-                Button("Refresh", systemImage: "arrow.clockwise") {
-                    Task { await model.refresh() }
-                }
-                .keyboardShortcut("r")
-                .disabled(model.isBusy)
-                ReportScopeControls(model: reportScope)
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    model.navigation.showsInspector.toggle()
-                } label: {
-                    Label(
-                        model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector",
-                        systemImage: "sidebar.right"
-                    )
-                }
-                .labelStyle(.iconOnly)
-                .help(model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector")
-                .accessibilityLabel(model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector")
-            }
+            SessionExplorerToolbar(
+                model: model,
+                reportScope: reportScope,
+                chooseImportDirectory: chooseImportDirectory
+            )
         }
         .inspector(isPresented: $model.navigation.showsInspector) {
             SessionReportInspector(model: model)
