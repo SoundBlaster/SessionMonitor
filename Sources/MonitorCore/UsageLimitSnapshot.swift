@@ -20,6 +20,13 @@ public enum UsageLimitSnapshotState: String, Codable, CaseIterable, Sendable {
     case unsupportedSchema
 }
 
+public enum UsageAccountScopeState: String, Codable, CaseIterable, Sendable {
+    case assigned
+    case explicitIdentity
+    case unknown
+    case mixed
+}
+
 public struct UsageLimitWindowObservation: Codable, Equatable, Sendable {
     public let slot: UsageLimitWindowSlot
     public let windowMinutes: Int64?
@@ -73,16 +80,23 @@ public struct UsageLimitSnapshotObservation: Codable, Equatable, Identifiable, S
     public let limitID: String?
     public let limitName: String?
     public let planType: String?
+    public let accountIdentity: SourceAccountIdentity?
+    public let accountScopeID: String?
+    public let accountProfileID: String?
+    public let accountProfileLabel: String?
+    public let accountScopeState: UsageAccountScopeState
     public let windows: [UsageLimitWindowObservation]
     public let duplicateSourceRecords: Int
 
-    public var id: String { eventIdentity }
+    public var id: String { "\(accountScopeID ?? "unknown")|\(eventIdentity)" }
 
     public init(
         eventIdentity: String, timestamp: Date, sourceLine: Int, sourceContextSessionID: String?,
         adapterVersion: Int = 1, sourceSchema: String?, state: UsageLimitSnapshotState,
         scope: UsageLimitScope = .unknown, scopeIdentifier: String? = nil,
-        limitID: String?, limitName: String?, planType: String?,
+        limitID: String?, limitName: String?, planType: String?, accountIdentity: SourceAccountIdentity? = nil,
+        accountScopeID: String? = nil, accountProfileID: String? = nil, accountProfileLabel: String? = nil,
+        accountScopeState: UsageAccountScopeState = .unknown,
         windows: [UsageLimitWindowObservation], duplicateSourceRecords: Int = 0
     ) {
         self.eventIdentity = eventIdentity
@@ -97,6 +111,11 @@ public struct UsageLimitSnapshotObservation: Codable, Equatable, Identifiable, S
         self.limitID = limitID
         self.limitName = limitName
         self.planType = planType
+        self.accountIdentity = accountIdentity
+        self.accountScopeID = accountScopeID
+        self.accountProfileID = accountProfileID
+        self.accountProfileLabel = accountProfileLabel
+        self.accountScopeState = accountScopeState
         self.windows = windows
         self.duplicateSourceRecords = duplicateSourceRecords
     }

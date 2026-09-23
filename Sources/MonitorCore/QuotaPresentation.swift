@@ -45,6 +45,10 @@ public struct QuotaResetDiscontinuity: Codable, Equatable, Sendable {
 
 public struct QuotaWindowPresentation: Codable, Equatable, Identifiable, Sendable {
     public let id: String
+    public let accountScopeID: String?
+    public let accountProfileID: String?
+    public let accountProfileLabel: String?
+    public let accountScopeState: UsageAccountScopeState
     public let scope: UsageLimitScope
     public let scopeIdentifier: String?
     public let limitID: String?
@@ -63,7 +67,9 @@ public struct QuotaWindowPresentation: Codable, Equatable, Identifiable, Sendabl
     public let isAmbiguous: Bool
 
     public init(
-        id: String, scope: UsageLimitScope, scopeIdentifier: String?, limitID: String?,
+        id: String, accountScopeID: String? = nil, accountProfileID: String? = nil,
+        accountProfileLabel: String? = nil, accountScopeState: UsageAccountScopeState = .unknown,
+        scope: UsageLimitScope, scopeIdentifier: String?, limitID: String?,
         limitName: String?, planType: String?, slot: UsageLimitWindowSlot,
         windowKind: UsageLimitWindowKind, windowMinutes: Int64?, usedPercent: Double?,
         remainingPercent: Double?, resetsAt: Date?, observedAt: Date, freshness: QuotaFreshness,
@@ -71,6 +77,10 @@ public struct QuotaWindowPresentation: Codable, Equatable, Identifiable, Sendabl
         isAmbiguous: Bool = false
     ) {
         self.id = id
+        self.accountScopeID = accountScopeID
+        self.accountProfileID = accountProfileID
+        self.accountProfileLabel = accountProfileLabel
+        self.accountScopeState = accountScopeState
         self.scope = scope
         self.scopeIdentifier = scopeIdentifier
         self.limitID = limitID

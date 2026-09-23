@@ -1,12 +1,46 @@
 import Foundation
 
+public struct UsageAccountScope: Codable, Equatable, Hashable, Sendable {
+    public enum Kind: String, Codable, Sendable {
+        case allAccounts
+        case profile
+        case unknownOrMixed
+    }
+
+    public let kind: Kind
+    public let profileID: String?
+
+    public static let allAccounts = UsageAccountScope(kind: .allAccounts, profileID: nil)
+    public static let unknownOrMixed = UsageAccountScope(kind: .unknownOrMixed, profileID: nil)
+
+    public init(profileID: String) {
+        kind = .profile
+        self.profileID = profileID
+    }
+
+    private init(kind: Kind, profileID: String?) {
+        self.kind = kind
+        self.profileID = profileID
+    }
+
+    public var displayLabel: String {
+        switch kind {
+        case .allAccounts: "All accounts"
+        case .profile: "Profile \(profileID ?? "unknown")"
+        case .unknownOrMixed: "Unknown/Mixed"
+        }
+    }
+}
+
 /// Absolute half-open interval. Timezone is presentation metadata, never a second date conversion.
 public struct UsageQuery: Codable, Equatable, Hashable, Sendable {
     public let since: Date?
     public let until: Date?
     public let timeZoneIdentifier: String
+    public let accountScope: UsageAccountScope
 
-    public init(since: Date? = nil, until: Date? = nil, timeZoneIdentifier: String = "UTC") throws {
+    public init(since: Date? = nil, until: Date? = nil, timeZoneIdentifier: String = "UTC",
+                accountScope: UsageAccountScope = .allAccounts) throws {
         guard since?.timeIntervalSince1970.isFinite != false,
               until?.timeIntervalSince1970.isFinite != false else { throw QueryError.invalidPeriod }
         if let since, let until, since >= until { throw QueryError.invalidPeriod }
@@ -14,14 +48,19 @@ public struct UsageQuery: Codable, Equatable, Hashable, Sendable {
         self.since = since
         self.until = until
         self.timeZoneIdentifier = timeZoneIdentifier
+        self.accountScope = accountScope
     }
 
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         try self.init(since: values.decodeIfPresent(Date.self, forKey: .since),
                       until: values.decodeIfPresent(Date.self, forKey: .until),
-                      timeZoneIdentifier: values.decode(String.self, forKey: .timeZoneIdentifier))
+                      timeZoneIdentifier: values.decode(String.self, forKey: .timeZoneIdentifier),
+                      accountScope: values.decodeIfPresent(UsageAccountScope.self, forKey: .accountScope)
+                        ?? .allAccounts)
     }
+
+    private enum CodingKeys: String, CodingKey { case since, until, timeZoneIdentifier, accountScope }
 }
 
 public enum QueryError: Error, LocalizedError {

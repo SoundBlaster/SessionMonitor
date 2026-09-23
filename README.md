@@ -15,6 +15,8 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 - CLI `quota`: read-only usage-limit observations из импортированных rollouts; показывает observed used,
   derived remaining, reset и freshness. Отсутствующие/неподдерживаемые данные остаются unknown;
   сетевого polling нет.
+- CLI `profiles`: явное сопоставление однородного каталога источников с локальным account profile;
+  `report`, `activity` и `quota` поддерживают `--profile ID` и `--unknown-or-mixed`.
 - Input/cache/output и optional cache-write/reasoning/total counters. Unknown не превращается в ноль.
 - SpecificationCore для coverage policy; SpecificationKit `@ObservedSatisfies` в GUI.
 - Native split navigation, фильтр по session ID/model, inspector и независимое состояние окон.
@@ -70,8 +72,18 @@ swift run codex-monitor report --since 2026-09-11T21:00:00Z --until 2026-09-12T2
 swift run codex-monitor report --json
 swift run codex-monitor snapshot --follow --time-zone Europe/Moscow
 swift run codex-monitor quota --since 2026-09-13T00:00:00Z --json
+swift run codex-monitor profiles map-root --root ~/.codex/account-work/sessions --id work --label Work
+swift run codex-monitor report --profile work
+swift run codex-monitor quota --profile work --json
+swift run codex-monitor report --unknown-or-mixed
 open .build/xcode/Build/Products/Debug/SessionMonitor.app
 ```
+
+Account identity берётся только из явных non-secret полей rollout или из пользовательского mapping.
+Не сопоставляйте общий каталог, если он содержит несколько аккаунтов: такие данные остаются
+`Unknown/Mixed`. Session ownership и account profile — независимые понятия; credentials,
+`auth.json`, cookies и prompts для этого не читаются и не сохраняются. Text/JSON отчёты показывают
+выбранную область; неограниченный запрос явно помечается как `All accounts`.
 
 `quota` читает только уже импортированные события `event_msg/token_count.rate_limits`.
 `remaining` явно помечается как вычисленное из `used_percent`; thread context не считается

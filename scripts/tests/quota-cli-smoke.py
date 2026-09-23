@@ -71,6 +71,73 @@ def main() -> int:
         )
         usage = json.loads(usage_result.stdout)
         assert usage["totals"]["requests"] == 0
+        assert usage["accountScope"]["kind"] == "allAccounts"
+
+        profile_root = directory / "profile-root"
+        profile_root.mkdir()
+        profile_source = profile_root / "session.jsonl"
+        profile_source.write_text(
+            json.dumps({
+                "timestamp": "1970-01-01T00:01:40Z",
+                "type": "session_meta",
+                "payload": {
+                    "id": "profile-session",
+                    "timestamp": "1970-01-01T00:01:40Z",
+                    "creator_account_id": "synthetic-account",
+                },
+            }) + "\n"
+            + json.dumps({
+                "timestamp": "1970-01-01T00:01:41Z",
+                "type": "event_msg",
+                "payload": {"type": "task_started", "turn_id": "turn", "started_at": 101},
+            }) + "\n"
+            + json.dumps({
+                "timestamp": "1970-01-01T00:01:41Z",
+                "type": "turn_context",
+                "payload": {"turn_id": "turn", "model": "fixture"},
+            }) + "\n"
+            + json.dumps({
+                "timestamp": "1970-01-01T00:01:42Z",
+                "type": "token_usage_record",
+                "payload": {
+                    "thread_id": "profile-session",
+                    "turn_id": "turn",
+                    "response_id": "profile-response",
+                    "usage": {"input_tokens": 100, "cached_input_tokens": 80, "output_tokens": 10},
+                },
+            }) + "\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            [str(binary), "import", str(profile_root), "--database", str(database)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        mapped = subprocess.run(
+            [str(binary), "profiles", "map-root", "--root", str(profile_root), "--id", "home",
+             "--label", "Home", "--database", str(database)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert json.loads(mapped.stdout)["mappingState"] == "assigned"
+        profile_report = subprocess.run(
+            [str(binary), "report", "--profile", "home", "--database", str(database), "--json"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        scoped = json.loads(profile_report.stdout)
+        assert scoped["accountScope"] == {"kind": "profile", "profileID": "home"}
+        assert scoped["totals"]["requests"] == 1
+        unknown_report = subprocess.run(
+            [str(binary), "report", "--unknown-or-mixed", "--database", str(database), "--json"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert json.loads(unknown_report.stdout)["totals"]["requests"] == 0
 
         unsupported_database = directory / "unsupported.sqlite"
         unsupported_rollout = directory / "unsupported.jsonl"

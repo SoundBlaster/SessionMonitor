@@ -120,6 +120,7 @@ public final class UsageStore: Sendable {
                 """)
         }
         Self.registerUsageLimitSnapshotMigration(on: &migrator)
+        Self.registerAccountProfileMigration(on: &migrator)
         return migrator
     }
 
@@ -127,6 +128,7 @@ public final class UsageStore: Sendable {
     public func replace(source: String, rollout: ParsedRollout) throws {
         try database.write { database in
             try Self.clear(source: source, database: database)
+            try Self.updateAccountScope(source: source, identity: rollout.accountIdentity, database: database)
             try Self.insert(rollout, source: source, database: database)
             try database.execute(sql: "DELETE FROM source_checkpoints WHERE source = ?", arguments: [source])
             try Self.advanceWatermark(database)
@@ -164,6 +166,7 @@ public final class UsageStore: Sendable {
             }
             guard let provenance = update.rollout.provenance,
                   try Self.hasMissingProvenance(source: source, database: database) else { return false }
+            try Self.updateAccountScope(source: source, identity: update.rollout.accountIdentity, database: database)
             try Self.insertProvenance(provenance, source: source, database: database)
             try Self.clearUsageLimitSnapshots(source: source, database: database)
             for snapshot in update.rollout.usageLimitSnapshots {
@@ -192,6 +195,7 @@ public final class UsageStore: Sendable {
             // partialTails describes the current tail; all other diagnostics accumulate on append.
             try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ? AND kind = 'partialTails'",
                                  arguments: [source])
+            try Self.updateAccountScope(source: source, identity: update.rollout.accountIdentity, database: database)
             try Self.insert(update.rollout, source: source, database: database)
             try database.execute(sql: """
                 INSERT INTO source_checkpoints VALUES (?, ?)
@@ -273,7 +277,7 @@ public final class UsageStore: Sendable {
     }
 
     public func report(since: Date?, until: Date?) throws -> UsageReport {
-        try database.read { try Self.report($0, since: since, until: until) }
+        try database.read { try Self.report($0, since: since, until: until, accountScope: .allAccounts) }
     }
 
     /// Returns legacy deltas separately. They are estimates, never part of `report`.
@@ -307,36 +311,47 @@ public final class UsageStore: Sendable {
             let watermark = QueryWatermark(databaseID: row["database_id"], revision: row["revision"],
                                            committedAt: committed.map(Date.init(timeIntervalSince1970:)))
             guard watermark != previous else { return nil }
-            let report = try Self.report(database, since: query.since, until: query.until)
+            let report = try Self.report(database, since: query.since, until: query.until,
+                                         accountScope: query.accountScope)
             return UsageSnapshot(query: query, watermark: watermark,
                                  report: report,
                                  provenance: try Self.provenance(database, sessionIDs: report.sessions.map(\.id)))
         }
     }
 
-    private static func advanceWatermark(_ database: Database) throws {
+    static func advanceWatermark(_ database: Database) throws {
         try database.execute(sql: """
             UPDATE query_watermark SET revision = revision + 1, committed_at = ? WHERE singleton = 1
             """, arguments: [Date().timeIntervalSince1970])
     }
 
-    private static func report(_ database: Database, since: Date?, until: Date?) throws -> UsageReport {
+    private static func report(_ database: Database, since: Date?, until: Date?,
+                               accountScope: UsageAccountScope) throws -> UsageReport {
         let predicate = "(? IS NULL OR timestamp >= ?) AND (? IS NULL OR timestamp < ?)"
         let start = since?.timeIntervalSince1970
         let end = until?.timeIntervalSince1970
-        let arguments: StatementArguments = [start, start, end, end]
+        let arguments: StatementArguments = [
+            start, start, end, end,
+            accountScope.kind.rawValue, accountScope.kind.rawValue, accountScope.profileID,
+            accountScope.kind.rawValue
+        ]
+        let scopePredicate = Self.accountScopePredicate()
         let totalsRow = try Row.fetchOne(database, sql: """
-            SELECT \(Self.aggregates) FROM confirmed WHERE \(predicate)
+            SELECT \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
             """, arguments: arguments)
         let sessions = try Row.fetchAll(database, sql: """
             SELECT session, CASE WHEN COUNT(DISTINCT model) = 1 THEN MIN(model) ELSE 'mixed' END AS model,
-            \(Self.aggregates) FROM confirmed WHERE \(predicate)
+            \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
             GROUP BY session ORDER BY inputs DESC, session ASC
             """, arguments: arguments).map { row in
                 SessionSummary(id: row["session"], model: row["model"], totals: Self.totals(row))
             }
         return UsageReport(totals: totalsRow.map(Self.totals) ?? UsageTotals(),
-                           sessions: sessions, diagnostics: try Self.diagnostics(database))
+                           sessions: sessions, diagnostics: try Self.diagnostics(database), accountScope: accountScope)
+    }
+
+    private static func report(_ database: Database, query: UsageQuery) throws -> UsageReport {
+        try report(database, since: query.since, until: query.until, accountScope: query.accountScope)
     }
 
     private static let aggregates = """
@@ -353,23 +368,6 @@ public final class UsageStore: Sendable {
                     outputTokens: row["outputs"], unknownCacheRequests: row["unknown"],
                     cacheWriteInputTokens: row["cache_write"], reasoningOutputTokens: row["reasoning"],
                     totalTokens: row["total"])
-    }
-
-    private static func diagnostics(_ database: Database) throws -> [String: Int64] {
-        var diagnostics: [String: Int64] = [:]
-        let query = "SELECT kind, SUM(count) AS count FROM source_diagnostics GROUP BY kind"
-        for row in try Row.fetchAll(database, sql: query) {
-            diagnostics[row["kind"]] = row["count"]
-        }
-        diagnostics["conflictingResponseIDs"] = try Int64.fetchOne(database, sql: """
-            SELECT COUNT(*) FROM (SELECT response FROM source_records GROUP BY response
-            HAVING COUNT(DISTINCT fingerprint) > 1)
-            """) ?? 0
-        diagnostics["duplicateRecords"] = try Int64.fetchOne(database, sql: """
-            SELECT COALESCE(SUM(copies - 1), 0) FROM
-            (SELECT COUNT(*) AS copies FROM source_records GROUP BY response, fingerprint)
-            """) ?? 0
-        return diagnostics
     }
 
     private static func fingerprint(_ record: UsageRecord) throws -> String {

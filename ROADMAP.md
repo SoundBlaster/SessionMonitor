@@ -19,8 +19,8 @@ runtime AX подтвердил самостоятельную кнопку; CI 
 и изменённые JSONL из последней выбранной папки, её путь сохраняется между запусками.
 Проверены появление новой сессии после Update, отсутствие источника и ошибка импорта;
 Native checks, Workflow lint и CI прошли, review thread разрешён. В локальной базе до фикса
-24 сегодняшних rollout-файла не имели checkpoint. PR #55 всё ещё открыт; после его merge
-возобновить **SM-308e**.
+24 сегодняшних rollout-файла не имели checkpoint. PR #55 всё ещё открыт и конфликтует с `main`;
+по прямому приоритету пользователя SM-308e начата до разрешения этого отдельного follow-up.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -502,6 +502,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Multi-account follow-up добавлен 2026-09-20: аккаунт нельзя выводить из rollout session context;
   общий источник без явного разделения должен оставаться `unknown`/`mixed`.
   - [ ] **SM-308e** — Задать account profile provenance для импортируемых источников.
+    Статус: в работе, ветка `feat/sm-308e-account-provenance` (2026-09-23; приоритет
+    пользователя переопределил ожидание merge PR #55, сейчас конфликтующего с `main`).
     Предпосылка: завершена часть SM-308 по импорту quota snapshots. Поддержать явный non-secret
     account identity из формата источника и
     пользовательское сопоставление однородного source root с локальным profile ID/label.

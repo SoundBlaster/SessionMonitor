@@ -21,6 +21,7 @@ public struct RolloutDecoder: Sendable {
             state.consume(data, line: line, includeRecords: false)
         }
         state.result.provenance = state.provenance()
+        state.result.accountIdentity = state.context.accountIdentity
         try source.validateSnapshot()
         let next = DecoderCheckpoint(version: source.version, cursor: progress.cursor,
                                      state: state.context)
@@ -54,6 +55,7 @@ public struct RolloutDecoder: Sendable {
             state.consume(data, line: line)
         }
         state.result.provenance = state.provenance()
+        state.result.accountIdentity = state.context.accountIdentity
         if progress.partialTail { state.result.diagnostics["partialTails"] = 1 }
         try source.validateSnapshot()
         let next = DecoderCheckpoint(version: source.version, cursor: progress.cursor,
@@ -93,6 +95,7 @@ private struct DecoderContext: Codable {
     var clientVersion: String?
     var modelProvider: String?
     var threadSource: String?
+    var accountIdentity: SourceAccountIdentity?
     var legacyBaseline: LegacyUsage?
 
     init() {}
@@ -114,13 +117,14 @@ private struct DecoderContext: Codable {
         clientVersion = try values.decodeIfPresent(String.self, forKey: .clientVersion)
         modelProvider = try values.decodeIfPresent(String.self, forKey: .modelProvider)
         threadSource = try values.decodeIfPresent(String.self, forKey: .threadSource)
+        accountIdentity = try values.decodeIfPresent(SourceAccountIdentity.self, forKey: .accountIdentity)
         legacyBaseline = try values.decodeIfPresent(LegacyUsage.self, forKey: .legacyBaseline)
     }
 
     private enum CodingKeys: String, CodingKey {
         case sessionID, created, nativeTurns, models, efforts, rootSessionID, parentSessionID,
              agentNickname, agentPath, originator, clientVersion, modelProvider, threadSource,
-             legacyBaseline, toolNamesByCallID, toolTurnIDsByCallID
+             legacyBaseline, toolNamesByCallID, toolTurnIDsByCallID, accountIdentity
     }
 }
 
@@ -154,6 +158,8 @@ private struct Payload: Decodable {
     let clientVersion: String?
     let modelProvider: String?
     let threadSource: String?
+    let creatorAccountID: String?
+    let creatorUserID: String?
     let usage: Usage?
     let info: LegacyTokenCountInfo?
     let role: String?
@@ -182,6 +188,8 @@ private struct Payload: Decodable {
         case clientVersion = "cli_version"
         case modelProvider = "model_provider"
         case threadSource = "thread_source"
+        case creatorAccountID = "creator_account_id"
+        case creatorUserID = "creator_user_id"
         case turnKind = "turn_kind"
         case continuationKind = "continuation_kind"
         case eventKind = "event_kind"
@@ -230,6 +238,8 @@ private struct RateLimitsPayload: Decodable {
     let limitID: String?
     let limitName: String?
     let planType: String?
+    let accountID: String?
+    let userID: String?
     let primary: RateLimitWindowPayload?
     let secondary: RateLimitWindowPayload?
     let individualLimit: RateLimitWindowPayload?
@@ -240,6 +250,8 @@ private struct RateLimitsPayload: Decodable {
         case limitID = "limit_id"
         case limitName = "limit_name"
         case planType = "plan_type"
+        case accountID = "account_id"
+        case userID = "user_id"
         case primary
         case secondary
         case individualLimit = "individual_limit"
@@ -250,21 +262,26 @@ private struct RateLimitsPayload: Decodable {
         let id = Self.decode(String.self, from: values, forKey: .limitID)
         let name = Self.decode(String.self, from: values, forKey: .limitName)
         let plan = Self.decode(String.self, from: values, forKey: .planType)
+        let account = Self.decode(String.self, from: values, forKey: .accountID)
+        let user = Self.decode(String.self, from: values, forKey: .userID)
         let primary = Self.decode(RateLimitWindowPayload.self, from: values, forKey: .primary)
         let secondary = Self.decode(RateLimitWindowPayload.self, from: values, forKey: .secondary)
         let individual = Self.decode(RateLimitWindowPayload.self, from: values, forKey: .individualLimit)
         limitID = id.value
         limitName = name.value
         planType = plan.value
+        accountID = account.value
+        userID = user.value
         self.primary = primary.value
         self.secondary = secondary.value
         individualLimit = individual.value
-        hasDecodeIssues = id.failed || name.failed || plan.failed
+        hasDecodeIssues = id.failed || name.failed || plan.failed || account.failed || user.failed
             || primary.failed || secondary.failed || individual.failed
             || primary.value?.hasDecodeIssues == true || secondary.value?.hasDecodeIssues == true
             || individual.value?.hasDecodeIssues == true
         hasRecognizedFields = values.contains(.limitID) || values.contains(.limitName)
-            || values.contains(.planType) || values.contains(.primary) || values.contains(.secondary)
+            || values.contains(.planType) || values.contains(.accountID) || values.contains(.userID)
+            || values.contains(.primary) || values.contains(.secondary)
             || values.contains(.individualLimit)
     }
 
@@ -441,6 +458,9 @@ private struct DecodeState {
             context.clientVersion = payload.clientVersion
             context.modelProvider = payload.modelProvider
             context.threadSource = payload.threadSource
+            context.accountIdentity = SourceAccountIdentity(
+                accountID: payload.creatorAccountID, userID: payload.creatorUserID
+            )
         } else if event.type == "turn_context", let turn = payload.turnID {
             context.models[turn] = payload.model
             if let effort = payload.effort { context.efforts[turn] = effort }
@@ -703,7 +723,11 @@ private extension DecodeState {
             timestamp: date, sourceLine: line,
             sourceContextSessionID: context.sessionID, sourceSchema: "codex.event_msg.token_count.rate_limits",
             state: state, limitID: rateLimits.limitID, limitName: rateLimits.limitName,
-            planType: rateLimits.planType, windows: windows
+            planType: rateLimits.planType,
+            accountIdentity: SourceAccountIdentity(
+                accountID: rateLimits.accountID ?? context.accountIdentity?.accountID,
+                userID: rateLimits.userID ?? context.accountIdentity?.userID
+            ), windows: windows
         ))
     }
 
