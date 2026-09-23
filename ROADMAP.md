@@ -11,11 +11,12 @@ merge `e7abca5`; SM-318 — через [PR #47](https://github.com/SoundBlaster/
 merge `9b8a491`; SM-708 — через [PR #48](https://github.com/SoundBlaster/SessionMonitor/pull/48),
 merge `87e71eb` (2026-09-22). SM-319 частично реализована через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52),
 но runtime AX-проверка выявила, что Inspector остался в overflow. Код SM-320 доставлен через
-[PR #53](https://github.com/SoundBlaster/SessionMonitor/pull/53) (merge `6b2156e`, 2026-09-23);
-runtime AX-проверка новой сборки ещё не выполнена, поэтому SM-320 остаётся в работе.
-**SM-321 — автоматическая генерация Xcode-проекта перед commit — в работе (PR #54)** после
-обнаружения устаревшего локального `.xcodeproj`. После merge SM-321 повторить сборку и runtime
-AX-проверку SM-320; затем возобновить **SM-308e**.
+[PR #53](https://github.com/SoundBlaster/SessionMonitor/pull/53) (merge `6b2156e`, 2026-09-23).
+**SM-321 доставлена через PR #54** (2026-09-23): pre-commit hook синхронизирует локальный
+Xcode-проект. SM-320 возобновлена: пользователь показал референс `NavigationSplitView` demo,
+где Inspector action привязан к toolbar detail-колонки; в SessionMonitor он пока задан на
+уровне всего split view. Перенести action к detail toolbar и проверить расположение/переключение
+в свежем runtime build; затем возобновить **SM-308e**.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -622,11 +623,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
 - [ ] **SM-320** — Удерживать Inspector action вне toolbar overflow.
   Статус: код доставлен через PR #53 (merge `6b2156e`, 2026-09-23): на macOS 26.1+
   Inspector получает высокий toolbar visibility priority, вторичные действия — низкий;
-  для deployment target macOS 15 предусмотрен availability fallback. Локальная сборка
-  через Xcode MCP пока заблокирована повторным подтверждением package macros, поэтому
-  runtime AX-проверка остаётся незавершённой. Готово, когда runtime AX показывает
-  Show/Hide Inspector самостоятельной toolbar button, клик открывает и закрывает inspector,
-  а overflow больше не содержит этот пункт.
+  для deployment target macOS 15 предусмотрен availability fallback. PR #54 синхронизировал
+  generated project; следующий runtime запуск подтвердил кликабельность action, но пользователь
+  показал `NavigationSplitView` reference, где Inspector action задан в toolbar detail-колонки.
+  Текущая follow-up работа переносит action в этот scope, затем проверит его соседство с
+  системной sidebar кнопкой, независимость меню периода/UTC и открытие/закрытие inspector.
 - [ ] **SM-321** — Автоматически обновлять локальный Xcode-проект перед commit.
   Статус: в работе, PR #54. Установленный Git pre-commit hook должен запускать
   `make generate` при staged изменениях app sources, `project.yml` или `Package.resolved`;

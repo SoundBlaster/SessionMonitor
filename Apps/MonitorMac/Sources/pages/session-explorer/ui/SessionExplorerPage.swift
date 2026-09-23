@@ -32,6 +32,9 @@ struct SessionExplorerPage: View {
             }
             .navigationTitle("SessionMonitor")
             .navigationSubtitle("Canonical usage")
+            .toolbar {
+                SessionExplorerInspectorToolbar(model: model)
+            }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .toolbar {
