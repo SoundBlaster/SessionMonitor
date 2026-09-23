@@ -9,8 +9,9 @@
 SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
 merge `e7abca5`; SM-318 — через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
 merge `9b8a491`; SM-708 — через [PR #48](https://github.com/SoundBlaster/SessionMonitor/pull/48),
-merge `87e71eb` (2026-09-22); **SM-319 доставлена через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52),
-merge `7ce00fd` (2026-09-23). Следующая задача — **SM-308e**.
+merge `87e71eb` (2026-09-22). SM-319 частично реализована через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52),
+но runtime AX-проверка выявила, что Inspector остался в overflow; **SM-320 — исправление видимости Inspector в toolbar — в работе**.
+После завершения SM-320 возобновить **SM-308e**.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -609,12 +610,17 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 7. Сопровождение и доставка
 
-- [x] **SM-319** — Сделать Inspector отдельной кнопкой-действием в верхнем toolbar.
-  Готово 2026-09-23 через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52),
-  merge `7ce00fd`: кнопка вынесена в отдельную primary action, показывает/скрывает
-  inspector и обновляет accessibility/help label. Workflow lint, Native checks и CI прошли;
-  review threads отсутствовали. Локальный Xcode `BuildProject` остановился до компиляции
-  на повторном запросе доверия package macros; визуальный запуск локально не подтверждён.
+- [ ] **SM-319** — Сделать Inspector отдельной кнопкой-действием в верхнем toolbar.
+  Статус: частично реализована через PR #52 (merge `7ce00fd`, 2026-09-23): добавлена
+  primary action с Inspector icon и toggle. Runtime AX-проверка 2026-09-23 показала,
+  что действие всё ещё находится внутри системного overflow menu; критерий прямой кнопки
+  не выполнен. Исправление и подтверждение вынесены в SM-320.
+- [ ] **SM-320** — Удерживать Inspector action вне toolbar overflow.
+  Статус: в работе, ветка `feat/sm-320-toolbar-visibility`. Использовать документированный
+  toolbar visibility priority для высокой приоритетности Inspector и низкой приоритетности
+  вторичной группы с availability fallback для deployment target macOS 15. Готово, когда
+  runtime AX показывает Show/Hide Inspector самостоятельной toolbar button, клик открывает
+  и закрывает inspector, а overflow больше не содержит этот пункт.
 - [x] **SM-318** — Удалить устаревшие Xcode warnings в watch controller и timeline scale.
   Готово 2026-09-22 через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
   merge `9b8a491`: удалены `await` перед синхронными вызовами и неиспользуемый `duration`.
