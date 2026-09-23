@@ -33,7 +33,9 @@ final class ImportedDirectoryUpdateTests: XCTestCase {
 
     func testUpdateWithoutImportSourceReadsStoredSnapshot() async {
         let runtime = StubExplorerRuntime(report: report([session("stored")]))
-        let model = SessionExplorerModel(runtimeFactory: { runtime })
+        let model = SessionExplorerModel(
+            runtimeFactory: { runtime }, importedDirectorySettings: isolatedSettings()
+        )
 
         await model.update()
 
@@ -69,5 +71,14 @@ final class ImportedDirectoryUpdateTests: XCTestCase {
 
     private func report(_ sessions: [SessionSummary]) -> UsageReport {
         UsageReport(totals: UsageTotals(requests: Int64(sessions.count)), sessions: sessions, diagnostics: [:])
+    }
+
+    private func isolatedSettings() -> ImportedDirectorySettings {
+        let suiteName = "ImportedDirectoryUpdateTests.Isolated.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("Could not create isolated UserDefaults suite")
+            return ImportedDirectorySettings(defaults: UserDefaults())
+        }
+        return ImportedDirectorySettings(defaults: defaults)
     }
 }
