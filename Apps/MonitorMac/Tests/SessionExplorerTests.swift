@@ -272,9 +272,12 @@ actor StubExplorerRuntime: SessionExplorerRuntime {
     private var storedReport: UsageReport
     private var importFailure = false
     private var reportFailure = false
+    private var reportAfterNextImport: UsageReport?
+    private var importedDirectoryValues: [URL] = []
     private var revision: Int64 = 0
     private var observers: [UUID: Observer] = [:]
     var observerCount: Int { observers.count }
+    var importedDirectories: [URL] { importedDirectoryValues }
 
     init(report: UsageReport) {
         storedReport = report
@@ -300,9 +303,16 @@ actor StubExplorerRuntime: SessionExplorerRuntime {
     }
     func failImports() { importFailure = true }
     func failReports(_ value: Bool) { reportFailure = value }
+    func replaceReportAfterNextImport(_ report: UsageReport) { reportAfterNextImport = report }
 
     func importDirectory(_ directory: URL) throws -> ImportSummary {
         if importFailure { throw StubFailure.importFailed }
+        importedDirectoryValues.append(directory)
+        if let reportAfterNextImport {
+            storedReport = reportAfterNextImport
+            self.reportAfterNextImport = nil
+            revision += 1
+        }
         return ImportSummary(files: 1, records: 1, diagnostics: [:])
     }
 

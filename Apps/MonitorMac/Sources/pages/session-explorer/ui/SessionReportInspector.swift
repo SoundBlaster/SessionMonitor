@@ -50,11 +50,11 @@ struct SessionReportInspector: View {
             }
 
             if let directory = model.importedDirectory {
-                Section("Last imported folder in this window") {
+                Section("Import source") {
                     Text(directory.path(percentEncoded: false))
                         .font(.caption)
                         .textSelection(.enabled)
-                    Text("Refresh reads the stored report. Import the folder again to ingest new records.")
+                    Text("Update imports new and changed JSONL files from this folder.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

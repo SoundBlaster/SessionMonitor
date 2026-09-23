@@ -41,13 +41,19 @@ final class SessionExplorerModel {
     @ObservationIgnored let contextProvider: SessionReportContextProvider
     let timelineModel = RequestTimelineModel()
     @ObservationIgnored private let runtimeFactory: @Sendable () async throws -> any SessionExplorerRuntime
+    @ObservationIgnored private let importedDirectorySettings: ImportedDirectorySettings
     @ObservationIgnored private var runtime: (any SessionExplorerRuntime)?
     @ObservationIgnored private var loadedQuery: UsageQuery?
 
-    init(runtimeFactory: @escaping @Sendable () async throws -> any SessionExplorerRuntime) {
+    init(
+        runtimeFactory: @escaping @Sendable () async throws -> any SessionExplorerRuntime,
+        importedDirectorySettings: ImportedDirectorySettings = ImportedDirectorySettings()
+    ) {
         let empty = UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:])
         report = empty
         query = defaultUsageQuery()
+        self.importedDirectorySettings = importedDirectorySettings
+        importedDirectory = importedDirectorySettings.directory
         contextProvider = SessionReportContextProvider(
             snapshot: SessionReportSnapshot(report: empty, selectedSessionID: nil)
         )
@@ -179,6 +185,15 @@ final class SessionExplorerModel {
         }
     }
 
+    /// Imports the last selected folder before loading the report; falls back to a read-only refresh.
+    func update() async {
+        guard let importedDirectory else {
+            await refresh()
+            return
+        }
+        await importDirectory(importedDirectory)
+    }
+
     func importDirectory(_ directory: URL) async {
         guard !isBusy else { return }
         activity = .importing
@@ -192,10 +207,11 @@ final class SessionExplorerModel {
         do {
             let runtime = try await resolvedRuntime()
             let summary = try await runtime.importDirectory(directory)
+            importedDirectory = directory
+            importedDirectorySettings.save(directory)
             let requestedQuery = query
             let snapshot = try await runtime.snapshot(query: requestedQuery)
             importSummary = summary
-            importedDirectory = directory
             apply(snapshot, expectedQuery: requestedQuery)
         } catch {
             errorMessage = "Could not import \(directory.lastPathComponent). \(error.localizedDescription)"
