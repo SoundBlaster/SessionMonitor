@@ -131,6 +131,20 @@ metrics, audit и append/full parity. Реальный архив не испо�
 в artifacts; методика — [docs/performance](docs/performance/README.md).
 GUI tests включают SQLite writer в отдельном `/usr/bin/python3` process; Python не входит в app runtime.
 
+## Локальный pre-commit hook
+
+После clone установите hook командой `rtk proxy make install-hooks`. Он запускает
+`make generate`, когда среди staged changes есть файл в `Apps/MonitorMac/Sources/`,
+`Apps/MonitorMac/project.yml` или `Apps/MonitorMac/Package.resolved`. Это синхронизирует
+локальный генерируемый `.xcodeproj` с исходниками до следующей сборки; проект остаётся
+игнорируемым и не попадает в commit. Hook использует установленный XcodeGen (сначала
+`.build/ci-tools/bin/xcodegen`, затем `PATH`) и остановит commit с подсказкой, если
+XcodeGen отсутствует или генерация завершилась ошибкой. Установщик добавляет symlink в
+текущую Git hooks directory, не меняя `core.hooksPath`; существующий pre-commit hook
+не перезаписывается. Если `core.hooksPath` задан глобально без repository-local override
+или разрешается за пределы репозитория, установка остановится, чтобы не добавить
+SessionMonitor hook в общую hooks directory.
+
 ## Реализация и reuse
 
 Использовать Apple SDK/Swift standard library и поддерживаемые OSS для parsers,

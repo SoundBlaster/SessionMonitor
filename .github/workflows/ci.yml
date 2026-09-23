@@ -32,7 +32,7 @@ jobs:
       - name: Validate workflows and shell scripts
         run: |
           make lint-ci ACTIONLINT=.build/ci-tools/bin/actionlint
-          shellcheck scripts/ci/*.sh
+          shellcheck scripts/ci/*.sh scripts/git-hooks/install.sh .githooks/pre-commit
 
   native:
     name: Native checks
