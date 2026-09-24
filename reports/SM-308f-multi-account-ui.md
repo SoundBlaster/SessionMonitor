@@ -2,7 +2,8 @@
 
 ## Pull request
 
-[PR #60](https://github.com/SoundBlaster/SessionMonitor/pull/60) — open; local validation passed, GitHub checks remain pending/unverified.
+[PR #60](https://github.com/SoundBlaster/SessionMonitor/pull/60) — merged 2026-09-24 as
+[`6ce3611`](https://github.com/SoundBlaster/SessionMonitor/commit/6ce361127b7d7dce7798b2f05f8d25009164b17f).
 
 ## Outcome
 
@@ -21,19 +22,20 @@ The Session Explorer sidebar cache-hit chart now uses the same account scope as 
 ## Validation
 
 - [x] Relevant local checks passed; commands and results are listed below.
-- [ ] Required GitHub check `CI` passed for the current PR revision.
+- [x] Required GitHub check `CI` passed for the current PR revision.
 - [x] ROADMAP status and evidence are updated; incomplete work remains unchecked.
-- [ ] User-facing documentation reflects changed behavior or workflow.
+- [x] User-facing documentation reflects changed behavior or workflow; README documents persisted GUI account scope and per-profile quota grouping.
 
 - `make check SWIFTLINT=/opt/homebrew/bin/swiftlint FSD=/opt/homebrew/bin/fsd-ios XCODEGEN=/opt/homebrew/bin/xcodegen XCODEBUILD_FLAGS=-skipMacroValidation` — passed; CLI, performance smoke, 126 core tests, and 102 macOS tests.
 - SwiftLint strict — passed with 0 violations; FSD architecture lint and boundary checks passed as part of `make check`.
 - `git diff --check` — passed after the final source and documentation edits.
 - Fresh Debug app launch — light appearance; accessibility tree confirms the selected account scope in the window title and sidebar, and the cache widget remains visible.
 - The current local database has no assigned account profiles, so profile-specific visual interaction could not be inspected against real profiles. Dark appearance was not manually inspected; fixture and GUI tests cover the relevant data states.
+- Final review-fix revision `0cfce69`: `make check` passed, macOS tests 104/104, strict SwiftLint 0 violations, FSD architecture lint 0 errors/warnings, and `git diff --check` passed. GitHub `CI`, `Native checks`, and `Workflow lint` all passed; all three review threads are resolved.
 
 ## Boundaries and follow-ups
 
-Canonical accounting and public usage totals are unchanged. Profile creation and source assignment remain CLI operations. Account identity and model identity are not added to UI quota labels. CI is intentionally not polled after PR creation per project instructions; its status is left unchecked here.
+Canonical accounting and public usage totals are unchanged. Profile creation and source assignment remain CLI operations. Account identity and model identity are not added to UI quota labels.
 
 ## Review follow-up
 
