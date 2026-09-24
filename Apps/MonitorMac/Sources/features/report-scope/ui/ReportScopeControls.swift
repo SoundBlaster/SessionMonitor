@@ -33,12 +33,14 @@ struct ReportScopeControls: View {
                     isSelected: model.accountSelection == .allAccounts
                 ) { model.selectAccount(.allAccounts) }
                 ForEach(model.profiles) { profile in
-                    let sourceNote = profile.sourceCount > 1 ? " · \(profile.sourceCount) sources" : ""
+                    let sourceNote = profile.hasMixedSources
+                        ? " · \(profile.assignedSourceCount) assigned, \(profile.mixedSourceCount) mixed"
+                        : (profile.sourceCount > 1 ? " · \(profile.sourceCount) sources" : "")
                     AccountScopeOptionRow(
                         title: profile.label + sourceNote,
                         isSelected: model.accountSelection == .profile(profile.id),
                         isEnabled: profile.isSelectable,
-                        detail: profile.isSelectable ? nil : "Mixed"
+                        detail: profile.isSelectable ? nil : "Unavailable"
                     ) { model.selectAccount(.profile(profile.id)) }
                 }
                 AccountScopeOptionRow(
@@ -59,6 +61,15 @@ struct ReportScopeControls: View {
                     Label("This profile's sources are now mixed.", systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
                     Text("Its report excludes mixed data. Switch to Unknown/Mixed to inspect it.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button("Show Unknown/Mixed") { model.selectAccount(.unknownOrMixed) }
+                }
+            }
+            if model.selectedProfileHasMixedSources {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("This profile has incomplete source coverage.", systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                    Text("\(model.selectedProfileMixedSourceCount) mixed source roots are excluded from its report.")
                         .font(.caption).foregroundStyle(.secondary)
                     Button("Show Unknown/Mixed") { model.selectAccount(.unknownOrMixed) }
                 }

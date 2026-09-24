@@ -34,3 +34,13 @@ The Session Explorer sidebar cache-hit chart now uses the same account scope as 
 ## Boundaries and follow-ups
 
 Canonical accounting and public usage totals are unchanged. Profile creation and source assignment remain CLI operations. Account identity and model identity are not added to UI quota labels. CI is intentionally not polled after PR creation per project instructions; its status is left unchecked here.
+
+## Review follow-up
+
+Addressed all three open review findings on the PR branch:
+
+- Profiles with both assigned and mixed roots remain selectable, but the selector now reports assigned/mixed source counts and the selected scope warns that mixed roots are excluded, with a direct action to `Unknown/Mixed`. A profile that becomes entirely mixed remains selected and unavailable with its existing warning.
+- Timeline task identity now includes the complete `UsageQuery`, so changing account scope reloads timeline data even when the selected session ID is unchanged.
+- Quota loading captures the requested query before suspension and only publishes success or failure while that query is still active and the task is not cancelled.
+
+Regression coverage checks mixed-root counts and selected-scope state, account-sensitive timeline identity, and a delayed old-account quota result arriving after the new account report. Final local checks and one post-push CI snapshot are recorded in the PR follow-up; CI is not polled.

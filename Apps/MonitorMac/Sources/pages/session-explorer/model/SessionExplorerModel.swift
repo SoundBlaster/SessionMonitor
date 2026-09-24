@@ -17,6 +17,11 @@ protocol SessionExplorerRuntime: RequestTimelineSource, Sendable {
 
 extension MonitorRuntime.SessionMonitor: SessionExplorerRuntime {}
 
+struct SessionTimelineLoadID: Hashable {
+    let sessionID: String
+    let query: UsageQuery
+}
+
 @MainActor
 @Observable
 final class SessionExplorerModel {
@@ -129,12 +134,16 @@ final class SessionExplorerModel {
     }
 
     func loadQuotaPresentation(generatedAt: Date = Date()) async {
+        let requestedQuery = query
         do {
             let runtime = try await resolvedRuntime()
-            quotaPresentationReport = try await runtime.quotaPresentation(
-                query: query, generatedAt: generatedAt
+            let report = try await runtime.quotaPresentation(
+                query: requestedQuery, generatedAt: generatedAt
             )
+            guard !Task.isCancelled, query == requestedQuery else { return }
+            quotaPresentationReport = report
         } catch {
+            guard !Task.isCancelled, query == requestedQuery else { return }
             quotaPresentationReport = nil
         }
     }

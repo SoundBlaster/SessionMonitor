@@ -34,6 +34,10 @@ final class ReportScopeModel {
         let label: String
         let isSelectable: Bool
         let sourceCount: Int
+        let assignedSourceCount: Int
+        let mixedSourceCount: Int
+
+        var hasMixedSources: Bool { mixedSourceCount > 0 }
     }
 
     struct ObservationID: Hashable, Sendable {
@@ -111,9 +115,13 @@ final class ReportScopeModel {
 
     var accountLabel: String {
         switch accountSelection {
-        case .allAccounts: "All accounts"
-        case .unknownOrMixed: "Unknown/Mixed"
-        case let .profile(id): profiles.first(where: { $0.id == id })?.label ?? id
+        case .allAccounts: return "All accounts"
+        case .unknownOrMixed: return "Unknown/Mixed"
+        case let .profile(id):
+            guard let profile = profiles.first(where: { $0.id == id }) else { return id }
+            guard profile.hasMixedSources else { return profile.label }
+            let coverage = profile.isSelectable ? "Partial" : "Mixed"
+            return "\(profile.label) · \(coverage)"
         }
     }
 
@@ -122,6 +130,16 @@ final class ReportScopeModel {
     var selectedProfileIsUnavailable: Bool {
         guard case let .profile(id) = accountSelection else { return false }
         return profiles.first(where: { $0.id == id })?.isSelectable == false
+    }
+
+    var selectedProfileHasMixedSources: Bool {
+        guard case let .profile(id) = accountSelection else { return false }
+        return profiles.first(where: { $0.id == id })?.hasMixedSources == true
+    }
+
+    var selectedProfileMixedSourceCount: Int {
+        guard case let .profile(id) = accountSelection else { return 0 }
+        return profiles.first(where: { $0.id == id })?.mixedSourceCount ?? 0
     }
 
     func selectPreset(_ value: PeriodPreset) {
@@ -156,9 +174,13 @@ final class ReportScopeModel {
                 let label = roots.map(\.label).sorted {
                     $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
                 }.first ?? id
+                let assignedCount = roots.filter { $0.mappingState == .assigned }.count
+                let mixedCount = roots.filter { $0.mappingState == .mixed }.count
                 return ProfileOption(id: id, label: label,
                               isSelectable: roots.contains { $0.mappingState == .assigned },
-                              sourceCount: roots.count)
+                              sourceCount: roots.count,
+                              assignedSourceCount: assignedCount,
+                              mixedSourceCount: mixedCount)
             }.sorted {
                 let comparison = $0.label.localizedCaseInsensitiveCompare($1.label)
                 return comparison == .orderedSame ? $0.id < $1.id : comparison == .orderedAscending

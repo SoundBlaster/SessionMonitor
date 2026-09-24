@@ -89,12 +89,20 @@ final class ReportScopeTests: XCTestCase {
         XCTAssertEqual(model.profiles.count, 1)
         XCTAssertEqual(model.profiles[0].sourceCount, 2)
         XCTAssertTrue(model.profiles[0].isSelectable)
+        XCTAssertTrue(model.profiles[0].hasMixedSources)
+        XCTAssertEqual(model.profiles[0].assignedSourceCount, 1)
+        XCTAssertEqual(model.profiles[0].mixedSourceCount, 1)
         model.selectAccount(.profile("work"))
+        XCTAssertTrue(model.selectedProfileHasMixedSources)
+        XCTAssertEqual(model.selectedProfileMixedSourceCount, 1)
+        XCTAssertEqual(model.accountLabel, "Work · Partial")
 
         await catalog.replace([AccountProfile(id: "work", label: "Work", sourceRoot: "/one", mappingState: .mixed)])
         await model.refreshProfiles()
         XCTAssertEqual(model.query.accountScope, UsageAccountScope(profileID: "work"))
         XCTAssertTrue(model.selectedProfileIsUnavailable)
+        XCTAssertTrue(model.selectedProfileHasMixedSources)
+        XCTAssertEqual(model.selectedProfileMixedSourceCount, 1)
     }
 
     func testEmptyProfileCatalogAndUnknownSelection() async {

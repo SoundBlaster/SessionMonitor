@@ -23,7 +23,7 @@ struct SessionExplorerPage: View {
                                       timelineModel: model.timelineModel, provider: model.contextProvider,
                                       chartPalette: chartPalette)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .task(id: timelineTaskID(session: session)) {
+                        .task(id: SessionTimelineLoadID(sessionID: session.id, query: model.query)) {
                             await model.loadTimeline(sessionID: session.id)
                         }
                 } else {
@@ -242,12 +242,6 @@ struct SessionExplorerPage: View {
             await model.importDirectory(directory)
             await reportScope.refreshProfiles()
         }
-    }
-
-    private func timelineTaskID(session: SessionSummary) -> String {
-        let start = model.query.since?.timeIntervalSince1970.description ?? "-"
-        let end = model.query.until?.timeIntervalSince1970.description ?? "-"
-        return "\(session.id)|\(start)|\(end)|\(model.query.timeZoneIdentifier)"
     }
 }
 

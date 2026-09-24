@@ -27,7 +27,10 @@ provenance, account-scoped dedup/query/CLI и сохранение unknown/mixed
 Следующая задача multi-account UI/quota presentation — SM-308f.
 **SM-308f в PR [#60](https://github.com/SoundBlaster/SessionMonitor/pull/60)**, ветка
 `feat/sm-308f-account-ui`: общий сохраняемый account scope для Session Explorer/menu bar и
-раздельная per-account quota presentation; локальные проверки прошли, CI ожидается.
+раздельная per-account quota presentation. Исправлены три замечания review: неполное
+покрытие смешанных source roots видно в UI; account scope включён в timeline task identity;
+устаревший async quota result не может заменить отчёт после смены query. Локальные проверки
+повторяются для новой ревизии; GitHub CI проверяется отдельным снимком без polling.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -527,7 +530,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
     общий view может агрегировать запросы только с явной меткой `All accounts`.
     Проверить migration старой БД, два профиля с совпадающими ID/окнами/временем, зеркала внутри
     профиля и источники с неизвестной/смешанной принадлежностью.
-  - [ ] **SM-308f** — Разделить multi-account quota presentation и сохранить unknown coverage. В review через [PR #60](https://github.com/SoundBlaster/SessionMonitor/pull/60), локальные проверки прошли.
+  - [ ] **SM-308f** — Разделить multi-account quota presentation и сохранить unknown coverage. В review через [PR #60](https://github.com/SoundBlaster/SessionMonitor/pull/60); три review замечания исправлены, локальные проверки выполняются.
     Зависит от SM-308e и общего GUI/CLI query scope SM-308. Предоставить `All accounts`, отдельный
     профиль
     и `Unknown/Mixed`; activity может показывать общий total с явной маркировкой, quota должна
