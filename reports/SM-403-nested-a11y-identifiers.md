@@ -27,4 +27,4 @@ where those boundaries already existed. It does not apply nested IDs to session 
 
 No accounting, navigation, or VoiceOver copy was intentionally changed. The UI test verifies toolbar IDs; final runtime inspection of timeline, DatePicker, and Charts accessibility grouping remains dependent on a successful Xcode build and is a review limitation for this PR.
 
-PR: [#64](https://github.com/SoundBlaster/SessionMonitor/pull/64). CI is running on GitHub; per project workflow it is not polled after PR creation.
+PR: [#64](https://github.com/SoundBlaster/SessionMonitor/pull/64). GitHub CI status was not inspected after PR creation, following the project no-poll rule.
