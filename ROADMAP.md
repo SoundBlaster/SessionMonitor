@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-23. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-24. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -21,6 +21,10 @@ runtime AX подтвердил самостоятельную кнопку; CI 
 Native checks, Workflow lint и CI прошли, review thread разрешён. В локальной базе до фикса
 24 сегодняшних rollout-файла не имели checkpoint. PR #55 всё ещё открыт и конфликтует с `main`;
 по прямому приоритету пользователя SM-308e начата до разрешения этого отдельного follow-up.
+**SM-308e доставлена через PR #58** (merge `3e4e285`, 2026-09-24): добавлены account profile
+provenance, account-scoped dedup/query/CLI и сохранение unknown/mixed принадлежности. Четыре
+замечания ревью исправлены и закрыты; `CI`, `Native checks` и `Workflow lint` прошли.
+Следующая задача multi-account UI/quota presentation — SM-308f.
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -501,12 +505,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
   Multi-account follow-up добавлен 2026-09-20: аккаунт нельзя выводить из rollout session context;
   общий источник без явного разделения должен оставаться `unknown`/`mixed`.
-  - [ ] **SM-308e** — Задать account profile provenance для импортируемых источников.
-    Статус: PR [#58](https://github.com/SoundBlaster/SessionMonitor/pull/58) открыт; локальные
-    проверки и review regression tests пройдены; исправлены четыре замечания ревью, обновление
-    отправлено в `feat/sm-308e-account-provenance`. GitHub checks оставлены выполняться согласно
-    правилу no-wait. Ветка
-    (2026-09-23; приоритет пользователя переопределил ожидание merge PR #55, конфликтующего с `main`).
+  - [x] **SM-308e** — Задать account profile provenance для импортируемых источников.
+    Доставлена через PR [#58](https://github.com/SoundBlaster/SessionMonitor/pull/58), merge
+    `3e4e285` (2026-09-24). `make check-core` (122 tests), `make build-macos`, архитектурные
+    проверки и `git diff --check` прошли; GitHub `CI`, `Native checks`, `Workflow lint` успешны.
+    Четыре review threads исправлены, получили ответы и разрешены. Подробности — в
+    [отчёте SM-308e](reports/SM-308e-account-provenance.md).
     Предпосылка: завершена часть SM-308 по импорту quota snapshots. Поддержать явный non-secret
     account identity из формата источника и
     пользовательское сопоставление однородного source root с локальным profile ID/label.
