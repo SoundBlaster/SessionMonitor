@@ -1,4 +1,5 @@
 import MonitorCore
+import NestedA11yIDs
 import SwiftUI
 
 struct MonitorSettingsPage: View {
@@ -24,7 +25,7 @@ struct MonitorSettingsPage: View {
                     Text(selection.title).tag(selection.rawValue)
                 }
             }
-            .accessibilityIdentifier("settings.analyticsChartPalette")
+            .a11yRoot("settings.analyticsChartPalette")
             Text("Hiding the icon or closing a window does not stop an active watch. "
                  + "Use Stop Watch or Quit SessionMonitor to stop it.")
                 .font(.callout).foregroundStyle(.secondary)

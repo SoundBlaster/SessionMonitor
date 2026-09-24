@@ -1,4 +1,5 @@
 import MonitorCore
+import NestedA11yIDs
 import SwiftUI
 
 /// A reusable privacy-safe card. The caller selects a family; no session or model identifier
@@ -27,11 +28,10 @@ struct CacheHitRateWidget: View {
 
     var body: some View {
         container
-        .accessibilityElement(children: .contain)
+        .a11yRoot("cacheHitRate.widget")
         .accessibilityLabel(appearance.copy.title)
         .accessibilityValue(accessibilityValue)
         .accessibilityHint(onOpenAnalytics == nil ? "" : "Open cache analytics.")
-        .accessibilityIdentifier("cacheHitRate.widget")
     }
 
     @ViewBuilder

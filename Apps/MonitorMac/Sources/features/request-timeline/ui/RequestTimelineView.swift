@@ -1,4 +1,5 @@
 import MonitorCore
+import NestedA11yIDs
 import SwiftUI
 
 struct RequestTimelineView: View {
@@ -37,7 +38,7 @@ struct RequestTimelineView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.background, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.quaternary))
-        .accessibilityElement(children: .contain)
+        .a11yRoot("requestTimeline")
         .accessibilityLabel("Request timeline for \(query.timeZoneIdentifier)")
     }
 

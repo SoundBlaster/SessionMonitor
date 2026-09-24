@@ -1,5 +1,6 @@
 import Charts
 import MonitorCore
+import NestedA11yIDs
 import SwiftUI
 
 struct CacheHitRateWidgetChart: View {
@@ -62,6 +63,7 @@ struct CacheHitRateWidgetChart: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Cache hit rate distribution")
+            .nestedAccessibilityIdentifier("distribution")
         }
     }
 

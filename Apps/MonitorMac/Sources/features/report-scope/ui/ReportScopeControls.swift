@@ -1,3 +1,4 @@
+import NestedA11yIDs
 import SwiftUI
 
 struct ReportScopeControls: View {
@@ -15,6 +16,7 @@ struct ReportScopeControls: View {
         .help("Choose the account, report period and presentation timezone")
         .accessibilityLabel("Account, report period and timezone")
         .accessibilityValue(model.compactLabel)
+        .a11yRoot("sessionExplorer.accountScope")
         .onChange(of: showsPopover) { _, isPresented in
             if isPresented { Task { await model.refreshProfiles() } }
         }

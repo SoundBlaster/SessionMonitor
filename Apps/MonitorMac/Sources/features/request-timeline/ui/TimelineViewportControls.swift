@@ -1,3 +1,4 @@
+import NestedA11yIDs
 import SwiftUI
 
 struct TimelineViewportControls: View {
@@ -38,6 +39,7 @@ struct TimelineViewportControls: View {
             Text("Dates in \(model.displayTimeZone.identifier) · drag the slider to scroll through time")
                 .font(.caption2).foregroundStyle(.secondary)
         }
+        .nestedAccessibilityIdentifier("viewportControls")
         .onChange(of: axis.visibleDomain, initial: true) { _, range in
             guard !isEditingSlider else { return }
             from = range.start
@@ -56,16 +58,16 @@ struct TimelineViewportControls: View {
     private var dateFields: some View {
         DatePicker("From", selection: $from, displayedComponents: [.date, .hourAndMinute])
             .datePickerStyle(.field)
-            .accessibilityIdentifier("requestTimeline.from")
+            .nestedAccessibilityIdentifier("from")
             .accessibilityValue(timelineDateLabel(from, timeZone: model.displayTimeZone))
         DatePicker("To", selection: $until, displayedComponents: [.date, .hourAndMinute])
             .datePickerStyle(.field)
-            .accessibilityIdentifier("requestTimeline.to")
+            .nestedAccessibilityIdentifier("to")
             .accessibilityValue(timelineDateLabel(until, timeZone: model.displayTimeZone))
     }
 
     private var applyButton: some View {
         Button("Apply range") { model.applyRange(from: from, to: until) }
-            .accessibilityIdentifier("requestTimeline.applyRange")
+            .nestedAccessibilityIdentifier("applyRange")
     }
 }

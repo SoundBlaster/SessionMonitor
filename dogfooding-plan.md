@@ -15,11 +15,25 @@ SpecificationKit как библиотеки, FSD как архитектуру/
 | SpecificationKit | Реактивные decisions и predicates GUI features | Кнопка сравнения и состояние recommendation panel обновляются при изменении выбранных сессий/coverage |
 | NavigationSplitViewKit | Референс поведения нативной navigation, без обязательной package dependency | Проект → сессия → request/evidence; корректная selection при фильтре и обновлении данных |
 | FSD | GUI architecture, генерация slices и architecture lint | Экран анализа, выделяемое действие ExportReport, проверка направления зависимостей |
+| NestedA11yIDs | Иерархические стабильные accessibility identifiers для SwiftUI UI automation | Session Explorer: semantic IDs для навигации, viewport controls и выбранной сессии без изменения VoiceOver labels/traits |
 
 Общие диагностические правила вычисляются в MonitorPolicies на SpecificationCore.
 GUI использует их результаты и те же predicates через SpecificationKit; CLI и
 GUI не поддерживают разные копии правила «можно сравнить эти две выборки».
 UI-specific presentation decisions находятся в соответствующем GUI slice.
+
+## NestedA11yIDs: устойчивые UI selectors
+
+SessionMonitor использует NestedA11yIDs как UI-test selector contract: `.a11yRoot(...)`
+задаёт границу screen/component, а `.nestedAccessibilityIdentifier(...)` строит
+понятные dot-separated IDs для небольшого набора интерактивных и важных диагностических
+элементов. Не размечать каждый leaf view и не выводить IDs из отображаемого текста.
+
+Identifiers не заменяют VoiceOver labels, values, traits или hints. В release 1.0.0
+модификатор также применяет `.accessibilityElement(children: .contain)`, поэтому миграция
+должна учитывать существующие `.combine`/`.contain`, Charts и Button labels. Проверять
+не только query-имена в UI tests, но и фактический accessibility tree; не принимать
+неожиданное изменение группировки ради автоматической генерации IDs.
 
 ## SpecificationCore: правила с явными результатами
 
@@ -174,6 +188,7 @@ IDs. Снимки и metadata находятся в [ResearchReferences/dogfoodi
 | SpecificationKit | `d81e7f8a3586c9b4279044f984ae7830c6dd0b49` | tag `4.0.1`; manifest требует Core от `1.0.0` |
 | NavigationSplitView | `94813a4e7fd44d0da836b42048429699bedc874f` | используется как reference source |
 | FSD | `21731b9dd7d5008b832af5caca6d19f7a36fe54f` | tag `v0.4.0`; developer tooling |
+| NestedA11yIDs | `ad123fbc8dda58f20de1e6fbd21120bcfbaabf85` | tag `1.0.0`; MIT; macOS 12+ |
 
 Для первой сборки закреплялись SpecificationKit 4.0.0 и локальная копия
 SpecificationCore 1.0.0 с [compatibility patch](Dependencies/README.md).
