@@ -29,10 +29,11 @@ Multi-account UI и quota presentation реализована в SM-308f.
 merge `6ce3611` (2026-09-24): общий сохраняемый account scope для Session Explorer/menu bar и
 раздельная per-account quota presentation. Review замечания исправлены; локальные проверки,
 `CI`, `Native checks` и `Workflow lint` прошли, threads разрешены.
-**SM-308g в работе**, ветка `feat/sm-308g-quota-anomalies`: quota-aware anomaly assessments для
-`doctor`, с явными `unknown`/`not_applicable` outcomes и без session-level attribution.
-Реализация, четыре замечания review и regression cases внесены в PR #62; `make check-core` прошёл
-на текущей ревизии. CI выполняется; задача остаётся незакрытой до merge. Детали: [отчёт SM-308g](reports/SM-308g-quota-anomaly-assessments.md).
+**SM-308g доставлена через PR [#62](https://github.com/SoundBlaster/SessionMonitor/pull/62)**,
+merge `476e2dd` (2026-09-24): quota-aware anomaly assessments для `doctor` с явными
+`unknown`/`not_applicable` outcomes и без session-level attribution. Четыре review findings
+исправлены; `make check-core`, `CI`, `Native checks` и `Workflow lint` прошли, review threads
+разрешены. Детали: [отчёт SM-308g](reports/SM-308g-quota-anomaly-assessments.md).
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -544,8 +545,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
     учётных записей, overlapping windows, одинаковые event payloads, duplicate mirrors,
     account switch/reset и отсутствие account identity в CLI JSON/text и GUI.
     Квотные части SM-308 считать завершёнными только после выполнения этих условий.
-  - [ ] **SM-308g** — Добавить quota-aware anomaly assessments с явной применимостью.
-    Статус: в работе, ветка `feat/sm-308g-quota-anomalies`. Сопоставлять только observations с
+  - [x] **SM-308g** — Добавить quota-aware anomaly assessments с явной применимостью.
+    Статус: доставлена через [PR #62](https://github.com/SoundBlaster/SessionMonitor/pull/62),
+    merge `476e2dd` (2026-09-24). Сопоставлять только observations с
     одинаковыми account scope, quota limit/window и reset interval; оценивать скорость изменения
     usage в п.п./час, учитывая нерегулярный polling. Изменение считается резким только при
     отклонении минимум 10 п.п./час и robust z-score ≥ 3 на фоне не менее 5 прошлых интервалов.
@@ -554,8 +556,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
     с evidence. Account-level quota никогда не приписывать отдельной сессии. Проверить устойчивый
     ряд, скачок, reset, разные аккаунты/окна, polling без изменения usage, shared quota, внешний
     usage, отсутствие/частичность данных и нулевой MAD; включить outcomes в `doctor` JSON/text.
-    Четыре review findings исправлены в PR #62; 143 теста, SwiftLint, CLI/performance smoke прошли.
-    CI текущей ревизии выполняется; чекбокс останется незакрытым до merge.
+    Четыре review findings исправлены; 143 теста, SwiftLint, CLI/performance smoke и GitHub checks
+    прошли.
 
 - [x] **SM-312** — Восстановить читаемость плотных request timelines (follow-up SM-303/SM-309).
   Реализована и локально проверена 2026-09-20; доставлена через [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32), merge `f9a369d`.

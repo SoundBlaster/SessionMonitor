@@ -18,7 +18,7 @@ Quota outcomes are independent of session findings and use typed `stable_usage`,
 - Targeted quota and importer suites — 25 tests passed; includes importer reachability, existing-database scope backfill, historical partial/reset isolation, stable baseline correctness, and unique IDs across reset intervals.
 - Quota CLI smoke imports a fresh seven-observation series through the production decoder/store and asserts `sharp_shift` in `doctor` JSON and text, with no session IDs in evidence.
 - `git diff --check` — passed after final code and smoke-test changes.
-- GitHub CI was green on the reviewed revision; the updated revision's CI runs asynchronously.
+- GitHub `CI`, `Native checks`, and `Workflow lint` passed on the final PR #62 revision.
 
 ## Boundaries
 
@@ -26,4 +26,4 @@ Quota outcomes are independent of session findings and use typed `stable_usage`,
 - Quota anomalies are account-level observations only; there is no per-session attribution.
 - Insufficient history and robust scoring limitations are represented explicitly instead of inferred as stable use.
 - Four PR #62 review findings are addressed; threads are resolved after pushing the fix commit.
-- Roadmap completion remains pending PR merge.
+- Delivered through [PR #62](https://github.com/SoundBlaster/SessionMonitor/pull/62), merge `476e2dd` (2026-09-24); roadmap completion is recorded in PR #63.
