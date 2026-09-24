@@ -22,10 +22,10 @@ where those boundaries already existed. It does not apply nested IDs to session 
 - `make test-architecture` — passed; its fixture intentionally prints the rejected `shared -> pages` dependency as a regression check.
 - `git diff --check` — passed.
 - Xcode MCP `BuildProject` — blocked before compilation because Xcode requires package macro execution to be enabled again for the changed `SpecificationCoreMacros` and `SpecificationKitMacros` sources. No macro-validation bypass was used. Consequently, the local UI test and app build have not run; GitHub CI is the next build validation.
-- GitHub CI on revision `6301531` found one UI-test failure: `sessionExplorer.accountScope` was not exposed as a button. Import, Update, and Inspector controls were found. Replaced the root wrapper on native `Button` controls with direct accessibility identifiers so the AX button role is retained; the current revision still needs CI validation.
+- GitHub CI on revision `6301531` found one UI-test failure: `sessionExplorer.accountScope` was not exposed as a button. Import, Update, and Inspector controls were found. Direct identifiers restored native button roles. A subsequent run on `fc0497d` still failed because the account-scope control was hidden with the low-priority secondary toolbar group. It now has a separate high-priority toolbar item while Import and Update remain low-priority. The updated revision still needs CI validation.
 
 ## Boundaries
 
 No accounting, navigation, or VoiceOver copy was intentionally changed. The UI test verifies toolbar IDs; final runtime inspection of timeline, DatePicker, and Charts accessibility grouping remains dependent on a successful Xcode build and is a review limitation for this PR.
 
-PR: [#64](https://github.com/SoundBlaster/SessionMonitor/pull/64). The current revision's GitHub checks run after push and are not actively polled, following the project no-poll rule.
+PR: [#64](https://github.com/SoundBlaster/SessionMonitor/pull/64). Xcode MCP `BuildProject` remains blocked before compilation because Xcode requires renewed approval for `SpecificationCoreMacros` and `SpecificationKitMacros`; the user previously authorized these package approvals. The updated revision's GitHub checks run after push and are not actively polled, following the project no-poll rule.

@@ -10,9 +10,11 @@ struct SessionExplorerToolbar: ToolbarContent {
     var body: some ToolbarContent {
         if #available(macOS 26.1, *) {
             secondaryActions.visibilityPriority(.low)
+            accountScope.visibilityPriority(.high)
             inspectorToggle.visibilityPriority(.high)
         } else {
             secondaryActions
+            accountScope
             inspectorToggle
         }
     }
@@ -40,6 +42,12 @@ struct SessionExplorerToolbar: ToolbarContent {
                 : "Import new and changed JSONL files from the last folder")
             .disabled(model.isBusy)
             .accessibilityIdentifier("sessionExplorer.update")
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var accountScope: some ToolbarContent {
+        ToolbarItem {
             ReportScopeControls(model: reportScope)
         }
     }
