@@ -19,8 +19,8 @@ runtime AX подтвердил самостоятельную кнопку; CI 
 и изменённые JSONL из последней выбранной папки, её путь сохраняется между запусками.
 Проверены появление новой сессии после Update, отсутствие источника и ошибка импорта;
 Native checks, Workflow lint и CI прошли, review thread разрешён. В локальной базе до фикса
-24 сегодняшних rollout-файла не имели checkpoint. PR #55 всё ещё открыт и конфликтует с `main`;
-по прямому приоритету пользователя SM-308e начата до разрешения этого отдельного follow-up.
+24 сегодняшних rollout-файла не имели checkpoint. Ветка PR #55 синхронизирована с актуальным
+`main` в commit `dc9d895`; повторные GitHub checks и Xcode MCP validation ожидаются.
 **SM-308e доставлена через PR #58** (merge `3e4e285`, 2026-09-24): добавлены account profile
 provenance, account-scoped dedup/query/CLI и сохранение unknown/mixed принадлежности. Четыре
 замечания ревью исправлены и закрыты; `CI`, `Native checks` и `Workflow lint` прошли.
@@ -663,7 +663,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   для deployment target macOS 15 предусмотрен availability fallback. Follow-up PR #55
   переносит action в toolbar detail-колонки по примеру NavigationSplitView demo. Пользователь
   собрал приложение в Xcode, runtime AX подтвердил standalone Show/Hide Inspector рядом с Search;
-  CI прошёл, PR ожидает merge. Готово после merge PR #55.
+  исходные CI checks прошли. Ветка синхронизирована с актуальным `main` в commit `dc9d895`;
+  текущая ревизия ожидает GitHub checks и Xcode MCP validation. Задача завершится после merge #55.
 - [x] **SM-321** — Автоматически обновлять локальный Xcode-проект перед commit.
   Готово 2026-09-23 через [PR #54](https://github.com/SoundBlaster/SessionMonitor/pull/54),
   merge `2a939df`: pre-commit hook синхронизирует локальный Xcode-проект; Workflow lint,
