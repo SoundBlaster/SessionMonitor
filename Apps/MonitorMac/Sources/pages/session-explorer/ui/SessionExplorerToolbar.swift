@@ -9,10 +9,8 @@ struct SessionExplorerToolbar: ToolbarContent {
     var body: some ToolbarContent {
         if #available(macOS 26.1, *) {
             secondaryActions.visibilityPriority(.low)
-            inspectorToggle.visibilityPriority(.high)
         } else {
             secondaryActions
-            inspectorToggle
         }
     }
 
@@ -41,7 +39,20 @@ struct SessionExplorerToolbar: ToolbarContent {
         }
     }
 
+}
+
+struct SessionExplorerInspectorToolbar: ToolbarContent {
+    @Bindable var model: SessionExplorerModel
+
     @ToolbarContentBuilder
+    var body: some ToolbarContent {
+        if #available(macOS 26.1, *) {
+            inspectorToggle.visibilityPriority(.high)
+        } else {
+            inspectorToggle
+        }
+    }
+
     private var inspectorToggle: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Button {
@@ -49,7 +60,7 @@ struct SessionExplorerToolbar: ToolbarContent {
             } label: {
                 Label(
                     model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector",
-                    systemImage: "sidebar.trailing"
+                    systemImage: "sidebar.right"
                 )
             }
             .labelStyle(.iconOnly)
