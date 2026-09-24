@@ -23,7 +23,7 @@ struct SessionExplorerPage: View {
                                       timelineModel: model.timelineModel, provider: model.contextProvider,
                                       chartPalette: chartPalette)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .task(id: timelineTaskID(session: session)) {
+                        .task(id: SessionTimelineLoadID(sessionID: session.id, query: model.query)) {
                             await model.loadTimeline(sessionID: session.id)
                         }
                 } else {
@@ -31,7 +31,7 @@ struct SessionExplorerPage: View {
                 }
             }
             .navigationTitle("SessionMonitor")
-            .navigationSubtitle("Canonical usage")
+            .navigationSubtitle("\(reportScope.accountLabel) · Canonical usage")
             .toolbar {
                 SessionExplorerInspectorToolbar(model: model)
             }
@@ -73,7 +73,7 @@ struct SessionExplorerPage: View {
 
     private var sidebarHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(reportScope.title)
+            Text("\(reportScope.accountLabel) · \(reportScope.title)")
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -113,6 +113,7 @@ struct SessionExplorerPage: View {
         .task(id: CacheHitRateWidgetLoadID(
             period: cacheHitRateWidgetSettings.period,
             revision: model.snapshot?.watermark.revision,
+            accountScope: model.query.accountScope,
             timeZoneIdentifier: model.query.timeZoneIdentifier
         )) {
             guard model.snapshot != nil else { return }
@@ -240,13 +241,10 @@ struct SessionExplorerPage: View {
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
         guard panel.runModal() == .OK, let directory = panel.url else { return }
-        Task { await model.importDirectory(directory) }
-    }
-
-    private func timelineTaskID(session: SessionSummary) -> String {
-        let start = model.query.since?.timeIntervalSince1970.description ?? "-"
-        let end = model.query.until?.timeIntervalSince1970.description ?? "-"
-        return "\(session.id)|\(start)|\(end)|\(model.query.timeZoneIdentifier)"
+        Task {
+            await model.importDirectory(directory)
+            await reportScope.refreshProfiles()
+        }
     }
 }
 
@@ -260,6 +258,7 @@ enum SessionExplorerSidebarLayout {
 private struct CacheHitRateWidgetLoadID: Hashable {
     let period: CacheHitRateWidgetPeriod
     let revision: Int64?
+    let accountScope: UsageAccountScope
     let timeZoneIdentifier: String
 }
 

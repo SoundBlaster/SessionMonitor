@@ -8,12 +8,19 @@ protocol SessionExplorerRuntime: RequestTimelineSource, Sendable {
     func snapshot(query: UsageQuery) async throws -> UsageSnapshot
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error>
     func cacheHitRateWidget(
-        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone
+        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone,
+        accountScope: UsageAccountScope
     ) async throws -> CacheHitRateWidgetReport
     func quotaPresentation(query: UsageQuery, generatedAt: Date) async throws -> QuotaPresentationReport
+    func accountProfiles() async throws -> [AccountProfile]
 }
 
 extension MonitorRuntime.SessionMonitor: SessionExplorerRuntime {}
+
+struct SessionTimelineLoadID: Hashable {
+    let sessionID: String
+    let query: UsageQuery
+}
 
 @MainActor
 @Observable
@@ -41,13 +48,19 @@ final class SessionExplorerModel {
     @ObservationIgnored let contextProvider: SessionReportContextProvider
     let timelineModel = RequestTimelineModel()
     @ObservationIgnored private let runtimeFactory: @Sendable () async throws -> any SessionExplorerRuntime
+    @ObservationIgnored private let importedDirectorySettings: ImportedDirectorySettings
     @ObservationIgnored private var runtime: (any SessionExplorerRuntime)?
     @ObservationIgnored private var loadedQuery: UsageQuery?
 
-    init(runtimeFactory: @escaping @Sendable () async throws -> any SessionExplorerRuntime) {
+    init(
+        runtimeFactory: @escaping @Sendable () async throws -> any SessionExplorerRuntime,
+        importedDirectorySettings: ImportedDirectorySettings = ImportedDirectorySettings()
+    ) {
         let empty = UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:])
         report = empty
         query = defaultUsageQuery()
+        self.importedDirectorySettings = importedDirectorySettings
+        importedDirectory = importedDirectorySettings.directory
         contextProvider = SessionReportContextProvider(
             snapshot: SessionReportSnapshot(report: empty, selectedSessionID: nil)
         )
@@ -105,23 +118,32 @@ final class SessionExplorerModel {
     func loadCacheHitRateWidget(
         period: CacheHitRateWidgetPeriod, referenceDate: Date = Date(), timeZone: TimeZone
     ) async {
+        let requestedAccountScope = query.accountScope
         do {
             let runtime = try await resolvedRuntime()
-            cacheHitRateWidgetReport = try await runtime.cacheHitRateWidget(
-                period: period, referenceDate: referenceDate, timeZone: timeZone
+            let report = try await runtime.cacheHitRateWidget(
+                period: period, referenceDate: referenceDate, timeZone: timeZone,
+                accountScope: requestedAccountScope
             )
+            guard !Task.isCancelled, query.accountScope == requestedAccountScope else { return }
+            cacheHitRateWidgetReport = report
         } catch {
+            guard !Task.isCancelled, query.accountScope == requestedAccountScope else { return }
             errorMessage = "Could not load the cache hit widget. \(error.localizedDescription)"
         }
     }
 
     func loadQuotaPresentation(generatedAt: Date = Date()) async {
+        let requestedQuery = query
         do {
             let runtime = try await resolvedRuntime()
-            quotaPresentationReport = try await runtime.quotaPresentation(
-                query: query, generatedAt: generatedAt
+            let report = try await runtime.quotaPresentation(
+                query: requestedQuery, generatedAt: generatedAt
             )
+            guard !Task.isCancelled, query == requestedQuery else { return }
+            quotaPresentationReport = report
         } catch {
+            guard !Task.isCancelled, query == requestedQuery else { return }
             quotaPresentationReport = nil
         }
     }
@@ -179,6 +201,15 @@ final class SessionExplorerModel {
         }
     }
 
+    /// Imports the last selected folder before loading the report; falls back to a read-only refresh.
+    func update() async {
+        guard let importedDirectory else {
+            await refresh()
+            return
+        }
+        await importDirectory(importedDirectory)
+    }
+
     func importDirectory(_ directory: URL) async {
         guard !isBusy else { return }
         activity = .importing
@@ -192,10 +223,11 @@ final class SessionExplorerModel {
         do {
             let runtime = try await resolvedRuntime()
             let summary = try await runtime.importDirectory(directory)
+            importedDirectory = directory
+            importedDirectorySettings.save(directory)
             let requestedQuery = query
             let snapshot = try await runtime.snapshot(query: requestedQuery)
             importSummary = summary
-            importedDirectory = directory
             apply(snapshot, expectedQuery: requestedQuery)
         } catch {
             errorMessage = "Could not import \(directory.lastPathComponent). \(error.localizedDescription)"

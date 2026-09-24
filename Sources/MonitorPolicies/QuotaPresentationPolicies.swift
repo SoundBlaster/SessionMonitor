@@ -51,10 +51,13 @@ public struct QuotaPresentationDecision: DecisionSpec {
         let hasSnapshots = HasQuotaSnapshotsSpec().isSatisfiedBy(context)
         let hasWindows = HasWindowObservationsSpec().isSatisfiedBy(context)
         let windows = hasSnapshots && hasWindows ? presentations(context) : []
+        let accountCoverages = Dictionary(grouping: context.report.snapshots, by: { snapshot in
+            "\(snapshot.accountScopeID ?? "no-scope")|\(snapshot.accountScopeState.rawValue)"
+        }).values.map(QuotaAccountCoverage.init(snapshots:)).sorted { $0.id < $1.id }
         return QuotaPresentationReport(
             query: context.report.query, generatedAt: context.generatedAt,
             freshnessThresholdSeconds: configuration.freshnessThreshold,
-            coverage: context.report.coverage, windows: windows
+            coverage: context.report.coverage, accountCoverages: accountCoverages, windows: windows
         )
     }
 
@@ -79,6 +82,10 @@ public struct QuotaPresentationDecision: DecisionSpec {
             let age = context.generatedAt.timeIntervalSince(latest.snapshot.timestamp)
             return QuotaWindowPresentation(
                 id: latest.key.identifier,
+                accountScopeID: latest.snapshot.accountScopeID,
+                accountProfileID: latest.snapshot.accountProfileID,
+                accountProfileLabel: latest.snapshot.accountProfileLabel,
+                accountScopeState: latest.snapshot.accountScopeState,
                 scope: latest.snapshot.scope,
                 scopeIdentifier: latest.snapshot.scopeIdentifier,
                 limitID: latest.snapshot.limitID,
@@ -151,13 +158,15 @@ public struct QuotaPresentationDecision: DecisionSpec {
 }
 
 private struct WindowKey: Hashable {
+    let accountScopeID: String?
     let scope: UsageLimitScope
     let scopeIdentifier: String?
     let limitIdentity: LimitIdentity
     let slot: UsageLimitWindowSlot
 
     var identifier: String {
-        [scope.rawValue, scopeIdentifier ?? "unknown", limitIdentity.identifier, slot.rawValue]
+        [accountScopeID ?? "unknown", scope.rawValue, scopeIdentifier ?? "unknown",
+         limitIdentity.identifier, slot.rawValue]
             .joined(separator: "|")
     }
 
@@ -182,6 +191,7 @@ private struct WindowCandidate {
 
     var key: WindowKey {
         WindowKey(
+            accountScopeID: snapshot.accountScopeID,
             scope: snapshot.scope, scopeIdentifier: snapshot.scopeIdentifier,
             limitIdentity: Self.limitIdentity(snapshot), slot: window.slot
         )

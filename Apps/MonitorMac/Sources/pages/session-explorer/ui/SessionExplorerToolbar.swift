@@ -20,10 +20,20 @@ struct SessionExplorerToolbar: ToolbarContent {
             Button("Import Folder…", systemImage: "folder.badge.plus", action: chooseImportDirectory)
                 .keyboardShortcut("o")
                 .disabled(model.isBusy)
-            Button("Refresh", systemImage: "arrow.clockwise") {
-                Task { await model.refresh() }
+            Button("Update", systemImage: "arrow.clockwise") {
+                if model.importedDirectory == nil {
+                    chooseImportDirectory()
+                } else {
+                    Task {
+                        await model.update()
+                        await reportScope.refreshProfiles()
+                    }
+                }
             }
             .keyboardShortcut("r")
+            .help(model.importedDirectory == nil
+                ? "Choose a rollout folder to use as the update source"
+                : "Import new and changed JSONL files from the last folder")
             .disabled(model.isBusy)
             ReportScopeControls(model: reportScope)
         }

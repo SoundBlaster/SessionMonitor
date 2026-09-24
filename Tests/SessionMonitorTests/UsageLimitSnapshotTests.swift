@@ -1,5 +1,6 @@
 import CodexSource
 import Foundation
+import GRDB
 import MonitorCore
 import MonitorPolicies
 import MonitorRuntime
@@ -7,7 +8,7 @@ import MonitorStore
 import Testing
 
 struct UsageLimitSnapshotTests {
-    @Test func decodesObservedPrimaryWindowWithoutClaimingScope() throws {
+    @Test func decodesObservedPrimaryWindowAsAccountQuotaScope() throws {
         let fixture = try UsageLimitFixture()
         defer { fixture.remove() }
         try fixture.write(fixture.event(timestamp: "2026-09-20T10:00:00Z", used: 82))
@@ -19,7 +20,7 @@ struct UsageLimitSnapshotTests {
         #expect(snapshot.adapterVersion == 1)
         #expect(snapshot.sourceSchema == "codex.event_msg.token_count.rate_limits")
         #expect(snapshot.state == .observed)
-        #expect(snapshot.scope == .unknown)
+        #expect(snapshot.scope == .account)
         #expect(snapshot.limitID == "fixture-limit")
         #expect(window.slot == .primary)
         #expect(window.windowKind == .fiveHour)
@@ -27,6 +28,29 @@ struct UsageLimitSnapshotTests {
         #expect(window.remainingPercentDerived == 18)
         #expect(window.resetsAt == Date(timeIntervalSince1970: 1_790_422_316))
         #expect(parsed.diagnostics["unsupportedUsageLimitSchemas"] == nil)
+    }
+
+    @Test func migrationBackfillsKnownRateLimitEventsToAccountScope() throws {
+        let fixture = try UsageLimitFixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.event(timestamp: "2026-09-20T10:00:00Z", used: 82))
+        let rollout = try RolloutDecoder().parse(fixture.file)
+        do {
+            let store = try UsageStore(url: fixture.database)
+            try store.replace(source: fixture.file.path, rollout: rollout)
+        }
+
+        let oldDatabase = try DatabaseQueue(path: fixture.database.path)
+        try oldDatabase.write { database in
+            try database.execute(sql: "UPDATE source_usage_limit_snapshots SET scope = 'unknown'")
+            try database.execute(sql: """
+                DELETE FROM grdb_migrations WHERE identifier = 'usage-limit-account-scope-v1'
+                """)
+        }
+
+        let migrated = try UsageStore(url: fixture.database)
+        let report = try migrated.usageLimitSnapshots(query: UsageQuery(), generatedAt: Date())
+        #expect(report.snapshots.first?.scope == .account)
     }
 
     @Test func missingSnapshotsRemainUnknownAndUnsupportedSchemasAreRecorded() throws {

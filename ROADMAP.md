@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-23. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-24. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -9,17 +9,32 @@
 SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
 merge `e7abca5`; SM-318 — через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
 merge `9b8a491`; SM-708 — через [PR #48](https://github.com/SoundBlaster/SessionMonitor/pull/48),
-merge `87e71eb` (2026-09-22). SM-319 частично реализована через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52),
-но runtime AX-проверка выявила, что Inspector остался в overflow. Код SM-320 доставлен через
-[PR #53](https://github.com/SoundBlaster/SessionMonitor/pull/53) (merge `6b2156e`, 2026-09-23).
-**SM-321 доставлена через PR #54** (merge `2a939df`, 2026-09-23): pre-commit hook
-синхронизирует локальный Xcode-проект. По референсу `NavigationSplitView` demo реализация
-SM-320 перенесла Inspector action из toolbar всего split view в toolbar detail-колонки в
-[PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55). Workflow lint, Native checks
-и CI прошли. Пользователь успешно собрал приложение в Xcode; Computer Use подтвердил runtime:
-Sidebar controls остались в левой группе, standalone Inspector action появился справа рядом с
-Search, открывает/закрывает inspector, а period/timezone открывается отдельным popover. После
-merge PR #55 возобновить **SM-308e**.
+merge `87e71eb` (2026-09-22). SM-319 частично реализована через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52).
+Код SM-320 доставлен через [PR #53](https://github.com/SoundBlaster/SessionMonitor/pull/53)
+(merge `6b2156e`); follow-up [PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55)
+переносит Inspector action в toolbar detail-колонки. Пользователь собрал приложение в Xcode,
+runtime AX подтвердил самостоятельную кнопку; исходные CI checks прошли. PR #55 обновлён
+поверх актуального `main`; текущая ревизия ожидает локальную проверку через Xcode MCP и новые checks.
+**SM-321 доставлена через PR #54** (merge `2a939df`, 2026-09-23).
+**SM-322 доставлена через PR #56** (merge `7347b88`, 2026-09-23): Update импортирует новые
+и изменённые JSONL из последней выбранной папки, её путь сохраняется между запусками.
+Проверены появление новой сессии после Update, отсутствие источника и ошибка импорта;
+Native checks, Workflow lint и CI прошли, review thread разрешён. В локальной базе до фикса
+24 сегодняшних rollout-файла не имели checkpoint. PR #55 остаётся отдельным открытым follow-up;
+SM-308e/f/g уже доставлены указанными ниже PR.
+**SM-308e доставлена через PR #58** (merge `3e4e285`, 2026-09-24): добавлены account profile
+provenance, account-scoped dedup/query/CLI и сохранение unknown/mixed принадлежности. Четыре
+замечания ревью исправлены и закрыты; `CI`, `Native checks` и `Workflow lint` прошли.
+Multi-account UI и quota presentation реализована в SM-308f.
+**SM-308f доставлена через PR [#60](https://github.com/SoundBlaster/SessionMonitor/pull/60)**,
+merge `6ce3611` (2026-09-24): общий сохраняемый account scope для Session Explorer/menu bar и
+раздельная per-account quota presentation. Review замечания исправлены; локальные проверки,
+`CI`, `Native checks` и `Workflow lint` прошли, threads разрешены.
+**SM-308g доставлена через PR [#62](https://github.com/SoundBlaster/SessionMonitor/pull/62)**,
+merge `476e2dd` (2026-09-24): quota-aware anomaly assessments для `doctor` с явными
+`unknown`/`not_applicable` outcomes и без session-level attribution. Четыре review findings
+исправлены; `make check-core`, `CI`, `Native checks` и `Workflow lint` прошли, review threads
+разрешены. Детали: [отчёт SM-308g](reports/SM-308g-quota-anomaly-assessments.md).
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -500,7 +515,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
   Multi-account follow-up добавлен 2026-09-20: аккаунт нельзя выводить из rollout session context;
   общий источник без явного разделения должен оставаться `unknown`/`mixed`.
-  - [ ] **SM-308e** — Задать account profile provenance для импортируемых источников.
+  - [x] **SM-308e** — Задать account profile provenance для импортируемых источников.
+    Доставлена через PR [#58](https://github.com/SoundBlaster/SessionMonitor/pull/58), merge
+    `3e4e285` (2026-09-24). `make check-core` (122 tests), `make build-macos`, архитектурные
+    проверки и `git diff --check` прошли; GitHub `CI`, `Native checks`, `Workflow lint` успешны.
+    Четыре review threads исправлены, получили ответы и разрешены. Подробности — в
+    [отчёте SM-308e](reports/SM-308e-account-provenance.md).
     Предпосылка: завершена часть SM-308 по импорту quota snapshots. Поддержать явный non-secret
     account identity из формата источника и
     пользовательское сопоставление однородного source root с локальным profile ID/label.
@@ -514,7 +534,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
     общий view может агрегировать запросы только с явной меткой `All accounts`.
     Проверить migration старой БД, два профиля с совпадающими ID/окнами/временем, зеркала внутри
     профиля и источники с неизвестной/смешанной принадлежностью.
-  - [ ] **SM-308f** — Разделить multi-account quota presentation и сохранить unknown coverage.
+  - [x] **SM-308f** — Разделить multi-account quota presentation и сохранить unknown coverage.
+    Доставлена через [PR #60](https://github.com/SoundBlaster/SessionMonitor/pull/60), merge
+    `6ce3611` (2026-09-24); review исправления и все три GitHub checks завершены.
     Зависит от SM-308e и общего GUI/CLI query scope SM-308. Предоставить `All accounts`, отдельный
     профиль
     и `Unknown/Mixed`; activity может показывать общий total с явной маркировкой, quota должна
@@ -524,6 +546,19 @@ deliverable — WidgetKit extension с App Group в SM-401.
     учётных записей, overlapping windows, одинаковые event payloads, duplicate mirrors,
     account switch/reset и отсутствие account identity в CLI JSON/text и GUI.
     Квотные части SM-308 считать завершёнными только после выполнения этих условий.
+  - [x] **SM-308g** — Добавить quota-aware anomaly assessments с явной применимостью.
+    Статус: доставлена через [PR #62](https://github.com/SoundBlaster/SessionMonitor/pull/62),
+    merge `476e2dd` (2026-09-24). Сопоставлять только observations с
+    одинаковыми account scope, quota limit/window и reset interval; оценивать скорость изменения
+    usage в п.п./час, учитывая нерегулярный polling. Изменение считается резким только при
+    отклонении минимум 10 п.п./час и robust z-score ≥ 3 на фоне не менее 5 прошлых интервалов.
+    Reset discontinuity не сравнивать через границу; stale, partial, unknown, unsupported,
+    неоднозначная attribution или недостаточная история дают typed `unknown`/`not_applicable`
+    с evidence. Account-level quota никогда не приписывать отдельной сессии. Проверить устойчивый
+    ряд, скачок, reset, разные аккаунты/окна, polling без изменения usage, shared quota, внешний
+    usage, отсутствие/частичность данных и нулевой MAD; включить outcomes в `doctor` JSON/text.
+    Четыре review findings исправлены; 143 теста, SwiftLint, CLI/performance smoke и GitHub checks
+    прошли.
 
 - [x] **SM-312** — Восстановить читаемость плотных request timelines (follow-up SM-303/SM-309).
   Реализована и локально проверена 2026-09-20; доставлена через [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32), merge `f9a369d`.
@@ -626,23 +661,23 @@ deliverable — WidgetKit extension с App Group в SM-401.
 - [ ] **SM-320** — Удерживать Inspector action вне toolbar overflow.
   Статус: код доставлен через PR #53 (merge `6b2156e`, 2026-09-23): на macOS 26.1+
   Inspector получает высокий toolbar visibility priority, вторичные действия — низкий;
-  для deployment target macOS 15 предусмотрен availability fallback. PR #54 синхронизировал
-  generated project; следующий runtime запуск подтвердил кликабельность action, но пользователь
-  показал `NavigationSplitView` reference, где Inspector action задан в toolbar detail-колонки.
-  Follow-up через [PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55) переносит
-  action в detail toolbar по образцу demo. Workflow lint, Native checks и CI прошли; пользователь
-  успешно собрал приложение в Xcode. Computer Use подтвердил справа standalone `Show/Hide
-  Inspector` рядом с Search, слева — Sidebar controls; кнопка открывает и закрывает inspector,
-  а period/timezone остаётся отдельным popover. Xcode MCP BuildProject/RunProject в этой сессии
-  всё ещё вернули package macro approval error, поэтому runtime evidence получен из запущенного
-  Xcode продукта, не из MCP RunProject. SM-320 завершена после merge PR #55.
+  для deployment target macOS 15 предусмотрен availability fallback. Follow-up PR #55
+  переносит action в toolbar detail-колонки по примеру NavigationSplitView demo. Пользователь
+  собрал приложение в Xcode, runtime AX подтвердил standalone Show/Hide Inspector рядом с Search.
+  Ветка синхронизирована с актуальным `main`; повторные MCP build/runtime checks и GitHub checks
+  для этой ревизии ожидаются. Оставить задачу незавершённой до merge PR #55.
 - [x] **SM-321** — Автоматически обновлять локальный Xcode-проект перед commit.
   Готово 2026-09-23 через [PR #54](https://github.com/SoundBlaster/SessionMonitor/pull/54),
-  merge `2a939df`: pre-commit hook запускает `make generate` при staged изменениях app sources,
-  `project.yml` или `Package.resolved`; установка сохраняет существующий hook и `core.hooksPath`.
-  Добавление/удаление исходника отражается в игнорируемом `.xcodeproj`, документация описывает
-  установку и требование XcodeGen, hook покрыт shell checks. Workflow lint, Native checks и CI
-  прошли.
+  merge `2a939df`: pre-commit hook синхронизирует локальный Xcode-проект; Workflow lint,
+  Native checks и CI прошли.
+- [x] **SM-322** — Обновлять список сессий из последней импортированной папки.
+  Готово через [PR #56](https://github.com/SoundBlaster/SessionMonitor/pull/56), merge
+  `7347b88` (2026-09-23): Update импортирует новые/изменённые JSONL из последнего источника,
+  путь источника сохраняется между запусками; если он отсутствует, предлагается выбрать папку.
+  Regression tests проверяют повторное открытие с сохранённым источником, появление новой сессии,
+  Update без источника и сохранение прежнего отчёта при ошибке импорта. GitHub Native checks,
+  Workflow lint и CI прошли; review thread разрешён. До исправления 24 локальных сегодняшних
+  rollout-файла не имели checkpoint в основной базе. Raw данные в репозиторий не добавлялись.
 - [x] **SM-318** — Удалить устаревшие Xcode warnings в watch controller и timeline scale.
   Готово 2026-09-22 через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
   merge `9b8a491`: удалены `await` перед синхронными вызовами и неиспользуемый `duration`.

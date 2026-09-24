@@ -1,4 +1,5 @@
 import Foundation
+import MonitorCore
 import XCTest
 @testable import SessionMonitor
 
@@ -55,10 +56,61 @@ final class ReportScopeTests: XCTestCase {
 
             defaults.set("unsupported", forKey: "reportScope.periodPreset")
             defaults.set("America/New_York", forKey: "reportScope.timeZoneIdentifier")
+            defaults.set("unsupported", forKey: "reportScope.accountSelection")
             let recovered = ReportScopeModel(defaults: defaults, currentTimeZone: timeZone)
             XCTAssertEqual(recovered.preset, .all)
             XCTAssertEqual(recovered.timeZoneIdentifier, "UTC")
+            XCTAssertEqual(recovered.accountSelection, .allAccounts)
         }
+    }
+
+    func testAccountSelectionPersistsAndFiltersSharedQuery() async {
+        await withDefaultsAsync { defaults in
+            let profiles = [AccountProfile(id: "personal", label: "Personal", sourceRoot: "/a")]
+            let model = ReportScopeModel(defaults: defaults, profileProvider: { profiles })
+            await model.refreshProfiles()
+            model.selectAccount(.profile("personal"))
+            XCTAssertEqual(model.query.accountScope, UsageAccountScope(profileID: "personal"))
+
+            let restored = ReportScopeModel(defaults: defaults, profileProvider: { profiles })
+            XCTAssertEqual(restored.query.accountScope, UsageAccountScope(profileID: "personal"))
+            await restored.refreshProfiles()
+            XCTAssertEqual(restored.accountLabel, "Personal")
+        }
+    }
+
+    func testDuplicateRootsCollapseAndMixedProfileRemainsVisibleUnavailable() async {
+        let catalog = ProfileCatalogFixture(roots: [
+            AccountProfile(id: "work", label: "Work", sourceRoot: "/one"),
+            AccountProfile(id: "work", label: "Work", sourceRoot: "/two", mappingState: .mixed)
+        ])
+        let model = ReportScopeModel(profileProvider: { await catalog.load() })
+        await model.refreshProfiles()
+        XCTAssertEqual(model.profiles.count, 1)
+        XCTAssertEqual(model.profiles[0].sourceCount, 2)
+        XCTAssertTrue(model.profiles[0].isSelectable)
+        XCTAssertTrue(model.profiles[0].hasMixedSources)
+        XCTAssertEqual(model.profiles[0].assignedSourceCount, 1)
+        XCTAssertEqual(model.profiles[0].mixedSourceCount, 1)
+        model.selectAccount(.profile("work"))
+        XCTAssertTrue(model.selectedProfileHasMixedSources)
+        XCTAssertEqual(model.selectedProfileMixedSourceCount, 1)
+        XCTAssertEqual(model.accountLabel, "Work · Partial")
+
+        await catalog.replace([AccountProfile(id: "work", label: "Work", sourceRoot: "/one", mappingState: .mixed)])
+        await model.refreshProfiles()
+        XCTAssertEqual(model.query.accountScope, UsageAccountScope(profileID: "work"))
+        XCTAssertTrue(model.selectedProfileIsUnavailable)
+        XCTAssertTrue(model.selectedProfileHasMixedSources)
+        XCTAssertEqual(model.selectedProfileMixedSourceCount, 1)
+    }
+
+    func testEmptyProfileCatalogAndUnknownSelection() async {
+        let model = ReportScopeModel(profileProvider: { [] })
+        await model.refreshProfiles()
+        XCTAssertTrue(model.profiles.isEmpty)
+        model.selectAccount(.unknownOrMixed)
+        XCTAssertEqual(model.query.accountScope, .unknownOrMixed)
     }
 
     func testRefreshRelativePeriodUsesInjectedClock() {
@@ -130,6 +182,17 @@ final class ReportScopeTests: XCTestCase {
         body(defaults)
     }
 
+    private func withDefaultsAsync(_ body: (UserDefaults) async -> Void) async {
+        let suite = "ReportScopeTests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suite) else {
+            XCTFail("Could not create isolated UserDefaults")
+            return
+        }
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        await body(defaults)
+    }
+
     private func requiredTimeZone(_ identifier: String) -> TimeZone {
         guard let value = TimeZone(identifier: identifier) else {
             preconditionFailure("Missing test timezone \(identifier)")
@@ -143,4 +206,11 @@ final class ReportScopeTests: XCTestCase {
         }
         return date
     }
+}
+
+private actor ProfileCatalogFixture {
+    private var roots: [AccountProfile]
+    init(roots: [AccountProfile]) { self.roots = roots }
+    func load() -> [AccountProfile] { roots }
+    func replace(_ roots: [AccountProfile]) { self.roots = roots }
 }

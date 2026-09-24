@@ -129,6 +129,12 @@ struct QuerySnapshotTests {
         #expect(throws: (any Error).self) { try JSONDecoder().decode(UsageQuery.self, from: invalid) }
     }
 
+    @Test func legacyQueryWithoutAccountScopeDefaultsToAllAccounts() throws {
+        let legacy = Data(#"{"timeZoneIdentifier":"UTC"}"#.utf8)
+        let query = try JSONDecoder().decode(UsageQuery.self, from: legacy)
+        #expect(query.accountScope == .allAccounts)
+    }
+
     @Test func periodPresetsResolveUTCWindowsAndRemainCodable() throws {
         let reference = try instant("2026-09-12T14:30:00Z")
         let today = try UsagePeriodPreset.today.resolve(referenceDate: reference, timeZoneIdentifier: "UTC")

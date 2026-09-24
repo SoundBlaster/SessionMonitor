@@ -12,12 +12,24 @@ struct UsageQueryOptions: ParsableArguments {
     @Option(help: "Timezone identifier for presentation; timestamps remain absolute.")
     var timeZone = "UTC"
 
+    @Option(help: "Limit the query to a mapped account profile ID; omitted means all accounts.")
+    var profile: String?
+
+    @Flag(help: "Limit the query to unmapped, unknown, or mixed account sources.")
+    var unknownOrMixed = false
+
     func query() throws -> UsageQuery {
+        guard !(profile != nil && unknownOrMixed) else {
+            throw ValidationError("Use either --profile or --unknown-or-mixed, not both.")
+        }
+        let accountScope = profile.map(UsageAccountScope.init(profileID:))
+            ?? (unknownOrMixed ? .unknownOrMixed : .allAccounts)
         do {
             return try UsageQuery(
                 since: parseDate(since),
                 until: parseDate(until),
-                timeZoneIdentifier: timeZone
+                timeZoneIdentifier: timeZone,
+                accountScope: accountScope
             )
         } catch QueryError.invalidPeriod {
             throw ValidationError("The --since timestamp must precede --until.")

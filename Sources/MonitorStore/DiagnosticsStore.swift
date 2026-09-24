@@ -95,7 +95,8 @@ extension UsageStore {
 
     // swiftlint:disable:next function_body_length cyclomatic_complexity
     public func doctor(
-        query: UsageQuery, configuration: AnomalyPolicyConfiguration = .init()
+        query: UsageQuery, configuration: AnomalyPolicyConfiguration = .init(),
+        quotaConfiguration: QuotaAnomalyConfiguration = .init()
     ) throws -> DiagnosticReport {
         let snapshot = try diagnosticSnapshot(query: query)
         let states = Self.treeStates(sessions: snapshot.report.sessions, provenance: snapshot.provenance)
@@ -204,7 +205,14 @@ extension UsageStore {
             ))
         }
 
-        return DiagnosticReport(query: query, findings: findings.sorted { $0.id < $1.id })
+        let generatedAt = Date()
+        let quotaReport = try usageLimitSnapshots(query: query, generatedAt: generatedAt)
+        let quotaAssessments = QuotaAnomalyDecision().decide(QuotaAnomalyContext(
+            report: quotaReport, generatedAt: generatedAt, configuration: quotaConfiguration
+        )) ?? []
+        return DiagnosticReport(
+            query: query, findings: findings.sorted { $0.id < $1.id }, quotaAssessments: quotaAssessments
+        )
     }
 
     private func diagnosticSnapshot(query: UsageQuery) throws -> UsageSnapshot {

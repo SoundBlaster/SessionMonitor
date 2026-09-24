@@ -27,7 +27,7 @@ final class SessionExplorerTests: XCTestCase {
         let first = session("first", model: "model-a")
         let second = session("second", model: "model-b")
         let runtime = StubExplorerRuntime(report: report([first, second]))
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         await model.loadIfNeeded()
         model.selectSession(second.id)
 
@@ -47,8 +47,8 @@ final class SessionExplorerTests: XCTestCase {
         let first = session("first", model: "model-a")
         let second = session("second", model: "model-b")
         let runtime = StubExplorerRuntime(report: report([first, second]))
-        let left = SessionExplorerModel { runtime }
-        let right = SessionExplorerModel { runtime }
+        let left = makeModel(runtime)
+        let right = makeModel(runtime)
         await left.loadIfNeeded()
         await right.loadIfNeeded()
 
@@ -67,7 +67,7 @@ final class SessionExplorerTests: XCTestCase {
     func testRefreshPublishesNewSnapshotBeforeSignallingAndReevaluatesCoverage() async {
         let incomplete = session("one", model: "model-a", unknownCacheRequests: 1)
         let runtime = StubExplorerRuntime(report: report([incomplete]))
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         await model.loadIfNeeded()
         let specification = DisplayedCacheCoverageSpec()
         XCTAssertFalse(specification.isSatisfiedBy(model.contextProvider.currentContext()))
@@ -91,7 +91,7 @@ final class SessionExplorerTests: XCTestCase {
     func testImportFailureReturnsToIdleAndPreservesPreviousReport() async {
         let original = report([session("one", model: "model-a")])
         let runtime = StubExplorerRuntime(report: original)
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         await model.loadIfNeeded()
         await runtime.failImports()
 
@@ -107,7 +107,7 @@ final class SessionExplorerTests: XCTestCase {
     func testInitialFailureCanBeRetried() async {
         let runtime = StubExplorerRuntime(report: report([session("one", model: "model-a")]))
         await runtime.failReports(true)
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         await model.loadIfNeeded()
         XCTAssertNotNil(model.errorMessage)
         XCTAssertFalse(model.isBusy)
@@ -122,7 +122,7 @@ final class SessionExplorerTests: XCTestCase {
     func testQueryChangeAtSameWatermarkReplacesReportAndRejectsLateOldQuery() async throws {
         let original = report([session("all", model: "model-a")])
         let runtime = StubExplorerRuntime(report: original)
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         let allTime = try UsageQuery()
         await model.loadIfNeeded(query: allTime)
         let observation = Task { await model.observe(query: allTime) }
@@ -153,7 +153,7 @@ final class SessionExplorerTests: XCTestCase {
 
     func testObservedWritesUpdateReportPreserveFilterAndPublishCoverage() async throws {
         let runtime = StubExplorerRuntime(report: report([session("one", model: "model-a")]))
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         await model.loadIfNeeded()
         model.setFilter("model-a")
         let observation = Task { await model.observe() }
@@ -179,7 +179,7 @@ final class SessionExplorerTests: XCTestCase {
         let first = session("first", model: "model-a")
         let second = session("second", model: "model-b")
         let runtime = StubExplorerRuntime(report: report([first, second]))
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         let query = try UsageQuery(since: Date(timeIntervalSince1970: 100),
                                    until: Date(timeIntervalSince1970: 200),
                                    timeZoneIdentifier: "Europe/Moscow")
@@ -198,7 +198,7 @@ final class SessionExplorerTests: XCTestCase {
 
     func testQuotaPresentationUsesCurrentQuery() async throws {
         let runtime = StubExplorerRuntime(report: report([session("one", model: "model-a")]))
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         let query = try UsageQuery(
             since: Date(timeIntervalSince1970: 100),
             until: Date(timeIntervalSince1970: 200),
@@ -218,7 +218,7 @@ final class SessionExplorerTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let database = directory.appending(path: "usage.sqlite")
         let runtime = try MonitorRuntime.SessionMonitor(databaseURL: database)
-        let model = SessionExplorerModel { runtime }
+        let model = makeModel(runtime)
         await model.loadIfNeeded()
         let observation = Task { await model.observe() }
         defer { observation.cancel() }
@@ -261,101 +261,16 @@ final class SessionExplorerTests: XCTestCase {
         }
         return UsageReport(totals: totals, sessions: sessions, diagnostics: [:])
     }
-}
-
-actor StubExplorerRuntime: SessionExplorerRuntime {
-    private struct Observer {
-        let query: UsageQuery
-        let continuation: AsyncThrowingStream<UsageSnapshot, Error>.Continuation
-    }
-
-    private var storedReport: UsageReport
-    private var importFailure = false
-    private var reportFailure = false
-    private var revision: Int64 = 0
-    private var observers: [UUID: Observer] = [:]
-    var observerCount: Int { observers.count }
-
-    init(report: UsageReport) {
-        storedReport = report
-    }
-
-    func replaceReport(_ report: UsageReport) {
-        storedReport = report
-        revision += 1
-        for observer in observers.values {
-            if let value = try? snapshot(query: observer.query) {
-                observer.continuation.yield(value)
-            }
+    private func makeModel(_ runtime: any SessionExplorerRuntime) -> SessionExplorerModel {
+        let suiteName = "SessionExplorerTests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            XCTFail("Could not create isolated UserDefaults suite")
+            return SessionExplorerModel(runtimeFactory: { runtime })
         }
-    }
-    func replaceReportWithoutAdvancingWatermark(_ report: UsageReport) { storedReport = report }
-    func yield(_ report: UsageReport, query: UsageQuery, revision: Int64) {
-        let value = UsageSnapshot(
-            query: query,
-            watermark: QueryWatermark(databaseID: "fixture", revision: revision, committedAt: Date()),
-            report: report
-        )
-        for observer in observers.values { observer.continuation.yield(value) }
-    }
-    func failImports() { importFailure = true }
-    func failReports(_ value: Bool) { reportFailure = value }
-
-    func importDirectory(_ directory: URL) throws -> ImportSummary {
-        if importFailure { throw StubFailure.importFailed }
-        return ImportSummary(files: 1, records: 1, diagnostics: [:])
-    }
-
-    func snapshot(query: UsageQuery) throws -> UsageSnapshot {
-        if reportFailure { throw StubFailure.reportFailed }
-        return UsageSnapshot(query: query,
-                             watermark: QueryWatermark(databaseID: "fixture", revision: revision, committedAt: Date()),
-                             report: storedReport)
-    }
-
-    func timeline(sessionID: String, query: UsageQuery) throws -> RequestTimeline {
-        RequestTimeline(sessionID: sessionID, query: query, points: [])
-    }
-
-    func cacheHitRateWidget(
-        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone
-    ) -> CacheHitRateWidgetReport {
-        CacheHitRateWidgetBuilder.build(
-            observations: [], period: period, referenceDate: referenceDate, timeZone: timeZone
+        return SessionExplorerModel(
+            runtimeFactory: { runtime },
+            importedDirectorySettings: ImportedDirectorySettings(defaults: defaults)
         )
     }
 
-    func quotaPresentation(query: UsageQuery, generatedAt: Date) -> QuotaPresentationReport {
-        QuotaPresentationReport(
-            query: query, generatedAt: generatedAt, freshnessThresholdSeconds: 900,
-            coverage: UsageLimitTelemetryCoverage(snapshots: []), windows: []
-        )
-    }
-
-    func snapshots(query: UsageQuery) -> AsyncThrowingStream<UsageSnapshot, Error> {
-        AsyncThrowingStream { continuation in
-            let identifier = UUID()
-            do {
-                continuation.yield(try snapshot(query: query))
-                observers[identifier] = Observer(query: query, continuation: continuation)
-                continuation.onTermination = { [weak self] _ in
-                    Task { await self?.removeObserver(identifier) }
-                }
-            } catch { continuation.finish(throwing: error) }
-        }
-    }
-
-    private func removeObserver(_ identifier: UUID) { observers[identifier] = nil }
-
-    private enum StubFailure: LocalizedError {
-        case importFailed
-        case reportFailed
-
-        var errorDescription: String? {
-            switch self {
-            case .importFailed: "Fixture import failure"
-            case .reportFailed: "Fixture report failure"
-            }
-        }
-    }
 }
