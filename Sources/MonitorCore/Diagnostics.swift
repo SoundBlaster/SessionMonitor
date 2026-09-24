@@ -219,10 +219,26 @@ public struct DiagnosticReport: Codable, Equatable, Sendable {
     public let schemaVersion: Int
     public let query: UsageQuery
     public let findings: [DiagnosticFinding]
+    public let quotaAssessments: [QuotaAnomalyAssessment]
 
-    public init(query: UsageQuery, findings: [DiagnosticFinding]) {
+    public init(
+        query: UsageQuery, findings: [DiagnosticFinding], quotaAssessments: [QuotaAnomalyAssessment] = []
+    ) {
         schemaVersion = 1
         self.query = query
         self.findings = findings
+        self.quotaAssessments = quotaAssessments
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion, query, findings, quotaAssessments
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try values.decode(Int.self, forKey: .schemaVersion)
+        query = try values.decode(UsageQuery.self, forKey: .query)
+        findings = try values.decode([DiagnosticFinding].self, forKey: .findings)
+        quotaAssessments = try values.decodeIfPresent([QuotaAnomalyAssessment].self, forKey: .quotaAssessments) ?? []
     }
 }

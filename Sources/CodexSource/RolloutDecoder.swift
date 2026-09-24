@@ -722,7 +722,7 @@ private extension DecodeState {
                 ? dataIdentity(data) : eventIdentity(timestamp: date, rateLimits: rateLimits, windows: windows),
             timestamp: date, sourceLine: line,
             sourceContextSessionID: context.sessionID, sourceSchema: "codex.event_msg.token_count.rate_limits",
-            state: state, limitID: rateLimits.limitID, limitName: rateLimits.limitName,
+            state: state, scope: .account, limitID: rateLimits.limitID, limitName: rateLimits.limitName,
             planType: rateLimits.planType,
             accountIdentity: SourceAccountIdentity(
                 accountID: rateLimits.accountID ?? context.accountIdentity?.accountID,

@@ -203,16 +203,32 @@ extension MonitorCommand {
                 try printJSON(report)
                 return
             }
-            if report.findings.isEmpty {
-                print("No diagnostic findings.")
-                return
-            }
+            if report.findings.isEmpty { print("No session diagnostic findings.") }
             for finding in report.findings {
                 print("[\(finding.severity.rawValue)] \(finding.id): \(finding.title)")
                 print("  \(finding.explanation)")
                 let affectedSessions = finding.affectedSessions.joined(separator: ", ")
                 print("  confidence=\(finding.confidence.rawValue) sessions=\(affectedSessions)")
                 print("  next: \(finding.suggestedNextAction)")
+            }
+            for assessment in report.quotaAssessments {
+                let account = assessment.accountProfileLabel ?? assessment.accountProfileID
+                    ?? assessment.accountScopeID ?? "unknown/mixed"
+                let limit = assessment.limitID ?? assessment.limitName ?? "unknown limit"
+                let window = assessment.windowMinutes.map { "\($0)m" } ?? "unknown window"
+                let reason = assessment.reason.map { " reason=\($0.rawValue)" } ?? ""
+                let reset = assessment.resetsAt.map { ISO8601DateFormatter().string(from: $0) } ?? "unknown"
+                print("[quota \(assessment.outcome.rawValue)] account=\(account) limit=\(limit) "
+                      + "window=\(window) reset=\(reset)\(reason)")
+                if let rate = assessment.rateChangePercentagePointsPerHour {
+                    print("  usage rate: \(String(format: "%.2f", rate)) percentage points/hour")
+                }
+                if let zScore = assessment.robustZScore {
+                    print("  robust z-score: \(String(format: "%.2f", zScore))")
+                }
+                for item in assessment.evidence.observed { print("  observed: \(item.detail)") }
+                for item in assessment.evidence.unknown { print("  unknown: \(item.detail)") }
+                for limitation in assessment.evidence.limitations { print("  limitation: \(limitation)") }
             }
         }
     }
