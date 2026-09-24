@@ -1,3 +1,4 @@
+import NestedA11yIDs
 import SwiftUI
 
 struct SessionExplorerToolbar: ToolbarContent {
@@ -9,8 +10,10 @@ struct SessionExplorerToolbar: ToolbarContent {
     var body: some ToolbarContent {
         if #available(macOS 26.1, *) {
             secondaryActions.visibilityPriority(.low)
+            accountScope.visibilityPriority(.high)
         } else {
             secondaryActions
+            accountScope
         }
     }
 
@@ -19,6 +22,7 @@ struct SessionExplorerToolbar: ToolbarContent {
         ToolbarItemGroup {
             Button("Import Folder…", systemImage: "folder.badge.plus", action: chooseImportDirectory)
                 .keyboardShortcut("o")
+                .accessibilityIdentifier("sessionExplorer.importFolder")
                 .disabled(model.isBusy)
             Button("Update", systemImage: "arrow.clockwise") {
                 if model.importedDirectory == nil {
@@ -35,6 +39,13 @@ struct SessionExplorerToolbar: ToolbarContent {
                 ? "Choose a rollout folder to use as the update source"
                 : "Import new and changed JSONL files from the last folder")
             .disabled(model.isBusy)
+            .accessibilityIdentifier("sessionExplorer.update")
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var accountScope: some ToolbarContent {
+        ToolbarItem {
             ReportScopeControls(model: reportScope)
         }
     }
@@ -66,6 +77,7 @@ struct SessionExplorerInspectorToolbar: ToolbarContent {
             .labelStyle(.iconOnly)
             .help(model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector")
             .accessibilityLabel(model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector")
+            .accessibilityIdentifier("sessionExplorer.inspectorToggle")
         }
     }
 }

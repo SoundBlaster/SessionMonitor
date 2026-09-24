@@ -1,5 +1,5 @@
 {
-  "originHash" : "4a578deee2704057cf698327970a8f02e701b7d75cb0fab6b557b21675815c90",
+  "originHash" : "577dc530d3e535dbc6e3fe2c289bda4dc802ba64b643bdb5b94f4667eca56f54",
   "pins" : [
     {
       "identity" : "grdb.swift",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "b83108d10f42680d78f23fe4d4d80fc88dab3212",
         "version" : "7.11.1"
+      }
+    },
+    {
+      "identity" : "nesteda11yids",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SoundBlaster/NestedA11yIDs",
+      "state" : {
+        "revision" : "ad123fbc8dda58f20de1e6fbd21120bcfbaabf85",
+        "version" : "1.0.0"
       }
     },
     {

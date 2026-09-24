@@ -45,6 +45,13 @@ evidence, confidence и coverage.
 SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
 merge `7557a2a` (2026-09-21); пользователь проверил интерактивную прокрутку и подтвердил,
 что анимация timeline работает корректно.
+**SM-403 в PR #64**, ветка `feat/sm-403-nested-a11y-ids`: интеграция NestedA11yIDs
+для иерархических accessibility identifiers в macOS UI. Native checks ревизии `6301531`
+нашли потерю роли Button, а `fc0497d` — невидимый низкоприоритетный account-scope item.
+Теперь scope вынесен в самостоятельный high-priority toolbar item; ветка синхронизирована
+с merge #55, который перенёс Inspector в detail toolbar. Checks после синхронизации ожидаются.
+Xcode MCP BuildProject останавливается до компиляции на повторном разрешении двух package macros.
+WidgetKit задачи SM-401/SM-402 остаются следующими по roadmap после этого приоритета.
 
 **SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
 
@@ -597,6 +604,19 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `91c36b2` (2026-09-22). Инспектор называет блок `Service diagnostics` и поясняет, что значения
   агрегированы по импортированному хранилищу и не относятся к выбранной сессии. `make lint` и
   `git diff --check` прошли; ограничений реализации не выявлено.
+
+- [ ] **SM-403** — Ввести иерархические accessibility identifiers через NestedA11yIDs.
+  Статус: PR [#64](https://github.com/SoundBlaster/SessionMonitor/pull/64); после фикса роли Button
+  ревизия `fc0497d` всё ещё не показывала account-scope control в UI test из-за низкого toolbar
+  visibility priority. Control вынесен в отдельный high-priority toolbar item; ветка включает
+  merge #55 с detail-only Inspector toolbar. Текущие checks и runtime accessibility verification pending.
+  Ветка `feat/sm-403-nested-a11y-ids`. Подключить точный release `1.0.0`
+  к macOS app через canonical XcodeGen manifest, не к core/CLI. Перевести существующие стабильные
+  identifiers Session Explorer на компонентные roots и вложенные semantic IDs. Не добавлять
+  modifiers на каждый элемент: явно сохранить VoiceOver names/traits и проверять влияние
+  автоматического `.accessibilityElement(children: .contain)`. Готово, когда UI tests находят
+  основные controls по иерархическим IDs, accessibility tree не получает неожиданных группировок,
+  а package resolution, app build, SwiftLint и FSD architecture checks проходят.
 
 ## 4. Системные macOS widgets
 

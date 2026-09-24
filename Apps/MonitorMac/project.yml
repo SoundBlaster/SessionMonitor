@@ -9,6 +9,9 @@ packages:
   SpecificationKit:
     url: https://github.com/SoundBlaster/SpecificationKit
     exactVersion: 4.0.1
+  NestedA11yIDs:
+    url: https://github.com/SoundBlaster/NestedA11yIDs
+    exactVersion: 1.0.0
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -42,6 +45,7 @@ targets:
       - package: SessionMonitorCore
         product: MonitorPolicies
       - package: SpecificationKit
+      - package: NestedA11yIDs
   MonitorMacTests:
     type: bundle.unit-test
     platform: macOS
@@ -55,6 +59,16 @@ targets:
     # duplicates GRDB's queue identity and causes runtime thread precondition failures.
     dependencies:
       - target: MonitorMac
+  MonitorMacUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [UITests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.SessionMonitor.UITests
+        TEST_TARGET_NAME: MonitorMac
+    dependencies:
+      - target: MonitorMac
 
 schemes:
   MonitorMac:
@@ -62,4 +76,4 @@ schemes:
       targets:
         MonitorMac: all
     test:
-      targets: [MonitorMacTests]
+      targets: [MonitorMacTests, MonitorMacUITests]

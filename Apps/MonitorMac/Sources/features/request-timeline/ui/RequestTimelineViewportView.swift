@@ -1,4 +1,5 @@
 import MonitorCore
+import NestedA11yIDs
 import SwiftUI
 
 struct RequestTimelineViewportView: View {
@@ -35,8 +36,7 @@ struct RequestTimelineViewportView: View {
                 .accessibilityValue(axis.description(timeZone: model.displayTimeZone))
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("requestTimeline.rangeControls")
+        .nestedAccessibilityIdentifier("rangeControls")
     }
 
     private var rangePicker: some View {
@@ -49,7 +49,7 @@ struct RequestTimelineViewportView: View {
             }
         }
         .pickerStyle(.segmented)
-        .accessibilityIdentifier("requestTimeline.rangeMode")
+        .accessibilityIdentifier("requestTimeline.rangeControls.rangeMode")
     }
 
     private var rangePickerMenu: some View {
@@ -62,7 +62,7 @@ struct RequestTimelineViewportView: View {
             }
         }
         .pickerStyle(.menu)
-        .accessibilityIdentifier("requestTimeline.rangeMode")
+        .accessibilityIdentifier("requestTimeline.rangeControls.rangeMode")
     }
 
     private func timelineChart(axis: RequestTimelineAxis) -> some View {
@@ -73,14 +73,13 @@ struct RequestTimelineViewportView: View {
             }
         }
         .frame(height: RequestTimelineChartLayout.chartHeight + 60)
-        .accessibilityElement(children: .contain)
+        .nestedAccessibilityIdentifier("chart")
         .accessibilityLabel(RequestTimelineChartLayout.accessibilityLabel)
         .accessibilityValue(axis.description(timeZone: model.displayTimeZone))
         .accessibilityHint(
             "The chart uses absolute event timestamps. Use Axis range to fit the data, "
                 + "show the last events, or show the full query."
         )
-        .accessibilityIdentifier("requestTimeline.chart")
     }
 }
 
