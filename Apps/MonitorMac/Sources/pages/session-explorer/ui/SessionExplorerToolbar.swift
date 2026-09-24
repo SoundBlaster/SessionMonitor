@@ -22,7 +22,7 @@ struct SessionExplorerToolbar: ToolbarContent {
         ToolbarItemGroup {
             Button("Import Folder…", systemImage: "folder.badge.plus", action: chooseImportDirectory)
                 .keyboardShortcut("o")
-                .a11yRoot("sessionExplorer.importFolder")
+                .accessibilityIdentifier("sessionExplorer.importFolder")
                 .disabled(model.isBusy)
             Button("Update", systemImage: "arrow.clockwise") {
                 if model.importedDirectory == nil {
@@ -39,7 +39,7 @@ struct SessionExplorerToolbar: ToolbarContent {
                 ? "Choose a rollout folder to use as the update source"
                 : "Import new and changed JSONL files from the last folder")
             .disabled(model.isBusy)
-            .a11yRoot("sessionExplorer.update")
+            .accessibilityIdentifier("sessionExplorer.update")
             ReportScopeControls(model: reportScope)
         }
     }
@@ -58,7 +58,7 @@ struct SessionExplorerToolbar: ToolbarContent {
             .labelStyle(.iconOnly)
             .help(model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector")
             .accessibilityLabel(model.navigation.showsInspector ? "Hide Inspector" : "Show Inspector")
-            .a11yRoot("sessionExplorer.inspectorToggle")
+            .accessibilityIdentifier("sessionExplorer.inspectorToggle")
         }
     }
 }

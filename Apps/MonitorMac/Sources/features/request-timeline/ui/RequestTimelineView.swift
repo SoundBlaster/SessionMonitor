@@ -40,6 +40,7 @@ struct RequestTimelineView: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.quaternary))
         .a11yRoot("requestTimeline")
         .accessibilityLabel("Request timeline for \(query.timeZoneIdentifier)")
+        .accessibilityIdentifier("requestTimeline")
     }
 
     private var emptyState: some View {

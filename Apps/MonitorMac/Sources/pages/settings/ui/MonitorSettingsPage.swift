@@ -25,7 +25,7 @@ struct MonitorSettingsPage: View {
                     Text(selection.title).tag(selection.rawValue)
                 }
             }
-            .a11yRoot("settings.analyticsChartPalette")
+            .accessibilityIdentifier("settings.analyticsChartPalette")
             Text("Hiding the icon or closing a window does not stop an active watch. "
                  + "Use Stop Watch or Quit SessionMonitor to stop it.")
                 .font(.callout).foregroundStyle(.secondary)

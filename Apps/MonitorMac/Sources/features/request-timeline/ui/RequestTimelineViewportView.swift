@@ -49,7 +49,7 @@ struct RequestTimelineViewportView: View {
             }
         }
         .pickerStyle(.segmented)
-        .nestedAccessibilityIdentifier("rangeMode")
+        .accessibilityIdentifier("requestTimeline.rangeControls.rangeMode")
     }
 
     private var rangePickerMenu: some View {
@@ -62,7 +62,7 @@ struct RequestTimelineViewportView: View {
             }
         }
         .pickerStyle(.menu)
-        .nestedAccessibilityIdentifier("rangeMode")
+        .accessibilityIdentifier("requestTimeline.rangeControls.rangeMode")
     }
 
     private func timelineChart(axis: RequestTimelineAxis) -> some View {

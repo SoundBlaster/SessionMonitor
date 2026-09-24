@@ -63,7 +63,7 @@ struct CacheHitRateWidgetChart: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Cache hit rate distribution")
-            .nestedAccessibilityIdentifier("distribution")
+            .accessibilityIdentifier("cacheHitRate.widget.distribution")
         }
     }
 

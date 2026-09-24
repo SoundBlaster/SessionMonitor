@@ -16,7 +16,7 @@ struct ReportScopeControls: View {
         .help("Choose the account, report period and presentation timezone")
         .accessibilityLabel("Account, report period and timezone")
         .accessibilityValue(model.compactLabel)
-        .a11yRoot("sessionExplorer.accountScope")
+        .accessibilityIdentifier("sessionExplorer.accountScope")
         .onChange(of: showsPopover) { _, isPresented in
             if isPresented { Task { await model.refreshProfiles() } }
         }

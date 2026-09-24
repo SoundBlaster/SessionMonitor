@@ -18,19 +18,24 @@ struct TimelineViewportControls: View {
             HStack {
                 Button { model.pan(by: -0.5) } label: { Image(systemName: "chevron.left") }
                     .accessibilityLabel("Earlier range")
+                    .accessibilityIdentifier("requestTimeline.viewportControls.earlier")
                     .disabled(axis.visibleDomain.start <= axis.navigationDomain.start)
                 Slider(value: Binding(get: { model.scrollPosition }, set: { model.scroll(to: $0) }),
                        in: 0...1, onEditingChanged: sliderEditingChanged)
                     .accessibilityLabel("Timeline position")
+                    .accessibilityIdentifier("requestTimeline.viewportControls.position")
                     .disabled(axis.visibleDomain.duration >= axis.navigationDomain.duration)
                 Button { model.pan(by: 0.5) } label: { Image(systemName: "chevron.right") }
                     .accessibilityLabel("Later range")
+                    .accessibilityIdentifier("requestTimeline.viewportControls.later")
                     .disabled(axis.visibleDomain.end >= axis.navigationDomain.end)
                 Button { model.zoom(by: 0.5) } label: { Image(systemName: "plus.magnifyingglass") }
                     .accessibilityLabel("Zoom in")
+                    .accessibilityIdentifier("requestTimeline.viewportControls.zoomIn")
                     .disabled(axis.visibleDomain.duration <= TimelineViewport.minimumSpan)
                 Button { model.zoom(by: 2) } label: { Image(systemName: "minus.magnifyingglass") }
                     .accessibilityLabel("Zoom out")
+                    .accessibilityIdentifier("requestTimeline.viewportControls.zoomOut")
                     .disabled(axis.visibleDomain.duration >= axis.navigationDomain.duration)
             }
             if let error = model.rangeError {
@@ -58,16 +63,16 @@ struct TimelineViewportControls: View {
     private var dateFields: some View {
         DatePicker("From", selection: $from, displayedComponents: [.date, .hourAndMinute])
             .datePickerStyle(.field)
-            .nestedAccessibilityIdentifier("from")
+            .accessibilityIdentifier("requestTimeline.viewportControls.from")
             .accessibilityValue(timelineDateLabel(from, timeZone: model.displayTimeZone))
         DatePicker("To", selection: $until, displayedComponents: [.date, .hourAndMinute])
             .datePickerStyle(.field)
-            .nestedAccessibilityIdentifier("to")
+            .accessibilityIdentifier("requestTimeline.viewportControls.to")
             .accessibilityValue(timelineDateLabel(until, timeZone: model.displayTimeZone))
     }
 
     private var applyButton: some View {
         Button("Apply range") { model.applyRange(from: from, to: until) }
-            .nestedAccessibilityIdentifier("applyRange")
+            .accessibilityIdentifier("requestTimeline.viewportControls.applyRange")
     }
 }

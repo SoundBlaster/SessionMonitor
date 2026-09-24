@@ -40,7 +40,7 @@ struct RequestTimelinePlot: View {
             Text(aggregation.description)
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .nestedAccessibilityIdentifier("aggregation")
+                .accessibilityIdentifier("requestTimeline.chart.aggregation")
             Chart { timelineMarks(aggregation.buckets) }
                 .chartXScale(domain: axis.visibleDomain.start...axis.visibleDomain.end)
                 .chartForegroundStyleScale([
