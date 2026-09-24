@@ -51,10 +51,13 @@ public struct QuotaPresentationDecision: DecisionSpec {
         let hasSnapshots = HasQuotaSnapshotsSpec().isSatisfiedBy(context)
         let hasWindows = HasWindowObservationsSpec().isSatisfiedBy(context)
         let windows = hasSnapshots && hasWindows ? presentations(context) : []
+        let accountCoverages = Dictionary(grouping: context.report.snapshots, by: { snapshot in
+            "\(snapshot.accountScopeID ?? "no-scope")|\(snapshot.accountScopeState.rawValue)"
+        }).values.map(QuotaAccountCoverage.init(snapshots:)).sorted { $0.id < $1.id }
         return QuotaPresentationReport(
             query: context.report.query, generatedAt: context.generatedAt,
             freshnessThresholdSeconds: configuration.freshnessThreshold,
-            coverage: context.report.coverage, windows: windows
+            coverage: context.report.coverage, accountCoverages: accountCoverages, windows: windows
         )
     }
 

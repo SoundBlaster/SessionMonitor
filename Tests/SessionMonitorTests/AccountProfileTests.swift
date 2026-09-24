@@ -59,6 +59,12 @@ struct AccountProfileTests {
         let personalActivity = try store.activity(query: personalQuery)
         let personalTimeline = try store.timeline(sessionID: "session-collision", query: personalQuery)
         let allTimeline = try store.timeline(sessionID: "session-collision", query: UsageQuery())
+        let allCacheWidgetData = try store.cacheHitRateObservations(
+            since: .distantPast, until: .distantFuture
+        )
+        let personalCacheWidgetData = try store.cacheHitRateObservations(
+            since: .distantPast, until: .distantFuture, accountScope: personalQuery.accountScope
+        )
 
         #expect(all.totals.requests == 2)
         #expect(personal.totals.requests == 1)
@@ -73,6 +79,8 @@ struct AccountProfileTests {
         #expect(personalQuota.snapshots[0].accountProfileLabel == "Personal")
         #expect(personalQuota.snapshots[0].accountScopeState == .assigned)
         #expect(allActivity.totals.requests == 2)
+        #expect(allCacheWidgetData.count == 2)
+        #expect(personalCacheWidgetData.count == 1)
         #expect(personalActivity.totals.requests == 1)
         #expect(allActivity.toolEvents.count == 2)
         #expect(personalActivity.toolEvents.count == 1)

@@ -202,7 +202,8 @@ private actor StubSharedRuntime: SessionExplorerRuntime {
     }
 
     func cacheHitRateWidget(
-        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone
+        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone,
+        accountScope: UsageAccountScope
     ) -> CacheHitRateWidgetReport {
         CacheHitRateWidgetBuilder.build(
             observations: [], period: period, referenceDate: referenceDate, timeZone: timeZone
@@ -215,6 +216,8 @@ private actor StubSharedRuntime: SessionExplorerRuntime {
             coverage: UsageLimitTelemetryCoverage(snapshots: []), windows: []
         )
     }
+
+    func accountProfiles() async throws -> [AccountProfile] { [] }
 
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
         calls.snapshotStreams += 1

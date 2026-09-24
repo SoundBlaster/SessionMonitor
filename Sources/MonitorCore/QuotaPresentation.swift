@@ -100,23 +100,61 @@ public struct QuotaWindowPresentation: Codable, Equatable, Identifiable, Sendabl
     }
 }
 
+/// Coverage for one resolved quota account scope, including snapshots that carry no windows.
+public struct QuotaAccountCoverage: Codable, Equatable, Identifiable, Sendable {
+    public let id: String
+    public let accountScopeID: String?
+    public let accountProfileID: String?
+    public let accountProfileLabel: String?
+    public let accountScopeState: UsageAccountScopeState
+    public let coverage: UsageLimitTelemetryCoverage
+
+    public init(snapshots: [UsageLimitSnapshotObservation]) {
+        let first = snapshots.first
+        accountScopeID = first?.accountScopeID
+        accountProfileID = first?.accountProfileID
+        accountProfileLabel = first?.accountProfileLabel
+        accountScopeState = first?.accountScopeState ?? .unknown
+        id = "\(accountScopeID ?? "no-scope")|\(accountScopeState.rawValue)"
+        coverage = UsageLimitTelemetryCoverage(snapshots: snapshots)
+    }
+}
+
 public struct QuotaPresentationReport: Codable, Equatable, Sendable {
     public let schemaVersion: Int
     public let query: UsageQuery
     public let generatedAt: Date
     public let freshnessThresholdSeconds: TimeInterval
     public let coverage: UsageLimitTelemetryCoverage
+    public let accountCoverages: [QuotaAccountCoverage]
     public let windows: [QuotaWindowPresentation]
 
     public init(
         query: UsageQuery, generatedAt: Date, freshnessThresholdSeconds: TimeInterval,
-        coverage: UsageLimitTelemetryCoverage, windows: [QuotaWindowPresentation]
+        coverage: UsageLimitTelemetryCoverage, accountCoverages: [QuotaAccountCoverage] = [],
+        windows: [QuotaWindowPresentation]
     ) {
         schemaVersion = 1
         self.query = query
         self.generatedAt = generatedAt
         self.freshnessThresholdSeconds = freshnessThresholdSeconds
         self.coverage = coverage
+        self.accountCoverages = accountCoverages
         self.windows = windows
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion, query, generatedAt, freshnessThresholdSeconds, coverage, accountCoverages, windows
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try values.decode(Int.self, forKey: .schemaVersion)
+        query = try values.decode(UsageQuery.self, forKey: .query)
+        generatedAt = try values.decode(Date.self, forKey: .generatedAt)
+        freshnessThresholdSeconds = try values.decode(TimeInterval.self, forKey: .freshnessThresholdSeconds)
+        coverage = try values.decode(UsageLimitTelemetryCoverage.self, forKey: .coverage)
+        accountCoverages = try values.decodeIfPresent([QuotaAccountCoverage].self, forKey: .accountCoverages) ?? []
+        windows = try values.decode([QuotaWindowPresentation].self, forKey: .windows)
     }
 }

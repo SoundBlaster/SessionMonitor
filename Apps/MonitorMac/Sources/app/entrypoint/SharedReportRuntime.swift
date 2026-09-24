@@ -28,13 +28,19 @@ actor SharedReportRuntime: SessionExplorerRuntime {
     }
 
     func cacheHitRateWidget(
-        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone
+        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone,
+        accountScope: UsageAccountScope
     ) async throws -> CacheHitRateWidgetReport {
-        try await runtime.cacheHitRateWidget(period: period, referenceDate: referenceDate, timeZone: timeZone)
+        try await runtime.cacheHitRateWidget(period: period, referenceDate: referenceDate,
+                                             timeZone: timeZone, accountScope: accountScope)
     }
 
     func quotaPresentation(query: UsageQuery, generatedAt: Date) async throws -> QuotaPresentationReport {
         try await runtime.quotaPresentation(query: query, generatedAt: generatedAt)
+    }
+
+    func accountProfiles() async throws -> [AccountProfile] {
+        try await runtime.accountProfiles()
     }
 
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
