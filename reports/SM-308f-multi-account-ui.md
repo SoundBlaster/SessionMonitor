@@ -1,5 +1,9 @@
 # SM-308f — multi-account UI and quota presentation
 
+## Pull request
+
+[PR #60](https://github.com/SoundBlaster/SessionMonitor/pull/60) — open; local validation passed, GitHub checks remain pending/unverified.
+
 ## Outcome
 
 This change adds one persisted account scope shared by Session Explorer and the menu bar: `All accounts`, a mapped profile, or `Unknown/Mixed`. The existing `UsageQuery.accountScope` remains the report filter. Profile roots sharing an ID collapse into one catalog option; all-mixed profiles remain visible but unavailable, and a profile that becomes mixed while selected stays selected with an explanation and a direct switch to `Unknown/Mixed`. Invalid persisted values restore to `All accounts`.
