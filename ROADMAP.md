@@ -24,13 +24,14 @@ Native checks, Workflow lint и CI прошли, review thread разрешён.
 **SM-308e доставлена через PR #58** (merge `3e4e285`, 2026-09-24): добавлены account profile
 provenance, account-scoped dedup/query/CLI и сохранение unknown/mixed принадлежности. Четыре
 замечания ревью исправлены и закрыты; `CI`, `Native checks` и `Workflow lint` прошли.
-Следующая задача multi-account UI/quota presentation — SM-308f.
-**SM-308f в PR [#60](https://github.com/SoundBlaster/SessionMonitor/pull/60)**, ветка
-`feat/sm-308f-account-ui`: общий сохраняемый account scope для Session Explorer/menu bar и
-раздельная per-account quota presentation. Исправлены три замечания review: неполное
-покрытие смешанных source roots видно в UI; account scope включён в timeline task identity;
-устаревший async quota result не может заменить отчёт после смены query. Локальные проверки
-повторяются для новой ревизии; GitHub CI проверяется отдельным снимком без polling.
+Multi-account UI и quota presentation реализована в SM-308f.
+**SM-308f доставлена через PR [#60](https://github.com/SoundBlaster/SessionMonitor/pull/60)**,
+merge `6ce3611` (2026-09-24): общий сохраняемый account scope для Session Explorer/menu bar и
+раздельная per-account quota presentation. Review замечания исправлены; локальные проверки,
+`CI`, `Native checks` и `Workflow lint` прошли, threads разрешены.
+**SM-308g в работе**, ветка `feat/sm-308g-quota-anomalies`: quota-aware anomaly assessments для
+`doctor`, с явными `unknown`/`not_applicable` outcomes и без session-level attribution.
+Реализация и `make check-core` прошли локально; детали и evidence: [отчёт SM-308g](reports/SM-308g-quota-anomaly-assessments.md).
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -530,7 +531,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
     общий view может агрегировать запросы только с явной меткой `All accounts`.
     Проверить migration старой БД, два профиля с совпадающими ID/окнами/временем, зеркала внутри
     профиля и источники с неизвестной/смешанной принадлежностью.
-  - [ ] **SM-308f** — Разделить multi-account quota presentation и сохранить unknown coverage. В review через [PR #60](https://github.com/SoundBlaster/SessionMonitor/pull/60); три review замечания исправлены, локальные проверки выполняются.
+  - [x] **SM-308f** — Разделить multi-account quota presentation и сохранить unknown coverage.
+    Доставлена через [PR #60](https://github.com/SoundBlaster/SessionMonitor/pull/60), merge
+    `6ce3611` (2026-09-24); review исправления и все три GitHub checks завершены.
     Зависит от SM-308e и общего GUI/CLI query scope SM-308. Предоставить `All accounts`, отдельный
     профиль
     и `Unknown/Mixed`; activity может показывать общий total с явной маркировкой, quota должна
@@ -540,6 +543,17 @@ deliverable — WidgetKit extension с App Group в SM-401.
     учётных записей, overlapping windows, одинаковые event payloads, duplicate mirrors,
     account switch/reset и отсутствие account identity в CLI JSON/text и GUI.
     Квотные части SM-308 считать завершёнными только после выполнения этих условий.
+  - [ ] **SM-308g** — Добавить quota-aware anomaly assessments с явной применимостью.
+    Статус: в работе, ветка `feat/sm-308g-quota-anomalies`. Сопоставлять только observations с
+    одинаковыми account scope, quota limit/window и reset interval; оценивать скорость изменения
+    usage в п.п./час, учитывая нерегулярный polling. Изменение считается резким только при
+    отклонении минимум 10 п.п./час и robust z-score ≥ 3 на фоне не менее 5 прошлых интервалов.
+    Reset discontinuity не сравнивать через границу; stale, partial, unknown, unsupported,
+    неоднозначная attribution или недостаточная история дают typed `unknown`/`not_applicable`
+    с evidence. Account-level quota никогда не приписывать отдельной сессии. Проверить устойчивый
+    ряд, скачок, reset, разные аккаунты/окна, polling без изменения usage, shared quota, внешний
+    usage, отсутствие/частичность данных и нулевой MAD; включить outcomes в `doctor` JSON/text.
+    Реализация и локальные проверки завершены; задача останется незакрытой до merge PR.
 
 - [x] **SM-312** — Восстановить читаемость плотных request timelines (follow-up SM-303/SM-309).
   Реализована и локально проверена 2026-09-20; доставлена через [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32), merge `f9a369d`.

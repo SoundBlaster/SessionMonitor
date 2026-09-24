@@ -63,6 +63,28 @@ def main() -> int:
         assert "remaining=18.0% (derived)" in text_result.stdout
         assert "scope=unknown" in text_result.stdout
 
+        doctor_json = subprocess.run(
+            [str(binary), "doctor", "--database", str(database), "--json"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        doctor_report = json.loads(doctor_json.stdout)
+        assert "quotaAssessments" in doctor_report
+        assert doctor_report["quotaAssessments"]
+        assert all(
+            not evidence.get("sessionIDs", [])
+            for item in doctor_report["quotaAssessments"]
+            for evidence in item["evidence"]["observed"]
+        )
+        doctor_text = subprocess.run(
+            [str(binary), "doctor", "--database", str(database)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert "[quota not_applicable]" in doctor_text.stdout
+
         usage_result = subprocess.run(
             [str(binary), "report", "--database", str(database), "--json"],
             check=True,
@@ -164,7 +186,7 @@ def main() -> int:
         )
         assert "No quota event was observed in this interval" not in unsupported_result.stdout
 
-    print("Quota CLI smoke passed: observed snapshot, unsupported coverage, derived remaining and isolated accounting")
+    print("Quota CLI smoke passed: quota doctor JSON/text, evidence boundaries, unsupported coverage and accounting")
     return 0
 
 

@@ -132,9 +132,10 @@ public actor SessionMonitor {
     }
 
     public func doctor(
-        query: UsageQuery, configuration: AnomalyPolicyConfiguration = .init()
+        query: UsageQuery, configuration: AnomalyPolicyConfiguration = .init(),
+        quotaConfiguration: QuotaAnomalyConfiguration = .init()
     ) throws -> DiagnosticReport {
-        try store.doctor(query: query, configuration: configuration)
+        try store.doctor(query: query, configuration: configuration, quotaConfiguration: quotaConfiguration)
     }
 
     /// Returns imported quota observations and freshness metadata without polling a provider.
