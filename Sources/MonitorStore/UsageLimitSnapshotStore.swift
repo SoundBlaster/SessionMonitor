@@ -25,6 +25,14 @@ extension UsageStore {
             try database.execute(sql: "ALTER TABLE source_usage_limit_snapshots ADD COLUMN account_id TEXT")
             try database.execute(sql: "ALTER TABLE source_usage_limit_snapshots ADD COLUMN user_id TEXT")
         }
+        migrator.registerMigration("usage-limit-account-scope-v1") { database in
+            try database.execute(sql: """
+                UPDATE source_usage_limit_snapshots
+                SET scope = 'account'
+                WHERE scope = 'unknown'
+                  AND source_schema = 'codex.event_msg.token_count.rate_limits'
+                """)
+        }
     }
 
     static func clearUsageLimitSnapshots(source: String, database: Database) throws {
