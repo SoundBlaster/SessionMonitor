@@ -126,17 +126,24 @@ public struct QuotaAnomalyDecision: DecisionSpec {
             }
             return $0.snapshot.sourceLine < $1.snapshot.sourceLine
         }
-        if let issue = seriesIssue(ordered, key: key, context: context) { return [issue] }
+        if let issue = seriesIdentityIssue(ordered, key: key) { return [issue] }
 
         let unique = uniqueSameTimestampValues(ordered)
         let resetGroups = splitAtResetChanges(unique)
         let discontinuities = resetGroups.discontinuities.map { previous, current in
-            assessment(
-                key: key, candidates: [previous, current], outcome: .resetDiscontinuity,
-                detail: "The reset timestamp changed; usage across this boundary was not compared."
+            let boundary = quotaResetBoundary(
+                sameObservationTime: previous.snapshot.timestamp == current.snapshot.timestamp,
+                previousReset: previous.window.resetsAt, currentReset: current.window.resetsAt
+            )
+            return assessment(
+                key: key, candidates: [previous, current], outcome: boundary.outcome,
+                reason: boundary.reason, detail: boundary.detail
             )
         }
-        return discontinuities + resetGroups.groups.flatMap { assessResetInterval($0, key: key, context: context) }
+        return discontinuities + resetGroups.groups.flatMap { candidates in
+            if let issue = resetIntervalIssue(candidates, key: key, context: context) { return [issue] }
+            return assessResetInterval(candidates, key: key, context: context)
+        }
     }
 
     private func assessResetInterval(
@@ -157,11 +164,11 @@ public struct QuotaAnomalyDecision: DecisionSpec {
         let concreteRates = rates
         let anomalies = shiftAssessments(candidates, rates: concreteRates, key: key, context: context)
         guard anomalies.isEmpty else { return anomalies }
-        let baseline = Array(concreteRates.suffix(context.configuration.minimumBaselineIntervals))
+        let priorRates = Array(concreteRates.dropLast())
         return [assessment(
             key: key, candidates: candidates, outcome: .stableUsage,
             detail: "Quota usage changes stayed within the configured robust-shift thresholds.",
-            rate: concreteRates.last, baseline: Self.median(baseline)
+            rate: concreteRates.last, baseline: QuotaAnomalyStatistics.median(priorRates)
         )]
     }
 
@@ -186,7 +193,8 @@ public struct QuotaAnomalyDecision: DecisionSpec {
         var anomalies: [QuotaAnomalyAssessment] = []
         for index in context.configuration.minimumBaselineIntervals..<rates.count {
             let baseline = Array(rates[..<index])
-            guard let median = Self.median(baseline), let mad = Self.median(baseline.map { abs($0 - median) }) else {
+            guard let median = QuotaAnomalyStatistics.median(baseline),
+                  let mad = QuotaAnomalyStatistics.median(baseline.map { abs($0 - median) }) else {
                 continue
             }
             let current = rates[index]
@@ -218,8 +226,8 @@ public struct QuotaAnomalyDecision: DecisionSpec {
         return anomalies
     }
 
-    private func seriesIssue(
-        _ candidates: [QuotaWindowCandidate], key: QuotaWindowSeriesKey, context: Context
+    private func seriesIdentityIssue(
+        _ candidates: [QuotaWindowCandidate], key: QuotaWindowSeriesKey
     ) -> QuotaAnomalyAssessment? {
         guard let first = candidates.first else { return nil }
         let metadata = first.snapshot
@@ -238,14 +246,20 @@ public struct QuotaAnomalyDecision: DecisionSpec {
                 detail: "The quota limit or window identity is incomplete, so observations cannot be compared."
             )
         }
+        return nil
+    }
+
+    private func resetIntervalIssue(
+        _ candidates: [QuotaWindowCandidate], key: QuotaWindowSeriesKey, context: Context
+    ) -> QuotaAnomalyAssessment? {
+        guard let latest = candidates.last else { return nil }
         if let incomplete = candidates.first(where: { $0.snapshot.state != .observed }),
-           let reason = incompleteReason(for: incomplete.snapshot.state) {
+           let reason = quotaAnomalyReason(for: incomplete.snapshot.state) {
             return assessment(
                 key: key, candidates: candidates, outcome: .unknown, reason: reason,
-                detail: "At least one snapshot in this quota series has incomplete or unsupported coverage."
+                detail: "This reset interval contains incomplete or unsupported quota coverage."
             )
         }
-        guard let latest = candidates.last else { return nil }
         let latestAge = context.generatedAt.timeIntervalSince(latest.snapshot.timestamp)
         guard latestAge.isFinite, latestAge >= 0, latestAge <= context.configuration.freshnessThreshold else {
             return assessment(
@@ -268,13 +282,6 @@ public struct QuotaAnomalyDecision: DecisionSpec {
         return nil
     }
 
-    func incompleteReason(for state: UsageLimitSnapshotState) -> QuotaAnomalyReason? {
-        switch state {
-        case .observed: nil
-        case .partial, .noWindowData: .incompleteCoverage
-        case .unsupportedSchema: .unsupportedSnapshot
-        }
-    }
 }
 
 private extension QuotaAnomalyDecision {
@@ -313,15 +320,17 @@ private extension QuotaAnomalyDecision {
         let lines = candidates.map { $0.snapshot.sourceLine }.sorted()
         let detailWithValues: String
         if let previous, let latest {
-            detailWithValues = "\(detail) usedPercent \(previous.window.usedPercent.map(Self.format) ?? "unknown")% → "
-                + "\(latest.window.usedPercent.map(Self.format) ?? "unknown")%; observed at "
+            detailWithValues = "\(detail) usedPercent "
+                + "\(previous.window.usedPercent.map(QuotaAnomalyStatistics.format) ?? "unknown")% → "
+                + "\(latest.window.usedPercent.map(QuotaAnomalyStatistics.format) ?? "unknown")%; observed at "
                 + "\(ISO8601DateFormatter().string(from: previous.snapshot.timestamp)) and "
                 + "\(ISO8601DateFormatter().string(from: latest.snapshot.timestamp))."
         } else {
             detailWithValues = detail
         }
         return QuotaAnomalyAssessment(
-            id: "quota:\(key.stableID):\(outcome.rawValue):\(lines.map(String.init).joined(separator: ","))",
+            id: "quota:\(key.stableID):\(outcome.rawValue):"
+                + candidates.map { $0.snapshot.id }.joined(separator: ","),
             outcome: outcome, reason: reason,
             accountScopeID: first?.accountScopeID, accountProfileID: first?.accountProfileID,
             accountProfileLabel: first?.accountProfileLabel, accountScopeState: first?.accountScopeState ?? .unknown,
@@ -387,14 +396,4 @@ private extension QuotaAnomalyDecision {
         }
         return (groups, discontinuities)
     }
-
-    static func median(_ values: [Double]) -> Double? {
-        let sorted = values.sorted()
-        guard !sorted.isEmpty else { return nil }
-        let middle = sorted.count / 2
-        return sorted.count.isMultiple(of: 2)
-            ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
-    }
-
-    static func format(_ value: Double) -> String { String(format: "%.2f", value) }
 }

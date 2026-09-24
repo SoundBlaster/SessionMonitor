@@ -31,7 +31,8 @@ merge `6ce3611` (2026-09-24): общий сохраняемый account scope д
 `CI`, `Native checks` и `Workflow lint` прошли, threads разрешены.
 **SM-308g в работе**, ветка `feat/sm-308g-quota-anomalies`: quota-aware anomaly assessments для
 `doctor`, с явными `unknown`/`not_applicable` outcomes и без session-level attribution.
-Реализация и `make check-core` прошли локально; детали и evidence: [отчёт SM-308g](reports/SM-308g-quota-anomaly-assessments.md).
+Реализация, четыре замечания review и regression cases внесены в PR #62; `make check-core` прошёл
+на текущей ревизии. CI выполняется; задача остаётся незакрытой до merge. Детали: [отчёт SM-308g](reports/SM-308g-quota-anomaly-assessments.md).
 SM-316 доставлена через [PR #49](https://github.com/SoundBlaster/SessionMonitor/pull/49),
 merge `91c36b2` (2026-09-22). Предыдущие этапы: SM-308b доставлена через PR
 [#41](https://github.com/SoundBlaster/SessionMonitor/pull/41),
@@ -553,7 +554,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
     с evidence. Account-level quota никогда не приписывать отдельной сессии. Проверить устойчивый
     ряд, скачок, reset, разные аккаунты/окна, polling без изменения usage, shared quota, внешний
     usage, отсутствие/частичность данных и нулевой MAD; включить outcomes в `doctor` JSON/text.
-    Реализация и локальные проверки завершены; задача останется незакрытой до merge PR.
+    Четыре review findings исправлены в PR #62; 143 теста, SwiftLint, CLI/performance smoke прошли.
+    CI текущей ревизии выполняется; чекбокс останется незакрытым до merge.
 
 - [x] **SM-312** — Восстановить читаемость плотных request timelines (follow-up SM-303/SM-309).
   Реализована и локально проверена 2026-09-20; доставлена через [PR #32](https://github.com/SoundBlaster/SessionMonitor/pull/32), merge `f9a369d`.

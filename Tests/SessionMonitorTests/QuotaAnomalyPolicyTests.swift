@@ -23,6 +23,48 @@ struct QuotaAnomalyPolicyTests {
         let results = try Self.evaluate(try Self.report(ratesPerHour: [0.8, 0.9, 1, 1.1, 1.2, 1.05]))
         #expect(results.count == 1)
         #expect(results.first?.outcome == .stableUsage)
+        #expect(abs((results.first?.baselineMedianPercentagePointsPerHour ?? 0) - 1) < 0.000_001)
+    }
+
+    @Test func stableBaselineUsesAllPriorRatesAndExcludesCurrentRate() throws {
+        let results = try Self.evaluate(try Self.report(
+            ratesPerHour: [0.8, 0.9, 1, 1.1, 1.2, 1.05, 1.4, 0.95]
+        ))
+        #expect(results.first?.outcome == .stableUsage)
+        #expect(abs((results.first?.baselineMedianPercentagePointsPerHour ?? 0) - 1.05) < 0.000_001)
+        #expect(abs((results.first?.rateChangePercentagePointsPerHour ?? 0) - 0.95) < 0.000_001)
+    }
+
+    @Test func historicalPartialResetDoesNotSuppressLaterCompleteResetInterval() throws {
+        var observations: [UsageLimitSnapshotObservation] = []
+        let firstTime: TimeInterval = 10_000
+        observations.append(Self.snapshot(
+            timestamp: firstTime, used: 20, line: 1, reset: Date(timeIntervalSince1970: 200_000),
+            snapshotState: .partial, eventIdentity: "old-partial"
+        ))
+        let rates = [0.8, 0.9, 1.0, 1.1, 1.2, 20.0]
+        var time = firstTime + 60
+        var used = 30.0
+        observations.append(Self.snapshot(
+            timestamp: time, used: used, line: 1, reset: Date(timeIntervalSince1970: 300_000),
+            eventIdentity: "new-start"
+        ))
+        for (index, rate) in rates.enumerated() {
+            used += rate / 60
+            time += 60
+            observations.append(Self.snapshot(
+                timestamp: time, used: used, line: index + 2,
+                reset: Date(timeIntervalSince1970: 300_000), eventIdentity: "new-\(index)"
+            ))
+        }
+        let report = UsageLimitSnapshotReport(
+            query: try UsageQuery(), generatedAt: Date(timeIntervalSince1970: time + 30),
+            snapshots: observations
+        )
+
+        let results = try Self.evaluate(report)
+        #expect(results.contains { $0.outcome == .unknown && $0.reason == .incompleteCoverage })
+        #expect(results.contains { $0.outcome == .sharpShift })
     }
 
     @Test func resetChangeIsExplicitAndNeverComparedAcrossBoundary() throws {
@@ -68,6 +110,14 @@ struct QuotaAnomalyPolicyTests {
         let conflict = try Self.report(ratesPerHour: [1], duplicateConflict: true)
         #expect(try Self.evaluate(conflict).contains { $0.reason == .ambiguousObservation })
 
+        let resetConflict = UsageLimitSnapshotReport(
+            query: try UsageQuery(), generatedAt: Date(timeIntervalSince1970: 10_030), snapshots: [
+                Self.snapshot(timestamp: 10_000, used: 20, line: 1),
+                Self.snapshot(timestamp: 10_000, used: 20, line: 2, reset: Date(timeIntervalSince1970: 300_000))
+            ]
+        )
+        #expect(try Self.evaluate(resetConflict).contains { $0.reason == .ambiguousObservation })
+
         let missingReset = try Self.report(ratesPerHour: [1], missingReset: true)
         #expect(try Self.evaluate(missingReset).contains { $0.reason == .missingReset })
     }
@@ -92,6 +142,27 @@ struct QuotaAnomalyPolicyTests {
         let results = try Self.evaluate(report)
         #expect(results.count == 2)
         #expect(!results.contains { $0.reason == .ambiguousObservation })
+    }
+
+    @Test func assessmentIDsDistinguishResetIntervalsWithRepeatedSourceLines() throws {
+        var snapshots: [UsageLimitSnapshotObservation] = []
+        for (resetIndex, reset) in [200_000.0, 300_000.0].enumerated() {
+            let base = Double(10_000 + resetIndex * 500)
+            for index in 0..<7 {
+                snapshots.append(Self.snapshot(
+                    timestamp: base + Double(index * 60), used: 20 + Double(index) / 60,
+                    line: index + 1, reset: Date(timeIntervalSince1970: reset),
+                    eventIdentity: "reset-\(resetIndex)-event-\(index)"
+                ))
+            }
+        }
+        let report = UsageLimitSnapshotReport(
+            query: try UsageQuery(), generatedAt: Date(timeIntervalSince1970: 11_000), snapshots: snapshots
+        )
+
+        let results = try Self.evaluate(report)
+        #expect(results.filter { $0.outcome == .stableUsage }.count == 2)
+        #expect(Set(results.map(\.id)).count == results.count)
     }
 
     @Test func unchangedQuotaPollingIsStableAndNotUsageEvidence() throws {
@@ -159,10 +230,11 @@ struct QuotaAnomalyPolicyTests {
         reset: Date? = Date(timeIntervalSince1970: 200_000),
         scopeState: UsageAccountScopeState = .assigned,
         snapshotState: UsageLimitSnapshotState = .observed, missingReset: Bool = false,
-        limitID: String = "primary-limit", windowMinutes: Int64 = 300
+        limitID: String = "primary-limit", windowMinutes: Int64 = 300,
+        eventIdentity: String? = nil
     ) -> UsageLimitSnapshotObservation {
         UsageLimitSnapshotObservation(
-            eventIdentity: "event-\(line)", timestamp: Date(timeIntervalSince1970: timestamp),
+            eventIdentity: eventIdentity ?? "event-\(line)", timestamp: Date(timeIntervalSince1970: timestamp),
             sourceLine: line, sourceContextSessionID: "context-session-\(line)", sourceSchema: "fixture-v1",
             state: snapshotState, scope: .account, scopeIdentifier: nil, limitID: limitID,
             limitName: "Primary", planType: nil, accountScopeID: accountScopeID,
@@ -172,4 +244,5 @@ struct QuotaAnomalyPolicyTests {
             )]
         )
     }
+
 }
