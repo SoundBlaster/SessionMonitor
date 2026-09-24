@@ -17,6 +17,9 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
   сетевого polling нет.
 - CLI `profiles`: явное сопоставление однородного каталога источников с локальным account profile;
   `report`, `activity` и `quota` поддерживают `--profile ID` и `--unknown-or-mixed`.
+- GUI account scope selector общий для Session Explorer и menu bar, сохраняется между запусками и предлагает
+  `All accounts`, mapped profile или `Unknown/Mixed`. В `All accounts` activity помечена явно,
+  а quota windows сгруппированы по профилям и никогда не объединяются между ними.
 - Input/cache/output и optional cache-write/reasoning/total counters. Unknown не превращается в ноль.
 - SpecificationCore для coverage policy; SpecificationKit `@ObservedSatisfies` в GUI.
 - Native split navigation, фильтр по session ID/model, inspector и независимое состояние окон.
@@ -84,6 +87,10 @@ Account identity берётся только из явных non-secret поле
 `Unknown/Mixed`. Session ownership и account profile — независимые понятия; credentials,
 `auth.json`, cookies и prompts для этого не читаются и не сохраняются. Text/JSON отчёты показывают
 выбранную область; неограниченный запрос явно помечается как `All accounts`.
+
+В GUI выбранный account scope общий для Session Explorer и menu bar. Сессии без подтверждённой
+attribution остаются в `Unknown/Mixed`; mixed source roots исключаются из отчёта выбранного профиля
+и показывают предупреждение о неполном охвате. Для назначения profiles используйте CLI `profiles`.
 
 `quota` читает только уже импортированные события `event_msg/token_count.rate_limits`.
 `remaining` явно помечается как вычисленное из `used_percent`; thread context не считается
