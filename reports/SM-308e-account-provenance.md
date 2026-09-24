@@ -37,7 +37,8 @@ arbitrarily assigned. Session metadata remains independent from account profile 
 - `git diff --check` — passed.
 - Review follow-up: quota event identities now participate in mapped-root conflict detection; migration isolates legacy unknown sources by source root; provenance queries apply the report's account scope; timeline point IDs include a privacy-safe account-scope digest.
 - Regression coverage includes conflicting quota identities in one mapped root, legacy cross-root response-ID collisions, profile-scoped provenance, and unique all-account timeline point IDs.
-- [PR #58](https://github.com/SoundBlaster/SessionMonitor/pull/58) checks are left running on GitHub under the project's no-wait rule; they are not polled after this update.
+- GitHub `Workflow lint`, `Native checks`, and required `CI` passed on PR #58 head `880e4d2`.
+- PR [#58](https://github.com/SoundBlaster/SessionMonitor/pull/58) merged on 2026-09-24 as `3e4e285`.
 
 ## Boundaries
 
