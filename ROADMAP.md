@@ -12,15 +12,14 @@ merge `9b8a491`; SM-708 — через [PR #48](https://github.com/SoundBlaster/
 merge `87e71eb` (2026-09-22). SM-319 частично реализована через [PR #52](https://github.com/SoundBlaster/SessionMonitor/pull/52).
 Код SM-320 доставлен через [PR #53](https://github.com/SoundBlaster/SessionMonitor/pull/53)
 (merge `6b2156e`); follow-up [PR #55](https://github.com/SoundBlaster/SessionMonitor/pull/55)
-перенёс Inspector action в toolbar detail-колонки. Пользователь собрал приложение в Xcode,
-runtime AX подтвердил самостоятельную кнопку; CI зелёный, PR #55 ожидает merge.
+перенёс Inspector action в toolbar detail-колонки и смёржен в `1fbecda` (2026-09-24).
+Пользователь подтвердил сборку в Xcode и отдельную кнопку по runtime AX; CI PR прошёл.
 **SM-321 доставлена через PR #54** (merge `2a939df`, 2026-09-23).
 **SM-322 доставлена через PR #56** (merge `7347b88`, 2026-09-23): Update импортирует новые
 и изменённые JSONL из последней выбранной папки, её путь сохраняется между запусками.
 Проверены появление новой сессии после Update, отсутствие источника и ошибка импорта;
 Native checks, Workflow lint и CI прошли, review thread разрешён. В локальной базе до фикса
-24 сегодняшних rollout-файла не имели checkpoint. PR #55 всё ещё открыт и конфликтует с `main`;
-по прямому приоритету пользователя SM-308e начата до разрешения этого отдельного follow-up.
+24 сегодняшних rollout-файла не имели checkpoint. SM-308e/f/g уже доставлены указанными ниже PR.
 **SM-308e доставлена через PR #58** (merge `3e4e285`, 2026-09-24): добавлены account profile
 provenance, account-scoped dedup/query/CLI и сохранение unknown/mixed принадлежности. Четыре
 замечания ревью исправлены и закрыты; `CI`, `Native checks` и `Workflow lint` прошли.
@@ -49,7 +48,8 @@ merge `7557a2a` (2026-09-21); пользователь проверил инте
 **SM-403 в PR #64**, ветка `feat/sm-403-nested-a11y-ids`: интеграция NestedA11yIDs
 для иерархических accessibility identifiers в macOS UI. Native checks ревизии `6301531`
 нашли потерю роли Button, а `fc0497d` — невидимый низкоприоритетный account-scope item.
-Теперь scope вынесен в самостоятельный high-priority toolbar item; текущие checks ожидаются.
+Теперь scope вынесен в самостоятельный high-priority toolbar item; ветка синхронизирована
+с merge #55, который перенёс Inspector в detail toolbar. Checks после синхронизации ожидаются.
 Xcode MCP BuildProject останавливается до компиляции на повторном разрешении двух package macros.
 WidgetKit задачи SM-401/SM-402 остаются следующими по roadmap после этого приоритета.
 
@@ -608,8 +608,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
 - [ ] **SM-403** — Ввести иерархические accessibility identifiers через NestedA11yIDs.
   Статус: PR [#64](https://github.com/SoundBlaster/SessionMonitor/pull/64); после фикса роли Button
   ревизия `fc0497d` всё ещё не показывала account-scope control в UI test из-за низкого toolbar
-  visibility priority. Control вынесен в отдельный high-priority toolbar item; текущие checks
-  и runtime accessibility verification pending.
+  visibility priority. Control вынесен в отдельный high-priority toolbar item; ветка включает
+  merge #55 с detail-only Inspector toolbar. Текущие checks и runtime accessibility verification pending.
   Ветка `feat/sm-403-nested-a11y-ids`. Подключить точный release `1.0.0`
   к macOS app через canonical XcodeGen manifest, не к core/CLI. Перевести существующие стабильные
   identifiers Session Explorer на компонентные roots и вложенные semantic IDs. Не добавлять
@@ -676,13 +676,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
   primary action с Inspector icon и toggle. Runtime AX-проверка 2026-09-23 показала,
   что действие всё ещё находится внутри системного overflow menu; критерий прямой кнопки
   не выполнен. Исправление и подтверждение вынесены в SM-320.
-- [ ] **SM-320** — Удерживать Inspector action вне toolbar overflow.
-  Статус: код доставлен через PR #53 (merge `6b2156e`, 2026-09-23): на macOS 26.1+
-  Inspector получает высокий toolbar visibility priority, вторичные действия — низкий;
-  для deployment target macOS 15 предусмотрен availability fallback. Follow-up PR #55
-  переносит action в toolbar detail-колонки по примеру NavigationSplitView demo. Пользователь
-  собрал приложение в Xcode, runtime AX подтвердил standalone Show/Hide Inspector рядом с Search;
-  CI прошёл, PR ожидает merge. Готово после merge PR #55.
+- [x] **SM-320** — Удерживать Inspector action вне toolbar overflow.
+  Готово через PR [#55](https://github.com/SoundBlaster/SessionMonitor/pull/55), merge
+  `1fbecda` (2026-09-24): Inspector action перенесён в detail toolbar по примеру
+  NavigationSplitView demo. Пользователь подтвердил сборку в Xcode и runtime AX с отдельной
+  кнопкой Show/Hide Inspector рядом с Search; GitHub CI прошёл, review threads разрешены.
 - [x] **SM-321** — Автоматически обновлять локальный Xcode-проект перед commit.
   Готово 2026-09-23 через [PR #54](https://github.com/SoundBlaster/SessionMonitor/pull/54),
   merge `2a939df`: pre-commit hook синхронизирует локальный Xcode-проект; Workflow lint,

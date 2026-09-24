@@ -23,6 +23,7 @@ where those boundaries already existed. It does not apply nested IDs to session 
 - `git diff --check` — passed.
 - Xcode MCP `BuildProject` — blocked before compilation because Xcode requires package macro execution to be enabled again for the changed `SpecificationCoreMacros` and `SpecificationKitMacros` sources. No macro-validation bypass was used. Consequently, the local UI test and app build have not run; GitHub CI is the next build validation.
 - GitHub CI on revision `6301531` found one UI-test failure: `sessionExplorer.accountScope` was not exposed as a button. Import, Update, and Inspector controls were found. Direct identifiers restored native button roles. A subsequent run on `fc0497d` still failed because the account-scope control was hidden with the low-priority secondary toolbar group. It now has a separate high-priority toolbar item while Import and Update remain low-priority. The updated revision still needs CI validation.
+- The branch was subsequently synchronized with main after PR #55 merged as `1fbecda`. The Inspector action now lives in the detail toolbar, while the account-scope control remains a separate high-priority item. CI on the synchronized revision is pending.
 
 ## Boundaries
 
