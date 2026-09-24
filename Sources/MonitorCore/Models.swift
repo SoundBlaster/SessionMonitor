@@ -119,11 +119,24 @@ public struct UsageReport: Codable, Equatable, Sendable {
     public let totals: UsageTotals
     public let sessions: [SessionSummary]
     public let diagnostics: [String: Int64]
+    public let accountScope: UsageAccountScope
 
-    public init(totals: UsageTotals, sessions: [SessionSummary], diagnostics: [String: Int64]) {
+    public init(totals: UsageTotals, sessions: [SessionSummary], diagnostics: [String: Int64],
+                accountScope: UsageAccountScope = .allAccounts) {
         self.totals = totals
         self.sessions = sessions
         self.diagnostics = diagnostics
+        self.accountScope = accountScope
+    }
+
+    private enum CodingKeys: String, CodingKey { case totals, sessions, diagnostics, accountScope }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        totals = try values.decode(UsageTotals.self, forKey: .totals)
+        sessions = try values.decode([SessionSummary].self, forKey: .sessions)
+        diagnostics = try values.decode([String: Int64].self, forKey: .diagnostics)
+        accountScope = try values.decodeIfPresent(UsageAccountScope.self, forKey: .accountScope) ?? .allAccounts
     }
 }
 
@@ -213,6 +226,7 @@ public struct ParsedRollout: Sendable {
     public var usageLimitSnapshots: [UsageLimitSnapshotObservation] = []
     public var diagnostics: [String: Int64] = [:]
     public var provenance: SessionProvenance?
+    public var accountIdentity: SourceAccountIdentity?
 
     public init() {}
 }

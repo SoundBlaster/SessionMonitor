@@ -22,9 +22,23 @@ extension UsageStore {
             """, arguments: [source]) ?? false
     }
 
-    static func provenance(_ database: Database, sessionIDs: [String]) throws -> [String: SessionProvenance] {
+    static func provenance(
+        _ database: Database, sessionIDs: [String], accountScope: UsageAccountScope
+    ) throws -> [String: SessionProvenance] {
         guard !sessionIDs.isEmpty else { return [:] }
-        let rows = try Row.fetchAll(database, sql: "SELECT * FROM source_provenance ORDER BY source, session")
+        let scopePredicate = Self.accountScopePredicate()
+        let rows = try Row.fetchAll(database, sql: """
+            SELECT * FROM (
+                SELECT provenance.*, scope.profile_id AS account_profile_id
+                FROM source_provenance AS provenance
+                JOIN source_account_scope AS scope ON scope.source = provenance.source
+            )
+            WHERE 1 \(scopePredicate)
+            ORDER BY source, session
+            """, arguments: [
+                accountScope.kind.rawValue, accountScope.kind.rawValue, accountScope.profileID,
+                accountScope.kind.rawValue
+            ])
         let wanted = Set(sessionIDs)
         var result: [String: SessionProvenance] = [:]
         for row in rows {

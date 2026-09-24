@@ -74,6 +74,18 @@ public actor SessionMonitor {
         return try store.report(since: since, until: until)
     }
 
+    public func assignAccountProfile(root: URL, profileID: String, label: String) throws -> AccountProfile {
+        let root = root.resolvingSymlinksInPath().standardizedFileURL
+        try AccountProfilePolicy().validate(AccountProfileAssignmentInput(
+            profileID: profileID, label: label, sourceRoot: root.path
+        ))
+        return try store.assignAccountProfile(sourceRoot: root, profileID: profileID, label: label)
+    }
+
+    public func accountProfiles() throws -> [AccountProfile] {
+        try store.accountProfiles()
+    }
+
     /// Read-only legacy estimates, kept separate from canonical accounting.
     public func legacyEstimates(since: Date? = nil, until: Date? = nil) throws -> [LegacyUsageEstimate] {
         if let since, let until, since >= until { throw MonitorError.invalidDateRange }

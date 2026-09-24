@@ -26,6 +26,7 @@ extension MonitorCommand {
                 try printJSON(result)
                 return
             }
+            print("Account scope: \(result.query.accountScope.displayLabel)")
             printHumanReadable(result)
         }
 
@@ -225,6 +226,7 @@ extension MonitorCommand {
         @OptionGroup var queryOptions: UsageQueryOptions
         @Flag(help: "Emit stable structured JSON.") var json = false
 
+        // swiftlint:disable:next function_body_length
         mutating func run() async throws {
             let query = try queryOptions.query()
             let monitor = try options.runtime()
@@ -235,6 +237,7 @@ extension MonitorCommand {
             }
             let report = try await monitor.quotaPresentation(query: query)
 
+            print("Account scope: \(query.accountScope.displayLabel)")
             print("Imported usage-limit telemetry: \(report.coverage.state.rawValue)")
             if let reason = report.coverage.unknownReason {
                 print("Unknown reason: \(reason.rawValue)")
@@ -272,11 +275,12 @@ extension MonitorCommand {
                 let discontinuity = window.isResetDiscontinuity ? " discontinuity=reset" : ""
                 let ambiguity = window.isAmbiguous ? " ambiguity=equal-timestamp" : ""
                 print("\(Self.iso8601(window.observedAt)) scope=\(window.scope.rawValue) "
+                      + "account=\(window.accountProfileLabel ?? window.accountProfileID ?? "unknown/mixed") "
                       + "limit=\(limit) window=\(window.windowKind.rawValue) "
                       + "used=\(used) remaining=\(remaining) reset=\(reset) "
                       + "freshness=\(window.freshness.state.rawValue)\(discontinuity)\(ambiguity)")
             }
-            print("Scope is unknown unless the source identifies it; rollout thread context is not quota ownership.")
+            print("Quota thread context is not session ownership; account scope comes from source identity or mapping.")
         }
 
         private static func iso8601(_ date: Date) -> String {
