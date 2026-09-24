@@ -46,9 +46,9 @@ evidence, confidence и coverage.
 SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
 merge `7557a2a` (2026-09-21); пользователь проверил интерактивную прокрутку и подтвердил,
 что анимация timeline работает корректно.
-**SM-403 в работе**, ветка `feat/sm-403-nested-a11y-ids`: интеграция NestedA11yIDs
-для иерархических accessibility identifiers в macOS UI. Начать с существующих стабильных
-контролов Session Explorer; сохранить VoiceOver semantics и проверить влияние `.contain`.
+**SM-403 в PR #64**, ветка `feat/sm-403-nested-a11y-ids`: интеграция NestedA11yIDs
+для иерархических accessibility identifiers в macOS UI. CI и runtime accessibility tree
+остаются на проверке; локальная Xcode-сборка остановилась на повторном trust prompt для macros.
 WidgetKit задачи SM-401/SM-402 остаются следующими по roadmap после этого приоритета.
 
 **SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
@@ -604,7 +604,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `git diff --check` прошли; ограничений реализации не выявлено.
 
 - [ ] **SM-403** — Ввести иерархические accessibility identifiers через NestedA11yIDs.
-  Статус: в работе, ветка `feat/sm-403-nested-a11y-ids`. Подключить точный release `1.0.0`
+  Статус: PR [#64](https://github.com/SoundBlaster/SessionMonitor/pull/64), CI и runtime accessibility verification pending.
+  Ветка `feat/sm-403-nested-a11y-ids`. Подключить точный release `1.0.0`
   к macOS app через canonical XcodeGen manifest, не к core/CLI. Перевести существующие стабильные
   identifiers Session Explorer на компонентные roots и вложенные semantic IDs. Не добавлять
   modifiers на каждый элемент: явно сохранить VoiceOver names/traits и проверять влияние
