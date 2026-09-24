@@ -6,14 +6,19 @@ import MonitorCore
 extension UsageStore {
     /// Reads only the minimal, identity-internal observations needed to derive the
     /// privacy-safe cache-rate widget report. It never changes canonical accounting.
-    public func cacheHitRateObservations(since: Date, until: Date) throws -> [CacheHitRateObservation] {
+    public func cacheHitRateObservations(
+        since: Date, until: Date, accountScope: UsageAccountScope = .allAccounts
+    ) throws -> [CacheHitRateObservation] {
         try database.read { database in
-            try Row.fetchAll(database, sql: """
+            let accountPredicate = Self.accountScopePredicate()
+            return try Row.fetchAll(database, sql: """
                 SELECT session, timestamp, input, cached
                 FROM confirmed
-                WHERE timestamp >= ? AND timestamp < ?
+                WHERE timestamp >= ? AND timestamp < ? \(accountPredicate)
                 ORDER BY timestamp ASC, response ASC
-                """, arguments: [since.timeIntervalSince1970, until.timeIntervalSince1970]).map { row in
+                """, arguments: [since.timeIntervalSince1970, until.timeIntervalSince1970,
+                                  accountScope.kind.rawValue, accountScope.kind.rawValue,
+                                  accountScope.profileID, accountScope.kind.rawValue]).map { row in
                     CacheHitRateObservation(
                         timestamp: Date(timeIntervalSince1970: row["timestamp"]),
                         sessionID: row["session"],

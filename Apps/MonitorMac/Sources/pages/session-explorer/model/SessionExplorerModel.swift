@@ -8,9 +8,11 @@ protocol SessionExplorerRuntime: RequestTimelineSource, Sendable {
     func snapshot(query: UsageQuery) async throws -> UsageSnapshot
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error>
     func cacheHitRateWidget(
-        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone
+        period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone,
+        accountScope: UsageAccountScope
     ) async throws -> CacheHitRateWidgetReport
     func quotaPresentation(query: UsageQuery, generatedAt: Date) async throws -> QuotaPresentationReport
+    func accountProfiles() async throws -> [AccountProfile]
 }
 
 extension MonitorRuntime.SessionMonitor: SessionExplorerRuntime {}
@@ -111,12 +113,17 @@ final class SessionExplorerModel {
     func loadCacheHitRateWidget(
         period: CacheHitRateWidgetPeriod, referenceDate: Date = Date(), timeZone: TimeZone
     ) async {
+        let requestedAccountScope = query.accountScope
         do {
             let runtime = try await resolvedRuntime()
-            cacheHitRateWidgetReport = try await runtime.cacheHitRateWidget(
-                period: period, referenceDate: referenceDate, timeZone: timeZone
+            let report = try await runtime.cacheHitRateWidget(
+                period: period, referenceDate: referenceDate, timeZone: timeZone,
+                accountScope: requestedAccountScope
             )
+            guard !Task.isCancelled, query.accountScope == requestedAccountScope else { return }
+            cacheHitRateWidgetReport = report
         } catch {
+            guard !Task.isCancelled, query.accountScope == requestedAccountScope else { return }
             errorMessage = "Could not load the cache hit widget. \(error.localizedDescription)"
         }
     }

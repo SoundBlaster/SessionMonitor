@@ -85,6 +85,7 @@ struct MenuSummaryPage: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(scopeLabel)
                 .font(.subheadline).foregroundStyle(.secondary)
+                .lineLimit(1).truncationMode(.middle)
             if snapshot.report.totals.requests == 0 {
                 Text("No canonical usage yet")
                     .font(.headline)

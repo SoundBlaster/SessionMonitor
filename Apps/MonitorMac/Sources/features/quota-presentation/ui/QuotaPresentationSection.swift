@@ -8,13 +8,45 @@ struct QuotaPresentationSection: View {
     var body: some View {
         Section("Quota telemetry") {
             if let report {
-                QuotaCoverageSummary(report: report)
-                if report.windows.isEmpty {
+                let unknownScopeLabels = unknownScopeLabels(for: report)
+                if report.accountCoverages.isEmpty && report.windows.isEmpty {
+                    QuotaCoverageSummary(coverage: report.coverage,
+                                         timeZoneIdentifier: report.query.timeZoneIdentifier)
                     Text(emptyMessage(for: report.coverage.unknownReason))
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(report.windows) { window in
-                        QuotaWindowRow(window: window, timeZoneIdentifier: report.query.timeZoneIdentifier)
+                    ForEach(accountGroups(report)) { group in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(group.title)
+                                .font(.headline)
+                                .accessibilityAddTraits(.isHeader)
+                            ForEach(group.coverages) { scopedCoverage in
+                                QuotaCoverageSummary(
+                                    coverage: scopedCoverage.coverage,
+                                    timeZoneIdentifier: report.query.timeZoneIdentifier,
+                                    detail: group.isUnknown
+                                        ? unknownScopeDetail(
+                                            scopedCoverage.accountScopeID,
+                                            state: scopedCoverage.accountScopeState.rawValue,
+                                            labels: unknownScopeLabels
+                                        )
+                                        : nil
+                                )
+                            }
+                            if group.windows.isEmpty {
+                                Text(emptyMessage(for: group.coverages.first?.coverage.unknownReason))
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(group.windows) { window in
+                                    QuotaWindowRow(window: window,
+                                                   timeZoneIdentifier: report.query.timeZoneIdentifier,
+                                                   accountScopeLabel: group.isUnknown
+                                                    ? unknownScopeLabels[scopeKey(window.accountScopeID)]
+                                                    : nil)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 6)
                     }
                 }
             } else {
@@ -36,36 +68,100 @@ struct QuotaPresentationSection: View {
             "No supported quota window is available."
         }
     }
+
+    private func accountGroups(_ report: QuotaPresentationReport) -> [QuotaAccountGroup] {
+        let profileIDs = Set(report.accountCoverages.compactMap(\.accountProfileID)
+            + report.windows.compactMap(\.accountProfileID))
+        let profiles = profileIDs.map { id in
+            QuotaAccountGroup(
+                id: "profile:\(id)",
+                title: report.accountCoverages.first(where: { $0.accountProfileID == id })?.accountProfileLabel
+                    ?? report.windows.first(where: { $0.accountProfileID == id })?.accountProfileLabel ?? id,
+                isUnknown: false,
+                coverages: report.accountCoverages.filter { $0.accountProfileID == id },
+                windows: report.windows.filter { $0.accountProfileID == id }
+            )
+        }
+        let unknownCoverages = report.accountCoverages.filter { $0.accountProfileID == nil }
+        let unknownWindows = report.windows.filter { $0.accountProfileID == nil }
+        let unknown = unknownCoverages.isEmpty && unknownWindows.isEmpty ? [] : [QuotaAccountGroup(
+            id: "unknown-mixed", title: "Unknown/Mixed", isUnknown: true,
+            coverages: unknownCoverages,
+            windows: unknownWindows.sorted {
+                if $0.accountScopeID != $1.accountScopeID {
+                    return ($0.accountScopeID ?? "") < ($1.accountScopeID ?? "")
+                }
+                return $0.id < $1.id
+            }
+        )]
+        return (profiles + unknown).sorted {
+            let comparison = $0.title.localizedCaseInsensitiveCompare($1.title)
+            return comparison == .orderedSame ? $0.id < $1.id : comparison == .orderedAscending
+        }
+    }
+
+    private func unknownScopeLabels(for report: QuotaPresentationReport) -> [String: String] {
+        let scopeKeys = Set(
+            report.accountCoverages.filter { $0.accountProfileID == nil }.map { scopeKey($0.accountScopeID) }
+                + report.windows.filter { $0.accountProfileID == nil }.map { scopeKey($0.accountScopeID) }
+        ).sorted()
+        return Dictionary(uniqueKeysWithValues: scopeKeys.enumerated().map { index, key in
+            (key, "Unknown scope \(index + 1)")
+        })
+    }
+
+    private func scopeKey(_ scopeID: String?) -> String { scopeID ?? "no-scope" }
+
+    private func unknownScopeDetail(
+        _ scopeID: String?,
+        state: String,
+        labels: [String: String]
+    ) -> String {
+        let label = labels[scopeKey(scopeID)] ?? "Unknown scope"
+        return "\(label) · \(state.capitalized)"
+    }
 }
 
 private struct QuotaCoverageSummary: View {
-    let report: QuotaPresentationReport
+    let coverage: UsageLimitTelemetryCoverage
+    let timeZoneIdentifier: String
+    var detail: String?
 
     var body: some View {
         VStack(alignment: .leading) {
-            LabeledContent("Coverage", value: report.coverage.state.rawValue)
-            LabeledContent("Windows", value: report.coverage.supportedWindowObservations.formatted())
-            if let latest = report.coverage.latestObservedAt {
+            LabeledContent("Coverage", value: coverage.state.rawValue.capitalized)
+            LabeledContent("Windows", value: coverage.supportedWindowObservations.formatted())
+            if let detail { LabeledContent("Scope", value: detail) }
+            if let latest = coverage.latestObservedAt {
                 LabeledContent("Latest observation", value: latest.formatted(dateFormat))
             }
-            if let reason = report.coverage.unknownReason {
+            if let reason = coverage.unknownReason {
                 LabeledContent("Unknown reason", value: reason.rawValue)
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Quota telemetry coverage")
+        .accessibilityLabel(detail.map { "Quota telemetry coverage, \($0)" } ?? "Quota telemetry coverage")
     }
 
     private var dateFormat: Date.FormatStyle {
         var format = Date.FormatStyle(date: .abbreviated, time: .shortened)
-        format.timeZone = TimeZone(identifier: report.query.timeZoneIdentifier) ?? .gmt
+        format.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .gmt
         return format
     }
+}
+
+private struct QuotaAccountGroup: Identifiable {
+    let id: String
+    let title: String
+    let isUnknown: Bool
+    let coverages: [QuotaAccountCoverage]
+    let windows: [QuotaWindowPresentation]
 }
 
 private struct QuotaWindowRow: View {
     let window: QuotaWindowPresentation
     let timeZoneIdentifier: String
+    var accountScopeLabel: String?
     @State private var isShowingResetDetails = false
 
     var body: some View {
@@ -80,6 +176,13 @@ private struct QuotaWindowRow: View {
                     .font(.headline.monospacedDigit())
             }
             LabeledContent("Remaining", value: remainingValue)
+            if window.accountProfileID == nil {
+                LabeledContent(
+                    "Account scope",
+                    value: "\(accountScopeLabel ?? "Unknown/Mixed") · "
+                        + window.accountScopeState.rawValue.capitalized
+                )
+            }
             LabeledContent("Freshness", value: freshnessLabel)
             LabeledContent("Reset", value: resetValue)
             if window.isResetDiscontinuity {

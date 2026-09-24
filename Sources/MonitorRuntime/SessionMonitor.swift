@@ -107,10 +107,13 @@ public actor SessionMonitor {
     /// Builds a privacy-safe, aggregated cache-hit report for presentation surfaces.
     /// The store supplies the requested period and immediately preceding equal period.
     public func cacheHitRateWidget(
-        period: CacheHitRateWidgetPeriod, referenceDate: Date = Date(), timeZone: TimeZone
+        period: CacheHitRateWidgetPeriod, referenceDate: Date = Date(), timeZone: TimeZone,
+        accountScope: UsageAccountScope = .allAccounts
     ) throws -> CacheHitRateWidgetReport {
         let start = referenceDate.addingTimeInterval(-2 * period.duration)
-        let observations = try store.cacheHitRateObservations(since: start, until: referenceDate)
+        let observations = try store.cacheHitRateObservations(
+            since: start, until: referenceDate, accountScope: accountScope
+        )
         return CacheHitRateWidgetBuilder.build(
             observations: observations, period: period, referenceDate: referenceDate, timeZone: timeZone
         )

@@ -31,7 +31,7 @@ struct SessionExplorerPage: View {
                 }
             }
             .navigationTitle("SessionMonitor")
-            .navigationSubtitle("Canonical usage")
+            .navigationSubtitle("\(reportScope.accountLabel) · Canonical usage")
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .toolbar {
@@ -70,7 +70,7 @@ struct SessionExplorerPage: View {
 
     private var sidebarHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(reportScope.title)
+            Text("\(reportScope.accountLabel) · \(reportScope.title)")
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -110,6 +110,7 @@ struct SessionExplorerPage: View {
         .task(id: CacheHitRateWidgetLoadID(
             period: cacheHitRateWidgetSettings.period,
             revision: model.snapshot?.watermark.revision,
+            accountScope: model.query.accountScope,
             timeZoneIdentifier: model.query.timeZoneIdentifier
         )) {
             guard model.snapshot != nil else { return }
@@ -237,7 +238,10 @@ struct SessionExplorerPage: View {
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
         guard panel.runModal() == .OK, let directory = panel.url else { return }
-        Task { await model.importDirectory(directory) }
+        Task {
+            await model.importDirectory(directory)
+            await reportScope.refreshProfiles()
+        }
     }
 
     private func timelineTaskID(session: SessionSummary) -> String {
@@ -257,6 +261,7 @@ enum SessionExplorerSidebarLayout {
 private struct CacheHitRateWidgetLoadID: Hashable {
     let period: CacheHitRateWidgetPeriod
     let revision: Int64?
+    let accountScope: UsageAccountScope
     let timeZoneIdentifier: String
 }
 

@@ -17,7 +17,10 @@ struct SessionMonitorApp: App {
         let loader = SessionMonitorRuntimeLoader()
         runtimeLoader = loader
         let watch = AppWatchController { directory in try await loader.watch(directory) }
-        let scope = ReportScopeModel()
+        let scope = ReportScopeModel(profileProvider: {
+            let runtime = try await loader.load()
+            return try await runtime.accountProfiles()
+        })
         _reportScope = State(initialValue: scope)
         _watchController = State(initialValue: watch)
         _menuModel = State(initialValue: MenuSummaryModel(queryStreamFactory: { query in
@@ -84,6 +87,7 @@ private struct SessionMonitorWindow: View {
             .frame(minWidth: 760, minHeight: 520)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .task(id: reportScope.observationID) {
+                await reportScope.refreshProfiles()
                 let query = reportScope.query
                 await model.loadIfNeeded(query: query)
                 guard !Task.isCancelled else { return }
@@ -117,5 +121,10 @@ actor SessionMonitorRuntimeLoader {
         let runtime = SharedReportRuntime(runtime: databaseRuntime)
         self.runtime = runtime
         return runtime
+    }
+
+    func accountProfiles() async throws -> [AccountProfile] {
+        let runtime = try load()
+        return try await runtime.accountProfiles()
     }
 }
