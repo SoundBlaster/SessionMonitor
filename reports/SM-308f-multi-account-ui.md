@@ -24,7 +24,7 @@ The Session Explorer sidebar cache-hit chart now uses the same account scope as 
 - [x] Relevant local checks passed; commands and results are listed below.
 - [x] Required GitHub check `CI` passed for the current PR revision.
 - [x] ROADMAP status and evidence are updated; incomplete work remains unchecked.
-- [ ] User-facing documentation reflects changed behavior or workflow.
+- [x] User-facing documentation reflects changed behavior or workflow; README documents persisted GUI account scope and per-profile quota grouping.
 
 - `make check SWIFTLINT=/opt/homebrew/bin/swiftlint FSD=/opt/homebrew/bin/fsd-ios XCODEGEN=/opt/homebrew/bin/xcodegen XCODEBUILD_FLAGS=-skipMacroValidation` — passed; CLI, performance smoke, 126 core tests, and 102 macOS tests.
 - SwiftLint strict — passed with 0 violations; FSD architecture lint and boundary checks passed as part of `make check`.
