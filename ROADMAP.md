@@ -49,7 +49,8 @@ merge `7557a2a` (2026-09-21); пользователь проверил инте
 для иерархических accessibility identifiers в macOS UI. UI test проходит в GitHub CI;
 локальная проверка runtime accessibility tree остаётся ограничена повторным запросом Xcode
 разрешить package macros.
-**SM-404 в работе** — создать иконку SessionMonitor в Figma и Apple Icon Composer на основе
+**SM-404 в PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65)**, ветка
+`feat/sm-404-app-icon`: создать иконку SessionMonitor в Figma и Apple Icon Composer на основе
 прототипа пользователя; подготовить `.icon` в проекте и подключить её к приложению. Макет:
 [Figma](https://www.figma.com/design/wuFWDUy7V5V8WdyXXcDwmE/SessionMonitor-App-Icon).
 WidgetKit задачи SM-401/SM-402 остаются следующими по roadmap после этого приоритета.
@@ -611,6 +612,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   merge `282a425` (2026-09-25). UI test проходит в GitHub CI. Локальная проверка runtime
   accessibility tree требует отдельного повтора после решения Xcode package macro approval.
 - [ ] **SM-404** — Создать и подключить иконку SessionMonitor через Figma и Apple Icon Composer.
+  Статус: PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65), CI выполняется.
   Основа — монохромный график диапазонов из пользовательского прототипа. Сохранить исходный
   редактируемый макет Figma и нативный `.icon` в проекте; проверить light/dark/mono presentation,
   app target integration и отображение в Xcode. Готово, когда иконка подключена через canonical
