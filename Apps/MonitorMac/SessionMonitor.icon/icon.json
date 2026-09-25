@@ -7,8 +7,23 @@
       "layers" : [
         {
           "glass" : false,
-          "image-name" : "FullIcon.svg",
-          "name" : "FullIcon"
+          "image-name" : "OutlierDots.svg",
+          "name" : "OutlierDots"
+        },
+        {
+          "glass" : false,
+          "image-name" : "AverageMarkers.svg",
+          "name" : "AverageMarkers"
+        },
+        {
+          "glass" : false,
+          "image-name" : "CacheRanges.svg",
+          "name" : "CacheRanges"
+        },
+        {
+          "glass" : false,
+          "image-name" : "BackgroundGrid.png",
+          "name" : "BackgroundGrid"
         }
       ],
       "shadow" : {
