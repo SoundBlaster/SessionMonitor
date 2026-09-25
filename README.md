@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/sessionmonitor-icon.png" alt="SessionMonitor app icon" width="180" />
+</p>
+
 # SessionMonitor
 
 Нативный macOS-проект для анализа расхода ресурсов Codex. Первая рабочая версия:
