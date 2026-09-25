@@ -1,8 +1,8 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g id="Icon Layer &#226;&#128;&#162; Outlier Dots">
 <g id="Outlier dots">
-<circle id="Outlier / low" cx="232" cy="800" r="29" fill="#A8ABB0" fill-opacity="0.92"/>
-<circle id="Outlier / high" cx="802" cy="206" r="29" fill="#A8ABB0" fill-opacity="0.92"/>
+<circle id="Outlier / low" cx="232" cy="800" r="29" fill="#FF4F69"/>
+<circle id="Outlier / high" cx="802" cy="206" r="29" fill="#00E394"/>
 </g>
 </g>
 </svg>
