@@ -6,17 +6,17 @@
     {
       "layers" : [
         {
-          "glass" : false,
+          "glass" : true,
           "image-name" : "OutlierDots.svg",
           "name" : "OutlierDots"
         },
         {
-          "glass" : false,
+          "glass" : true,
           "image-name" : "AverageMarkers.svg",
           "name" : "AverageMarkers"
         },
         {
-          "glass" : false,
+          "glass" : true,
           "image-name" : "CacheRanges.svg",
           "name" : "CacheRanges"
         },
