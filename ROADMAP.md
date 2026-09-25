@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-24. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-25. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -45,12 +45,13 @@ evidence, confidence и coverage.
 SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
 merge `7557a2a` (2026-09-21); пользователь проверил интерактивную прокрутку и подтвердил,
 что анимация timeline работает корректно.
-**SM-403 в PR #64**, ветка `feat/sm-403-nested-a11y-ids`: интеграция NestedA11yIDs
-для иерархических accessibility identifiers в macOS UI. Native checks ревизии `6301531`
-нашли потерю роли Button, а `fc0497d` — невидимый низкоприоритетный account-scope item.
-Теперь scope вынесен в самостоятельный high-priority toolbar item; ветка синхронизирована
-с merge #55, который перенёс Inspector в detail toolbar. Checks после синхронизации ожидаются.
-Xcode MCP BuildProject останавливается до компиляции на повторном разрешении двух package macros.
+**SM-403 доставлена через PR #64** (merge `282a425`, 2026-09-25): NestedA11yIDs интегрирована
+для иерархических accessibility identifiers в macOS UI. UI test проходит в GitHub CI;
+локальная проверка runtime accessibility tree остаётся ограничена повторным запросом Xcode
+разрешить package macros.
+**SM-404 в работе** — создать иконку SessionMonitor в Figma и Apple Icon Composer на основе
+прототипа пользователя; подготовить `.icon` в проекте и подключить её к приложению. Макет:
+[Figma](https://www.figma.com/design/wuFWDUy7V5V8WdyXXcDwmE/SessionMonitor-App-Icon).
 WidgetKit задачи SM-401/SM-402 остаются следующими по roadmap после этого приоритета.
 
 **SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
@@ -606,17 +607,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `git diff --check` прошли; ограничений реализации не выявлено.
 
 - [ ] **SM-403** — Ввести иерархические accessibility identifiers через NestedA11yIDs.
-  Статус: PR [#64](https://github.com/SoundBlaster/SessionMonitor/pull/64); после фикса роли Button
-  ревизия `fc0497d` всё ещё не показывала account-scope control в UI test из-за низкого toolbar
-  visibility priority. Control вынесен в отдельный high-priority toolbar item; ветка включает
-  merge #55 с detail-only Inspector toolbar. Текущие checks и runtime accessibility verification pending.
-  Ветка `feat/sm-403-nested-a11y-ids`. Подключить точный release `1.0.0`
-  к macOS app через canonical XcodeGen manifest, не к core/CLI. Перевести существующие стабильные
-  identifiers Session Explorer на компонентные roots и вложенные semantic IDs. Не добавлять
-  modifiers на каждый элемент: явно сохранить VoiceOver names/traits и проверять влияние
-  автоматического `.accessibilityElement(children: .contain)`. Готово, когда UI tests находят
-  основные controls по иерархическим IDs, accessibility tree не получает неожиданных группировок,
-  а package resolution, app build, SwiftLint и FSD architecture checks проходят.
+  Статус: доставлена через [PR #64](https://github.com/SoundBlaster/SessionMonitor/pull/64),
+  merge `282a425` (2026-09-25). UI test проходит в GitHub CI. Локальная проверка runtime
+  accessibility tree требует отдельного повтора после решения Xcode package macro approval.
+- [ ] **SM-404** — Создать и подключить иконку SessionMonitor через Figma и Apple Icon Composer.
+  Основа — монохромный график диапазонов из пользовательского прототипа. Сохранить исходный
+  редактируемый макет Figma и нативный `.icon` в проекте; проверить light/dark/mono presentation,
+  app target integration и отображение в Xcode. Готово, когда иконка подключена через canonical
+  XcodeGen manifest и native build/CI подтверждают asset.
 
 ## 4. Системные macOS widgets
 
