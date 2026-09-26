@@ -55,7 +55,8 @@ merge `7557a2a` (2026-09-21); пользователь проверил инте
 [Figma](https://www.figma.com/design/wuFWDUy7V5V8WdyXXcDwmE/SessionMonitor-App-Icon).
 WidgetKit задачи SM-401/SM-402 остаются следующими по roadmap после этого приоритета.
 **Текущая задача: SM-405 — исправить смену цвета Y-axis labels Cache Hit Rate при повторной
-смене темы; реализация в PR, live-переключение не подтверждено (macOS была заблокирована).**
+смене темы; реализация в [PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66),
+live-переключение не подтверждено (macOS была заблокирована).**
 
 **SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
 
@@ -421,7 +422,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Локально: Xcode build и Cache Widget Lab fixture tests проходят; light/dark snapshots
   визуально проверены, SwiftLint/FSD без замечаний. Live light → dark → light → dark toggle
   остаётся неподтверждённым: macOS была заблокирована во время проверки. Завершить после
-  проверки перехода на разблокированном UI.
+  проверки перехода на разблокированном UI. PR: [#66](https://github.com/SoundBlaster/SessionMonitor/pull/66),
+  CI запущен.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
   **Статус: в работе (2026-09-20), ветка `feat/sm-308-anomaly-analytics`.** Реализация
   будет идти вертикальными частями: activity metrics/evidence; наблюдения quota из rollout
