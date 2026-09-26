@@ -38,12 +38,34 @@ does not promise second-level freshness.
 - `make generate`: passed; the generated app Info.plist registers the URL scheme.
 - `git diff --check`: passed.
 
+## Gallery registration investigation
+
+After the user reported that a macOS restart did not make the widgets appear,
+the built products were compared with XcodeMini. Both projects embed a WidgetKit
+extension with a unique bundle ID, a `com.apple.widgetkit-extension` point, a
+`WidgetBundle`, and the App Group entitlement. The important difference was the
+extension sandbox: XcodeMini's signed `.appex` contains
+`com.apple.security.app-sandbox = true`; SessionMonitor's did not, because the
+extension's effective `ENABLE_APP_SANDBOX` was `NO`.
+
+Set `ENABLE_APP_SANDBOX: YES` on the SessionMonitor widget-extension target only.
+The host app remains non-sandboxed. After project regeneration and an Xcode MCP
+build, the signed extension contains both the sandbox and App Group entitlements,
+the containing app passes `codesign --verify --deep --strict`, and PlugInKit now
+lists exactly one registration at the current DerivedData app's
+`Contents/PlugIns/SessionMonitorWidgetExtension.appex`. Before this change,
+PlugInKit returned no registration for SessionMonitor while listing XcodeMini.
+
+The system Widget Gallery has not yet been inspected directly. Reopen the Gallery
+after this build and check for **Usage Summary** and **Cache Hit Rate**; the
+extension is now registered without another reboot.
+
 ## Pending system check
 
 The Widget Gallery and rendered desktop/Notification Center appearance have not
-been confirmed in the installed application. Xcode MCP `RenderPreview` cannot
+been confirmed directly. Xcode MCP `RenderPreview` cannot
 render WidgetKit content for this macOS destination: it returned
 `UnknownProcessType` and reported that no `widgetExtension` preview launcher is
-registered. The user plans to restart macOS and check that both widgets appear in
-the system picker. This is the remaining SM-402 acceptance check; building the
-extension alone does not prove LaunchServices has registered the installed copy.
+registered. PlugInKit now confirms that the freshly built extension is registered;
+checking that both display names appear in the system picker and inspecting the
+rendered widgets is the remaining SM-402 acceptance check.

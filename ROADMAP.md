@@ -55,8 +55,8 @@ merge `5bac2fa` (2026-09-26):** иконка SessionMonitor подготовле
 По приоритету пользователя ведётся WidgetKit работа: **SM-401 — открытый
 [PR #67](https://github.com/SoundBlaster/SessionMonitor/pull/67), ветка
 `feat/sm-401-widget-snapshot`; реализация SM-402 добавлена туда же.**
-Проверить системную галерею после перезагрузки macOS пользователя; после обновления PR
-описать его как SM-401/SM-402.
+После включения sandbox у extension PlugInKit зарегистрировал свежую сборку из
+DerivedData. Gallery-проверка остаётся ожидающей; PR #67 обновлён до SM-401/SM-402.
 Отдельный follow-up SM-405 находится в открытом
 [PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66); live-переключение темы
 не подтверждено, PR нужно синхронизировать с main перед merge.
@@ -637,8 +637,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   extension читает его без raw logs/второго importer. Проверить entitlements и подпись.
   Реализация и локальные проверки: [отчёт SM-401](reports/SM-401-widget-snapshot.md).
 - [ ] **SM-402** — Widgets «Usage» и «Cache Hit Rate», small/medium/large layouts.
-  **Статус: реализация в совместном PR #67 готова; проверка в System UI ожидает
-  перезагрузки macOS пользователем.** Зависит от SM-401; мини-графики — от SM-303.
+  **Статус: реализация в совместном PR #67 готова; после включения sandbox у
+  extension PlugInKit зарегистрировал свежую сборку. Gallery-проверка ожидает
+  пользователя.** Зависит от SM-401; мини-графики — от SM-303.
   Today/7d, coverage, updated-at, empty/unknown/stale states и переход к тому же
   отчёту через deep link. Реализация и проверки: [отчёт SM-402](reports/SM-402-system-widgets.md).
   Готово, когда пользователь подтвердит появление widgets в системной галерее и

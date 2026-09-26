@@ -79,6 +79,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.session-monitor.widget
         PRODUCT_NAME: SessionMonitorWidgetExtension
         CODE_SIGN_ENTITLEMENTS: Config/AppGroups.entitlements
+        ENABLE_APP_SANDBOX: YES
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
         GENERATE_INFOPLIST_FILE: YES
