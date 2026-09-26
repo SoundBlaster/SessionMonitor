@@ -26,6 +26,7 @@ final class AppWatchController {
 
     @ObservationIgnored private let factory:
         @Sendable (URL) async throws -> any AppWatchHandle
+    @ObservationIgnored private let didImport: @Sendable () async -> Void
     @ObservationIgnored private var handle: (any AppWatchHandle)?
     @ObservationIgnored private var statusTask: Task<Void, Never>?
     @ObservationIgnored private var controlTask: Task<Void, Never>?
@@ -37,11 +38,14 @@ final class AppWatchController {
     @ObservationIgnored private var shutdownTask: Task<Void, Never>?
     @ObservationIgnored private var lifecycleGeneration = 0
     @ObservationIgnored private var activityGeneration = 0
+    @ObservationIgnored private var observedImportCount = 0
     @ObservationIgnored private var securityScopedAccess: (directory: URL, acquired: Bool)?
     @ObservationIgnored private var securityScopedGeneration: Int?
 
-    init(factory: @escaping @Sendable (URL) async throws -> any AppWatchHandle) {
+    init(didImport: @escaping @Sendable () async -> Void = {},
+         factory: @escaping @Sendable (URL) async throws -> any AppWatchHandle) {
         self.factory = factory
+        self.didImport = didImport
     }
 
     /// Starts exactly one watch for the selected directory.
@@ -55,6 +59,7 @@ final class AppWatchController {
         securityScopedGeneration = generation
         self.directory = directory
         status = nil
+        observedImportCount = 0
         errorMessage = nil
         isRunning = true
         let activity = beginActivity()
@@ -249,6 +254,11 @@ final class AppWatchController {
     private func receive(_ value: WatchStatus, generation: Int) {
         guard generation == lifecycleGeneration, handle != nil, !isShuttingDown else { return }
         status = value
+        if value.completedImports > observedImportCount {
+            observedImportCount = value.completedImports
+            let didImport = didImport
+            Task { await didImport() }
+        }
     }
 
     private func releaseSecurityScopedAccess(

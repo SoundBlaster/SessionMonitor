@@ -1,5 +1,6 @@
 import Foundation
 import MonitorCore
+import WidgetKit
 
 /// Shares report observations per full query across windows and the menu without owning imports.
 actor SharedReportRuntime: SessionExplorerRuntime {
@@ -11,12 +12,23 @@ actor SharedReportRuntime: SessionExplorerRuntime {
     }
 
     private let runtime: any SessionExplorerRuntime
+    private let widgetSnapshotStore: WidgetSharedSnapshotStore?
     private var observations: [UsageQuery: QueryObservation] = [:]
+    private var latestWidgetRevision: Int64 = -1
+    private var writtenWidgetRevision: Int64 = -1
+    private var widgetSnapshotTask: Task<Void, Never>?
+    private var widgetSnapshotRequested = false
+    private var widgetSnapshotReloadRequested = false
 
-    init(runtime: any SessionExplorerRuntime) { self.runtime = runtime }
+    init(runtime: any SessionExplorerRuntime, widgetSnapshotStore: WidgetSharedSnapshotStore? = .appGroup()) {
+        self.runtime = runtime
+        self.widgetSnapshotStore = widgetSnapshotStore
+    }
 
     func importDirectory(_ directory: URL) async throws -> ImportSummary {
-        try await runtime.importDirectory(directory)
+        let summary = try await runtime.importDirectory(directory)
+        await publishWidgetSnapshotNow()
+        return summary
     }
 
     func snapshot(query: UsageQuery) async throws -> UsageSnapshot {
@@ -33,6 +45,10 @@ actor SharedReportRuntime: SessionExplorerRuntime {
     ) async throws -> CacheHitRateWidgetReport {
         try await runtime.cacheHitRateWidget(period: period, referenceDate: referenceDate,
                                              timeZone: timeZone, accountScope: accountScope)
+    }
+
+    func widgetSharedSnapshot(generatedAt: Date, timeZone: TimeZone) async throws -> WidgetSharedSnapshot {
+        try await runtime.widgetSharedSnapshot(generatedAt: generatedAt, timeZone: timeZone)
     }
 
     func quotaPresentation(query: UsageQuery, generatedAt: Date) async throws -> QuotaPresentationReport {
@@ -90,6 +106,55 @@ actor SharedReportRuntime: SessionExplorerRuntime {
         observation.latest = value
         observations[query] = observation
         for observer in observation.observers.values { observer.yield(value) }
+        scheduleWidgetSnapshot(revision: value.watermark.revision)
+    }
+
+    private func scheduleWidgetSnapshot(revision: Int64) {
+        guard widgetSnapshotStore != nil, revision > writtenWidgetRevision else { return }
+        if widgetSnapshotTask != nil, revision <= latestWidgetRevision { return }
+        latestWidgetRevision = max(latestWidgetRevision, revision)
+        widgetSnapshotRequested = true
+        startWidgetSnapshotTaskIfNeeded()
+    }
+
+    private func startWidgetSnapshotTaskIfNeeded() {
+        guard widgetSnapshotTask == nil else { return }
+        widgetSnapshotTask = Task { [weak self] in await self?.publishLatestWidgetSnapshot() }
+    }
+
+    private func publishLatestWidgetSnapshot() async {
+        defer { widgetSnapshotTask = nil }
+        while widgetSnapshotRequested {
+            widgetSnapshotRequested = false
+            await writeWidgetSnapshotOnce()
+        }
+    }
+
+    func publishWidgetSnapshotNow() async {
+        guard widgetSnapshotStore != nil else { return }
+        widgetSnapshotReloadRequested = true
+        widgetSnapshotRequested = true
+        startWidgetSnapshotTaskIfNeeded()
+        await widgetSnapshotTask?.value
+    }
+
+    private func writeWidgetSnapshotOnce() async {
+        guard let widgetSnapshotStore else { return }
+        do {
+            let snapshot = try await runtime.widgetSharedSnapshot(generatedAt: Date(), timeZone: .current)
+            try widgetSnapshotStore.write(snapshot)
+            latestWidgetRevision = max(latestWidgetRevision, snapshot.revision)
+            let hasNewRevision = snapshot.revision > writtenWidgetRevision
+            let forceReload = widgetSnapshotReloadRequested
+            guard hasNewRevision || forceReload else { return }
+            writtenWidgetRevision = max(writtenWidgetRevision, snapshot.revision)
+            widgetSnapshotReloadRequested = false
+            await MainActor.run {
+                WidgetCenter.shared.reloadTimelines(ofKind: WidgetSharedSnapshot.widgetKind)
+            }
+        } catch {
+            // Keep the last complete file; a later import or observed revision retries publication.
+        }
     }
 
     private func finish(query: UsageQuery, generation: UUID, error: (any Error)?) {

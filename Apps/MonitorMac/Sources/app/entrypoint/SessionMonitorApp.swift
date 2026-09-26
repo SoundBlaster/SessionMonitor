@@ -16,7 +16,12 @@ struct SessionMonitorApp: App {
     init() {
         let loader = SessionMonitorRuntimeLoader()
         runtimeLoader = loader
-        let watch = AppWatchController { directory in try await loader.watch(directory) }
+        let watch = AppWatchController(
+            didImport: {
+                if let runtime = try? await loader.load() { await runtime.publishWidgetSnapshotNow() }
+            },
+            factory: { directory in try await loader.watch(directory) }
+        )
         let scope = ReportScopeModel(profileProvider: {
             let runtime = try await loader.load()
             return try await runtime.accountProfiles()
@@ -115,16 +120,17 @@ actor SessionMonitorRuntimeLoader {
         try await database().watch(directory)
     }
 
-    func load() throws -> SharedReportRuntime {
+    func load() async throws -> SharedReportRuntime {
         if let runtime { return runtime }
         let databaseRuntime = try database()
         let runtime = SharedReportRuntime(runtime: databaseRuntime)
         self.runtime = runtime
+        Task { await runtime.publishWidgetSnapshotNow() }
         return runtime
     }
 
     func accountProfiles() async throws -> [AccountProfile] {
-        let runtime = try load()
+        let runtime = try await load()
         return try await runtime.accountProfiles()
     }
 }

@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-25. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-26. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -49,11 +49,13 @@ merge `7557a2a` (2026-09-21); пользователь проверил инте
 для иерархических accessibility identifiers в macOS UI. UI test проходит в GitHub CI;
 локальная проверка runtime accessibility tree остаётся ограничена повторным запросом Xcode
 разрешить package macros.
-**SM-404 в PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65)**, ветка
-`feat/sm-404-app-icon`: создать иконку SessionMonitor в Figma и Apple Icon Composer на основе
-прототипа пользователя; подготовить `.icon` в проекте и подключить её к приложению. Макет:
-[Figma](https://www.figma.com/design/wuFWDUy7V5V8WdyXXcDwmE/SessionMonitor-App-Icon).
-WidgetKit задачи SM-401/SM-402 остаются следующими по roadmap после этого приоритета.
+**SM-404 доставлена через PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65),
+merge `5bac2fa` (2026-09-26):** иконка SessionMonitor подготовлена в Figma и Apple Icon Composer,
+слои имеют glass effects и подключены к приложению.
+По приоритету пользователя ведётся WidgetKit работа: **SM-401 — ветка
+`feat/sm-401-widget-snapshot`, PR будет открыт после локальной проверки.** Отдельный follow-up SM-405 находится в открытом
+[PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66); live-переключение темы
+не подтверждено, PR нужно синхронизировать с main перед merge.
 
 **SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
 
@@ -624,8 +626,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
 Подробности — [архитектура widgets](monitor-design.md#системные-widgets).
 
 - [ ] **SM-401** — Shared snapshot и WidgetKit extension с App Group.
-  Зависит от SM-104/SM-301. Публиковать небольшой Codable snapshot атомарно;
+  **Статус: PR ожидает проверки, ветка `feat/sm-401-widget-snapshot`.** Зависит от SM-104/SM-301.
+  Публиковать небольшой Codable snapshot атомарно;
   extension читает его без raw logs/второго importer. Проверить entitlements и подпись.
+  Реализация и локальные проверки: [отчёт SM-401](reports/SM-401-widget-snapshot.md).
 - [ ] **SM-402** — Widgets «Расход» и «Cache», small/medium layouts.
   Зависит от SM-401; мини-графики — от SM-303. Today/7d, coverage, updated-at,
   empty/unknown/stale states и переход к тому же отчёту через deep link.
