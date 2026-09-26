@@ -52,8 +52,9 @@ merge `7557a2a` (2026-09-21); пользователь проверил инте
 **SM-404 доставлена через PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65),
 merge `5bac2fa` (2026-09-26):** иконка SessionMonitor подготовлена в Figma и Apple Icon Composer,
 слои имеют glass effects и подключены к приложению.
-По приоритету пользователя ведётся WidgetKit работа: **SM-401 — ветка
-`feat/sm-401-widget-snapshot`, PR будет открыт после локальной проверки.** Отдельный follow-up SM-405 находится в открытом
+По приоритету пользователя ведётся WidgetKit работа: **SM-401 — открытый
+[PR #67](https://github.com/SoundBlaster/SessionMonitor/pull/67), ветка
+`feat/sm-401-widget-snapshot`.** Отдельный follow-up SM-405 находится в открытом
 [PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66); live-переключение темы
 не подтверждено, PR нужно синхронизировать с main перед merge.
 
@@ -626,7 +627,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
 Подробности — [архитектура widgets](monitor-design.md#системные-widgets).
 
 - [ ] **SM-401** — Shared snapshot и WidgetKit extension с App Group.
-  **Статус: PR ожидает проверки, ветка `feat/sm-401-widget-snapshot`.** Зависит от SM-104/SM-301.
+  **Статус: открытый PR [#67](https://github.com/SoundBlaster/SessionMonitor/pull/67), ветка
+  `feat/sm-401-widget-snapshot`.** Зависит от SM-104/SM-301.
   Публиковать небольшой Codable snapshot атомарно;
   extension читает его без raw logs/второго importer. Проверить entitlements и подпись.
   Реализация и локальные проверки: [отчёт SM-401](reports/SM-401-widget-snapshot.md).
