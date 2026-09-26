@@ -31,6 +31,13 @@ targets:
   MonitorMac:
     type: application
     platform: macOS
+    info:
+      path: Config/MonitorMac-Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: ru.egormerkushev.session-monitor.widget
+            CFBundleURLSchemes:
+              - sessionmonitor
     sources:
       - path: Sources
       - path: SessionMonitor.icon

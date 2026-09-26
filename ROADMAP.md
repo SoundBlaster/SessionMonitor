@@ -54,7 +54,10 @@ merge `5bac2fa` (2026-09-26):** иконка SessionMonitor подготовле
 слои имеют glass effects и подключены к приложению.
 По приоритету пользователя ведётся WidgetKit работа: **SM-401 — открытый
 [PR #67](https://github.com/SoundBlaster/SessionMonitor/pull/67), ветка
-`feat/sm-401-widget-snapshot`.** Отдельный follow-up SM-405 находится в открытом
+`feat/sm-401-widget-snapshot`; реализация SM-402 добавлена туда же.**
+Проверить системную галерею после перезагрузки macOS пользователя; после обновления PR
+описать его как SM-401/SM-402.
+Отдельный follow-up SM-405 находится в открытом
 [PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66); live-переключение темы
 не подтверждено, PR нужно синхронизировать с main перед merge.
 
@@ -68,7 +71,8 @@ merge `3d28e18` (2026-09-21): проект запрещает Git worktree пр�
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
 SM-105 переводит рост той же identity на append-only чтение хвоста. SM-103 добавляет
 CLI/native watch; SM-201 добавляет read-only menu bar, SM-202 — app-owned watch controls
-и lifecycle. WidgetKit, TUI и адаптация ещё не реализованы.
+и lifecycle. TUI и адаптация ещё не реализованы; WidgetKit доставляется через
+SM-401/SM-402 выше.
 GitHub repository подключён; `main` отслеживает `origin/main`.
 Первый commit с реализацией создан (SM-702).
 SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1), merge `de7e328`;
@@ -632,11 +636,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Публиковать небольшой Codable snapshot атомарно;
   extension читает его без raw logs/второго importer. Проверить entitlements и подпись.
   Реализация и локальные проверки: [отчёт SM-401](reports/SM-401-widget-snapshot.md).
-- [ ] **SM-402** — Widgets «Расход» и «Cache», small/medium layouts.
-  Зависит от SM-401; мини-графики — от SM-303. Today/7d, coverage, updated-at,
-  empty/unknown/stale states и переход к тому же отчёту через deep link.
-  Готово, когда метрики совпадают с GUI, layouts проверены на macOS,
-  а timeline/reload соблюдают системный update budget без обещания секундной свежести.
+- [ ] **SM-402** — Widgets «Usage» и «Cache Hit Rate», small/medium/large layouts.
+  **Статус: реализация в совместном PR #67 готова; проверка в System UI ожидает
+  перезагрузки macOS пользователем.** Зависит от SM-401; мини-графики — от SM-303.
+  Today/7d, coverage, updated-at, empty/unknown/stale states и переход к тому же
+  отчёту через deep link. Реализация и проверки: [отчёт SM-402](reports/SM-402-system-widgets.md).
+  Готово, когда пользователь подтвердит появление widgets в системной галерее и
+  системные layouts проверены на macOS; timeline/reload соблюдают update budget.
 
 ## 5. Адаптация и связь с orchestration
 

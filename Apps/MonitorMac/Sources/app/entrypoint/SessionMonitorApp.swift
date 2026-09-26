@@ -101,6 +101,17 @@ private struct SessionMonitorWindow: View {
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { reportScope.refreshRelativePeriod() }
             }
+            .onOpenURL { url in
+                guard let route = WidgetDeepLinkRoute(url: url) else { return }
+                model.selectSession(nil)
+                switch route {
+                case let .usage(period):
+                    reportScope.selectPreset(period == .today ? .today : .lastSevenDays)
+                case .cacheHitRate:
+                    reportScope.selectPreset(.lastSevenDays)
+                    cacheHitRateWidgetSettings.selectPeriod(.last7Days)
+                }
+            }
     }
 }
 

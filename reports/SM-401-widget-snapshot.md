@@ -4,9 +4,9 @@
 
 Added a privacy-safe, aggregate-only Codable snapshot in the shared core, an
 atomic App Group store, and a macOS WidgetKit extension that reads the snapshot
-without opening the database or importing rollout files. The extension currently
-serves as a small/medium snapshot smoke widget; product layouts and cache/usage
-visualizations remain SM-402.
+without opening the database or importing rollout files. The original snapshot
+smoke view has since been replaced by the Usage and Cache Hit Rate product
+layouts in [SM-402](SM-402-system-widgets.md), delivered in the same PR #67.
 
 The app publishes on startup, explicit imports and updates, watch imports, and
 new observed database revisions. A revision watermark fence retries when an

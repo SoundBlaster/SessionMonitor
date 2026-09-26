@@ -150,7 +150,7 @@ actor SharedReportRuntime: SessionExplorerRuntime {
             writtenWidgetRevision = max(writtenWidgetRevision, snapshot.revision)
             widgetSnapshotReloadRequested = false
             await MainActor.run {
-                WidgetCenter.shared.reloadTimelines(ofKind: WidgetSharedSnapshot.widgetKind)
+                WidgetCenter.shared.reloadAllTimelines()
             }
         } catch {
             // Keep the last complete file; a later import or observed revision retries publication.

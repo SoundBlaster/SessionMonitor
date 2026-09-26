@@ -3,7 +3,8 @@ import Foundation
 /// Aggregate-only data shared with WidgetKit. No session, model, source, or database identity is exposed.
 public struct WidgetSharedSnapshot: Codable, Equatable, Sendable {
     public static let currentSchemaVersion = 1
-    public static let widgetKind = "ru.egormerkushev.session-monitor.widget.snapshot"
+    public static let usageWidgetKind = "ru.egormerkushev.session-monitor.widget.usage"
+    public static let cacheWidgetKind = "ru.egormerkushev.session-monitor.widget.cache-hit-rate"
     public static let appGroupIdentifier = "group.ru.egormerkushev.session-monitor"
 
     public let schemaVersion: Int
@@ -49,7 +50,43 @@ public struct WidgetSharedSnapshot: Codable, Equatable, Sendable {
     }
 }
 
-public enum WidgetUsagePeriod: String, Codable, CaseIterable, Sendable {
+/// Stable, identity-free links from a widget to the matching aggregate report in the app.
+public enum WidgetDeepLinkRoute: Equatable, Sendable {
+    case usage(WidgetUsagePeriod)
+    case cacheHitRate
+
+    public static let scheme = "sessionmonitor"
+
+    public var url: URL? {
+        var components = URLComponents()
+        components.scheme = Self.scheme
+        switch self {
+        case let .usage(period):
+            components.host = "usage"
+            components.queryItems = [URLQueryItem(name: "period", value: period.rawValue)]
+        case .cacheHitRate:
+            components.host = "cache-hit-rate"
+        }
+        return components.url
+    }
+
+    public init?(url: URL) {
+        guard url.scheme == Self.scheme else { return nil }
+        switch url.host {
+        case "usage":
+            guard let rawPeriod = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                .queryItems?.first(where: { $0.name == "period" })?.value,
+                  let period = WidgetUsagePeriod(rawValue: rawPeriod) else { return nil }
+            self = .usage(period)
+        case "cache-hit-rate":
+            self = .cacheHitRate
+        default:
+            return nil
+        }
+    }
+}
+
+public enum WidgetUsagePeriod: String, Codable, CaseIterable, Equatable, Sendable {
     case today
     case last7Days
 }
