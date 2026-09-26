@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-25. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-26. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -54,6 +54,9 @@ merge `7557a2a` (2026-09-21); пользователь проверил инте
 прототипа пользователя; подготовить `.icon` в проекте и подключить её к приложению. Макет:
 [Figma](https://www.figma.com/design/wuFWDUy7V5V8WdyXXcDwmE/SessionMonitor-App-Icon).
 WidgetKit задачи SM-401/SM-402 остаются следующими по roadmap после этого приоритета.
+**Текущая задача: SM-405 — исправить смену цвета Y-axis labels Cache Hit Rate при повторной
+смене темы; реализация в [PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66),
+live-переключение не подтверждено (macOS была заблокирована).**
 
 **SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
 
@@ -411,6 +414,16 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `make lint` — 0 violations. Exported `large-light` fixture визуально подтверждает читаемые
   тёмно-серые подписи на светлой поверхности. Workflow lint, Native checks и CI прошли;
   обе review threads закрыты.
+- [ ] **SM-405** — Исправить цвет Y-axis labels Cache Hit Rate при повторном переключении темы.
+  Встроенные Swift Charts labels могут сохранять неверный цвет после смены темы, тогда как
+  горизонтальные date labels обновляются правильно. Y-axis labels перенесены в SwiftUI overlay
+  и используют ту же semantic palette, что date labels; нативные подписи скрыты, их осевая
+  разметка сохранена. Позиции учитывают вертикальный plot inset.
+  Локально: Xcode build и Cache Widget Lab fixture tests проходят; light/dark snapshots
+  визуально проверены, SwiftLint/FSD без замечаний. Live light → dark → light → dark toggle
+  остаётся неподтверждённым: macOS была заблокирована во время проверки. Завершить после
+  проверки перехода на разблокированном UI. PR: [#66](https://github.com/SoundBlaster/SessionMonitor/pull/66),
+  CI запущен.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
   **Статус: в работе (2026-09-20), ветка `feat/sm-308-anomaly-analytics`.** Реализация
   будет идти вертикальными частями: activity metrics/evidence; наблюдения quota из rollout
