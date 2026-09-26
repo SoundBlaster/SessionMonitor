@@ -3,6 +3,9 @@ options:
   minimumXcodeGenVersion: 2.46.0
   deploymentTarget:
     macOS: "15.0"
+  fileTypes:
+    icon:
+      file: true
 packages:
   SessionMonitorCore:
     path: ../..
@@ -28,7 +31,11 @@ targets:
   MonitorMac:
     type: application
     platform: macOS
-    sources: [Sources]
+    sources:
+      - path: Sources
+      - path: SessionMonitor.icon
+        type: file
+        buildPhase: resources
     settings:
       base:
         PRODUCT_NAME: SessionMonitor
@@ -36,6 +43,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.session-monitor
         INFOPLIST_KEY_CFBundleDisplayName: SessionMonitor
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        ASSETCATALOG_COMPILER_APPICON_NAME: SessionMonitor
         ENABLE_APP_SANDBOX: NO
     dependencies:
       - package: SessionMonitorCore
