@@ -45,7 +45,10 @@ targets:
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         ASSETCATALOG_COMPILER_APPICON_NAME: SessionMonitor
         ENABLE_APP_SANDBOX: NO
+        CODE_SIGN_ENTITLEMENTS: Config/AppGroups.entitlements
     dependencies:
+      - target: SessionMonitorWidgetExtension
+        embed: true
       - package: SessionMonitorCore
         product: MonitorCore
       - package: SessionMonitorCore
@@ -54,6 +57,27 @@ targets:
         product: MonitorPolicies
       - package: SpecificationKit
       - package: NestedA11yIDs
+  SessionMonitorWidgetExtension:
+    type: app-extension
+    platform: macOS
+    info:
+      path: Config/WidgetExtension-Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    sources:
+      - path: WidgetExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.session-monitor.widget
+        PRODUCT_NAME: SessionMonitorWidgetExtension
+        CODE_SIGN_ENTITLEMENTS: Config/AppGroups.entitlements
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - package: SessionMonitorCore
+        product: MonitorCore
   MonitorMacTests:
     type: bundle.unit-test
     platform: macOS
@@ -63,6 +87,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.SessionMonitor.Tests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/SessionMonitor.app/Contents/MacOS/SessionMonitor"
         BUNDLE_LOADER: "$(TEST_HOST)"
+        CODE_SIGNING_ALLOWED: YES
     # Hosted tests resolve package symbols from the app; relinking static packages
     # duplicates GRDB's queue identity and causes runtime thread precondition failures.
     dependencies:
@@ -75,6 +100,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.SessionMonitor.UITests
         TEST_TARGET_NAME: MonitorMac
+        CODE_SIGNING_ALLOWED: YES
     dependencies:
       - target: MonitorMac
 
@@ -83,5 +109,6 @@ schemes:
     build:
       targets:
         MonitorMac: all
+        SessionMonitorWidgetExtension: all
     test:
       targets: [MonitorMacTests, MonitorMacUITests]
