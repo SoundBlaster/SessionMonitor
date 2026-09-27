@@ -219,6 +219,11 @@ public actor SessionMonitor {
     }
 }
 
+public enum WidgetSharedSnapshotBuildError: Error, Equatable {
+    case concurrentImport(revision: Int64)
+    case unsupportedRuntime
+}
+
 public enum MonitorError: Error, LocalizedError {
     case importerBusy
     case notDirectory

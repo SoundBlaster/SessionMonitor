@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-25. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-27. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -49,11 +49,18 @@ merge `7557a2a` (2026-09-21); пользователь проверил инте
 для иерархических accessibility identifiers в macOS UI. UI test проходит в GitHub CI;
 локальная проверка runtime accessibility tree остаётся ограничена повторным запросом Xcode
 разрешить package macros.
-**SM-404 в PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65)**, ветка
-`feat/sm-404-app-icon`: создать иконку SessionMonitor в Figma и Apple Icon Composer на основе
-прототипа пользователя; подготовить `.icon` в проекте и подключить её к приложению. Макет:
-[Figma](https://www.figma.com/design/wuFWDUy7V5V8WdyXXcDwmE/SessionMonitor-App-Icon).
-WidgetKit задачи SM-401/SM-402 остаются следующими по roadmap после этого приоритета.
+**SM-404 доставлена через PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65),
+merge `5bac2fa` (2026-09-26):** иконка SessionMonitor подготовлена в Figma и Apple Icon Composer,
+слои имеют glass effects и подключены к приложению.
+По приоритету пользователя ведётся WidgetKit работа: **SM-401 — открытый
+[PR #67](https://github.com/SoundBlaster/SessionMonitor/pull/67), ветка
+`feat/sm-401-widget-snapshot`; реализация SM-402 добавлена туда же.**
+После включения sandbox у extension PlugInKit зарегистрировал свежую сборку из
+DerivedData. В PR #67 исправлены замечания ревью по версии extension и повторной
+публикации snapshot при сдвиге относительных окон; Gallery-проверка остаётся ожидающей.
+Отдельный follow-up SM-405 находится в открытом
+[PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66); live-переключение темы
+не подтверждено, PR нужно синхронизировать с main перед merge.
 
 **SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
 
@@ -65,7 +72,8 @@ merge `3d28e18` (2026-09-21): проект запрещает Git worktree пр�
 неизменённые файлы читают 0 bytes, append сохраняет состояние decoder между запусками.
 SM-105 переводит рост той же identity на append-only чтение хвоста. SM-103 добавляет
 CLI/native watch; SM-201 добавляет read-only menu bar, SM-202 — app-owned watch controls
-и lifecycle. WidgetKit, TUI и адаптация ещё не реализованы.
+и lifecycle. TUI и адаптация ещё не реализованы; WidgetKit доставляется через
+SM-401/SM-402 выше.
 GitHub repository подключён; `main` отслеживает `origin/main`.
 Первый commit с реализацией создан (SM-702).
 SM-704 доставлена через [PR #1](https://github.com/SoundBlaster/SessionMonitor/pull/1), merge `de7e328`;
@@ -624,13 +632,19 @@ deliverable — WidgetKit extension с App Group в SM-401.
 Подробности — [архитектура widgets](monitor-design.md#системные-widgets).
 
 - [ ] **SM-401** — Shared snapshot и WidgetKit extension с App Group.
-  Зависит от SM-104/SM-301. Публиковать небольшой Codable snapshot атомарно;
+  **Статус: открытый PR [#67](https://github.com/SoundBlaster/SessionMonitor/pull/67), ветка
+  `feat/sm-401-widget-snapshot`.** Зависит от SM-104/SM-301.
+  Публиковать небольшой Codable snapshot атомарно;
   extension читает его без raw logs/второго importer. Проверить entitlements и подпись.
-- [ ] **SM-402** — Widgets «Расход» и «Cache», small/medium layouts.
-  Зависит от SM-401; мини-графики — от SM-303. Today/7d, coverage, updated-at,
-  empty/unknown/stale states и переход к тому же отчёту через deep link.
-  Готово, когда метрики совпадают с GUI, layouts проверены на macOS,
-  а timeline/reload соблюдают системный update budget без обещания секундной свежести.
+  Реализация и локальные проверки: [отчёт SM-401](reports/SM-401-widget-snapshot.md).
+- [ ] **SM-402** — Widgets «Usage» и «Cache Hit Rate», small/medium/large layouts.
+  **Статус: реализация в совместном PR #67 готова; после включения sandbox у
+  extension PlugInKit зарегистрировал свежую сборку. Gallery-проверка ожидает
+  пользователя.** Зависит от SM-401; мини-графики — от SM-303.
+  Today/7d, coverage, updated-at, empty/unknown/stale states и переход к тому же
+  отчёту через deep link. Реализация и проверки: [отчёт SM-402](reports/SM-402-system-widgets.md).
+  Готово, когда пользователь подтвердит появление widgets в системной галерее и
+  системные layouts проверены на macOS; timeline/reload соблюдают update budget.
 
 ## 5. Адаптация и связь с orchestration
 

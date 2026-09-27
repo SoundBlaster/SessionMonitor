@@ -11,8 +11,15 @@ protocol SessionExplorerRuntime: RequestTimelineSource, Sendable {
         period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone,
         accountScope: UsageAccountScope
     ) async throws -> CacheHitRateWidgetReport
+    func widgetSharedSnapshot(generatedAt: Date, timeZone: TimeZone) async throws -> WidgetSharedSnapshot
     func quotaPresentation(query: UsageQuery, generatedAt: Date) async throws -> QuotaPresentationReport
     func accountProfiles() async throws -> [AccountProfile]
+}
+
+extension SessionExplorerRuntime {
+    func widgetSharedSnapshot(generatedAt: Date, timeZone: TimeZone) async throws -> WidgetSharedSnapshot {
+        throw WidgetSharedSnapshotBuildError.unsupportedRuntime
+    }
 }
 
 extension MonitorRuntime.SessionMonitor: SessionExplorerRuntime {}
