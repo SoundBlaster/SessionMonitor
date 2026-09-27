@@ -33,6 +33,28 @@ final class AppWatchControllerTests: XCTestCase {
         XCTAssertEqual(pauseCount, 0)
     }
 
+    func testCompletedImportsPublishWidgetSnapshotOnlyOncePerImport() async throws {
+        let factory = WatchFactory()
+        let callback = ImportCallbackCounter()
+        let controller = AppWatchController(
+            didImport: { await callback.record() },
+            factory: { directory in try await factory.make(directory) }
+        )
+        await controller.start(URL(fileURLWithPath: "/tmp/widget-watch"))
+        let handleValue = await factory.latestHandle
+        let handle = try XCTUnwrap(handleValue)
+
+        await handle.emit(try status(phase: "watching", completedImports: 1))
+        try await eventually { await callback.count == 1 }
+        await handle.emit(try status(phase: "watching", completedImports: 1))
+        await handle.emit(try status(phase: "watching", completedImports: 2))
+        try await eventually { await callback.count == 2 }
+
+        let callbackCount = await callback.count
+        XCTAssertEqual(callbackCount, 2)
+        await controller.stop()
+    }
+
     func testPauseResumeAndStopForwardToTheRuntimeHandle() async throws {
         let factory = WatchFactory()
         let controller = AppWatchController { directory in
@@ -184,6 +206,11 @@ final class AppWatchControllerTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(10))
         }
     }
+}
+
+private actor ImportCallbackCounter {
+    private(set) var count = 0
+    func record() { count += 1 }
 }
 
 private actor WatchFactory {

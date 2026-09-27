@@ -24,6 +24,9 @@ struct AppMenuHost: View {
                         let runtime = try await runtimeLoader.load()
                         return try await runtime.snapshot(query: query)
                     }
+                    if let runtime = try? await runtimeLoader.load() {
+                        await runtime.publishWidgetSnapshotNow()
+                    }
                 }
             },
             startWatch: chooseWatchFolder,

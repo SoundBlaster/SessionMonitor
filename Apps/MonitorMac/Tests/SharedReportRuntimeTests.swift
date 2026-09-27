@@ -100,6 +100,41 @@ final class SharedReportRuntimeTests: XCTestCase {
         try await eventually { await source.terminations == 3 }
     }
 
+    func testNewQueryPublishesWidgetSnapshotWhenDatabaseRevisionIsUnchanged() async throws {
+        let source = StubSharedRuntime()
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = WidgetSharedSnapshotStore(fileURL: directory.appending(path: "widget-snapshot.json"))
+        let runtime = SharedReportRuntime(runtime: source, widgetSnapshotStore: store)
+        let firstQuery = try UsageQuery(since: Date(timeIntervalSince1970: 100),
+                                        until: Date(timeIntervalSince1970: 200))
+        let firstRecorder = SnapshotRecorder()
+        let firstConsumer = consume(await runtime.snapshots(query: firstQuery), into: firstRecorder)
+        try await eventually { await source.snapshotsCalls == 1 }
+        await source.yield(fixtureSnapshot(query: firstQuery, revision: 7), connection: 1)
+        try await eventually { (try? store.read())?.revision == 7 }
+        let firstWidgetSnapshot = try store.read()
+
+        let nextQuery = try UsageQuery(since: Date(timeIntervalSince1970: 200),
+                                       until: Date(timeIntervalSince1970: 300))
+        let nextRecorder = SnapshotRecorder()
+        let nextConsumer = consume(await runtime.snapshots(query: nextQuery), into: nextRecorder)
+        try await eventually { await source.snapshotsCalls == 2 }
+        await source.yield(fixtureSnapshot(query: nextQuery, revision: 7), connection: 2)
+
+        try await eventually {
+            ((try? store.read())?.generatedAt ?? .distantPast) > firstWidgetSnapshot.generatedAt
+        }
+        let nextWidgetSnapshot = try store.read()
+        XCTAssertEqual(nextWidgetSnapshot.revision, firstWidgetSnapshot.revision)
+        XCTAssertGreaterThan(nextWidgetSnapshot.generatedAt, firstWidgetSnapshot.generatedAt)
+
+        firstConsumer.cancel()
+        nextConsumer.cancel()
+        await firstConsumer.value
+        await nextConsumer.value
+    }
+
     func testUnderlyingErrorPropagatesToEverySubscriberWithoutImporting() async throws {
         let source = StubSharedRuntime()
         let runtime = SharedReportRuntime(runtime: source)
@@ -180,6 +215,7 @@ private actor StubSharedRuntime: SessionExplorerRuntime {
     private var continuations: [Int: AsyncThrowingStream<UsageSnapshot, Error>.Continuation] = [:]
     private(set) var calls = Calls()
     private(set) var terminations = 0
+    private var latestRevision: Int64 = 0
 
     var snapshotsCalls: Int { calls.snapshotStreams }
 
@@ -219,6 +255,21 @@ private actor StubSharedRuntime: SessionExplorerRuntime {
 
     func accountProfiles() async throws -> [AccountProfile] { [] }
 
+    func widgetSharedSnapshot(generatedAt: Date, timeZone: TimeZone) async throws -> WidgetSharedSnapshot {
+        let todayStart = generatedAt.addingTimeInterval(-3_600)
+        let weekStart = generatedAt.addingTimeInterval(-7 * 86_400)
+        let today = try WidgetUsagePeriodSnapshot(period: .today, startsAt: todayStart,
+                                                  endsAt: generatedAt, totals: UsageTotals())
+        let week = try WidgetUsagePeriodSnapshot(period: .last7Days, startsAt: weekStart,
+                                                 endsAt: generatedAt, totals: UsageTotals())
+        let cache = try WidgetCachePeriodSnapshot(
+            startsAt: weekStart, endsAt: generatedAt, hitRate: nil, comparisonDeltaPercentagePoints: nil,
+            availability: .noData, sessionCount: 0, buckets: []
+        )
+        return try WidgetSharedSnapshot(generatedAt: generatedAt, timeZoneIdentifier: timeZone.identifier,
+                                         revision: latestRevision, usage: [today, week], cache: cache)
+    }
+
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
         calls.snapshotStreams += 1
         let connection = calls.snapshotStreams
@@ -233,6 +284,7 @@ private actor StubSharedRuntime: SessionExplorerRuntime {
     }
 
     func yield(_ snapshot: UsageSnapshot, connection: Int) {
+        latestRevision = max(latestRevision, snapshot.watermark.revision)
         continuations[connection]?.yield(snapshot)
     }
 
