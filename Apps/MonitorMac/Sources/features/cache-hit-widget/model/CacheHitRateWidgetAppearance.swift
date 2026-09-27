@@ -56,6 +56,8 @@ enum CacheHitRateWidgetLayout {
     static let fullLabelSlotWidth: CGFloat = 32
     static let labelOffset: CGFloat = 12
     static let labelSpace: CGFloat = 24
+    static let yAxisLabelGutter: CGFloat = 28
+    static let yAxisLabelGap: CGFloat = 4
     static let headerSpacing: CGFloat = 8
     static let textSpacing: CGFloat = 3
     static let borderOpacity = 0.12

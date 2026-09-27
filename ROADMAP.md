@@ -52,15 +52,13 @@ merge `7557a2a` (2026-09-21); пользователь проверил инте
 **SM-404 доставлена через PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65),
 merge `5bac2fa` (2026-09-26):** иконка SessionMonitor подготовлена в Figma и Apple Icon Composer,
 слои имеют glass effects и подключены к приложению.
-По приоритету пользователя ведётся WidgetKit работа: **SM-401 — открытый
-[PR #67](https://github.com/SoundBlaster/SessionMonitor/pull/67), ветка
-`feat/sm-401-widget-snapshot`; реализация SM-402 добавлена туда же.**
-После включения sandbox у extension PlugInKit зарегистрировал свежую сборку из
-DerivedData. В PR #67 исправлены замечания ревью по версии extension и повторной
-публикации snapshot при сдвиге относительных окон; Gallery-проверка остаётся ожидающей.
-Отдельный follow-up SM-405 находится в открытом
-[PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66); live-переключение темы
-не подтверждено, PR нужно синхронизировать с main перед merge.
+**SM-401 доставлена через PR [#67](https://github.com/SoundBlaster/SessionMonitor/pull/67),
+merge `3f40ae1` (2026-09-27):** shared WidgetKit snapshot и extension проверены сборкой,
+подписью и регистрацией в PlugInKit. Реализация SM-402 (Usage Summary и Cache Hit Rate)
+включена туда же; системную Gallery ещё нужно проверить на пользовательском Mac.
+**Текущая задача: SM-405 — исправить смену темы для Y-axis labels Cache Hit Rate; правка
+находится в [PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66), ветка
+`fix/sm-405-cache-widget-y-axis-theme`.** Live-переключение темы ранее не было подтверждено.
 
 **SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
 
@@ -419,6 +417,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `make lint` — 0 violations. Exported `large-light` fixture визуально подтверждает читаемые
   тёмно-серые подписи на светлой поверхности. Workflow lint, Native checks и CI прошли;
   обе review threads закрыты.
+- [ ] **SM-405** — Исправить смену темы для Y-axis labels Cache Hit Rate.
+  **Статус: реализация в PR [#66](https://github.com/SoundBlaster/SessionMonitor/pull/66), ветка
+  `fix/sm-405-cache-widget-y-axis-theme`; синхронизация с main разрешает конфликт ROADMAP.**
+  Встроенные Swift Charts labels могли сохранять неверный цвет после смены темы, тогда как
+  горизонтальные date labels обновлялись правильно. Y-axis labels перенесены в SwiftUI overlay
+  и используют ту же semantic palette, что date labels; нативные подписи скрыты, осевая
+  разметка сохранена, позиции учитывают vertical plot inset. Xcode build, Widget Lab fixture
+  tests, SwiftLint/FSD и light/dark snapshots проходили на исходной ревизии PR; live
+  light/dark toggle остаётся неподтверждённым. PR нужно проверить после разрешения конфликта.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
   **Статус: в работе (2026-09-20), ветка `feat/sm-308-anomaly-analytics`.** Реализация
   будет идти вертикальными частями: activity metrics/evidence; наблюдения quota из rollout
@@ -631,12 +638,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
 Пользователь подтвердил WidgetKit widgets на desktop/в Notification Center.
 Подробности — [архитектура widgets](monitor-design.md#системные-widgets).
 
-- [ ] **SM-401** — Shared snapshot и WidgetKit extension с App Group.
-  **Статус: открытый PR [#67](https://github.com/SoundBlaster/SessionMonitor/pull/67), ветка
-  `feat/sm-401-widget-snapshot`.** Зависит от SM-104/SM-301.
-  Публиковать небольшой Codable snapshot атомарно;
-  extension читает его без raw logs/второго importer. Проверить entitlements и подпись.
-  Реализация и локальные проверки: [отчёт SM-401](reports/SM-401-widget-snapshot.md).
+- [x] **SM-401** — Shared snapshot и WidgetKit extension с App Group.
+  Доставлена через PR [#67](https://github.com/SoundBlaster/SessionMonitor/pull/67), merge
+  `3f40ae1` (2026-09-27). Snapshot публикуется атомарно, extension читает его без raw logs
+  и второго importer; entitlements, подпись и PlugInKit registration проверены.
+  Реализация и проверки: [отчёт SM-401](reports/SM-401-widget-snapshot.md).
 - [ ] **SM-402** — Widgets «Usage» и «Cache Hit Rate», small/medium/large layouts.
   **Статус: реализация в совместном PR #67 готова; после включения sandbox у
   extension PlugInKit зарегистрировал свежую сборку. Gallery-проверка ожидает

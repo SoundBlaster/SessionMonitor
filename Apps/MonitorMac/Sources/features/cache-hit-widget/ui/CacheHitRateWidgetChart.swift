@@ -46,6 +46,18 @@ struct CacheHitRateWidgetChart: View {
                                           y: plot.maxY + CacheHitRateWidgetLayout.labelOffset)
                         }
                     }
+                    if family != .small {
+                        ForEach(CacheHitRateWidgetAxis.ticks(for: domain), id: \.self) { tick in
+                            Text(tick.formatted(.number.precision(.fractionLength(0))))
+                                .font(.caption2)
+                                .foregroundStyle(appearance.palette.neutral)
+                                .position(
+                                    x: plot.minX - CacheHitRateWidgetLayout.yAxisLabelGap
+                                        - CacheHitRateWidgetLayout.yAxisLabelGutter / 2,
+                                    y: yAxisPosition(for: tick, plotHeight: plot.height, maxY: plot.maxY)
+                                )
+                        }
+                    }
                 }
             }
             .allowsHitTesting(false)
@@ -118,11 +130,9 @@ struct CacheHitRateWidgetChart: View {
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
                     .foregroundStyle(appearance.palette.grid)
                 AxisValueLabel {
-                    if let level = value.as(Double.self) {
-                        Text(level.formatted(.number.precision(.fractionLength(0))))
-                            .font(.caption2)
-                            .foregroundStyle(appearance.palette.neutral)
-                    }
+                    Text(value.as(Double.self)?.formatted(.number.precision(.fractionLength(0))) ?? "")
+                        .font(.caption2)
+                        .foregroundStyle(.clear)
                 }
             }
         }
@@ -140,6 +150,12 @@ struct CacheHitRateWidgetChart: View {
 
     private var outlierLimit: Int { family == .large ? 4 : family == .medium ? 3 : 2 }
     private func clipped(_ value: Double) -> Double { min(domain.upperBound, max(domain.lowerBound, value)) }
+
+    private func yAxisPosition(for tick: Double, plotHeight: CGFloat, maxY: CGFloat) -> CGFloat {
+        let inset = CacheHitRateWidgetLayout.plotVerticalInset
+        let normalized = (tick - domain.lowerBound) / (domain.upperBound - domain.lowerBound)
+        return maxY - inset - CGFloat(normalized) * (plotHeight - 2 * inset)
+    }
 
     private func dateLabel(_ date: Date) -> String {
         let formatter = DateFormatter()
