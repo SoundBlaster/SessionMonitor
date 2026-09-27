@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-26. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-27. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -56,7 +56,8 @@ merge `5bac2fa` (2026-09-26):** иконка SessionMonitor подготовле
 [PR #67](https://github.com/SoundBlaster/SessionMonitor/pull/67), ветка
 `feat/sm-401-widget-snapshot`; реализация SM-402 добавлена туда же.**
 После включения sandbox у extension PlugInKit зарегистрировал свежую сборку из
-DerivedData. Gallery-проверка остаётся ожидающей; PR #67 обновлён до SM-401/SM-402.
+DerivedData. В PR #67 исправлены замечания ревью по версии extension и повторной
+публикации snapshot при сдвиге относительных окон; Gallery-проверка остаётся ожидающей.
 Отдельный follow-up SM-405 находится в открытом
 [PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66); live-переключение темы
 не подтверждено, PR нужно синхронизировать с main перед merge.

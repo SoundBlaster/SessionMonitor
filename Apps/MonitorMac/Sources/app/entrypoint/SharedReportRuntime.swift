@@ -16,6 +16,7 @@ actor SharedReportRuntime: SessionExplorerRuntime {
     private var observations: [UsageQuery: QueryObservation] = [:]
     private var latestWidgetRevision: Int64 = -1
     private var writtenWidgetRevision: Int64 = -1
+    private var latestWidgetQuery: UsageQuery?
     private var widgetSnapshotTask: Task<Void, Never>?
     private var widgetSnapshotRequested = false
     private var widgetSnapshotReloadRequested = false
@@ -106,12 +107,16 @@ actor SharedReportRuntime: SessionExplorerRuntime {
         observation.latest = value
         observations[query] = observation
         for observer in observation.observers.values { observer.yield(value) }
-        scheduleWidgetSnapshot(revision: value.watermark.revision)
+        scheduleWidgetSnapshot(revision: value.watermark.revision, query: query)
     }
 
-    private func scheduleWidgetSnapshot(revision: Int64) {
-        guard widgetSnapshotStore != nil, revision > writtenWidgetRevision else { return }
-        if widgetSnapshotTask != nil, revision <= latestWidgetRevision { return }
+    private func scheduleWidgetSnapshot(revision: Int64, query: UsageQuery) {
+        guard widgetSnapshotStore != nil else { return }
+        let queryChanged = query != latestWidgetQuery
+        guard revision > writtenWidgetRevision || queryChanged else { return }
+        if queryChanged { widgetSnapshotReloadRequested = true }
+        latestWidgetQuery = query
+        if widgetSnapshotTask != nil, !queryChanged, revision <= latestWidgetRevision { return }
         latestWidgetRevision = max(latestWidgetRevision, revision)
         widgetSnapshotRequested = true
         startWidgetSnapshotTaskIfNeeded()

@@ -70,6 +70,7 @@ targets:
     info:
       path: Config/WidgetExtension-Info.plist
       properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     sources:
