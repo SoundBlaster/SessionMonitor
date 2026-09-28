@@ -45,10 +45,10 @@ evidence, confidence и coverage.
 SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
 merge `7557a2a` (2026-09-21); пользователь проверил интерактивную прокрутку и подтвердил,
 что анимация timeline работает корректно.
-**SM-403 доставлена через PR #64** (merge `282a425`, 2026-09-25): NestedA11yIDs интегрирована
-для иерархических accessibility identifiers в macOS UI. UI test проходит в GitHub CI;
-локальная проверка runtime accessibility tree остаётся ограничена повторным запросом Xcode
-разрешить package macros.
+**Реализация SM-403 доставлена через PR #64** (merge `282a425`, 2026-09-25): NestedA11yIDs
+интегрирована для иерархических accessibility identifiers в macOS UI, UI test проходит
+в GitHub CI. Задача остаётся частичной до проверки runtime accessibility tree; пункт сохранён
+открытым ниже.
 **SM-404 доставлена через PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65),
 merge `5bac2fa` (2026-09-26):** иконка SessionMonitor подготовлена в Figma и Apple Icon Composer,
 слои имеют glass effects и подключены к приложению.
@@ -628,10 +628,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
   агрегированы по импортированному хранилищу и не относятся к выбранной сессии. `make lint` и
   `git diff --check` прошли; ограничений реализации не выявлено.
 
-- [x] **SM-403** — Ввести иерархические accessibility identifiers через NestedA11yIDs.
-  Доставлено через [PR #64](https://github.com/SoundBlaster/SessionMonitor/pull/64), merge
-  `282a425` (2026-09-25); UI test прошёл в GitHub CI. Локальная проверка runtime accessibility
-  tree отдельно не зафиксирована; это оставлено как verification limitation, не как blocker.
+- [ ] **SM-403** — Ввести иерархические accessibility identifiers через NestedA11yIDs.
+  Реализация доставлена через [PR #64](https://github.com/SoundBlaster/SessionMonitor/pull/64),
+  merge `282a425` (2026-09-25); UI test прошёл в GitHub CI. Критерий завершения требует
+  проверить runtime accessibility tree на неожиданную группировку; такая проверка не выполнена.
+  Отметить задачу завершённой после этой проверки.
 - [x] **SM-404** — Создать и подключить иконку SessionMonitor через Figma и Apple Icon Composer.
   Доставлено через [PR #65](https://github.com/SoundBlaster/SessionMonitor/pull/65), merge
   `5bac2fa` (2026-09-26). Редактируемый Figma-макет и нативный `.icon` включены в проект,
