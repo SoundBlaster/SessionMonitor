@@ -59,6 +59,7 @@ reviewers можно добавить отдельно. Фактические �
 | --- | --- |
 | Workflow lint | `ubuntu-24.04`, actionlint и ShellCheck для CI scripts |
 | Native checks | `xcode-27`, `make ci`: CLI/app builds, SwiftLint, FSD positive/negative, core/app tests и CLI process smoke |
+| Xcode 26.0 compatibility build | `macos-26` с выбранным Xcode 26.0.1; собирает `MonitorMac` для проверки compile-time API availability fallback |
 | CI | Итоговый required check для всех обязательных jobs |
 
 Native runner использует Xcode 27/Swift 6.4, соответствующий текущему development

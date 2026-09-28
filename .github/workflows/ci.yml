@@ -77,10 +77,35 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  xcode26-compatibility:
+    name: Xcode 26.0 compatibility build
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      GIT_TERMINAL_PROMPT: 0
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Select Xcode 26.0.1
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: '26.0.1'
+      - name: Identify toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Install pinned native build tools
+        run: |
+          bash scripts/ci/install-tools.sh native
+          echo "$PWD/.build/ci-tools/bin" >> "$GITHUB_PATH"
+      - name: Build macOS app with Xcode 26.0 SDK
+        run: make build-macos DERIVED_DATA=.build/xcode-26-compat
+
   ci:
     name: CI
     if: ${{ always() }}
-    needs: [workflow, native]
+    needs: [workflow, native, xcode26-compatibility]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -88,6 +113,8 @@ jobs:
         env:
           WORKFLOW_RESULT: ${{ needs.workflow.result }}
           NATIVE_RESULT: ${{ needs.native.result }}
+          XCODE26_RESULT: ${{ needs.xcode26-compatibility.result }}
         run: |
           test "$WORKFLOW_RESULT" = success
           test "$NATIVE_RESULT" = success
+          test "$XCODE26_RESULT" = success
