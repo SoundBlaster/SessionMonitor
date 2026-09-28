@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-27. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-28. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -45,10 +45,10 @@ evidence, confidence и coverage.
 SM-315 доставлена через [PR #39](https://github.com/SoundBlaster/SessionMonitor/pull/39),
 merge `7557a2a` (2026-09-21); пользователь проверил интерактивную прокрутку и подтвердил,
 что анимация timeline работает корректно.
-**SM-403 доставлена через PR #64** (merge `282a425`, 2026-09-25): NestedA11yIDs интегрирована
-для иерархических accessibility identifiers в macOS UI. UI test проходит в GitHub CI;
-локальная проверка runtime accessibility tree остаётся ограничена повторным запросом Xcode
-разрешить package macros.
+**Реализация SM-403 доставлена через PR #64** (merge `282a425`, 2026-09-25): NestedA11yIDs
+интегрирована для иерархических accessibility identifiers в macOS UI, UI test проходит
+в GitHub CI. Задача остаётся частичной до проверки runtime accessibility tree; пункт сохранён
+открытым ниже.
 **SM-404 доставлена через PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65),
 merge `5bac2fa` (2026-09-26):** иконка SessionMonitor подготовлена в Figma и Apple Icon Composer,
 слои имеют glass effects и подключены к приложению.
@@ -56,9 +56,14 @@ merge `5bac2fa` (2026-09-26):** иконка SessionMonitor подготовле
 merge `3f40ae1` (2026-09-27):** shared WidgetKit snapshot и extension проверены сборкой,
 подписью и регистрацией в PlugInKit. Реализация SM-402 (Usage Summary и Cache Hit Rate)
 включена туда же; системную Gallery ещё нужно проверить на пользовательском Mac.
-**Текущая задача: SM-405 — исправить смену темы для Y-axis labels Cache Hit Rate; правка
-находится в [PR #66](https://github.com/SoundBlaster/SessionMonitor/pull/66), ветка
-`fix/sm-405-cache-widget-y-axis-theme`.** Live-переключение темы ранее не было подтверждено.
+**SM-405 доставлена через PR [#66](https://github.com/SoundBlaster/SessionMonitor/pull/66),
+merge `e22e27b` (2026-09-27):** Y-axis labels Cache Hit Rate используют SwiftUI overlay
+с той же semantic palette, что и горизонтальные подписи дат. PR и обязательный CI прошли;
+пользователь сообщил, что после исправления проблема, похоже, устранена. Полный цикл
+повторного light/dark переключения отдельным артефактом не зафиксирован.
+**Открытая пользовательская проверка: SM-402 — появление и системный layout widgets
+в macOS Widget Gallery.** Реализация доставлена совместно с SM-401 в PR #67; регистрацию
+свежего extension подтвердили через PlugInKit, Gallery acceptance остаётся незавершённым.
 
 **SM-314 доставлена через [PR #36](https://github.com/SoundBlaster/SessionMonitor/pull/36), merge `4fa6231` (2026-09-21):** стабильная Y-шкала request timeline по полным данным сессии при scroll/zoom.
 
@@ -417,15 +422,16 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `make lint` — 0 violations. Exported `large-light` fixture визуально подтверждает читаемые
   тёмно-серые подписи на светлой поверхности. Workflow lint, Native checks и CI прошли;
   обе review threads закрыты.
-- [ ] **SM-405** — Исправить смену темы для Y-axis labels Cache Hit Rate.
-  **Статус: реализация в PR [#66](https://github.com/SoundBlaster/SessionMonitor/pull/66), ветка
-  `fix/sm-405-cache-widget-y-axis-theme`; синхронизация с main разрешает конфликт ROADMAP.**
+- [x] **SM-405** — Исправить смену темы для Y-axis labels Cache Hit Rate.
+  Доставлено через PR [#66](https://github.com/SoundBlaster/SessionMonitor/pull/66), merge
+  `e22e27b` (2026-09-27). Обязательный GitHub CI прошёл.
   Встроенные Swift Charts labels могли сохранять неверный цвет после смены темы, тогда как
   горизонтальные date labels обновлялись правильно. Y-axis labels перенесены в SwiftUI overlay
   и используют ту же semantic palette, что date labels; нативные подписи скрыты, осевая
   разметка сохранена, позиции учитывают vertical plot inset. Xcode build, Widget Lab fixture
   tests, SwiftLint/FSD и light/dark snapshots проходили на исходной ревизии PR; live
-  light/dark toggle остаётся неподтверждённым. PR нужно проверить после разрешения конфликта.
+  light/dark snapshots и fixture tests прошли; после сборки пользователь сообщил, что баг,
+  похоже, исправлен. Полный повторный light/dark toggle не приложен.
 - [ ] **SM-308** — Дополнительная статистика и объяснимое детектирование аномалий расхода.
   **Статус: в работе (2026-09-20), ветка `feat/sm-308-anomaly-analytics`.** Реализация
   будет идти вертикальными частями: activity metrics/evidence; наблюдения quota из rollout
@@ -623,15 +629,18 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `git diff --check` прошли; ограничений реализации не выявлено.
 
 - [ ] **SM-403** — Ввести иерархические accessibility identifiers через NestedA11yIDs.
-  Статус: доставлена через [PR #64](https://github.com/SoundBlaster/SessionMonitor/pull/64),
-  merge `282a425` (2026-09-25). UI test проходит в GitHub CI. Локальная проверка runtime
-  accessibility tree требует отдельного повтора после решения Xcode package macro approval.
-- [ ] **SM-404** — Создать и подключить иконку SessionMonitor через Figma и Apple Icon Composer.
-  Статус: PR [#65](https://github.com/SoundBlaster/SessionMonitor/pull/65), CI выполняется.
-  Основа — монохромный график диапазонов из пользовательского прототипа. Сохранить исходный
-  редактируемый макет Figma и нативный `.icon` в проекте; проверить light/dark/mono presentation,
-  app target integration и отображение в Xcode. Готово, когда иконка подключена через canonical
-  XcodeGen manifest и native build/CI подтверждают asset.
+  Реализация доставлена через [PR #64](https://github.com/SoundBlaster/SessionMonitor/pull/64),
+  merge `282a425` (2026-09-25); UI test прошёл в GitHub CI. Критерий завершения требует
+  проверить runtime accessibility tree на неожиданную группировку; такая проверка не выполнена.
+  Отметить задачу завершённой после этой проверки.
+- [x] **SM-404** — Создать и подключить иконку SessionMonitor через Figma и Apple Icon Composer.
+  Доставлено через [PR #65](https://github.com/SoundBlaster/SessionMonitor/pull/65), merge
+  `5bac2fa` (2026-09-26). Редактируемый Figma-макет и нативный `.icon` включены в проект,
+  glass effects настроены для bars, засечек и точек, иконка подключена через canonical XcodeGen
+  manifest и видна в настройках App Icon в Xcode. Default, Dark и Mono appearance проверены
+  в Icon Composer. Отчёт отмечает незавершённую синхронизацию обновлённой палитры обратно в Figma;
+  исходный макет доступен, но сейчас может показывать прежнюю палитру. Подробности и проверки:
+  [отчёт SM-404](reports/SM-404-app-icon.md).
 
 ## 4. Системные macOS widgets
 
