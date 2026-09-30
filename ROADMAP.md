@@ -1,18 +1,15 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-28. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-09-30. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
 
-**SM-406 подготовлена к PR (2026-09-28):** SwiftUI `ToolbarContent.visibilityPriority`
-теперь изолирована `#if compiler(>=6.2.1)`; старый toolchain получает прежний toolbar
-layout, новый сохраняет приоритеты с runtime `#available(macOS 26.1, *)`. Xcode MCP
-собрал `MonitorMac`, `make lint lint-architecture` и `git diff --check` прошли. PR
-[#69](https://github.com/SoundBlaster/SessionMonitor/pull/69) открыт; CI выполняется.
-В PR добавлен required build job на Xcode 26.0.1, чтобы проверить старый SDK в CI;
-локально Xcode 26.0 недоступен.
+**SM-406 доставлена через PR [#69](https://github.com/SoundBlaster/SessionMonitor/pull/69),**
+merge `448c40d` (2026-09-30): `ToolbarContent.visibilityPriority` изолирована
+`#if compiler(>=6.2.1)` с runtime fallback для macOS 26.0. Xcode MCP build, GUI lint/FSD,
+Workflow lint и обязательная Xcode 26.0.1 compatibility build прошли; review threads отсутствуют.
 
 SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
 merge `e7abca5`; SM-318 — через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
@@ -708,15 +705,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 7. Сопровождение и доставка
 
-- [ ] **SM-406** — Сохранить сборку на macOS 26.0 SDK при использовании
+- [x] **SM-406** — Сохранить сборку на macOS 26.0 SDK при использовании
   `ToolbarContent.visibilityPriority`, доступного в macOS 26.1 SDK. Добавить
   compile-time fallback, который не ссылается на новый API для старого компилятора;
   runtime `#available(macOS 26.1, *)` оставить для запуска на поддерживаемой ОС.
-  Статус: реализация подготовлена 2026-09-28. Xcode MCP `BuildProject` для `MonitorMac`,
-  `make lint lint-architecture` и `git diff --check` прошли. Старый Xcode 26.0 SDK
-  локально недоступен; PR добавляет обязательную Xcode 26.0.1 compile compatibility build.
-  [PR #69](https://github.com/SoundBlaster/SessionMonitor/pull/69) открыт; CI выполняется.
-  После review и merge обновить статус.
+  Готово 2026-09-30 через PR [#69](https://github.com/SoundBlaster/SessionMonitor/pull/69),
+  merge `448c40d`: Xcode MCP `BuildProject`, `make lint lint-architecture`, actionlint,
+  `git diff --check`, `Workflow lint`, `Native checks`, `Xcode 26.0 compatibility build` и
+  required `CI` прошли; review threads отсутствуют. PR содержит отдельную обязательную сборку
+  на Xcode 26.0.1; локальный Xcode 26.0 недоступен.
 
 - [ ] **SM-319** — Сделать Inspector отдельной кнопкой-действием в верхнем toolbar.
   Статус: частично реализована через PR #52 (merge `7ce00fd`, 2026-09-23): добавлена
