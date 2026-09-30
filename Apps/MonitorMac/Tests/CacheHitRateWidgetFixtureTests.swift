@@ -58,16 +58,20 @@ final class CacheHitRateWidgetFixtureTests: XCTestCase {
                    palette: .monochrome)
         try render(.reference, family: .medium, width: 320, scheme: .light, name: "medium-monochrome-light",
                    palette: .monochrome)
+        try render(.reference, family: .medium, width: 760, scheme: .dark, name: "embedded-sidebar-wide",
+                   containerStyle: .embedded)
     }
 
     @MainActor
     private func render(_ fixture: CacheHitRateWidgetFixture, family: CacheHitRateWidgetAppearance.Family,
                         width: CGFloat, scheme: ColorScheme, name: String,
-                        palette: UsageChartPalette = .system) throws {
+                        palette: UsageChartPalette = .system,
+                        containerStyle: CacheHitRateWidgetAppearance.ContainerStyle = .card) throws {
         let appearance = CacheHitRateWidgetAppearance(
             palette: CacheHitRateWidgetAppearance.Palette(chart: palette), copy: .default
         )
-        let view = CacheHitRateWidget(report: fixture.report, family: family, appearance: appearance)
+        let view = CacheHitRateWidget(report: fixture.report, family: family, appearance: appearance,
+                                      containerStyle: containerStyle)
             .frame(width: width).environment(\.colorScheme, scheme).environment(\.locale, Locale(identifier: "en_US"))
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2

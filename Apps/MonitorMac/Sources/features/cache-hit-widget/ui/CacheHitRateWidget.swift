@@ -64,27 +64,35 @@ struct CacheHitRateWidget: View {
 
     @ViewBuilder
     private var content: some View {
-        if let report {
-            VStack(alignment: .leading, spacing: 10) {
-                CacheHitRateWidgetHeader(report: report, family: family, appearance: appearance)
-                switch report.availability {
-                case .available:
-                    CacheHitRateWidgetChart(report: report, family: family, appearance: appearance)
-                    if family == .large { footer(report) }
-                case .partialCoverage:
-                    unavailableState(report, message: "Cache coverage is partial")
-                case .notApplicable:
-                    unavailableState(report, message: "Cache is not applicable")
-                case .noData:
-                    unavailableState(report, message: appearance.copy.noDataMessage)
+        Group {
+            if let report {
+                VStack(alignment: .leading, spacing: 10) {
+                    CacheHitRateWidgetHeader(report: report, family: family, appearance: appearance)
+                    switch report.availability {
+                    case .available:
+                        CacheHitRateWidgetChart(
+                            report: report,
+                            family: family,
+                            appearance: appearance,
+                            preservesAspectRatio: containerStyle == .card
+                        )
+                        if family == .large { footer(report) }
+                    case .partialCoverage:
+                        unavailableState(report, message: "Cache coverage is partial")
+                    case .notApplicable:
+                        unavailableState(report, message: "Cache is not applicable")
+                    case .noData:
+                        unavailableState(report, message: appearance.copy.noDataMessage)
+                    }
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(appearance.copy.title).font(.headline)
+                    unavailableState(nil, message: appearance.copy.noDataMessage)
                 }
             }
-        } else {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(appearance.copy.title).font(.headline)
-                unavailableState(nil, message: appearance.copy.noDataMessage)
-            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func footer(_ report: CacheHitRateWidgetReport) -> some View {

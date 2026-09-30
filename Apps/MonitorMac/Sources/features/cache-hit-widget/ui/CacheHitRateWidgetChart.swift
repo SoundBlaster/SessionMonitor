@@ -7,6 +7,7 @@ struct CacheHitRateWidgetChart: View {
     let report: CacheHitRateWidgetReport
     let family: CacheHitRateWidgetAppearance.Family
     let appearance: CacheHitRateWidgetAppearance
+    let preservesAspectRatio: Bool
 
     private var slots: [CacheHitRateWidgetSlot] { CacheHitRateWidgetChartPresentation.slots(for: report) }
     private var domain: ClosedRange<Double> { CacheHitRateWidgetAxis.domain(for: report.buckets) }
@@ -64,9 +65,14 @@ struct CacheHitRateWidgetChart: View {
             .accessibilityHidden(true)
         }
         .chartPlotStyle { plot in
-            plot.aspectRatio(CacheHitRateWidgetLayout.chartAspectRatio, contentMode: .fit)
+            if preservesAspectRatio {
+                plot.aspectRatio(CacheHitRateWidgetLayout.chartAspectRatio, contentMode: .fit)
+            } else {
+                plot.frame(maxWidth: .infinity)
+            }
         }
         .padding(.bottom, CacheHitRateWidgetLayout.labelSpace)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityRepresentation {
             VStack {
                 ForEach(slots) { slot in
