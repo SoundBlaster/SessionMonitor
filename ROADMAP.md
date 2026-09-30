@@ -11,6 +11,10 @@ merge `448c40d` (2026-09-30): `ToolbarContent.visibilityPriority` изолиро
 `#if compiler(>=6.2.1)` с runtime fallback для macOS 26.0. Xcode MCP build, GUI lint/FSD,
 Workflow lint и обязательная Xcode 26.0.1 compatibility build прошли; review threads отсутствуют.
 
+**Следующий шаг — SM-402:** пользовательская проверка появления Usage и Cache Hit Rate
+в системной Widget Gallery и системных layouts. Свежая extension зарегистрирована через
+PlugInKit, но Gallery acceptance ещё не подтверждён.
+
 SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
 merge `e7abca5`; SM-318 — через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
 merge `9b8a491`; SM-708 — через [PR #48](https://github.com/SoundBlaster/SessionMonitor/pull/48),
