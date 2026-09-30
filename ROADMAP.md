@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**Текущий приоритет — SM-408:** Sidebar Cache Hit Rate следует общему периоду
+**Текущий приоритет — SM-408, PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72):** Sidebar Cache Hit Rate следует общему периоду
 отчёта; Today — локальная полночь и часовые buckets. Реализовано, локальные новые
 tests не запускались по указанию пользователя; доставка через PR, проверки на CI.
 SM-407 остаётся в отдельном PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71).
@@ -829,7 +829,7 @@ visual smoke и точная parity семи usage totals. Локальные lo
 сюда с приоритетом, зависимостями и проверяемым критерием готовности.
 
 - [ ] **SM-408** — Связать Sidebar Cache Hit Rate с выбранным периодом отчёта.
-  **Статус: реализовано, ожидает CI/review.** Today: локальный календарный день и часовые buckets,
+  **Статус: PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72), ожидает CI/review.** Today: локальный календарный день и часовые buckets,
   локализованные подписи; 7/30 дней: границы общего query. All Time использует
   период настроек виджета. Проверки: фильтрация, смена периода/account, DST, labels.
   2026-09-30: общий query передаётся через GUI/runtime в builder; полный query
