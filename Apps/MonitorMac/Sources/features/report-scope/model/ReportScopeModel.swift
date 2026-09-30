@@ -91,7 +91,8 @@ final class ReportScopeModel {
         let restoredPreset = defaults.string(forKey: StorageKey.preset)
             .flatMap(PeriodPreset.init(rawValue:)) ?? .all
         let storedTimeZone = defaults.string(forKey: StorageKey.timeZone)
-        let restoredTimeZone = identifiers.contains(storedTimeZone ?? "") ? storedTimeZone ?? "UTC" : "UTC"
+        let restoredTimeZone = restoredPreset == .today ? currentTimeZone.identifier
+            : identifiers.contains(storedTimeZone ?? "") ? storedTimeZone ?? "UTC" : "UTC"
         let restoredAccountSelection = Self.restoreAccountSelection(defaults.string(forKey: StorageKey.account))
         accountSelection = restoredAccountSelection
         preset = restoredPreset
@@ -145,6 +146,11 @@ final class ReportScopeModel {
     func selectPreset(_ value: PeriodPreset) {
         guard value != preset else { return }
         preset = value
+        if value == .today {
+            // Today opens on the user's local day, rather than a previously selected UTC day.
+            timeZoneIdentifier = timeZoneIdentifiers.last ?? TimeZone.current.identifier
+            defaults.set(timeZoneIdentifier, forKey: StorageKey.timeZone)
+        }
         defaults.set(value.rawValue, forKey: StorageKey.preset)
         resolveQuery()
     }

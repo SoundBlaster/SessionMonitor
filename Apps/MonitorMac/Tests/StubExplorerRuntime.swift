@@ -21,6 +21,7 @@ actor StubExplorerRuntime: SessionExplorerRuntime {
     private var delayedQuotaContinuation: CheckedContinuation<QuotaPresentationReport, Never>?
     private var delayedQuotaStarted = false
     private var delayedQuotaStartContinuation: CheckedContinuation<Void, Never>?
+    private(set) var lastCacheQuery: UsageQuery?
     var observerCount: Int { observers.count }
     var importedDirectories: [URL] { importedDirectoryValues }
 
@@ -84,9 +85,10 @@ actor StubExplorerRuntime: SessionExplorerRuntime {
 
     func cacheHitRateWidget(
         period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone,
-        accountScope: UsageAccountScope
+        accountScope: UsageAccountScope, query: UsageQuery?
     ) -> CacheHitRateWidgetReport {
-        CacheHitRateWidgetBuilder.build(
+        lastCacheQuery = query
+        return CacheHitRateWidgetBuilder.build(
             observations: [], period: period, referenceDate: referenceDate, timeZone: timeZone
         )
     }

@@ -42,10 +42,10 @@ actor SharedReportRuntime: SessionExplorerRuntime {
 
     func cacheHitRateWidget(
         period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone,
-        accountScope: UsageAccountScope
+        accountScope: UsageAccountScope, query: UsageQuery?
     ) async throws -> CacheHitRateWidgetReport {
         try await runtime.cacheHitRateWidget(period: period, referenceDate: referenceDate,
-                                             timeZone: timeZone, accountScope: accountScope)
+                                             timeZone: timeZone, accountScope: accountScope, query: query)
     }
 
     func widgetSharedSnapshot(generatedAt: Date, timeZone: TimeZone) async throws -> WidgetSharedSnapshot {

@@ -10,6 +10,7 @@ struct CacheHitRateWidget: View {
     let family: CacheHitRateWidgetAppearance.Family
     let containerStyle: CacheHitRateWidgetAppearance.ContainerStyle
     let appearance: CacheHitRateWidgetAppearance
+    let periodTitle: String?
     let onOpenAnalytics: (() -> Void)?
 
     init(
@@ -17,12 +18,14 @@ struct CacheHitRateWidget: View {
         family: CacheHitRateWidgetAppearance.Family,
         appearance: CacheHitRateWidgetAppearance = .default,
         containerStyle: CacheHitRateWidgetAppearance.ContainerStyle = .card,
+        periodTitle: String? = nil,
         onOpenAnalytics: (() -> Void)? = nil
     ) {
         self.report = report
         self.family = family
         self.appearance = appearance
         self.containerStyle = containerStyle
+        self.periodTitle = periodTitle
         self.onOpenAnalytics = onOpenAnalytics
     }
 
@@ -67,7 +70,8 @@ struct CacheHitRateWidget: View {
         Group {
             if let report {
                 VStack(alignment: .leading, spacing: 10) {
-                    CacheHitRateWidgetHeader(report: report, family: family, appearance: appearance)
+                    CacheHitRateWidgetHeader(report: report, family: family, appearance: appearance,
+                                             periodTitle: periodTitle)
                     switch report.availability {
                     case .available:
                         CacheHitRateWidgetChart(
@@ -143,7 +147,7 @@ struct CacheHitRateWidget: View {
         guard let report else { return appearance.copy.noDataMessage }
         guard let rate = report.periodCacheHitRate else { return unavailableDescription(report) }
         let delta = report.comparisonDeltaPercentagePoints.map(deltaLabel) ?? "No previous comparison"
-        return "Cache hit rate \(percentLabel(rate)) during \(periodLabel(report.period)), \(delta)."
+        return "Cache hit rate \(percentLabel(rate)) during \(periodTitle ?? periodLabel(report.period)), \(delta)."
     }
 
     private func unavailableDescription(_ report: CacheHitRateWidgetReport?) -> String {

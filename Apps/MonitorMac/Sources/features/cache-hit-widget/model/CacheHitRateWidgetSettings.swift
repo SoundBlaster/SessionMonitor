@@ -37,7 +37,7 @@ enum CacheHitRateWidgetLabelFormat {
 
         switch period {
         case .last24Hours:
-            formatter.setLocalizedDateFormatFromTemplate("j")
+            formatter.setLocalizedDateFormatFromTemplate("jmm")
         case .last7Days, .last14Days, .last30Days:
             formatter.setLocalizedDateFormatFromTemplate(family == .small ? "EEEEE" : "EEE")
         }

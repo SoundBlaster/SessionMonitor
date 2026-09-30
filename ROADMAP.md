@@ -6,6 +6,11 @@
 
 ## Текущая точка
 
+**Текущий приоритет — SM-408:** Sidebar Cache Hit Rate следует общему периоду
+отчёта; Today — локальная полночь и часовые buckets. Реализовано, локальные новые
+tests не запускались по указанию пользователя; доставка через PR, проверки на CI.
+SM-407 остаётся в отдельном PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71).
+
 **SM-406 доставлена через PR [#69](https://github.com/SoundBlaster/SessionMonitor/pull/69),**
 merge `448c40d` (2026-09-30): `ToolbarContent.visibilityPriority` изолирована
 `#if compiler(>=6.2.1)` с runtime fallback для macOS 26.0. Xcode MCP build, GUI lint/FSD,
@@ -822,3 +827,16 @@ visual smoke и точная parity семи usage totals. Локальные lo
 Полный marketplace профилей, remote sync, универсальный multi-provider monitor и
 автономный optimizer не входят в текущий MVP. Новые требования сначала добавляются
 сюда с приоритетом, зависимостями и проверяемым критерием готовности.
+
+- [ ] **SM-408** — Связать Sidebar Cache Hit Rate с выбранным периодом отчёта.
+  **Статус: реализовано, ожидает CI/review.** Today: локальный календарный день и часовые buckets,
+  локализованные подписи; 7/30 дней: границы общего query. All Time использует
+  период настроек виджета. Проверки: фильтрация, смена периода/account, DST, labels.
+  2026-09-30: общий query передаётся через GUI/runtime в builder; полный query
+  входит в task identity и защищает от поздних ответов. Today выбирает local timezone
+  при выборе/восстановлении; labels локализованы. Добавлены regression tests на
+  границы, gaps, 7/30 дней, DST (23/25 часов), scope forwarding и light/dark renders.
+  MCP BuildProject успешен; SwiftLint/FSD/architecture regression passed до последней
+  правки Today restoration. Новые tests и повторные проверки не запускались по
+  указанию пользователя. Signed archive подтвердил работу system widget snapshot
+  по пользовательской проверке; system widgets сохраняют собственный период.

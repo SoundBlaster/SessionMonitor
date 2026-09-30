@@ -30,9 +30,9 @@ final class ReportScopeTests: XCTestCase {
                 currentTimeZone: requiredTimeZone("Europe/Moscow"),
                 now: { now }
             )
-            model.selectTimeZone("Europe/Moscow")
-
+            // Today must choose local midnight even when the initial scope is UTC.
             model.selectPreset(.today)
+            XCTAssertEqual(model.timeZoneIdentifier, "Europe/Moscow")
             XCTAssertEqual(model.query.since, date("2025-09-11T21:00:00Z"))
             XCTAssertEqual(model.query.until, date("2025-09-12T21:00:00Z"))
             model.selectPreset(.lastSevenDays)
@@ -40,6 +40,17 @@ final class ReportScopeTests: XCTestCase {
             model.selectPreset(.lastThirtyDays)
             XCTAssertEqual(model.query.since, date("2025-08-13T21:00:00Z"))
             XCTAssertEqual(model.query.until, date("2025-09-12T21:00:00Z"))
+        }
+    }
+
+    func testRestoredTodayUsesCurrentLocalDayInsteadOfOldUTCSelection() {
+        withDefaults { defaults in
+            defaults.set("today", forKey: "reportScope.periodPreset")
+            defaults.set("UTC", forKey: "reportScope.timeZoneIdentifier")
+            let model = ReportScopeModel(defaults: defaults,
+                currentTimeZone: requiredTimeZone("Europe/Moscow"), now: { self.date("2026-09-30T09:30:00Z") })
+            XCTAssertEqual(model.timeZoneIdentifier, "Europe/Moscow")
+            XCTAssertEqual(model.query.since, date("2026-09-29T21:00:00Z"))
         }
     }
 
