@@ -11,10 +11,10 @@ merge `448c40d` (2026-09-30): `ToolbarContent.visibilityPriority` изолиро
 `#if compiler(>=6.2.1)` с runtime fallback для macOS 26.0. Xcode MCP build, GUI lint/FSD,
 Workflow lint и обязательная Xcode 26.0.1 compatibility build прошли; review threads отсутствуют.
 
-**Текущий приоритет — SM-407 (в работе):** исправить встроенный график Cache Hit Rate,
-который из-за 16:9 ограничения не заполняет доступную ширину sidebar. Проверить
-адаптивную компоновку на реальной ширине sidebar и сохранить 16:9 для card/widget preview.
-После PR вернуться к SM-402: пользовательская проверка появления Usage и Cache Hit Rate
+**Текущий приоритет — SM-407, открыт PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71):**
+embedded Cache Hit Rate chart заполняет ширину 760 pt в Xcode preview; 16:9 сохранён для
+standalone card preview. Локальные GUI checks прошли; обязательный CI ещё не проверялся.
+После merge вернуться к SM-402: пользовательская проверка появления Usage и Cache Hit Rate
 в системной Widget Gallery и системных layouts.
 
 SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
@@ -712,11 +712,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
 ## 7. Сопровождение и доставка
 
 - [ ] **SM-407** — Растягивать встроенный Cache Hit Rate chart на доступную ширину.
-  Статус: в работе (2026-09-30). В sidebar chart останавливается примерно посередине
+  Статус: реализация в PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71), открыт
+  2026-09-30; CI status ещё не проверялся. В sidebar chart останавливается примерно посередине
   контейнера; фиксированный aspect ratio `16:9` внутри plot подбирает ширину от высоты.
   Встроенный вариант должен занимать ширину родителя, сохраняя прежнее соотношение для
-  самостоятельных card/widget previews. Готово, когда layout подтверждён визуально на
-  sidebar, а GUI build/lint/FSD и затронутые тесты проходят. Доставка обязательна через PR.
+  самостоятельных card/widget previews. Embedded Xcode preview подтвердил полную ширину;
+  Xcode MCP `BuildProject`, `testRenderFixtureMatrix()` (1/1), `make lint lint-architecture`
+  (0 violations/errors/warnings), `git diff --check` прошли. Остаются review, обязательный
+  CI и merge; после этого пункт можно закрыть.
 
 - [x] **SM-406** — Сохранить сборку на macOS 26.0 SDK при использовании
   `ToolbarContent.visibilityPriority`, доступного в macOS 26.1 SDK. Добавить
