@@ -93,6 +93,9 @@ final class ReportScopeModel {
         let storedTimeZone = defaults.string(forKey: StorageKey.timeZone)
         let restoredTimeZone = restoredPreset == .today ? currentTimeZone.identifier
             : identifiers.contains(storedTimeZone ?? "") ? storedTimeZone ?? "UTC" : "UTC"
+        if restoredPreset == .today, storedTimeZone != restoredTimeZone {
+            defaults.set(restoredTimeZone, forKey: StorageKey.timeZone)
+        }
         let restoredAccountSelection = Self.restoreAccountSelection(defaults.string(forKey: StorageKey.account))
         accountSelection = restoredAccountSelection
         preset = restoredPreset
