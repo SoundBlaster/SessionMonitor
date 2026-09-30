@@ -8,6 +8,7 @@ struct SessionExplorerToolbar: ToolbarContent {
 
     @ToolbarContentBuilder
     var body: some ToolbarContent {
+#if compiler(>=6.2.1)
         if #available(macOS 26.1, *) {
             secondaryActions.visibilityPriority(.low)
             accountScope.visibilityPriority(.high)
@@ -15,6 +16,10 @@ struct SessionExplorerToolbar: ToolbarContent {
             secondaryActions
             accountScope
         }
+#else
+        secondaryActions
+        accountScope
+#endif
     }
 
     @ToolbarContentBuilder
@@ -57,11 +62,15 @@ struct SessionExplorerInspectorToolbar: ToolbarContent {
 
     @ToolbarContentBuilder
     var body: some ToolbarContent {
+#if compiler(>=6.2.1)
         if #available(macOS 26.1, *) {
             inspectorToggle.visibilityPriority(.high)
         } else {
             inspectorToggle
         }
+#else
+        inspectorToggle
+#endif
     }
 
     private var inspectorToggle: some ToolbarContent {
