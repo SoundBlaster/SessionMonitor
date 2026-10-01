@@ -70,4 +70,14 @@ struct CacheWidgetLabPage: View {
 }
 
 #Preview("Widget Lab") { CacheWidgetLabPage() }
+
+#Preview("Embedded sidebar · responsive width") {
+    CacheHitRateWidget(
+        report: CacheHitRateWidgetFixture.reference.report,
+        family: .medium,
+        containerStyle: .embedded
+    )
+    .frame(width: 760, height: 360)
+    .padding(16)
+}
 #endif

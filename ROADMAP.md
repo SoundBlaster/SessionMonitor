@@ -11,9 +11,11 @@ merge `448c40d` (2026-09-30): `ToolbarContent.visibilityPriority` изолиро
 `#if compiler(>=6.2.1)` с runtime fallback для macOS 26.0. Xcode MCP build, GUI lint/FSD,
 Workflow lint и обязательная Xcode 26.0.1 compatibility build прошли; review threads отсутствуют.
 
-**Следующий шаг — SM-402:** пользовательская проверка появления Usage и Cache Hit Rate
-в системной Widget Gallery и системных layouts. Свежая extension зарегистрирована через
-PlugInKit, но Gallery acceptance ещё не подтверждён.
+**Текущий приоритет — SM-407, открыт PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71):**
+embedded Cache Hit Rate chart заполняет ширину 760 pt в Xcode preview; 16:9 сохранён для
+standalone card preview. Локальные GUI checks прошли; обязательный CI ещё не проверялся.
+После merge вернуться к SM-402: пользовательская проверка появления Usage и Cache Hit Rate
+в системной Widget Gallery и системных layouts.
 
 SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
 merge `e7abca5`; SM-318 — через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
@@ -708,6 +710,16 @@ deliverable — WidgetKit extension с App Group в SM-401.
   одинаковые данные с CLI/GUI и корректное восстановление терминала при выходе/ошибке.
 
 ## 7. Сопровождение и доставка
+
+- [ ] **SM-407** — Растягивать встроенный Cache Hit Rate chart на доступную ширину.
+  Статус: реализация в PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71), открыт.
+  В sidebar chart останавливался посередине контейнера из-за фиксированного `16:9`; embedded
+  вариант теперь занимает доступную ширину, card сохраняет aspect ratio. Проверки на исходной
+  ревизии `a0199a4`: Xcode MCP BuildProject, `testRenderFixtureMatrix()` (1/1), SwiftLint/FSD
+  и `git diff --check` прошли; GitHub `Workflow lint`, `Native checks`, Xcode 26.0 compatibility
+  build и `CI` успешны. 2026-10-01 по review добавлено production-sized embedded render
+  (258×208 points, виджет внутри Sidebar height 240 с 16pt insets). Остаются CI на новой
+  ревизии и merge; статус остаётся незавершённым до доставки.
 
 - [x] **SM-406** — Сохранить сборку на macOS 26.0 SDK при использовании
   `ToolbarContent.visibilityPriority`, доступного в macOS 26.1 SDK. Добавить
