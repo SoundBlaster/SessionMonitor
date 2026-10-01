@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-09-30. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-01. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -9,18 +9,17 @@
 **Текущий приоритет — SM-408, PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72):** Sidebar Cache Hit Rate следует общему периоду
 отчёта; Today — локальная полночь и часовые buckets. Реализовано, локальные новые
 tests не запускались по указанию пользователя; доставка через PR, проверки на CI.
-SM-407 остаётся в отдельном PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71).
 
 **SM-406 доставлена через PR [#69](https://github.com/SoundBlaster/SessionMonitor/pull/69),**
 merge `448c40d` (2026-09-30): `ToolbarContent.visibilityPriority` изолирована
 `#if compiler(>=6.2.1)` с runtime fallback для macOS 26.0. Xcode MCP build, GUI lint/FSD,
 Workflow lint и обязательная Xcode 26.0.1 compatibility build прошли; review threads отсутствуют.
 
-**Текущий приоритет — SM-407, открыт PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71):**
-embedded Cache Hit Rate chart заполняет ширину 760 pt в Xcode preview; 16:9 сохранён для
-standalone card preview. Локальные GUI checks прошли; обязательный CI ещё не проверялся.
-После merge вернуться к SM-402: пользовательская проверка появления Usage и Cache Hit Rate
-в системной Widget Gallery и системных layouts.
+**SM-407 доставлена через PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71),**
+merge `cba04c1` (2026-10-01): embedded Cache Hit Rate chart заполняет ширину Sidebar;
+standalone card сохраняет 16:9. Build, regression render, SwiftLint/FSD, Xcode 26.0
+compatibility build, required CI прошли; review threads закрыты. SM-402 остаётся открытой
+пользовательской проверкой появления Usage и Cache Hit Rate в Widget Gallery/layouts.
 
 SM-317 доставлена через [PR #46](https://github.com/SoundBlaster/SessionMonitor/pull/46),
 merge `e7abca5`; SM-318 — через [PR #47](https://github.com/SoundBlaster/SessionMonitor/pull/47),
@@ -716,15 +715,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 7. Сопровождение и доставка
 
-- [ ] **SM-407** — Растягивать встроенный Cache Hit Rate chart на доступную ширину.
-  Статус: реализация в PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71), открыт.
-  В sidebar chart останавливался посередине контейнера из-за фиксированного `16:9`; embedded
-  вариант теперь занимает доступную ширину, card сохраняет aspect ratio. Проверки на исходной
-  ревизии `a0199a4`: Xcode MCP BuildProject, `testRenderFixtureMatrix()` (1/1), SwiftLint/FSD
-  и `git diff --check` прошли; GitHub `Workflow lint`, `Native checks`, Xcode 26.0 compatibility
-  build и `CI` успешны. 2026-10-01 по review добавлено production-sized embedded render
-  (258×208 points, виджет внутри Sidebar height 240 с 16pt insets). Остаются CI на новой
-  ревизии и merge; статус остаётся незавершённым до доставки.
+- [x] **SM-407** — Растягивать встроенный Cache Hit Rate chart на доступную ширину.
+  Доставлена через PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71), merge
+  `cba04c1` (2026-10-01). Embedded chart растягивается по ширине Sidebar, самостоятельный
+  card сохраняет 16:9. Xcode MCP BuildProject, `testRenderFixtureMatrix()` (1/1), SwiftLint/FSD,
+  `git diff --check`, Workflow lint, Native checks, Xcode 26.0 compatibility build и required CI
+  прошли; production-sized render ограничен 258×208 points. Оба review threads разрешены.
 
 - [x] **SM-406** — Сохранить сборку на macOS 26.0 SDK при использовании
   `ToolbarContent.visibilityPriority`, доступного в macOS 26.1 SDK. Добавить
