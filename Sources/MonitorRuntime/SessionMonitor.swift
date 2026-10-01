@@ -106,16 +106,25 @@ public actor SessionMonitor {
 
     /// Builds a privacy-safe, aggregated cache-hit report for presentation surfaces.
     /// The store supplies the requested period and immediately preceding equal period.
+    /// A bounded query overrides the rolling window and supplies account/timezone scope;
+    /// `period` selects hourly (last24Hours) or daily buckets. Unbounded callers keep rolling behavior.
     public func cacheHitRateWidget(
         period: CacheHitRateWidgetPeriod, referenceDate: Date = Date(), timeZone: TimeZone,
-        accountScope: UsageAccountScope = .allAccounts
+        accountScope: UsageAccountScope = .allAccounts, query: UsageQuery? = nil
     ) throws -> CacheHitRateWidgetReport {
-        let start = referenceDate.addingTimeInterval(-2 * period.duration)
+        let interval = query.flatMap { query -> DateInterval? in
+            guard let since = query.since, let until = query.until else { return nil }
+            return DateInterval(start: since, end: until)
+        }
+        let end = interval?.end ?? referenceDate
+        let start = interval.map { $0.start.addingTimeInterval(-$0.duration) }
+            ?? referenceDate.addingTimeInterval(-2 * period.duration)
         let observations = try store.cacheHitRateObservations(
-            since: start, until: referenceDate, accountScope: accountScope
+            since: start, until: end, accountScope: query?.accountScope ?? accountScope
         )
         return CacheHitRateWidgetBuilder.build(
-            observations: observations, period: period, referenceDate: referenceDate, timeZone: timeZone
+            observations: observations, period: period, referenceDate: referenceDate,
+            timeZone: query.flatMap { TimeZone(identifier: $0.timeZoneIdentifier) } ?? timeZone, interval: interval
         )
     }
 

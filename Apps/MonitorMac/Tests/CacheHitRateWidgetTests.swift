@@ -56,7 +56,7 @@ final class CacheHitRateWidgetTests: XCTestCase {
             locale: Locale(identifier: "en_US_POSIX")
         )
 
-        XCTAssertEqual(label.replacingOccurrences(of: "\u{202F}", with: " "), "4 PM")
+        XCTAssertEqual(label.replacingOccurrences(of: "\u{202F}", with: " "), "4:00 PM")
     }
 
     func testDailyLabelsAreThreeLetterWeekdaysForMediumFamily() {

@@ -239,7 +239,7 @@ private actor StubSharedRuntime: SessionExplorerRuntime {
 
     func cacheHitRateWidget(
         period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone,
-        accountScope: UsageAccountScope
+        accountScope: UsageAccountScope, query: UsageQuery?
     ) -> CacheHitRateWidgetReport {
         CacheHitRateWidgetBuilder.build(
             observations: [], period: period, referenceDate: referenceDate, timeZone: timeZone

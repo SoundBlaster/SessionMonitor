@@ -113,14 +113,15 @@ public struct CacheHitRateWidgetReport: Equatable, Sendable {
 
 /// Builds display data without exposing session or model identity. Input observations must include
 /// the requested period and its immediately preceding equal period for comparison.
+/// An explicit interval uses calendar-query bounds; the period still controls bucket resolution.
 public enum CacheHitRateWidgetBuilder {
     public static func build(
         observations: [CacheHitRateObservation], period: CacheHitRateWidgetPeriod,
-        referenceDate: Date, timeZone: TimeZone
+        referenceDate: Date, timeZone: TimeZone, interval: DateInterval? = nil
     ) -> CacheHitRateWidgetReport {
-        let periodEnd = referenceDate
-        let periodStart = referenceDate.addingTimeInterval(-period.duration)
-        let previousStart = periodStart.addingTimeInterval(-period.duration)
+        let periodEnd = interval?.end ?? referenceDate
+        let periodStart = interval?.start ?? referenceDate.addingTimeInterval(-period.duration)
+        let previousStart = periodStart.addingTimeInterval(-periodEnd.timeIntervalSince(periodStart))
         let current = observations.filter { $0.timestamp >= periodStart && $0.timestamp < periodEnd }
         let previous = observations.filter { $0.timestamp >= previousStart && $0.timestamp < periodStart }
         let currentRate = weightedRate(current)

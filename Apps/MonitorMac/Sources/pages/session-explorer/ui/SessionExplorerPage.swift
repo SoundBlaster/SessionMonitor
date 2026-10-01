@@ -105,23 +105,24 @@ struct SessionExplorerPage: View {
             appearance: CacheHitRateWidgetAppearance(
                 palette: CacheHitRateWidgetAppearance.Palette(chart: chartPalette), copy: .default
             ),
-            containerStyle: .embedded
+            containerStyle: .embedded,
+            periodTitle: reportScope.preset == .all ? nil : reportScope.title
         )
         .padding(SessionExplorerSidebarLayout.sectionInset)
         .frame(height: SessionExplorerSidebarLayout.chartHeight, alignment: .topLeading)
         .clipped()
         .task(id: CacheHitRateWidgetLoadID(
-            period: cacheHitRateWidgetSettings.period,
+            period: sidebarChartPeriod,
             revision: model.snapshot?.watermark.revision,
-            accountScope: model.query.accountScope,
-            timeZoneIdentifier: model.query.timeZoneIdentifier
+            query: model.query
         )) {
             guard model.snapshot != nil else { return }
             while !Task.isCancelled {
                 let timeZone = TimeZone(identifier: model.query.timeZoneIdentifier) ?? .current
                 await model.loadCacheHitRateWidget(
-                    period: cacheHitRateWidgetSettings.period,
-                    timeZone: timeZone
+                    period: sidebarChartPeriod,
+                    timeZone: timeZone,
+                    followsReportScope: reportScope.preset != .all
                 )
                 let nextRefresh = CacheHitRateWidgetRefreshSchedule.nextRefresh(after: Date(), timeZone: timeZone)
                 do {
@@ -130,6 +131,15 @@ struct SessionExplorerPage: View {
                     return
                 }
             }
+        }
+    }
+
+    private var sidebarChartPeriod: CacheHitRateWidgetPeriod {
+        switch reportScope.preset {
+        case .all: cacheHitRateWidgetSettings.period
+        case .today: .last24Hours
+        case .lastSevenDays: .last7Days
+        case .lastThirtyDays: .last30Days
         }
     }
 
@@ -258,8 +268,7 @@ enum SessionExplorerSidebarLayout {
 private struct CacheHitRateWidgetLoadID: Hashable {
     let period: CacheHitRateWidgetPeriod
     let revision: Int64?
-    let accountScope: UsageAccountScope
-    let timeZoneIdentifier: String
+    let query: UsageQuery
 }
 
 private struct QuotaPresentationLoadID: Hashable {

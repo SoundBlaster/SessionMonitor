@@ -5,6 +5,7 @@ struct CacheHitRateWidgetHeader: View {
     let report: CacheHitRateWidgetReport
     let family: CacheHitRateWidgetAppearance.Family
     let appearance: CacheHitRateWidgetAppearance
+    var periodTitle: String?
 
     var body: some View {
         if family == .small {
@@ -38,7 +39,8 @@ struct CacheHitRateWidgetHeader: View {
                 .font(family == .large ? .title.weight(.semibold) : .headline)
                 .fixedSize(horizontal: false, vertical: true)
             if family != .small {
-                Text(CacheHitRateWidgetText.period(report.period)).font(.subheadline).foregroundStyle(.secondary)
+                Text(periodTitle ?? CacheHitRateWidgetText.period(report.period))
+                    .font(.subheadline).foregroundStyle(.secondary)
             }
         }
     }
