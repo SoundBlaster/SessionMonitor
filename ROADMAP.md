@@ -712,14 +712,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
 ## 7. Сопровождение и доставка
 
 - [ ] **SM-407** — Растягивать встроенный Cache Hit Rate chart на доступную ширину.
-  Статус: реализация в PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71), открыт
-  2026-09-30; CI status ещё не проверялся. В sidebar chart останавливается примерно посередине
-  контейнера; фиксированный aspect ratio `16:9` внутри plot подбирает ширину от высоты.
-  Встроенный вариант должен занимать ширину родителя, сохраняя прежнее соотношение для
-  самостоятельных card/widget previews. Embedded Xcode preview подтвердил полную ширину;
-  Xcode MCP `BuildProject`, `testRenderFixtureMatrix()` (1/1), `make lint lint-architecture`
-  (0 violations/errors/warnings), `git diff --check` прошли. Остаются review, обязательный
-  CI и merge; после этого пункт можно закрыть.
+  Статус: реализация в PR [#71](https://github.com/SoundBlaster/SessionMonitor/pull/71), открыт.
+  В sidebar chart останавливался посередине контейнера из-за фиксированного `16:9`; embedded
+  вариант теперь занимает доступную ширину, card сохраняет aspect ratio. Проверки на исходной
+  ревизии `a0199a4`: Xcode MCP BuildProject, `testRenderFixtureMatrix()` (1/1), SwiftLint/FSD
+  и `git diff --check` прошли; GitHub `Workflow lint`, `Native checks`, Xcode 26.0 compatibility
+  build и `CI` успешны. 2026-10-01 по review добавлено production-sized embedded render
+  (258×208 points, виджет внутри Sidebar height 240 с 16pt insets). Остаются CI на новой
+  ревизии и merge; статус остаётся незавершённым до доставки.
 
 - [x] **SM-406** — Сохранить сборку на macOS 26.0 SDK при использовании
   `ToolbarContent.visibilityPriority`, доступного в macOS 26.1 SDK. Добавить

@@ -58,13 +58,13 @@ final class CacheHitRateWidgetFixtureTests: XCTestCase {
                    palette: .monochrome)
         try render(.reference, family: .medium, width: 320, scheme: .light, name: "medium-monochrome-light",
                    palette: .monochrome)
-        try render(.reference, family: .medium, width: 760, scheme: .dark, name: "embedded-sidebar-wide",
-                   containerStyle: .embedded)
+        try render(.reference, family: .medium, width: 258, height: 208, scheme: .dark,
+                   name: "embedded-sidebar-production-frame", containerStyle: .embedded)
     }
 
     @MainActor
     private func render(_ fixture: CacheHitRateWidgetFixture, family: CacheHitRateWidgetAppearance.Family,
-                        width: CGFloat, scheme: ColorScheme, name: String,
+                        width: CGFloat, height: CGFloat? = nil, scheme: ColorScheme, name: String,
                         palette: UsageChartPalette = .system,
                         containerStyle: CacheHitRateWidgetAppearance.ContainerStyle = .card) throws {
         let appearance = CacheHitRateWidgetAppearance(
@@ -72,7 +72,8 @@ final class CacheHitRateWidgetFixtureTests: XCTestCase {
         )
         let view = CacheHitRateWidget(report: fixture.report, family: family, appearance: appearance,
                                       containerStyle: containerStyle)
-            .frame(width: width).environment(\.colorScheme, scheme).environment(\.locale, Locale(identifier: "en_US"))
+            .frame(width: width, height: height, alignment: .topLeading)
+            .environment(\.colorScheme, scheme).environment(\.locale, Locale(identifier: "en_US"))
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
         let image = try XCTUnwrap(renderer.nsImage)
