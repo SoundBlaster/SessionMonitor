@@ -6,9 +6,16 @@
 
 ## Текущая точка
 
-**Текущий приоритет — SM-408, PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72):** Sidebar Cache Hit Rate следует общему периоду
-отчёта; Today — локальная полночь и часовые buckets. Реализовано, локальные новые
-tests не запускались по указанию пользователя; доставка через PR, проверки на CI.
+**SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
+merge `47891f2` (2026-10-01): Sidebar Cache Hit Rate следует общему периоду отчёта;
+Today использует локальную полночь и часовые buckets. Native checks, Workflow lint,
+Xcode 26.0 compatibility build и обязательный CI прошли на финальном commit `19f276b`;
+review thread разрешён. Новые локальные tests не запускались по указанию пользователя;
+CI проверил regression tests на границы, gaps, периоды 7/30 дней, DST, scope forwarding
+и light/dark renders.
+
+**Следующая доступная задача — SM-403:** проверить runtime accessibility tree на ожидаемую
+иерархию identifiers после внедрения NestedA11yIDs; UI test уже прошёл в GitHub CI.
 
 **SM-406 доставлена через PR [#69](https://github.com/SoundBlaster/SessionMonitor/pull/69),**
 merge `448c40d` (2026-09-30): `ToolbarContent.visibilityPriority` изолирована
@@ -824,8 +831,9 @@ visual smoke и точная parity семи usage totals. Локальные lo
 автономный optimizer не входят в текущий MVP. Новые требования сначала добавляются
 сюда с приоритетом, зависимостями и проверяемым критерием готовности.
 
-- [ ] **SM-408** — Связать Sidebar Cache Hit Rate с выбранным периодом отчёта.
-  **Статус: PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72), ожидает CI/review.** Today: локальный календарный день и часовые buckets,
+- [x] **SM-408** — Связать Sidebar Cache Hit Rate с выбранным периодом отчёта.
+  **Доставлено через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
+  merge `47891f2` (2026-10-01). Today: локальный календарный день и часовые buckets,
   локализованные подписи; 7/30 дней: границы общего query. All Time использует
   период настроек виджета. Проверки: фильтрация, смена периода/account, DST, labels.
   2026-09-30: общий query передаётся через GUI/runtime в builder; полный query
@@ -833,6 +841,8 @@ visual smoke и точная parity семи usage totals. Локальные lo
   при выборе/восстановлении; labels локализованы. Добавлены regression tests на
   границы, gaps, 7/30 дней, DST (23/25 часов), scope forwarding и light/dark renders.
   MCP BuildProject успешен; SwiftLint/FSD/architecture regression passed до последней
-  правки Today restoration. Новые tests и повторные проверки не запускались по
-  указанию пользователя. Signed archive подтвердил работу system widget snapshot
-  по пользовательской проверке; system widgets сохраняют собственный период.
+  правки Today restoration. Новые tests и повторные локальные проверки не запускались
+  по указанию пользователя. На финальном commit `19f276b` GitHub `Native checks`,
+  `Workflow lint`, Xcode 26.0 compatibility build и required `CI` passed; review thread
+  разрешён. Signed archive подтвердил работу system widget snapshot по пользовательской
+  проверке; system widgets сохраняют собственный период.
