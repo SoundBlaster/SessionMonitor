@@ -51,6 +51,40 @@ struct ExistingDatabaseBackfillTests {
         #expect(currentObject["schemaVersion"] as? Int == 4)
     }
 
+    @Test(arguments: [2, 4], [false, true])
+    func changedSourceBackfillNeverSkipsUsage(schema: Int, replacement: Bool) async throws {
+        let fixture = try IncrementalFixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.native + fixture.record())
+        let initial = try RolloutDecoder().parseIncrementally(fixture.file)
+        var object = try #require(JSONSerialization.jsonObject(with: initial.checkpoint) as? [String: Any])
+        object["schemaVersion"] = schema
+        var existing = initial.rollout
+        existing.provenance = nil
+        let store = try UsageStore(url: fixture.database)
+        try store.apply(source: fixture.source, update: SourceImport(
+            rollout: existing, checkpoint: try JSONSerialization.data(withJSONObject: object),
+            mode: .replaced, bytesRead: initial.bytesRead
+        ), expectedCheckpoint: nil)
+        if replacement {
+            try fixture.write(fixture.native + fixture.record(id: "replacement", input: "200"))
+        } else {
+            try fixture.append(fixture.record(id: "appended", input: "200"))
+        }
+
+        let runtime = try SessionMonitor(databaseURL: fixture.database)
+        let imported = try await runtime.importDirectory(fixture.file)
+        let report = try await runtime.report()
+        #expect(report == (try fixture.fullReport()))
+        #expect(report.totals.requests == (replacement ? 1 : 2))
+        #expect(report.totals.inputTokens == (replacement ? 200 : 300))
+        #expect(imported.records > 0)
+        #expect(try await runtime.snapshot(query: UsageQuery()).provenance["S"] != nil)
+        let repeated = try await runtime.importDirectory(fixture.file)
+        #expect(repeated.ioMetrics.bytesRead == 0)
+        #expect(repeated.records == 0)
+    }
+
     @Test func oldCheckpointRescansOnceToBackfillQuotaSnapshotsWithoutChangingTotals() async throws {
         let fixture = try IncrementalFixture()
         defer { fixture.remove() }

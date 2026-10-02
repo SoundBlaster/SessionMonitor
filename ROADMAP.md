@@ -1,10 +1,14 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-01. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-02. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
+
+**Приоритет пользователя — исправления core audit отдельной стопкой PR:**
+SM-409 (backfill), SM-410 (legacy deltas), SM-411 (timeline identities),
+SM-412 (root activity account isolation). SM-409: реализована, подготовка PR; затем SM-410.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
 merge `47891f2` (2026-10-01): Sidebar Cache Hit Rate следует общему периоду отчёта;
@@ -846,3 +850,18 @@ visual smoke и точная parity семи usage totals. Локальные lo
   `Workflow lint`, Xcode 26.0 compatibility build и required `CI` passed; review thread
   разрешён. Signed archive подтвердил работу system widget snapshot по пользовательской
   проверке; system widgets сохраняют собственный период.
+
+## Core audit follow-up (2026-10-02)
+
+- [ ] **SM-409** — Не продвигать metadata checkpoint поверх новых usage records.
+  Статус: реализована, локальные tests ожидают завершения Xcode MCP.
+  2026-10-02: backfill требует совпадения file version/cursor; четыре regression cases
+  schema 2/4 × append/replacement. SwiftLint/diff check passed; MCP build succeeded,
+  test run пока не вернул результат (Mac locked, почти полный диск). Не считать tests passed.
+  [Отчёт](reports/SM-409-backfill-checkpoint.md). CI/merge pending.
+- [ ] **SM-410** — Сохранять unknown для несопоставимых legacy component deltas.
+  Статус: запланировано. Invalid cache/reasoning deltas не должны прерывать импорт.
+- [ ] **SM-411** — Dedup mirrored timeline events и уникальные account-scoped IDs.
+  Статус: запланировано. Mirrors одного scope совпадают; разные accounts не сливаются.
+- [ ] **SM-412** — Изолировать root activity membership по account scope.
+  Статус: запланировано. Foreign provenance не добавляет usage/tool activity другого account.
