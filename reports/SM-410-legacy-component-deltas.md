@@ -13,10 +13,10 @@ baseline advances so later comparable samples can resume after restart.
 The regression fixture covers both invalid components, persisted unknown values,
 canonical import success, subsequent valid deltas after restart and skipped reimport.
 
-Validation: core SwiftLint and diff check passed. Local Swift tests not executed for
-this layer: Xcode MCP test run for the preceding layer timed out after 300 seconds,
-and local disk space remains critically low. Required CI remains the test gate.
+Validation: final cumulative stack MCP builds succeeded; 155 core tests and all
+four CLI process smoke suites passed, along with core SwiftLint/FSD/architecture
+regression, actionlint/shell syntax and diff checks. [Commands, execution boundaries and initial MCP/disk
+failures](SM-409-412-validation.md). GitHub CI/review/merge remain pending.
 
 CI pull_request base filtering is removed so every dependent stack layer runs the
-existing required gates, instead of only the bottom PR targeting main. Push triggers
-and all gate jobs stay unchanged.
+existing required gates. Push triggers and gate jobs stay unchanged.
