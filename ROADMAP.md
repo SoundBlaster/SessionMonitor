@@ -6,7 +6,8 @@
 
 ## Текущая точка
 
-**SM-413 — статус: реализована, ожидает validation/review.** Клик по Sidebar Cache Hit Rate
+**SM-413 — статус: реализована, draft PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79),
+ожидает validation/review.** Клик по Sidebar Cache Hit Rate
 открывает одно переиспользуемое окно с тем же report, периодом и palette,
 выбором bucket, zoom и перемещением. Шкала Y фиксирована по полному report.
 Project generation, SwiftLint и FSD/architecture regression passed.
@@ -856,7 +857,7 @@ visual smoke и точная parity семи usage totals. Локальные lo
   разрешён. Signed archive подтвердил работу system widget snapshot по пользовательской
   проверке; system widgets сохраняют собственный период.
 
-- [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: реализована, ожидает validation/review.
+- [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: draft PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79), ожидает validation/review.
   Повторное открытие фокусирует одно окно; общие данные, scope и палитра;
   zoom/pan, bucket details без session/model identity, empty states и accessibility.
   Проверка: viewport regression tests, GUI build через xcode-tools, lint/FSD.
