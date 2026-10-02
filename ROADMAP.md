@@ -8,7 +8,7 @@
 
 **Приоритет пользователя — исправления core audit отдельной стопкой PR:**
 SM-409 (backfill), SM-410 (legacy deltas), SM-411 (timeline identities),
-SM-412 (root activity account isolation). SM-409: draft PR #74; SM-410: реализована, подготовка PR; затем SM-411.
+SM-412 (root activity account isolation). SM-409: draft PR #74; SM-410: draft PR #75; SM-411: реализована, подготовка PR; затем SM-412.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
 merge `47891f2` (2026-10-01): Sidebar Cache Hit Rate следует общему периоду отчёта;
@@ -868,6 +868,11 @@ visual smoke и точная parity семи usage totals. Локальные lo
   [Отчёт](reports/SM-410-legacy-component-deltas.md). [PR #75](https://github.com/SoundBlaster/SessionMonitor/pull/75)
   открыт как draft поверх #74; CI разрешён для всех PR bases, включая stack layers.
 - [ ] **SM-411** — Dedup mirrored timeline events и уникальные account-scoped IDs.
-  Статус: запланировано. Mirrors одного scope совпадают; разные accounts не сливаются.
+  Статус: реализована; targeted regression execution в процессе.
+  2026-10-02: DISTINCT full event key + account scope; stable hashed IDs без source path.
+  Assigned/unknown scopes, same-line different tools, reversed import order покрыты tests.
+  SwiftLint/diff passed; MCP build-for-testing passed. CI/merge pending.
+  [Отчёт](reports/SM-411-timeline-event-identities.md). [PR #77](https://github.com/SoundBlaster/SessionMonitor/pull/77)
+  открыт как draft поверх #75.
 - [ ] **SM-412** — Изолировать root activity membership по account scope.
   Статус: запланировано. Foreign provenance не добавляет usage/tool activity другого account.

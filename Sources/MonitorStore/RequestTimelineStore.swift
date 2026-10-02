@@ -62,21 +62,21 @@ extension UsageStore {
                     )
                 }
             let eventRows = try Row.fetchAll(database, sql: """
-                SELECT events.line, events.turn, events.timestamp, events.kind, events.evidence,
-                       events.tool_name, events.model, events.activity_class
+                SELECT DISTINCT events.line, events.turn, events.timestamp, events.kind, events.evidence,
+                       events.tool_name, events.model, events.activity_class, events.account_scope_key
                 FROM (
-                    SELECT events.*, scope.profile_id AS account_profile_id
+                    SELECT events.*, scope.profile_id AS account_profile_id, scope.scope_key AS account_scope_key
                     FROM source_timeline_events AS events
                     JOIN source_account_scope AS scope ON scope.source = events.source
                 ) AS events
                 WHERE events.session = ? AND \(predicate) \(accountPredicate)
                 ORDER BY events.timestamp ASC, events.line ASC
                 """, arguments: arguments)
-            points.append(contentsOf: eventRows.map { row in
+            points.append(contentsOf: try eventRows.map { row in
                 let kind = TimelineEventKind(rawValue: row["kind"] as String) ?? .unknown
                 let line: Int = row["line"]
                 return RequestTimelinePoint(
-                    id: "event:\(line):\(kind.rawValue)", sessionID: sessionID,
+                    id: try Self.eventPointID(row, sessionID: sessionID), sessionID: sessionID,
                     timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: kind,
                     turnID: row["turn"], sourceLine: line, evidence: row["evidence"],
                     toolName: row["tool_name"], model: row["model"],
@@ -91,6 +91,20 @@ extension UsageStore {
         }
     }
     // swiftlint:enable function_body_length
+
+    private static func eventPointID(_ row: Row, sessionID: String) throws -> String {
+        let line: Int = row["line"]
+        let timestamp: Double = row["timestamp"]
+        // Ordered nullable fields preserve nil/empty distinctions without delimiter collisions.
+        // Source path is excluded so exact mirrors within one scope share an identity.
+        let fields: [String?] = [
+            row["account_scope_key"], sessionID, String(line), row["turn"], String(timestamp),
+            row["kind"], row["evidence"], row["tool_name"], row["model"], row["activity_class"]
+        ]
+        let digest = SHA256.hash(data: try JSONEncoder().encode(fields))
+            .map { String(format: "%02x", $0) }.joined()
+        return "event:\(digest)"
+    }
 
     private static func requestPointID(scopeKey: String, responseID: String) -> String {
         let scopeDigest = SHA256.hash(data: Data(scopeKey.utf8))
