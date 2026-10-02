@@ -872,6 +872,7 @@ visual smoke и точная parity семи usage totals. Локальные lo
   2026-10-02: DISTINCT full event key + account scope; stable hashed IDs без source path.
   Assigned/unknown scopes, same-line different tools, reversed import order покрыты tests.
   SwiftLint/diff passed; MCP build-for-testing passed. CI/merge pending.
-  [Отчёт](reports/SM-411-timeline-event-identities.md).
+  [Отчёт](reports/SM-411-timeline-event-identities.md). [PR #77](https://github.com/SoundBlaster/SessionMonitor/pull/77)
+  открыт как draft поверх #75.
 - [ ] **SM-412** — Изолировать root activity membership по account scope.
   Статус: запланировано. Foreign provenance не добавляет usage/tool activity другого account.
