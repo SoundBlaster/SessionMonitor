@@ -8,7 +8,14 @@
 
 **Приоритет пользователя — исправления core audit отдельной стопкой PR:**
 SM-409 (backfill), SM-410 (legacy deltas), SM-411 (timeline identities),
-SM-412 (root activity account isolation). SM-409: draft PR #74; SM-410: draft PR #75; SM-411: реализована, подготовка PR; затем SM-412.
+SM-412 (root activity account isolation). Стопка: [#74](https://github.com/SoundBlaster/SessionMonitor/pull/74) →
+[#75](https://github.com/SoundBlaster/SessionMonitor/pull/75) →
+[#77](https://github.com/SoundBlaster/SessionMonitor/pull/77) →
+[#78](https://github.com/SoundBlaster/SessionMonitor/pull/78).
+Все четыре исправления реализованы, полный cumulative core test bundle: 155 passed.
+CLI watch/snapshot/quota/performance smoke, SwiftLint и FSD/architecture regression passed.
+Следующий шаг — review/CI и merge стопки снизу вверх; CI не опрашивается.
+[Общее validation evidence](reports/SM-409-412-validation.md).
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
 merge `47891f2` (2026-10-01): Sidebar Cache Hit Rate следует общему периоду отчёта;
@@ -18,7 +25,7 @@ review thread разрешён. Новые локальные tests не зап�
 CI проверил regression tests на границы, gaps, периоды 7/30 дней, DST, scope forwarding
 и light/dark renders.
 
-**Следующая доступная задача — SM-403:** проверить runtime accessibility tree на ожидаемую
+**После merge стопки следующая доступная задача — SM-403:** проверить runtime accessibility tree на ожидаемую
 иерархию identifiers после внедрения NestedA11yIDs; UI test уже прошёл в GitHub CI.
 
 **SM-406 доставлена через PR [#69](https://github.com/SoundBlaster/SessionMonitor/pull/69),**
@@ -853,26 +860,28 @@ visual smoke и точная parity семи usage totals. Локальные lo
 
 ## Core audit follow-up (2026-10-02)
 
+Все четыре слоя реализованы и проверены на cumulative stack `a18d414`: MCP builds,
+155 core tests (148 Swift Testing + 7 XCTest), четыре CLI process smoke suites,
+SwiftLint, FSD lint и architecture regression passed. [Validation](reports/SM-409-412-validation.md).
+PRs открыты; `[ ]` сохраняется до GitHub CI/review/merge, доставка в main не заявляется.
+
 - [ ] **SM-409** — Не продвигать metadata checkpoint поверх новых usage records.
-  Статус: реализована, локальные tests ожидают завершения Xcode MCP.
-  2026-10-02: backfill требует совпадения file version/cursor; четыре regression cases
-  schema 2/4 × append/replacement. SwiftLint/diff check passed; MCP build succeeded,
-  test run пока не вернул результат (Mac locked, почти полный диск). Не считать tests passed.
-  [Отчёт](reports/SM-409-backfill-checkpoint.md). [PR #74](https://github.com/SoundBlaster/SessionMonitor/pull/74)
-  открыт как draft; CI/merge pending.
+  Статус: реализована, regression passed; [PR #74](https://github.com/SoundBlaster/SessionMonitor/pull/74),
+  CI/review/merge pending. 2026-10-02: backfill требует совпадения file version/cursor;
+  schema 2/4 × append/replacement и unchanged backfill прошли.
+  [Отчёт](reports/SM-409-backfill-checkpoint.md).
 - [ ] **SM-410** — Сохранять unknown для несопоставимых legacy component deltas.
-  Статус: реализована, локальные regression tests ещё не выполнены.
-  2026-10-02: bounded cache/reasoning deltas сохраняют nil + diagnostic вместо
-  SQLite CHECK failure; regression на canonical import/restart. SwiftLint/diff passed.
-  Xcode MCP preceding test run timeout (300s), диск почти полный; CI/merge pending.
-  [Отчёт](reports/SM-410-legacy-component-deltas.md). [PR #75](https://github.com/SoundBlaster/SessionMonitor/pull/75)
-  открыт как draft поверх #74; CI разрешён для всех PR bases, включая stack layers.
+  Статус: реализована, regression passed; [PR #75](https://github.com/SoundBlaster/SessionMonitor/pull/75)
+  поверх #74, CI/review/merge pending. 2026-10-02: invalid cached/reasoning deltas — nil
+  + diagnostic; canonical import/restart проходят. CI запускается для всех PR bases.
+  [Отчёт](reports/SM-410-legacy-component-deltas.md).
 - [ ] **SM-411** — Dedup mirrored timeline events и уникальные account-scoped IDs.
-  Статус: реализована; targeted regression execution в процессе.
-  2026-10-02: DISTINCT full event key + account scope; stable hashed IDs без source path.
-  Assigned/unknown scopes, same-line different tools, reversed import order покрыты tests.
-  SwiftLint/diff passed; MCP build-for-testing passed. CI/merge pending.
-  [Отчёт](reports/SM-411-timeline-event-identities.md). [PR #77](https://github.com/SoundBlaster/SessionMonitor/pull/77)
-  открыт как draft поверх #75.
+  Статус: реализована, regression passed; [PR #77](https://github.com/SoundBlaster/SessionMonitor/pull/77)
+  поверх #75, CI/review/merge pending. 2026-10-02: DISTINCT full event key + scope и hashed IDs;
+  assigned/unknown, mirrors, same-line different tools и reverse import order прошли.
+  [Отчёт](reports/SM-411-timeline-event-identities.md).
 - [ ] **SM-412** — Изолировать root activity membership по account scope.
-  Статус: запланировано. Foreign provenance не добавляет usage/tool activity другого account.
+  Статус: реализована, regression passed; [PR #78](https://github.com/SoundBlaster/SessionMonitor/pull/78)
+  поверх #77, CI/review/merge pending. 2026-10-02: usage/event membership коррелирован с scope;
+  assigned/unknown и foreign provenance removal прошли. Production SQL probe passed.
+  [Отчёт](reports/SM-412-root-activity-account-scope.md).

@@ -14,5 +14,7 @@ Regression coverage includes assigned accounts with byte-identical events, unkno
 roots, same-line different tools, exact mirrors and reverse import order. Event
 counts are checked against activity rollups, and canonical totals stay unchanged.
 
-Validation: core SwiftLint/diff check passed. Xcode MCP build-for-testing succeeded
-on the corrected code. Targeted regression execution is in progress. CI/merge pending.
+Validation: final cumulative stack MCP builds succeeded; 155 core tests and all
+four CLI process smoke suites passed, along with core SwiftLint/FSD/architecture
+regression, actionlint/shell syntax and diff checks. [Commands, execution boundaries and initial MCP/disk
+failures](SM-409-412-validation.md). GitHub CI/review/merge remain pending.

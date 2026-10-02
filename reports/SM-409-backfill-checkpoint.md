@@ -12,6 +12,7 @@ Regression cases: schema 2 and 4, append and atomic replacement, full-parse pari
 provenance recovery and an idempotent subsequent import. Existing unchanged-backfill
 and partial-tail tests remain part of the validation scope.
 
-Validation: core SwiftLint and diff check passed. Xcode MCP build succeeded; targeted test run has not returned results. The Mac is
-locked and disk space is almost exhausted; tests are not claimed as passing.
-No user SQLite databases or raw archive files were changed.
+Validation: final cumulative stack MCP builds succeeded; 155 core tests and all
+four CLI process smoke suites passed, along with core SwiftLint/FSD/architecture
+regression, actionlint/shell syntax and diff checks. [Commands, execution boundaries and initial MCP/disk
+failures](SM-409-412-validation.md). GitHub CI/review/merge remain pending.
