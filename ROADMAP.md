@@ -858,7 +858,8 @@ visual smoke и точная parity семи usage totals. Локальные lo
   2026-10-02: backfill требует совпадения file version/cursor; четыре regression cases
   schema 2/4 × append/replacement. SwiftLint/diff check passed; MCP build succeeded,
   test run пока не вернул результат (Mac locked, почти полный диск). Не считать tests passed.
-  [Отчёт](reports/SM-409-backfill-checkpoint.md). CI/merge pending.
+  [Отчёт](reports/SM-409-backfill-checkpoint.md). [PR #74](https://github.com/SoundBlaster/SessionMonitor/pull/74)
+  открыт как draft; CI/merge pending.
 - [ ] **SM-410** — Сохранять unknown для несопоставимых legacy component deltas.
   Статус: запланировано. Invalid cache/reasoning deltas не должны прерывать импорт.
 - [ ] **SM-411** — Dedup mirrored timeline events и уникальные account-scoped IDs.
