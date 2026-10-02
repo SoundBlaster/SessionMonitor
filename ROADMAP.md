@@ -1,10 +1,19 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-01. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-02. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
+
+**SM-413 — статус: реализована, ожидает validation/review.** Клик по Sidebar Cache Hit Rate
+открывает одно переиспользуемое окно с тем же report, периодом и palette,
+выбором bucket, zoom и перемещением. Шкала Y фиксирована по полному report.
+Project generation, SwiftLint и FSD/architecture regression passed.
+Добавлены 5 GUI regression tests; сборка и выполнение tests пока не проверены:
+на диске остаётся менее 0.5 GiB. Следующий шаг — CI и Xcode MCP/UI validation после
+освобождения места. [Отчёт](reports/SM-413-cache-analytics-window.md).
+Core audit stack #74/#75/#77/#78 остаётся отдельной работой на review.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
 merge `47891f2` (2026-10-01): Sidebar Cache Hit Rate следует общему периоду отчёта;
@@ -14,7 +23,7 @@ review thread разрешён. Новые локальные tests не зап�
 CI проверил regression tests на границы, gaps, периоды 7/30 дней, DST, scope forwarding
 и light/dark renders.
 
-**Следующая доступная задача — SM-403:** проверить runtime accessibility tree на ожидаемую
+**После SM-413 следующая доступная задача — SM-403:** проверить runtime accessibility tree на ожидаемую
 иерархию identifiers после внедрения NestedA11yIDs; UI test уже прошёл в GitHub CI.
 
 **SM-406 доставлена через PR [#69](https://github.com/SoundBlaster/SessionMonitor/pull/69),**
@@ -846,3 +855,8 @@ visual smoke и точная parity семи usage totals. Локальные lo
   `Workflow lint`, Xcode 26.0 compatibility build и required `CI` passed; review thread
   разрешён. Signed archive подтвердил работу system widget snapshot по пользовательской
   проверке; system widgets сохраняют собственный период.
+
+- [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: реализована, ожидает validation/review.
+  Повторное открытие фокусирует одно окно; общие данные, scope и палитра;
+  zoom/pan, bucket details без session/model identity, empty states и accessibility.
+  Проверка: viewport regression tests, GUI build через xcode-tools, lint/FSD.
