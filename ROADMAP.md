@@ -8,7 +8,8 @@
 
 **Приоритет пользователя — исправления core audit отдельной стопкой PR:**
 SM-409 (backfill), SM-410 (legacy deltas), SM-411 (timeline identities),
-SM-412 (root activity account isolation). SM-409: draft PR #74; SM-410: draft PR #75; SM-411: реализована, подготовка PR; затем SM-412.
+SM-412 (root activity account isolation). SM-409: draft PR #74; SM-410: draft PR #75; SM-411: draft PR #77; SM-412: реализована, подготовка PR.
+Full core test bundle: 155 passed; CLI smoke validation далее.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
 merge `47891f2` (2026-10-01): Sidebar Cache Hit Rate следует общему периоду отчёта;
@@ -875,4 +876,9 @@ visual smoke и точная parity семи usage totals. Локальные lo
   [Отчёт](reports/SM-411-timeline-event-identities.md). [PR #77](https://github.com/SoundBlaster/SessionMonitor/pull/77)
   открыт как draft поверх #75.
 - [ ] **SM-412** — Изолировать root activity membership по account scope.
-  Статус: запланировано. Foreign provenance не добавляет usage/tool activity другого account.
+  Статус: реализована, regression tests passed; подготовка PR.
+  2026-10-02: root membership коррелирован с account scope каждой usage/event row.
+  Assigned/unknown scopes, session ID collisions и foreign provenance removal покрыты tests.
+  SwiftLint/diff, FSD/architecture regression, extracted SQL probe passed. MCP build-for-testing
+  succeeded; prebuilt bundle: 148 Swift Testing + 7 XCTest passed. CI/merge pending.
+  [Отчёт](reports/SM-412-root-activity-account-scope.md).

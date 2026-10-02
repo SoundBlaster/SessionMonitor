@@ -41,8 +41,11 @@ extension UsageStore {
             let end = query.until?.timeIntervalSince1970
             let scopePredicate = """
                 AND (? IS NULL OR session = ?)
-                AND (? IS NULL OR session = ? OR session IN (
-                    SELECT session FROM source_provenance WHERE root_session = ?
+                AND (? IS NULL OR session = ? OR EXISTS (
+                    SELECT 1 FROM source_provenance AS provenance
+                    JOIN source_account_scope AS provenance_scope ON provenance_scope.source = provenance.source
+                    WHERE provenance.root_session = ? AND provenance.session = activity.session
+                      AND provenance_scope.scope_key = activity.account_scope_key
                 ))
                 """
             let accountPredicate = Self.accountScopePredicate()
@@ -54,7 +57,7 @@ extension UsageStore {
             ]
             let usageRows = try Row.fetchAll(database, sql: """
                 SELECT session, model, input, cached, output, cache_write, reasoning, total
-                FROM confirmed
+                FROM confirmed AS activity
                 WHERE \(timePredicate) \(accountPredicate) \(scopePredicate)
                 ORDER BY session, model, timestamp, response
                 """, arguments: arguments)
@@ -90,10 +93,11 @@ extension UsageStore {
                 FROM (
                     SELECT DISTINCT events.session, events.turn, events.timestamp, events.kind,
                                     events.activity_class, events.tool_name, events.model, events.evidence,
-                                    events.line, scope.profile_id AS account_profile_id, scope.scope_key
+                                    events.line, scope.profile_id AS account_profile_id,
+                                    scope.scope_key AS account_scope_key
                     FROM source_timeline_events AS events
                     JOIN source_account_scope AS scope ON scope.source = events.source
-                )
+                ) AS activity
                 WHERE \(timePredicate) \(accountPredicate)
                   AND (kind = 'tool' OR activity_class IS NOT NULL
                        OR (kind = 'unknown' AND tool_name IS NOT NULL))
