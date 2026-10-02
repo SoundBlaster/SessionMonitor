@@ -14,7 +14,23 @@ public struct RolloutDecoder: Sendable {
     /// Reads the source only to recover metadata for records already in the store.
     /// It deliberately does not decode or return usage records.
     public func parseMetadata(_ url: URL) throws -> SourceImport {
+        try parseMetadata(RolloutFile(url: url))
+    }
+
+    /// Checkpoint promotion is safe only for metadata from the already imported snapshot.
+    /// Changed sources must pass through the normal records/event import instead.
+    public func parseMetadata(_ url: URL, matching checkpoint: Data) throws -> SourceImport? {
         let source = try RolloutFile(url: url)
+        guard let previous = try? JSONDecoder().decode(DecoderCheckpoint.self, from: checkpoint),
+              previous.version == source.version else { return nil }
+        let metadata = try parseMetadata(source)
+        let next = try JSONDecoder().decode(DecoderCheckpoint.self, from: metadata.checkpoint)
+        guard previous.cursor.offset == next.cursor.offset,
+              previous.cursor.line == next.cursor.line else { return nil }
+        return metadata
+    }
+
+    private func parseMetadata(_ source: RolloutFile) throws -> SourceImport {
         var state = DecodeState()
         let progress = try JSONLReader().read(source, from: JSONLCursor()) { data, line in
             guard let data else { return }

@@ -45,8 +45,8 @@ public actor SessionMonitor {
             let source = path.resolvingSymlinksInPath().path
             let previous = try store.checkpoint(source: source)
             let decoder = RolloutDecoder()
-            if !rescan, let previous, try store.needsProvenanceBackfill(source: source) {
-                let metadata = try decoder.parseMetadata(path)
+            if !rescan, let previous, try store.needsProvenanceBackfill(source: source),
+               let metadata = try decoder.parseMetadata(path, matching: previous) {
                 ioMetrics.bytesRead += metadata.bytesRead
                 _ = try store.backfillProvenance(source: source, update: metadata,
                                                  expectedCheckpoint: previous)
