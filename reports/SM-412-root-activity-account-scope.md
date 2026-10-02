@@ -13,9 +13,7 @@ Regression fixtures cover assigned profiles and Unknown/Mixed roots, identical
 session IDs with different roots, root mirrors, totals/event counts and removal of
 foreign provenance. No new aggregation or account attribution is introduced.
 
-Validation: core SwiftLint and diff check passed. Production usage and event SQL
-extracted from the source passed an in-memory SQLite probe: profile A 100 tokens/1
-event, profile B 200/1, all accounts 300/2. Xcode MCP build-for-testing succeeded. The resulting test bundle ran directly
-without compilation: 148 Swift Testing + 7 XCTest tests passed (155 total), including
-all four layers and both assigned/unknown root isolation cases. FSD lint and the
-positive/negative architecture regression passed. No user databases were modified. CI/merge pending.
+Validation: final cumulative stack MCP builds succeeded; 155 core tests and all
+four CLI process smoke suites passed, along with core SwiftLint/FSD/architecture
+regression, actionlint/shell syntax and diff checks. [Commands, execution boundaries and initial MCP/disk
+failures](SM-409-412-validation.md). GitHub CI/review/merge remain pending.
