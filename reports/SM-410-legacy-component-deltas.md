@@ -16,3 +16,7 @@ canonical import success, subsequent valid deltas after restart and skipped reim
 Validation: core SwiftLint and diff check passed. Local Swift tests not executed for
 this layer: Xcode MCP test run for the preceding layer timed out after 300 seconds,
 and local disk space remains critically low. Required CI remains the test gate.
+
+CI pull_request base filtering is removed so every dependent stack layer runs the
+existing required gates, instead of only the bottom PR targeting main. Push triggers
+and all gate jobs stay unchanged.

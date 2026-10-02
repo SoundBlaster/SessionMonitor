@@ -865,7 +865,8 @@ visual smoke и точная parity семи usage totals. Локальные lo
   2026-10-02: bounded cache/reasoning deltas сохраняют nil + diagnostic вместо
   SQLite CHECK failure; regression на canonical import/restart. SwiftLint/diff passed.
   Xcode MCP preceding test run timeout (300s), диск почти полный; CI/merge pending.
-  [Отчёт](reports/SM-410-legacy-component-deltas.md).
+  [Отчёт](reports/SM-410-legacy-component-deltas.md). [PR #75](https://github.com/SoundBlaster/SessionMonitor/pull/75)
+  открыт как draft поверх #74; CI разрешён для всех PR bases, включая stack layers.
 - [ ] **SM-411** — Dedup mirrored timeline events и уникальные account-scoped IDs.
   Статус: запланировано. Mirrors одного scope совпадают; разные accounts не сливаются.
 - [ ] **SM-412** — Изолировать root activity membership по account scope.
