@@ -530,21 +530,17 @@ private struct DecodeState {
             result.diagnostics["legacyReversedOrUncertain", default: 0] += 1
             return
         }
-        let cached = usage.cached.flatMap { current -> Int64? in
-            guard let previous = baseline.cached, current >= previous else { return nil }
-            return current - previous
-        }
+        let deltaInput = input - baselineInput
+        let deltaOutput = output - baselineOutput
+        let deltaTotal = total - baselineTotal
+        let cached = boundedLegacyDelta(usage.cached, previous: baseline.cached,
+                                        maximum: deltaInput, diagnostic: "legacyUnknownCacheDeltas")
         let cacheWrite = usage.cacheWrite.flatMap { current -> Int64? in
             guard let previous = baseline.cacheWrite, current >= previous else { return nil }
             return current - previous
         }
-        let reasoning = usage.reasoning.flatMap { current -> Int64? in
-            guard let previous = baseline.reasoning, current >= previous else { return nil }
-            return current - previous
-        }
-        let deltaInput = input - baselineInput
-        let deltaOutput = output - baselineOutput
-        let deltaTotal = total - baselineTotal
+        let reasoning = boundedLegacyDelta(usage.reasoning, previous: baseline.reasoning,
+                                           maximum: deltaOutput, diagnostic: "legacyUnknownReasoningDeltas")
         if deltaInput > 0 || deltaOutput > 0 || deltaTotal > 0 {
             result.legacyEstimates.append(LegacyUsageEstimate(
                 sessionID: context.sessionID, timestamp: date, sourceLine: line,
@@ -554,6 +550,19 @@ private struct DecodeState {
             ))
         }
         context.legacyBaseline = usage
+    }
+
+    private mutating func boundedLegacyDelta(
+        _ current: Int64?, previous: Int64?, maximum: Int64, diagnostic: String
+    ) -> Int64? {
+        guard let current, let previous else { return nil }
+        guard current >= previous, current - previous <= maximum else {
+            // Individually valid cumulative samples may still describe incomparable components.
+            // Keep the reliable parent delta and make this component explicitly unknown.
+            result.diagnostics[diagnostic, default: 0] += 1
+            return nil
+        }
+        return current - previous
     }
 
     mutating func appendResponseEvent(_ payload: Payload, timestamp: String, line: Int) {

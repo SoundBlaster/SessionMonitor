@@ -8,7 +8,7 @@
 
 **Приоритет пользователя — исправления core audit отдельной стопкой PR:**
 SM-409 (backfill), SM-410 (legacy deltas), SM-411 (timeline identities),
-SM-412 (root activity account isolation). SM-409: реализована, подготовка PR; затем SM-410.
+SM-412 (root activity account isolation). SM-409: draft PR #74; SM-410: реализована, подготовка PR; затем SM-411.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
 merge `47891f2` (2026-10-01): Sidebar Cache Hit Rate следует общему периоду отчёта;
@@ -861,7 +861,11 @@ visual smoke и точная parity семи usage totals. Локальные lo
   [Отчёт](reports/SM-409-backfill-checkpoint.md). [PR #74](https://github.com/SoundBlaster/SessionMonitor/pull/74)
   открыт как draft; CI/merge pending.
 - [ ] **SM-410** — Сохранять unknown для несопоставимых legacy component deltas.
-  Статус: запланировано. Invalid cache/reasoning deltas не должны прерывать импорт.
+  Статус: реализована, локальные regression tests ещё не выполнены.
+  2026-10-02: bounded cache/reasoning deltas сохраняют nil + diagnostic вместо
+  SQLite CHECK failure; regression на canonical import/restart. SwiftLint/diff passed.
+  Xcode MCP preceding test run timeout (300s), диск почти полный; CI/merge pending.
+  [Отчёт](reports/SM-410-legacy-component-deltas.md).
 - [ ] **SM-411** — Dedup mirrored timeline events и уникальные account-scoped IDs.
   Статус: запланировано. Mirrors одного scope совпадают; разные accounts не сливаются.
 - [ ] **SM-412** — Изолировать root activity membership по account scope.
