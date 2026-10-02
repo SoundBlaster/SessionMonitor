@@ -257,7 +257,7 @@ struct AccountProfileTests {
     }
 }
 
-private struct AccountProfileFixture {
+struct AccountProfileFixture {
     let directory: URL
     let date = Date(timeIntervalSince1970: 1_790_000_000)
     var database: URL { directory.appending(path: "usage.sqlite") }
