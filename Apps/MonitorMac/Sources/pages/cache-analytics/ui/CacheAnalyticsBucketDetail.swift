@@ -7,40 +7,61 @@ struct CacheAnalyticsBucketDetail: View {
     let report: CacheHitRateWidgetReport
 
     var body: some View {
-        Group {
-            if let slot {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center, spacing: CacheHitRateWidgetLayout.headerSpacing) {
-                        intervalSummary(slot).fixedSize(horizontal: true, vertical: false)
-                        if let bucket = slot.bucket {
-                            metricsRow(bucket).fixedSize(horizontal: true, vertical: false)
-                        } else {
-                            noDataLabel.fixedSize(horizontal: true, vertical: false)
-                        }
-                    }
-                    VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.headerSpacing) {
-                        intervalSummary(slot)
-                        if let bucket = slot.bucket {
-                            metricsGrid(bucket)
-                        } else {
-                            noDataLabel
-                        }
+        cardContent
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.secondary.opacity(CacheAnalyticsLayout.detailBackgroundOpacity),
+                        in: RoundedRectangle(cornerRadius: CacheAnalyticsLayout.detailCornerRadius))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilitySummary)
+            .accessibilityIdentifier("cacheHitRate.analytics.detail")
+    }
+
+    @ViewBuilder private var cardContent: some View {
+        if let slot {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: CacheHitRateWidgetLayout.headerSpacing) {
+                    intervalSummary(slot).fixedSize(horizontal: true, vertical: false)
+                    if let bucket = slot.bucket {
+                        metricsRow(bucket).fixedSize(horizontal: true, vertical: false)
+                    } else {
+                        noDataLabel.fixedSize(horizontal: true, vertical: false)
                     }
                 }
-            } else {
-                Text("Select an interval").font(.headline)
-                Text("Click a bucket to pin its weighted average, range, outliers and sample count here.")
-                    .font(.subheadline).foregroundStyle(.secondary)
+                .frame(minWidth: CacheAnalyticsLayout.singleRowContentWidth)
+                .padding(CacheHitRateWidgetLayout.cardPadding)
+                .frame(height: CacheAnalyticsLayout.detailCardHeight, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.headerSpacing) {
+                    intervalSummary(slot)
+                    if let bucket = slot.bucket {
+                        metricsGrid(bucket)
+                    } else {
+                        noDataLabel
+                    }
+                }
+                .padding(CacheHitRateWidgetLayout.cardPadding)
+                .frame(minHeight: CacheAnalyticsLayout.compactDetailCardHeight, alignment: .leading)
+            }
+        } else {
+            ViewThatFits(in: .horizontal) {
+                unselectedPrompt
+                    .frame(minWidth: CacheAnalyticsLayout.singleRowContentWidth)
+                    .padding(CacheHitRateWidgetLayout.cardPadding)
+                    .frame(height: CacheAnalyticsLayout.detailCardHeight, alignment: .leading)
+
+                unselectedPrompt
+                    .padding(CacheHitRateWidgetLayout.cardPadding)
+                    .frame(minHeight: CacheAnalyticsLayout.compactDetailCardHeight, alignment: .leading)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(CacheHitRateWidgetLayout.cardPadding)
-        .frame(height: CacheAnalyticsLayout.detailCardHeight, alignment: .leading)
-        .background(Color.secondary.opacity(CacheAnalyticsLayout.detailBackgroundOpacity),
-                    in: RoundedRectangle(cornerRadius: CacheAnalyticsLayout.detailCornerRadius))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilitySummary)
-        .accessibilityIdentifier("cacheHitRate.analytics.detail")
+    }
+
+    private var unselectedPrompt: some View {
+        VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.headerSpacing) {
+            Text("Select an interval").font(.headline)
+            Text("Click a bucket to pin its weighted average, range, outliers and sample count here.")
+                .font(.subheadline).foregroundStyle(.secondary)
+        }
     }
 
     private func intervalSummary(_ slot: CacheHitRateWidgetSlot) -> some View {

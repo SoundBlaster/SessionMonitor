@@ -1,6 +1,6 @@
 # SM-413 — Cache Hit Rate analytics window
 
-Branch: `feat/sm-413-cache-analytics-window`; draft PR #79.
+Branch: `feat/sm-413-cache-analytics-window`; PR #79 is open and ready for review.
 Independent of the pending core audit stack.
 
 ## Behavior
@@ -9,7 +9,7 @@ Independent of the pending core audit stack.
 - Sliders and bucket dropdown replaced by plot drag/scroll panning and pointer-anchored pinch zoom.
 - Click pins a bucket; hover and pointer exit do not change selection. Pan, zoom and reset retain it.
 - Selected interval/date stays on the left of the fixed-height detail card; the four selected metrics share one horizontal row to its right when the window is wide enough, with a compact adaptive fallback for narrow widths. The card contains: weighted average, P10–P90 or min–max fallback, outliers and samples. The card does not resize across populated, empty or unselected states.
-- Compact zoom/reset and previous/next buttons provide keyboard alternatives, including empty calendar slots.
+- Compact zoom/reset and previous/next buttons provide keyboard alternatives, including empty calendar slots. The detail card keeps 184pt height in wide mode and expands to 232pt in the narrow fallback. Scroll-wheel events pan the plot only when the viewport moves; otherwise they continue to the enclosing scroll view.
 - Full-report Y domain remains fixed. Visible marks and selection line stay inside the viewport.
 - Independent accessibility slots expose Select bucket actions and stable identifiers.
 - Shared renderer and privacy-safe report preserve accounting; no session/model identities or new database aggregation.
@@ -21,7 +21,9 @@ Independent of the pending core audit stack.
 - Xcode-tools MCP BuildProject after fixed-height detail card change: passed.
 - Xcode-tools MCP BuildProject after centering the unavailable-data state: passed.
 - Xcode-tools MCP BuildProject after aligning interval details and metrics on one row: passed.
-- Xcode-tools MCP RunSomeTests: 10/10 CacheAnalyticsTests passed, including pan bounds, pointer anchoring, invalid events, empty slots, persistent selection, source ownership, scope clearing and light/dark chart rendering.
+- Xcode-tools MCP RunSomeTests: 11/11 CacheAnalyticsTests passed, including pan bounds/consumption, pointer anchoring, invalid events, empty slots, persistent selection, source ownership, scope clearing, responsive detail-card height and light/dark chart rendering. The detail-card test was rerun after adding the unselected-state assertion: 1/1 passed.
+- Xcode-tools MCP BuildProject: passed after review fixes.
+- Strict targeted SwiftLint and `git diff --check`: passed after review fixes.
 - Project generation, strict SwiftLint, FSD lint, architecture negative regression: passed.
 - The architecture negative probe intentionally emits an invalid-dependency error and exits successfully.
 - Native Computer Use on a real 30-day report: Sidebar opening, accessibility selection, zoom buttons, drag pan, fixed Y scale and viewport clipping confirmed. The selected interval remains pinned above the chart after panning.
@@ -34,4 +36,4 @@ Physical trackpad pinch and scroll-wheel feel require manual verification; Compu
 
 The analytics report remains the last source-window snapshot if its explorer closes; reopening from another explorer transfers ownership. No duplicate background query was introduced.
 
-Next: manual trackpad/design review, then PR review and merge; SM-403 runtime accessibility audit remains the next roadmap task.
+Review follow-ups fixed: wheel events now bubble when pan is unavailable, and compact detail content receives enough height at narrow widths. Both review threads were rechecked on the updated PR head. Physical trackpad/design review remains useful before merge; SM-403 runtime accessibility audit remains the next roadmap task.

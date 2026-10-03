@@ -15,13 +15,17 @@ final class CacheAnalyticsTests: XCTestCase {
 
     func testPanUsesVisibleSpanAndClampsWithoutChangingZoom() {
         var viewport = CacheAnalyticsViewport(zoom: 3, position: 0.5)
-        viewport.pan(translation: 100, plotWidth: 500, slotCount: 30)
+        XCTAssertTrue(viewport.pan(translation: 100, plotWidth: 500, slotCount: 30))
         XCTAssertEqual(viewport.domain(slotCount: 30), 7.5...17.5)
         XCTAssertEqual(viewport.zoom, 3)
-        viewport.pan(translation: 10_000, plotWidth: 500, slotCount: 30)
+        XCTAssertTrue(viewport.pan(translation: 10_000, plotWidth: 500, slotCount: 30))
         XCTAssertEqual(viewport.domain(slotCount: 30), -0.5...9.5)
-        viewport.pan(translation: -10_000, plotWidth: 500, slotCount: 30)
+        XCTAssertFalse(viewport.pan(translation: 10, plotWidth: 500, slotCount: 30))
+        XCTAssertTrue(viewport.pan(translation: -10_000, plotWidth: 500, slotCount: 30))
         XCTAssertEqual(viewport.domain(slotCount: 30), 19.5...29.5)
+        XCTAssertFalse(viewport.pan(translation: -10, plotWidth: 500, slotCount: 30))
+        var fullPeriod = CacheAnalyticsViewport()
+        XCTAssertFalse(fullPeriod.pan(translation: 100, plotWidth: 500, slotCount: 30))
     }
 
     func testMagnifyKeepsThePointerAnchorAndBoundsTheSpan() {
@@ -116,6 +120,23 @@ final class CacheAnalyticsTests: XCTestCase {
         presentation.update(sourceID: source, report: CacheHitRateWidgetFixture.hourly.report,
                             periodTitle: "Today", accountLabel: "Second")
         XCTAssertEqual(presentation.report, CacheHitRateWidgetFixture.hourly.report)
+    }
+
+    @MainActor
+    func testDetailCardKeepsItsLayoutHeightForWideAndCompactWindows() throws {
+        let report = CacheHitRateWidgetFixture.month.report
+        let slot = try XCTUnwrap(CacheHitRateWidgetChartPresentation.slots(for: report).first)
+        for width in [900.0, 440.0] {
+            let expectedHeight = width > CacheAnalyticsLayout.singleRowContentWidth ? 184.0 : 232.0
+            for selectedSlot in [slot, nil] {
+                let view = CacheAnalyticsBucketDetail(slot: selectedSlot, report: report)
+                    .frame(width: width)
+                let renderer = ImageRenderer(content: view)
+                let image = try XCTUnwrap(renderer.nsImage)
+                XCTAssertEqual(image.size.width, width, accuracy: 1)
+                XCTAssertEqual(image.size.height, expectedHeight, accuracy: 1)
+            }
+        }
     }
 
     @MainActor

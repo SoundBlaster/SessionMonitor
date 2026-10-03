@@ -6,13 +6,12 @@
 
 ## Текущая точка
 
-**SM-413 — статус: реализована, draft PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79),
-ожидает review.** Редизайн: sliders/dropdown заменены на drag/scroll pan и pinch zoom;
+**SM-413 — статус: реализована, PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79) открыт и готов к review.** Редизайн: sliders/dropdown заменены на drag/scroll pan и pinch zoom;
 статистика выбранного интервала крупно над графиком. Hover не меняет явный выбор.
 Клик по Sidebar Cache Hit Rate открывает одно переиспользуемое окно с тем же report,
 периодом и palette. Шкала Y фиксирована по полному report; marks ограничены viewport.
 Project generation, SwiftLint и FSD/architecture regression passed.
-Свежая сборка через Xcode MCP прошла; 10 targeted tests passed на финальном проходе редизайна.
+Свежая сборка через Xcode MCP прошла; 11 targeted CacheAnalyticsTests passed после исправления прокрутки и compact detail layout.
 Native light UI: открытие, pin, zoom buttons и drag pan проверены на реальном report;
 pinch на физическом trackpad остаётся ручной проверкой. [Отчёт](reports/SM-413-cache-analytics-window.md).
 Core audit stack #74/#75/#77/#78 остаётся отдельной работой на review.
@@ -858,8 +857,8 @@ visual smoke и точная parity семи usage totals. Локальные lo
   разрешён. Signed archive подтвердил работу system widget snapshot по пользовательской
   проверке; system widgets сохраняют собственный период.
 
-- [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: draft PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79), ожидает validation/review.
+- [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79) открыт и готов к review; review fixes проверены локально, GitHub CI выполняется.
   Повторное открытие фокусирует одно окно; общие данные, scope и палитра;
-  drag/scroll pan, pinch zoom, persistent selection и крупные bucket details фиксированной высоты над графиком, с датой слева и метриками в одну строку;
+  drag/scroll pan, pinch zoom, persistent selection и крупные bucket details над графиком: дата слева, метрики в одну строку при достаточной ширине и более высокий compact layout; прокрутка страницы над графиком работает, когда pan невозможен;
   без session/model identity, empty states и accessibility.
   Проверка: viewport regression tests, GUI build через xcode-tools, lint/FSD.

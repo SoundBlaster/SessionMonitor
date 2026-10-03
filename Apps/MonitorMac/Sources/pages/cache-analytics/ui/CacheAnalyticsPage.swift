@@ -75,7 +75,9 @@ struct CacheAnalyticsPage: View {
 
 enum CacheAnalyticsLayout {
     static let metricColumnWidth: CGFloat = 130
+    static let singleRowContentWidth: CGFloat = 760
     static let detailCardHeight: CGFloat = 184
+    static let compactDetailCardHeight: CGFloat = 232
     static let detailCornerRadius: CGFloat = 12
     static let detailBackgroundOpacity = 0.08
     static let minimumChartHeight: CGFloat = 260

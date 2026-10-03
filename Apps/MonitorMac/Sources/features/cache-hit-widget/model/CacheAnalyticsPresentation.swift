@@ -37,11 +37,14 @@ struct CacheAnalyticsViewport {
     }
 
     /// Positive translation moves the plotted data right, revealing earlier slots.
-    mutating func pan(translation: Double, plotWidth: Double, slotCount: Int) {
-        guard translation.isFinite, plotWidth.isFinite, plotWidth > 0, slotCount > 0 else { return }
+    @discardableResult
+    mutating func pan(translation: Double, plotWidth: Double, slotCount: Int) -> Bool {
+        guard translation.isFinite, plotWidth.isFinite, plotWidth > 0, slotCount > 0 else { return false }
+        let originalPosition = position
         let visible = domain(slotCount: slotCount)
         let width = visible.upperBound - visible.lowerBound
         setStart(visible.lowerBound - translation / plotWidth * width, width: width, slotCount: slotCount)
+        return position != originalPosition
     }
 
     /// Keep the slot beneath the pointer fixed while changing the horizontal span.

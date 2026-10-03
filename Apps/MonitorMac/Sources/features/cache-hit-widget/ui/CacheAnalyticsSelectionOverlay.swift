@@ -19,10 +19,12 @@ struct CacheAnalyticsSelectionOverlay: View {
                 )
             },
             onPan: { translation in
-                guard let viewport else { return }
+                guard let viewport else { return false }
                 var updated = viewport.wrappedValue
                 updated.pan(translation: translation, plotWidth: plot.width, slotCount: slotCount)
+                guard updated.position != viewport.wrappedValue.position else { return false }
                 viewport.wrappedValue = updated
+                return true
             },
             onMagnify: { factor, anchor in
                 guard let viewport else { return }
@@ -39,7 +41,7 @@ struct CacheAnalyticsSelectionOverlay: View {
 /// A plot-local responder keeps mouse, trackpad and scroll-wheel navigation consistent.
 private struct CacheAnalyticsInteractionSurface: NSViewRepresentable {
     let onSelect: (CGPoint) -> Void
-    let onPan: (Double) -> Void
+    let onPan: (Double) -> Bool
     let onMagnify: (Double, Double) -> Void
 
     func makeNSView(context: Context) -> CacheAnalyticsInteractionView {
@@ -55,7 +57,7 @@ private struct CacheAnalyticsInteractionSurface: NSViewRepresentable {
 
 private final class CacheAnalyticsInteractionView: NSView {
     var onSelect: ((CGPoint) -> Void)?
-    var onPan: ((Double) -> Void)?
+    var onPan: ((Double) -> Bool)?
     var onMagnify: ((Double, Double) -> Void)?
     private var pressLocation: CGPoint?
     private var lastLocation: CGPoint?
@@ -98,7 +100,13 @@ private final class CacheAnalyticsInteractionView: NSView {
     override func scrollWheel(with event: NSEvent) {
         let delta = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY)
             ? event.scrollingDeltaX : event.scrollingDeltaY
-        onPan?(delta * (event.hasPreciseScrollingDeltas ? 1 : CacheAnalyticsInteraction.wheelStep))
+        let translation = delta * (event.hasPreciseScrollingDeltas ? 1 : CacheAnalyticsInteraction.wheelStep)
+        guard onPan?(translation) != true else { return }
+        if let enclosingScrollView {
+            enclosingScrollView.scrollWheel(with: event)
+        } else {
+            nextResponder?.scrollWheel(with: event)
+        }
     }
 
     override func magnify(with event: NSEvent) {
