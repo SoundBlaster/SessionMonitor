@@ -8,8 +8,14 @@ struct CacheHitRateWidgetChart: View {
     let family: CacheHitRateWidgetAppearance.Family
     let appearance: CacheHitRateWidgetAppearance
     let preservesAspectRatio: Bool
+    var viewport: ClosedRange<Double>?
+    var selection: Binding<Double?>?
+    var interactionViewport: Binding<CacheAnalyticsViewport>?
 
     private var slots: [CacheHitRateWidgetSlot] { CacheHitRateWidgetChartPresentation.slots(for: report) }
+    private var visibleSlots: [CacheHitRateWidgetSlot] {
+        slots.filter { viewport?.contains(Double($0.id)) ?? true }
+    }
     private var domain: ClosedRange<Double> { CacheHitRateWidgetAxis.domain(for: report.buckets) }
 
     var body: some View {
@@ -22,11 +28,18 @@ struct CacheHitRateWidgetChart: View {
                         .accessibilityHidden(true)
                 }
             }
-            ForEach(slots) { slot in
+            if let selected = selection?.wrappedValue, selected.isFinite,
+               viewport?.contains(selected.rounded()) ?? true {
+                RuleMark(x: .value("Selected bucket", selected.rounded()))
+                    .foregroundStyle(appearance.palette.neutral)
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                    .accessibilityHidden(true)
+            }
+            ForEach(visibleSlots) { slot in
                 if let bucket = slot.bucket { marks(bucket, index: Double(slot.id)) }
             }
         }
-        .chartXScale(domain: -0.5...Double(max(slots.count, 1)) - 0.5, range: .plotDimension(padding: 0))
+        .chartXScale(domain: viewport ?? (-0.5...Double(max(slots.count, 1)) - 0.5), range: .plotDimension(padding: 0))
         .chartYScale(domain: domain, range: .plotDimension(padding: CacheHitRateWidgetLayout.plotVerticalInset))
         .chartXAxis(.hidden)
         .chartYAxis { yAxis }
@@ -35,14 +48,20 @@ struct CacheHitRateWidgetChart: View {
             GeometryReader { geometry in
                 if let anchor = proxy.plotFrame {
                     let plot = geometry[anchor]
+                    if let selection {
+                        CacheAnalyticsSelectionOverlay(proxy: proxy, plot: plot, selection: selection,
+                                                       slotCount: slots.count, viewport: interactionViewport)
+                    }
+                    let visibleCount = viewport.map { $0.upperBound - $0.lowerBound } ?? Double(max(slots.count, 1))
                     let labelFamily: CacheHitRateWidgetAppearance.Family =
-                        plot.width / Double(slots.count) < CacheHitRateWidgetLayout.fullLabelSlotWidth ? .small : family
+                        plot.width / visibleCount < CacheHitRateWidgetLayout.fullLabelSlotWidth ? .small : family
                     ForEach(labelSlots) { slot in
-                        if let position = proxy.position(forX: Double(slot.id)) {
+                        if let position = proxy.position(forX: Double(slot.id)), position >= 0, position <= plot.width {
                             Text(CacheHitRateWidgetLabelFormat.bucketLabel(
                                 for: slot.start, period: report.period,
                                 family: labelFamily, timeZoneIdentifier: report.timeZoneIdentifier))
                                 .font(.caption2).foregroundStyle(appearance.palette.neutral)
+                                .allowsHitTesting(false)
                                 .position(x: plot.minX + position,
                                           y: plot.maxY + CacheHitRateWidgetLayout.labelOffset)
                         }
@@ -52,6 +71,7 @@ struct CacheHitRateWidgetChart: View {
                             Text(tick.formatted(.number.precision(.fractionLength(0))))
                                 .font(.caption2)
                                 .foregroundStyle(appearance.palette.neutral)
+                                .allowsHitTesting(false)
                                 .position(
                                     x: plot.minX - CacheHitRateWidgetLayout.yAxisLabelGap
                                         - CacheHitRateWidgetLayout.yAxisLabelGutter / 2,
@@ -61,12 +81,14 @@ struct CacheHitRateWidgetChart: View {
                     }
                 }
             }
-            .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
         .chartPlotStyle { plot in
             if preservesAspectRatio {
                 plot.aspectRatio(CacheHitRateWidgetLayout.chartAspectRatio, contentMode: .fit)
+            } else if viewport != nil {
+                // Marks at a viewport edge must not draw over labels or beyond the plot.
+                plot.frame(maxWidth: .infinity).clipped()
             } else {
                 plot.frame(maxWidth: .infinity)
             }
@@ -76,12 +98,25 @@ struct CacheHitRateWidgetChart: View {
         .accessibilityRepresentation {
             VStack {
                 ForEach(slots) { slot in
-                    Text(slot.bucket.map(bucketDescription) ?? "\(dateLabel(slot.start)): no cache data")
+                    accessibleSlot(slot)
                 }
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Cache hit rate distribution")
             .accessibilityIdentifier("cacheHitRate.widget.distribution")
+        }
+    }
+
+    @ViewBuilder private func accessibleSlot(_ slot: CacheHitRateWidgetSlot) -> some View {
+        let label = slot.bucket.map(bucketDescription) ?? "\(dateLabel(slot.start)): no cache data"
+        if let selection {
+            Text(label)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(label)
+                .accessibilityIdentifier("cacheHitRate.analytics.slot.\(slot.id)")
+                .accessibilityAction(named: "Select bucket") { selection.wrappedValue = Double(slot.id) }
+        } else {
+            Text(label)
         }
     }
 
@@ -146,12 +181,16 @@ struct CacheHitRateWidgetChart: View {
 
     private var barWidth: CGFloat {
         let base = family == .small ? CacheHitRateWidgetLayout.compactRangeWidth : CacheHitRateWidgetLayout.rangeWidth
-        return base * min(1, 7 / CGFloat(max(slots.count, 1)))
+        let visibleCount = viewport.map { $0.upperBound - $0.lowerBound } ?? Double(slots.count)
+        return base * min(1, 7 / CGFloat(max(visibleCount, 1)))
     }
 
     private var labelSlots: [CacheHitRateWidgetSlot] {
-        let stride = max(1, Int(ceil(Double(slots.count) / 8)))
-        return slots.filter { $0.id.isMultiple(of: stride) }
+        let visibleCount = viewport.map { $0.upperBound - $0.lowerBound } ?? Double(slots.count)
+        let stride = max(1, Int(ceil(visibleCount / 8)))
+        return slots.filter { slot in
+            slot.id.isMultiple(of: stride) && (viewport?.contains(Double(slot.id)) ?? true)
+        }
     }
 
     private var outlierLimit: Int { family == .large ? 4 : family == .medium ? 3 : 2 }

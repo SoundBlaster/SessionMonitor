@@ -11,6 +11,7 @@ struct SessionMonitorApp: App {
     @State private var reportScope: ReportScopeModel
     @State private var watchController: AppWatchController
     @State private var cacheHitRateWidgetSettings = CacheHitRateWidgetSettings()
+    @State private var cacheAnalytics = CacheAnalyticsPresentation()
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
 
     init() {
@@ -40,10 +41,15 @@ struct SessionMonitorApp: App {
             SessionMonitorWindow(
                 runtimeLoader: runtimeLoader,
                 reportScope: reportScope,
-                cacheHitRateWidgetSettings: cacheHitRateWidgetSettings
+                cacheHitRateWidgetSettings: cacheHitRateWidgetSettings,
+                cacheAnalytics: cacheAnalytics
             )
         }
         .defaultSize(width: 1120, height: 760)
+        Window("Cache Hit Rate", id: CacheAnalyticsPresentation.windowID) {
+            CacheAnalyticsPage(presentation: cacheAnalytics)
+        }
+        .defaultSize(width: 960, height: 640)
         #if DEBUG
         Window("Widget Lab", id: "cache-widget-lab") {
             CacheWidgetLabPage()
@@ -69,15 +75,18 @@ private struct SessionMonitorWindow: View {
     @State private var model: SessionExplorerModel
     let reportScope: ReportScopeModel
     let cacheHitRateWidgetSettings: CacheHitRateWidgetSettings
+    let cacheAnalytics: CacheAnalyticsPresentation
     @Environment(\.scenePhase) private var scenePhase
 
     init(
         runtimeLoader: SessionMonitorRuntimeLoader,
         reportScope: ReportScopeModel,
-        cacheHitRateWidgetSettings: CacheHitRateWidgetSettings
+        cacheHitRateWidgetSettings: CacheHitRateWidgetSettings,
+        cacheAnalytics: CacheAnalyticsPresentation
     ) {
         self.reportScope = reportScope
         self.cacheHitRateWidgetSettings = cacheHitRateWidgetSettings
+        self.cacheAnalytics = cacheAnalytics
         _model = State(initialValue: SessionExplorerModel {
             try await runtimeLoader.load()
         })
@@ -87,7 +96,8 @@ private struct SessionMonitorWindow: View {
         SessionExplorerPage(
             model: model,
             reportScope: reportScope,
-            cacheHitRateWidgetSettings: cacheHitRateWidgetSettings
+            cacheHitRateWidgetSettings: cacheHitRateWidgetSettings,
+            cacheAnalytics: cacheAnalytics
         )
             .frame(minWidth: 760, minHeight: 520)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

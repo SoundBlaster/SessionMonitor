@@ -47,6 +47,7 @@ final class SessionExplorerModel {
     private(set) var importSummary: ImportSummary?
     private(set) var importedDirectory: URL?
     private(set) var lastUpdated: Date?
+    private(set) var cacheHitRateWidgetQuery: UsageQuery?
     private(set) var cacheHitRateWidgetReport: CacheHitRateWidgetReport?
     private(set) var quotaPresentationReport: QuotaPresentationReport?
     private(set) var filter = ""
@@ -134,6 +135,7 @@ final class SessionExplorerModel {
                 accountScope: requestedQuery.accountScope, query: followsReportScope ? requestedQuery : nil
             )
             guard !Task.isCancelled, query == requestedQuery else { return }
+            cacheHitRateWidgetQuery = requestedQuery
             cacheHitRateWidgetReport = report
         } catch {
             guard !Task.isCancelled, query == requestedQuery else { return }

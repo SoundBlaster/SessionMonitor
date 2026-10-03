@@ -1,10 +1,20 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-01. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-03. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
+
+**SM-413 — статус: реализована, PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79) открыт и готов к review.** Редизайн: sliders/dropdown заменены на drag/scroll pan и pinch zoom;
+статистика выбранного интервала крупно над графиком. Hover не меняет явный выбор.
+Клик по Sidebar Cache Hit Rate открывает одно переиспользуемое окно с тем же report,
+периодом и palette. Шкала Y фиксирована по полному report; marks ограничены viewport.
+Project generation, SwiftLint и FSD/architecture regression passed.
+Свежая сборка через Xcode MCP прошла; 11 targeted CacheAnalyticsTests passed после исправления прокрутки и compact detail layout.
+Native light UI: открытие, pin, zoom buttons и drag pan проверены на реальном report;
+pinch на физическом trackpad остаётся ручной проверкой. [Отчёт](reports/SM-413-cache-analytics-window.md).
+Core audit stack #74/#75/#77/#78 остаётся отдельной работой на review.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
 merge `47891f2` (2026-10-01): Sidebar Cache Hit Rate следует общему периоду отчёта;
@@ -14,7 +24,7 @@ review thread разрешён. Новые локальные tests не зап�
 CI проверил regression tests на границы, gaps, периоды 7/30 дней, DST, scope forwarding
 и light/dark renders.
 
-**Следующая доступная задача — SM-403:** проверить runtime accessibility tree на ожидаемую
+**После SM-413 следующая доступная задача — SM-403:** проверить runtime accessibility tree на ожидаемую
 иерархию identifiers после внедрения NestedA11yIDs; UI test уже прошёл в GitHub CI.
 
 **SM-406 доставлена через PR [#69](https://github.com/SoundBlaster/SessionMonitor/pull/69),**
@@ -846,3 +856,9 @@ visual smoke и точная parity семи usage totals. Локальные lo
   `Workflow lint`, Xcode 26.0 compatibility build и required `CI` passed; review thread
   разрешён. Signed archive подтвердил работу system widget snapshot по пользовательской
   проверке; system widgets сохраняют собственный период.
+
+- [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79) открыт и готов к review; review fixes проверены локально, GitHub CI выполняется.
+  Повторное открытие фокусирует одно окно; общие данные, scope и палитра;
+  drag/scroll pan, pinch zoom, persistent selection и крупные bucket details над графиком: дата слева, метрики в одну строку при достаточной ширине и более высокий compact layout; прокрутка страницы над графиком работает, когда pan невозможен;
+  без session/model identity, empty states и accessibility.
+  Проверка: viewport regression tests, GUI build через xcode-tools, lint/FSD.
