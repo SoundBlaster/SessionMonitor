@@ -7,28 +7,25 @@ struct CacheAnalyticsBucketDetail: View {
     let report: CacheHitRateWidgetReport
 
     var body: some View {
-        VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.headerSpacing) {
+        Group {
             if let slot {
-                VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.textSpacing) {
-                    Text("Selected interval").font(.caption).foregroundStyle(.secondary)
-                    Text(Self.dateLabel(slot.start, report: report)).font(.headline)
-                    if let bucket = slot.bucket {
-                        Text("Until \(Self.dateLabel(bucket.end, report: report))")
-                            .font(.caption).foregroundStyle(.secondary)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center, spacing: CacheHitRateWidgetLayout.headerSpacing) {
+                        intervalSummary(slot).fixedSize(horizontal: true, vertical: false)
+                        if let bucket = slot.bucket {
+                            metricsRow(bucket).fixedSize(horizontal: true, vertical: false)
+                        } else {
+                            noDataLabel.fixedSize(horizontal: true, vertical: false)
+                        }
                     }
-                }
-                if let bucket = slot.bucket {
-                    LazyVGrid(columns: metricColumns, alignment: .leading,
-                              spacing: CacheHitRateWidgetLayout.headerSpacing) {
-                        metric("Weighted average", value: percent(bucket.average), prominent: true)
-                        metric(bucket.usesMinMaxFallback ? "Min–max range" : "Typical range · P10–P90",
-                               value: "\(percent(bucket.lower))–\(percent(bucket.upper))")
-                        metric("Outliers", value: bucket.outliers.count.formatted())
-                        metric("Samples", value: bucket.sampleCount.formatted())
+                    VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.headerSpacing) {
+                        intervalSummary(slot)
+                        if let bucket = slot.bucket {
+                            metricsGrid(bucket)
+                        } else {
+                            noDataLabel
+                        }
                     }
-                } else {
-                    Text("No cache data for this interval")
-                        .font(.title3.weight(.semibold)).foregroundStyle(.secondary)
                 }
             } else {
                 Text("Select an interval").font(.headline)
@@ -38,12 +35,49 @@ struct CacheAnalyticsBucketDetail: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(CacheHitRateWidgetLayout.cardPadding)
-        .frame(height: CacheAnalyticsLayout.detailCardHeight, alignment: .topLeading)
+        .frame(height: CacheAnalyticsLayout.detailCardHeight, alignment: .leading)
         .background(Color.secondary.opacity(CacheAnalyticsLayout.detailBackgroundOpacity),
                     in: RoundedRectangle(cornerRadius: CacheAnalyticsLayout.detailCornerRadius))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
         .accessibilityIdentifier("cacheHitRate.analytics.detail")
+    }
+
+    private func intervalSummary(_ slot: CacheHitRateWidgetSlot) -> some View {
+        VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.textSpacing) {
+            Text("Selected interval").font(.caption).foregroundStyle(.secondary)
+            Text(Self.dateLabel(slot.start, report: report)).font(.headline)
+            if let bucket = slot.bucket {
+                Text("Until \(Self.dateLabel(bucket.end, report: report))")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var noDataLabel: some View {
+        Text("No cache data for this interval")
+            .font(.title3.weight(.semibold)).foregroundStyle(.secondary)
+    }
+
+    private func metricsRow(_ bucket: CacheHitRateBucket) -> some View {
+        HStack(alignment: .center, spacing: CacheHitRateWidgetLayout.headerSpacing) {
+            metric("Weighted average", value: percent(bucket.average), prominent: true)
+            metric(bucket.usesMinMaxFallback ? "Min–max range" : "Typical range · P10–P90",
+                   value: "\(percent(bucket.lower))–\(percent(bucket.upper))")
+            metric("Outliers", value: bucket.outliers.count.formatted())
+            metric("Samples", value: bucket.sampleCount.formatted())
+        }
+    }
+
+    private func metricsGrid(_ bucket: CacheHitRateBucket) -> some View {
+        LazyVGrid(columns: metricColumns, alignment: .leading,
+                  spacing: CacheHitRateWidgetLayout.headerSpacing) {
+            metric("Weighted average", value: percent(bucket.average), prominent: true)
+            metric(bucket.usesMinMaxFallback ? "Min–max range" : "Typical range · P10–P90",
+                   value: "\(percent(bucket.lower))–\(percent(bucket.upper))")
+            metric("Outliers", value: bucket.outliers.count.formatted())
+            metric("Samples", value: bucket.sampleCount.formatted())
+        }
     }
 
     private var accessibilitySummary: String {
