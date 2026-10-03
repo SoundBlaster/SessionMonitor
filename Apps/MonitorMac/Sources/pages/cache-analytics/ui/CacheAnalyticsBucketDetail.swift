@@ -38,6 +38,7 @@ struct CacheAnalyticsBucketDetail: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(CacheHitRateWidgetLayout.cardPadding)
+        .frame(height: CacheAnalyticsLayout.detailCardHeight, alignment: .topLeading)
         .background(Color.secondary.opacity(CacheAnalyticsLayout.detailBackgroundOpacity),
                     in: RoundedRectangle(cornerRadius: CacheAnalyticsLayout.detailCornerRadius))
         .accessibilityElement(children: .ignore)

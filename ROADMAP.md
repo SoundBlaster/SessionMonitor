@@ -860,6 +860,6 @@ visual smoke и точная parity семи usage totals. Локальные lo
 
 - [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: draft PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79), ожидает validation/review.
   Повторное открытие фокусирует одно окно; общие данные, scope и палитра;
-  drag/scroll pan, pinch zoom, persistent selection и крупные bucket details над графиком;
+  drag/scroll pan, pinch zoom, persistent selection и крупные bucket details фиксированной высоты над графиком;
   без session/model identity, empty states и accessibility.
   Проверка: viewport regression tests, GUI build через xcode-tools, lint/FSD.

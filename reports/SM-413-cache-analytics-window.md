@@ -8,7 +8,7 @@ Independent of the pending core audit stack.
 - Sidebar click focuses/reuses a singleton analytics scene with the same report, scope and palette.
 - Sliders and bucket dropdown replaced by plot drag/scroll panning and pointer-anchored pinch zoom.
 - Click pins a bucket; hover and pointer exit do not change selection. Pan, zoom and reset retain it.
-- Selected interval statistics are prominent above the plot: weighted average, P10–P90 or min–max fallback, outliers and samples.
+- Selected interval statistics are prominent above the plot in a fixed-height card: weighted average, P10–P90 or min–max fallback, outliers and samples. The card does not resize across populated, empty or unselected states.
 - Compact zoom/reset and previous/next buttons provide keyboard alternatives, including empty calendar slots.
 - Full-report Y domain remains fixed. Visible marks and selection line stay inside the viewport.
 - Independent accessibility slots expose Select bucket actions and stable identifiers.
@@ -18,6 +18,7 @@ Independent of the pending core audit stack.
 ## Validation — 2026-10-03
 
 - Xcode-tools MCP BuildProject (including test targets): passed.
+- Xcode-tools MCP BuildProject after fixed-height detail card change: passed.
 - Xcode-tools MCP RunSomeTests: 10/10 CacheAnalyticsTests passed, including pan bounds, pointer anchoring, invalid events, empty slots, persistent selection, source ownership, scope clearing and light/dark chart rendering.
 - Project generation, strict SwiftLint, FSD lint, architecture negative regression: passed.
 - The architecture negative probe intentionally emits an invalid-dependency error and exits successfully.
