@@ -7,25 +7,70 @@ struct CacheAnalyticsBucketDetail: View {
     let report: CacheHitRateWidgetReport
 
     var body: some View {
-        VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.textSpacing) {
+        VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.headerSpacing) {
             if let slot {
-                Text(Self.dateLabel(slot.start, report: report)).font(.headline)
+                VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.textSpacing) {
+                    Text("Selected interval").font(.caption).foregroundStyle(.secondary)
+                    Text(Self.dateLabel(slot.start, report: report)).font(.headline)
+                    if let bucket = slot.bucket {
+                        Text("Until \(Self.dateLabel(bucket.end, report: report))")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
                 if let bucket = slot.bucket {
-                    Text("Weighted average \(percent(bucket.average)); "
-                         + "range \(percent(bucket.lower))–\(percent(bucket.upper))")
-                    Text("\(bucket.sampleCount) samples · \(bucket.outliers.count) outliers")
-                        .foregroundStyle(.secondary)
+                    LazyVGrid(columns: metricColumns, alignment: .leading,
+                              spacing: CacheHitRateWidgetLayout.headerSpacing) {
+                        metric("Weighted average", value: percent(bucket.average), prominent: true)
+                        metric(bucket.usesMinMaxFallback ? "Min–max range" : "Typical range · P10–P90",
+                               value: "\(percent(bucket.lower))–\(percent(bucket.upper))")
+                        metric("Outliers", value: bucket.outliers.count.formatted())
+                        metric("Samples", value: bucket.sampleCount.formatted())
+                    }
                 } else {
-                    Text("No cache data for this bucket").foregroundStyle(.secondary)
+                    Text("No cache data for this interval")
+                        .font(.title3.weight(.semibold)).foregroundStyle(.secondary)
                 }
             } else {
-                Text("Click or drag on the chart, or choose a bucket to inspect it.")
-                    .foregroundStyle(.secondary)
+                Text("Select an interval").font(.headline)
+                Text("Click a bucket to pin its weighted average, range, outliers and sample count here.")
+                    .font(.subheadline).foregroundStyle(.secondary)
             }
         }
-        .font(.subheadline)
-        .accessibilityElement(children: .combine)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(CacheHitRateWidgetLayout.cardPadding)
+        .background(Color.secondary.opacity(CacheAnalyticsLayout.detailBackgroundOpacity),
+                    in: RoundedRectangle(cornerRadius: CacheAnalyticsLayout.detailCornerRadius))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
         .accessibilityIdentifier("cacheHitRate.analytics.detail")
+    }
+
+    private var accessibilitySummary: String {
+        guard let slot else {
+            return "Select an interval. Click a bucket or use previous and next interval buttons to inspect metrics."
+        }
+        let date = Self.dateLabel(slot.start, report: report)
+        guard let bucket = slot.bucket else { return "Selected interval, \(date). No cache data for this interval." }
+        let end = Self.dateLabel(bucket.end, report: report)
+        let range = bucket.usesMinMaxFallback ? "Min–max range" : "Typical range, P10 to P90"
+        return "Selected interval, \(date), until \(end). Weighted average \(percent(bucket.average)). "
+            + "\(range), \(percent(bucket.lower)) to \(percent(bucket.upper)). "
+            + "\(bucket.outliers.count) outliers. \(bucket.sampleCount) samples."
+    }
+
+    private var metricColumns: [GridItem] {
+        [GridItem(.adaptive(minimum: CacheAnalyticsLayout.metricColumnWidth), alignment: .leading)]
+    }
+
+    private func metric(_ title: String, value: String, prominent: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.textSpacing) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(value)
+                .font(prominent ? .largeTitle.weight(.semibold) : .title3.weight(.semibold))
+                .monospacedDigit()
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     static func dateLabel(_ date: Date, report: CacheHitRateWidgetReport) -> String {

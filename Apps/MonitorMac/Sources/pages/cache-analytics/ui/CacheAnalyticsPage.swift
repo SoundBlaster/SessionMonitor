@@ -20,7 +20,7 @@ struct CacheAnalyticsPage: View {
                                          geometry.size.height * CacheAnalyticsLayout.chartHeightFraction))
             }
         }
-        .frame(minWidth: 640, minHeight: 480)
+        .frame(minWidth: 440, minHeight: 480)
         .accessibilityIdentifier("cacheHitRate.analytics")
         .onChange(of: presentation.sourceID) { _, _ in resetViewport() }
         .onChange(of: presentation.report?.periodStart) { _, _ in resetViewport() }
@@ -52,14 +52,14 @@ struct CacheAnalyticsPage: View {
     private func interactiveChart(_ report: CacheHitRateWidgetReport, height: CGFloat) -> some View {
         let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
         return VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.headerSpacing) {
-            CacheAnalyticsControls(viewport: $viewport, selection: $selection,
-                                   slots: slots, report: report)
+            CacheAnalyticsBucketDetail(slot: viewport.selectedSlot(selection, slots: slots), report: report)
+            CacheAnalyticsControls(viewport: $viewport, selection: $selection, slots: slots)
             CacheHitRateWidgetChart(report: report, family: .large, appearance: appearance,
                                     preservesAspectRatio: false,
-                                    viewport: viewport.domain(slotCount: slots.count), selection: $selection)
+                                    viewport: viewport.domain(slotCount: slots.count), selection: $selection,
+                                    interactionViewport: $viewport)
                 .frame(height: height)
                 .transaction { $0.animation = nil }
-            CacheAnalyticsBucketDetail(slot: viewport.selectedSlot(selection, slots: slots), report: report)
             Text("Range (P10 – P90) · Weighted average · Outliers")
                 .font(.caption).foregroundStyle(.secondary)
         }
@@ -72,7 +72,9 @@ struct CacheAnalyticsPage: View {
 }
 
 enum CacheAnalyticsLayout {
+    static let metricColumnWidth: CGFloat = 130
+    static let detailCornerRadius: CGFloat = 12
+    static let detailBackgroundOpacity = 0.08
     static let minimumChartHeight: CGFloat = 260
     static let chartHeightFraction = 0.55
-    static let controlWidth: CGFloat = 180
 }

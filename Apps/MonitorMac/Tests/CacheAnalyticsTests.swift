@@ -13,6 +13,57 @@ final class CacheAnalyticsTests: XCTestCase {
         XCTAssertEqual(CacheAnalyticsViewport().domain(slotCount: 0), -0.5...0.5)
     }
 
+    func testPanUsesVisibleSpanAndClampsWithoutChangingZoom() {
+        var viewport = CacheAnalyticsViewport(zoom: 3, position: 0.5)
+        viewport.pan(translation: 100, plotWidth: 500, slotCount: 30)
+        XCTAssertEqual(viewport.domain(slotCount: 30), 7.5...17.5)
+        XCTAssertEqual(viewport.zoom, 3)
+        viewport.pan(translation: 10_000, plotWidth: 500, slotCount: 30)
+        XCTAssertEqual(viewport.domain(slotCount: 30), -0.5...9.5)
+        viewport.pan(translation: -10_000, plotWidth: 500, slotCount: 30)
+        XCTAssertEqual(viewport.domain(slotCount: 30), 19.5...29.5)
+    }
+
+    func testMagnifyKeepsThePointerAnchorAndBoundsTheSpan() {
+        var viewport = CacheAnalyticsViewport(zoom: 2, position: 0.5)
+        let before = viewport.domain(slotCount: 30)
+        viewport.magnify(by: 2, anchor: 0.25, slotCount: 30)
+        let after = viewport.domain(slotCount: 30)
+        XCTAssertEqual(before.lowerBound + 0.25 * (before.upperBound - before.lowerBound),
+                       after.lowerBound + 0.25 * (after.upperBound - after.lowerBound), accuracy: 0.0001)
+        XCTAssertEqual(viewport.zoom, 4)
+        viewport.magnify(by: 1_000, anchor: 0.5, slotCount: 30)
+        XCTAssertEqual(viewport.zoom, 30)
+        viewport.magnify(by: 0.0001, anchor: 0.5, slotCount: 30)
+        XCTAssertEqual(viewport.domain(slotCount: 30), -0.5...29.5)
+    }
+
+    func testInvalidNavigationEventsLeaveViewportUnchanged() {
+        var viewport = CacheAnalyticsViewport(zoom: 3, position: 0.5)
+        let original = viewport.domain(slotCount: 30)
+        for factor in [0, -1, Double.nan, Double.infinity] {
+            viewport.magnify(by: factor, anchor: 0.5, slotCount: 30)
+            XCTAssertEqual(viewport.domain(slotCount: 30), original)
+        }
+        viewport.magnify(by: 2, anchor: .nan, slotCount: 30)
+        viewport.pan(translation: .infinity, plotWidth: 500, slotCount: 30)
+        viewport.pan(translation: 100, plotWidth: 0, slotCount: 30)
+        viewport.pan(translation: 100, plotWidth: .nan, slotCount: 30)
+        XCTAssertEqual(viewport.domain(slotCount: 30), original)
+    }
+
+    func testKeyboardRevealPreservesZoomAndIncludesEmptySlots() {
+        let slots = CacheHitRateWidgetChartPresentation.slots(for: CacheHitRateWidgetFixture.gaps.report)
+        var viewport = CacheAnalyticsViewport(zoom: 3, position: 1)
+        viewport.reveal(slot: 1, slotCount: slots.count)
+        XCTAssertTrue(viewport.domain(slotCount: slots.count).contains(1))
+        XCTAssertEqual(viewport.zoom, 3)
+        XCTAssertNil(viewport.selectedSlot(1, slots: slots)?.bucket)
+        let visible = viewport.domain(slotCount: slots.count)
+        viewport.reveal(slot: 1, slotCount: slots.count)
+        XCTAssertEqual(viewport.domain(slotCount: slots.count), visible)
+    }
+
     func testSelectedGapDoesNotBecomeAnAdjacentBucket() throws {
         let slots = CacheHitRateWidgetChartPresentation.slots(for: CacheHitRateWidgetFixture.gaps.report)
         let viewport = CacheAnalyticsViewport(zoom: 2, position: 1)
@@ -22,6 +73,16 @@ final class CacheAnalyticsTests: XCTestCase {
         XCTAssertNil(viewport.selectedSlot(-2, slots: slots))
         XCTAssertNil(viewport.selectedSlot(.infinity, slots: slots))
         XCTAssertNil(viewport.selectedSlot(7, slots: slots))
+    }
+
+    func testExplicitSelectionPersistsWhenPointerLeavesThePlot() {
+        let chosen = CacheAnalyticsViewport.committedSelection(2.2, previous: nil, slotCount: 7)
+        XCTAssertEqual(chosen, 2)
+        XCTAssertEqual(CacheAnalyticsViewport.committedSelection(-0.4, previous: nil, slotCount: 7), 0)
+        for coordinate in [nil, -1, 7, Double.nan, Double.infinity] as [Double?] {
+            XCTAssertEqual(CacheAnalyticsViewport.committedSelection(coordinate, previous: chosen, slotCount: 7), 2)
+        }
+        XCTAssertEqual(CacheAnalyticsViewport.committedSelection(4.1, previous: chosen, slotCount: 7), 4)
     }
 
     @MainActor

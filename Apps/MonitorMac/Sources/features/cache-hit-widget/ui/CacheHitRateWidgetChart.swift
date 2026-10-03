@@ -10,8 +10,12 @@ struct CacheHitRateWidgetChart: View {
     let preservesAspectRatio: Bool
     var viewport: ClosedRange<Double>?
     var selection: Binding<Double?>?
+    var interactionViewport: Binding<CacheAnalyticsViewport>?
 
     private var slots: [CacheHitRateWidgetSlot] { CacheHitRateWidgetChartPresentation.slots(for: report) }
+    private var visibleSlots: [CacheHitRateWidgetSlot] {
+        slots.filter { viewport?.contains(Double($0.id)) ?? true }
+    }
     private var domain: ClosedRange<Double> { CacheHitRateWidgetAxis.domain(for: report.buckets) }
 
     var body: some View {
@@ -24,13 +28,14 @@ struct CacheHitRateWidgetChart: View {
                         .accessibilityHidden(true)
                 }
             }
-            if let selected = selection?.wrappedValue, selected.isFinite {
+            if let selected = selection?.wrappedValue, selected.isFinite,
+               viewport?.contains(selected.rounded()) ?? true {
                 RuleMark(x: .value("Selected bucket", selected.rounded()))
                     .foregroundStyle(appearance.palette.neutral)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                     .accessibilityHidden(true)
             }
-            ForEach(slots) { slot in
+            ForEach(visibleSlots) { slot in
                 if let bucket = slot.bucket { marks(bucket, index: Double(slot.id)) }
             }
         }
@@ -39,19 +44,24 @@ struct CacheHitRateWidgetChart: View {
         .chartXAxis(.hidden)
         .chartYAxis { yAxis }
         .chartLegend(.hidden)
-        .modifier(CacheAnalyticsSelection(selection: selection))
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 if let anchor = proxy.plotFrame {
                     let plot = geometry[anchor]
+                    if let selection {
+                        CacheAnalyticsSelectionOverlay(proxy: proxy, plot: plot, selection: selection,
+                                                       slotCount: slots.count, viewport: interactionViewport)
+                    }
+                    let visibleCount = viewport.map { $0.upperBound - $0.lowerBound } ?? Double(max(slots.count, 1))
                     let labelFamily: CacheHitRateWidgetAppearance.Family =
-                        plot.width / Double(slots.count) < CacheHitRateWidgetLayout.fullLabelSlotWidth ? .small : family
+                        plot.width / visibleCount < CacheHitRateWidgetLayout.fullLabelSlotWidth ? .small : family
                     ForEach(labelSlots) { slot in
-                        if let position = proxy.position(forX: Double(slot.id)) {
+                        if let position = proxy.position(forX: Double(slot.id)), position >= 0, position <= plot.width {
                             Text(CacheHitRateWidgetLabelFormat.bucketLabel(
                                 for: slot.start, period: report.period,
                                 family: labelFamily, timeZoneIdentifier: report.timeZoneIdentifier))
                                 .font(.caption2).foregroundStyle(appearance.palette.neutral)
+                                .allowsHitTesting(false)
                                 .position(x: plot.minX + position,
                                           y: plot.maxY + CacheHitRateWidgetLayout.labelOffset)
                         }
@@ -61,6 +71,7 @@ struct CacheHitRateWidgetChart: View {
                             Text(tick.formatted(.number.precision(.fractionLength(0))))
                                 .font(.caption2)
                                 .foregroundStyle(appearance.palette.neutral)
+                                .allowsHitTesting(false)
                                 .position(
                                     x: plot.minX - CacheHitRateWidgetLayout.yAxisLabelGap
                                         - CacheHitRateWidgetLayout.yAxisLabelGutter / 2,
@@ -70,12 +81,14 @@ struct CacheHitRateWidgetChart: View {
                     }
                 }
             }
-            .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
         .chartPlotStyle { plot in
             if preservesAspectRatio {
                 plot.aspectRatio(CacheHitRateWidgetLayout.chartAspectRatio, contentMode: .fit)
+            } else if viewport != nil {
+                // Marks at a viewport edge must not draw over labels or beyond the plot.
+                plot.frame(maxWidth: .infinity).clipped()
             } else {
                 plot.frame(maxWidth: .infinity)
             }
@@ -85,12 +98,25 @@ struct CacheHitRateWidgetChart: View {
         .accessibilityRepresentation {
             VStack {
                 ForEach(slots) { slot in
-                    Text(slot.bucket.map(bucketDescription) ?? "\(dateLabel(slot.start)): no cache data")
+                    accessibleSlot(slot)
                 }
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Cache hit rate distribution")
             .accessibilityIdentifier("cacheHitRate.widget.distribution")
+        }
+    }
+
+    @ViewBuilder private func accessibleSlot(_ slot: CacheHitRateWidgetSlot) -> some View {
+        let label = slot.bucket.map(bucketDescription) ?? "\(dateLabel(slot.start)): no cache data"
+        if let selection {
+            Text(label)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(label)
+                .accessibilityIdentifier("cacheHitRate.analytics.slot.\(slot.id)")
+                .accessibilityAction(named: "Select bucket") { selection.wrappedValue = Double(slot.id) }
+        } else {
+            Text(label)
         }
     }
 
@@ -189,17 +215,5 @@ struct CacheHitRateWidgetChart: View {
             + "typical range \(bucket.lower.formatted()) to \(bucket.upper.formatted()) percent, "
             + "\(bucket.outliers.count) outliers: "
             + bucket.outliers.map { "\($0.cacheHitRate.formatted()) percent" }.joined(separator: ", ")
-    }
-}
-
-private struct CacheAnalyticsSelection: ViewModifier {
-    let selection: Binding<Double?>?
-
-    @ViewBuilder func body(content: Content) -> some View {
-        if let selection {
-            content.chartXSelection(value: selection)
-        } else {
-            content
-        }
     }
 }

@@ -1,19 +1,20 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-02. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-03. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
 
 **SM-413 — статус: реализована, draft PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79),
-ожидает validation/review.** Клик по Sidebar Cache Hit Rate
-открывает одно переиспользуемое окно с тем же report, периодом и palette,
-выбором bucket, zoom и перемещением. Шкала Y фиксирована по полному report.
+ожидает review.** Редизайн: sliders/dropdown заменены на drag/scroll pan и pinch zoom;
+статистика выбранного интервала крупно над графиком. Hover не меняет явный выбор.
+Клик по Sidebar Cache Hit Rate открывает одно переиспользуемое окно с тем же report,
+периодом и palette. Шкала Y фиксирована по полному report; marks ограничены viewport.
 Project generation, SwiftLint и FSD/architecture regression passed.
-Добавлены 5 GUI regression tests; сборка и выполнение tests пока не проверены:
-на диске остаётся менее 0.5 GiB. Следующий шаг — CI и Xcode MCP/UI validation после
-освобождения места. [Отчёт](reports/SM-413-cache-analytics-window.md).
+Свежая сборка через Xcode MCP прошла; 10 targeted tests passed на финальном проходе редизайна.
+Native light UI: открытие, pin, zoom buttons и drag pan проверены на реальном report;
+pinch на физическом trackpad остаётся ручной проверкой. [Отчёт](reports/SM-413-cache-analytics-window.md).
 Core audit stack #74/#75/#77/#78 остаётся отдельной работой на review.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -859,5 +860,6 @@ visual smoke и точная parity семи usage totals. Локальные lo
 
 - [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: draft PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79), ожидает validation/review.
   Повторное открытие фокусирует одно окно; общие данные, scope и палитра;
-  zoom/pan, bucket details без session/model identity, empty states и accessibility.
+  drag/scroll pan, pinch zoom, persistent selection и крупные bucket details над графиком;
+  без session/model identity, empty states и accessibility.
   Проверка: viewport regression tests, GUI build через xcode-tools, lint/FSD.

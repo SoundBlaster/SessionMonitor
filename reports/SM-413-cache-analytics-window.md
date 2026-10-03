@@ -1,25 +1,34 @@
 # SM-413 — Cache Hit Rate analytics window
 
-Implemented on feat/sm-413-cache-analytics-window, independent of the pending core audit stack.
+Branch: `feat/sm-413-cache-analytics-window`; draft PR #79.
+Independent of the pending core audit stack.
 
-- Singleton SwiftUI Window: Sidebar button focuses/reuses the same analytics scene.
-- Shared renderer, palette and exact privacy-safe report; no additional database aggregation.
-- Slot-based zoom/pan preserves empty and DST calendar buckets; Y uses the complete report.
-- Native Charts selection and keyboard-accessible bucket picker show aggregate details.
-- The explorer that last opened the window owns updates. Other explorers cannot replace its report.
-- On query change the old report is cleared before a report for the new scope is published.
-- New viewport/ownership/scope-change and light/dark render regression tests.
+## Behavior
 
-## Validation
+- Sidebar click focuses/reuses a singleton analytics scene with the same report, scope and palette.
+- Sliders and bucket dropdown replaced by plot drag/scroll panning and pointer-anchored pinch zoom.
+- Click pins a bucket; hover and pointer exit do not change selection. Pan, zoom and reset retain it.
+- Selected interval statistics are prominent above the plot: weighted average, P10–P90 or min–max fallback, outliers and samples.
+- Compact zoom/reset and previous/next buttons provide keyboard alternatives, including empty calendar slots.
+- Full-report Y domain remains fixed. Visible marks and selection line stay inside the viewport.
+- Independent accessibility slots expose Select bucket actions and stable identifiers.
+- Shared renderer and privacy-safe report preserve accounting; no session/model identities or new database aggregation.
+- The opening explorer owns updates; query changes clear old data before publishing a replacement.
 
-Passed: project generation, SwiftLint, FSD lint, architecture negative regression and git diff --check.
-Architecture negative probe intentionally emits an invalid-dependency error and exits successfully.
+## Validation — 2026-10-03
 
-Not run: app build, GUI tests and native interaction checks.
-The disk repeatedly exhausted free space (100–500 MiB); source writes and XcodeGen failed during implementation.
-Only this project's regenerated DerivedData index was removed, leaving dependencies and build products intact.
-Xcode MCP diagnostics retrieval also failed with SourceEditorCallableDiagnosticError 5.
-No command-line build was used. CI must compile and execute the new tests before merge.
+- Xcode-tools MCP BuildProject (including test targets): passed.
+- Xcode-tools MCP RunSomeTests: 10/10 CacheAnalyticsTests passed, including pan bounds, pointer anchoring, invalid events, empty slots, persistent selection, source ownership, scope clearing and light/dark chart rendering.
+- Project generation, strict SwiftLint, FSD lint, architecture negative regression: passed.
+- The architecture negative probe intentionally emits an invalid-dependency error and exits successfully.
+- Native Computer Use on a real 30-day report: Sidebar opening, accessibility selection, zoom buttons, drag pan, fixed Y scale and viewport clipping confirmed. The selected interval remains pinned above the chart after panning.
+- Native accessibility tree exposes individual slot IDs and Select bucket actions.
+- No command-line app build; no active CI polling after push.
 
-The analytics report remains the last source-window snapshot if that explorer is closed;
-opening from another explorer replaces its owner. No background duplicate queries were introduced.
+## Remaining verification
+
+Physical trackpad pinch and scroll-wheel feel require manual verification; Computer Use cannot synthesize pinch, and its horizontal-scroll command did not visibly move the plot. Pinch viewport arithmetic is unit-tested. Native dark/narrow-window interaction is not confirmed; light/dark render coverage is automated. Full make check was not run.
+
+The analytics report remains the last source-window snapshot if its explorer closes; reopening from another explorer transfers ownership. No duplicate background query was introduced.
+
+Next: manual trackpad/design review, then PR review and merge; SM-403 runtime accessibility audit remains the next roadmap task.
