@@ -17,7 +17,8 @@ struct CacheAnalyticsPage: View {
         GeometryReader { geometry in
             ScrollView {
                 content(chartHeight: max(CacheAnalyticsLayout.minimumChartHeight,
-                                         geometry.size.height * CacheAnalyticsLayout.chartHeightFraction))
+                                         geometry.size.height * CacheAnalyticsLayout.chartHeightFraction),
+                        emptyStateHeight: geometry.size.height)
             }
         }
         .frame(minWidth: 440, minHeight: 480)
@@ -28,7 +29,7 @@ struct CacheAnalyticsPage: View {
         .onChange(of: presentation.accountLabel) { _, _ in resetViewport() }
     }
 
-    private func content(chartHeight: CGFloat) -> some View {
+    private func content(chartHeight: CGFloat, emptyStateHeight: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.cardPadding) {
             if let report = presentation.report {
                 Text(presentation.accountLabel).font(.caption).foregroundStyle(.secondary)
@@ -43,6 +44,7 @@ struct CacheAnalyticsPage: View {
             } else {
                 ContentUnavailableView("No cache data", systemImage: "chart.bar.xaxis",
                     description: Text("Cache data is loading or unavailable for the selected scope."))
+                    .frame(maxWidth: .infinity, minHeight: emptyStateHeight, alignment: .center)
             }
         }
         .padding(CacheHitRateWidgetLayout.cardPadding)

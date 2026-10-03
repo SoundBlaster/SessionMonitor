@@ -19,6 +19,7 @@ Independent of the pending core audit stack.
 
 - Xcode-tools MCP BuildProject (including test targets): passed.
 - Xcode-tools MCP BuildProject after fixed-height detail card change: passed.
+- Xcode-tools MCP BuildProject after centering the unavailable-data state: passed.
 - Xcode-tools MCP RunSomeTests: 10/10 CacheAnalyticsTests passed, including pan bounds, pointer anchoring, invalid events, empty slots, persistent selection, source ownership, scope clearing and light/dark chart rendering.
 - Project generation, strict SwiftLint, FSD lint, architecture negative regression: passed.
 - The architecture negative probe intentionally emits an invalid-dependency error and exits successfully.
