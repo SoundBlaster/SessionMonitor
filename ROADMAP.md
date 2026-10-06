@@ -7,13 +7,12 @@
 ## Текущая точка
 
 **Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
-TUI/UI-полировка отложены.** SM-324 — **в работе**, PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81)
-(ветка `feat/sm-324-alert-pipeline`): core alert pipeline, durable outbox и CLI `alerts` готовы; остаток —
-macOS notification sink и in-app список вместе с SM-325. **SM-323 доставлена через PR
-[#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56` (2026-10-06).**
-Порядок дальше: SM-325 (подключить существующие сигналы и macOS-уведомления) → SM-328 (agent
-tool/hook/mod) → SM-329 (Agent Surface Protocol, ждёт spec). Параллельно по возможности: SM-205
-(автозапуск watch), SM-326 (findings в GUI), SM-327 (новые live-правила).
+TUI/UI-полировка отложены.** SM-325 — **в работе** (ветка `feat/sm-325-alert-signals`): существующие сигналы
+подключены к alert pipeline, `alerts evaluate`, `watch --alerts` и macOS-уведомления приложения.
+SM-324 core доставлен через PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81), merge `e28fca0`
+(2026-10-06); SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
+Порядок дальше: SM-328 (agent tool/hook/mod) → SM-329 (Agent Surface Protocol, ждёт spec).
+Параллельно по возможности: SM-205 (автозапуск watch), SM-326 (findings в GUI), SM-327 (новые live-правила).
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -682,7 +681,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   на macOS — GitHub `CI` (passed).
 
 - [ ] **SM-324** — Модуль уведомлений: транспортно-независимый alert pipeline.
-  **Статус: в работе (2026-10-06), ветка `feat/sm-324-alert-pipeline`.** Сделано (core): `MonitorCore/Alert`
+  Core доставлен через [PR #81](https://github.com/SoundBlaster/SessionMonitor/pull/81), merge `e28fca0`
+  (2026-10-06); `CI`, `Native checks`, Xcode 26.0 build и Workflow lint прошли на `27f1c96`.
+  macOS sink реализован в SM-325; пункт закрывается вместе с её доставкой. Сделано (core): `MonitorCore/Alert`
   (candidate/scope/record/event/suppression), `AlertTracker` + `AlertNotificationDecision` на
   SpecificationCore (severity → muted → unknown coverage → cooldown → rate limit; resolve только внутри
   оценённых scopes; rate limit отдаёт приоритет более высокой severity), таблица `alert_records` с
@@ -700,6 +701,18 @@ deliverable — WidgetKit extension с App Group в SM-401.
   UserNotifications (app), in-app список. Сигналы подключаются отдельно в SM-325. Готово, когда
   тесты подтверждают dedup, cooldown, resolve и доставку одного алерта во все sinks ровно один раз.
 - [ ] **SM-325** — Подключить к уведомлениям уже существующие сигналы.
+  **Статус: в работе (2026-10-06), ветка `feat/sm-325-alert-signals`.** Сделано: `AlertSignals` (Policies,
+  чистые адаптеры): anomaly findings `doctor` → ключ `kind|session` (рост evidence не пере-поднимает
+  алерт), database-wide diagnostics по стабильным ID, только свежие quota `sharp_shift` (≤1 ч, один на
+  серию), низкий остаток quota (≤20% warning, ≤5% error, stale/ambiguous → unknown coverage), cache hit
+  ниже порога только как info; scopes раздельные по источникам. `AlertWatchdog` (Runtime): оценка за
+  lookback 6 ч, сессии вне окна резолвятся; `handle(status)` для единственного потребителя
+  `SessionWatch.updates` (здоровье watch + оценка после каждого import). CLI: `alerts evaluate`,
+  `watch --alerts`. App: `UserNotificationAlertSink` и `AlertingWatchHandle` (tee статусов), watchdog
+  на app-owned watch. Evidence: Linux Swift 6.2 — 75 tests passed (7 новых: адаптеры и watchdog end-to-end
+  на SQLite с реальным `doctor`), CLI `alerts evaluate` собран и выполнен; SwiftLint `--strict` по
+  Sources/Tests/Apps — 0 violations. App build, FSD lint и macOS tests — GitHub `CI`. Остаток: in-app
+  список алертов (SM-326) и открытие сессии по клику на уведомление; живая проверка уведомления на Mac.
   Добавлено 2026-10-06. Зависит от SM-324. Источники без новой аналитики: `AnomalyPolicyEngine`
   findings (7 kinds), quota assessments (`sharp_shift`, `reset_discontinuity`) и quota presentation
   (remaining/reset/freshness), import diagnostics (conflicts, malformed, unowned), watch status
