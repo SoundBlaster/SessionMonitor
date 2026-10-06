@@ -7,12 +7,13 @@
 ## Текущая точка
 
 **Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
-TUI/UI-полировка отложены.** SM-324 — **в работе** (core pipeline готов, ветка `feat/sm-324-alert-pipeline`,
-строится поверх SM-323). SM-323 — **в работе**, PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80)
-(ветка `fix/sm-323-startup-known-input`): startup policy использует известный input даже при unknown
-cache split. Порядок дальше: SM-324 (модуль уведомлений) → SM-325 (подключить существующие сигналы)
-→ SM-328 (agent tool/hook/mod) → SM-329 (Agent Surface Protocol, ждёт spec). Параллельно по
-возможности: SM-205 (автозапуск watch), SM-326 (findings в GUI), SM-327 (новые live-правила).
+TUI/UI-полировка отложены.** SM-324 — **в работе**, PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81)
+(ветка `feat/sm-324-alert-pipeline`): core alert pipeline, durable outbox и CLI `alerts` готовы; остаток —
+macOS notification sink и in-app список вместе с SM-325. **SM-323 доставлена через PR
+[#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56` (2026-10-06).**
+Порядок дальше: SM-325 (подключить существующие сигналы и macOS-уведомления) → SM-328 (agent
+tool/hook/mod) → SM-329 (Agent Surface Protocol, ждёт spec). Параллельно по возможности: SM-205
+(автозапуск watch), SM-326 (findings в GUI), SM-327 (новые live-правила).
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -23,7 +24,7 @@ review thread разрешён. Новые локальные tests не зап�
 CI проверил regression tests на границы, gaps, периоды 7/30 дней, DST, scope forwarding
 и light/dark renders.
 
-**Следующая доступная задача — SM-403:** проверить runtime accessibility tree на ожидаемую
+**SM-403 (вне текущего приоритета):** проверить runtime accessibility tree на ожидаемую
 иерархию identifiers после внедрения NestedA11yIDs; UI test уже прошёл в GitHub CI.
 
 **SM-406 доставлена через PR [#69](https://github.com/SoundBlaster/SessionMonitor/pull/69),**
@@ -668,8 +669,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   агрегированы по импортированному хранилищу и не относятся к выбранной сессии. `make lint` и
   `git diff --check` прошли; ограничений реализации не выявлено.
 
-- [ ] **SM-323** — Startup overhead не должен терять запросы с unknown cache split.
-  **Статус: в работе (2026-10-06), ветка `fix/sm-323-startup-known-input`.** Дефект: timeline point
+- [x] **SM-323** — Startup overhead не должен терять запросы с unknown cache split.
+  Доставлено через [PR #80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`
+  (2026-10-06); `CI`, `Native checks`, Xcode 26.0 build и Workflow lint прошли на `a7c0e34`. Дефект: timeline point
   хранил input только как `cached + uncached`, поэтому при unknown cache `ExcessiveStartupSpec`
   исключал запрос, хотя canonical input известен. `RequestTimelinePoint.inputTokens` теперь
   заполняется из `confirmed`; cache-зависимые правила по-прежнему требуют известный cached.
@@ -677,7 +679,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   regression на сессию без cache split. Evidence 2026-10-06: Linux Swift 6.2 + SwiftLint 0.63.3
   (scratch package из MonitorCore/Policies/Store; CryptoKit через swift-crypto) — 55 tests passed
   (AnomalyPolicy, Diagnostics, QuotaAnomalyPolicy, QuerySnapshot, SessionTree); полный `make ci`
-  на macOS — GitHub `CI`.
+  на macOS — GitHub `CI` (passed).
 
 - [ ] **SM-324** — Модуль уведомлений: транспортно-независимый alert pipeline.
   **Статус: в работе (2026-10-06), ветка `feat/sm-324-alert-pipeline`.** Сделано (core): `MonitorCore/Alert`
