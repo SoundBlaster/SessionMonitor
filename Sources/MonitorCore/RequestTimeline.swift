@@ -70,6 +70,8 @@ public struct RequestTimelinePoint: Codable, Equatable, Identifiable, Sendable {
     public let turnID: String?
     public let sourceLine: Int?
     public let responseID: String?
+    /// Canonical request input. It is known even when the cache split is unknown.
+    public let inputTokens: Int64?
     public let cachedInputTokens: Int64?
     public let uncachedInputTokens: Int64?
     public let evidence: String?
@@ -79,7 +81,7 @@ public struct RequestTimelinePoint: Codable, Equatable, Identifiable, Sendable {
 
     public init(id: String, sessionID: String, timestamp: Date, kind: TimelineEventKind,
                 turnID: String? = nil, sourceLine: Int? = nil, responseID: String? = nil,
-                cachedInputTokens: Int64? = nil, uncachedInputTokens: Int64? = nil,
+                inputTokens: Int64? = nil, cachedInputTokens: Int64? = nil, uncachedInputTokens: Int64? = nil,
                 evidence: String? = nil, toolName: String? = nil, model: String? = nil,
                 activityClass: ActivityToolClass? = nil) {
         self.id = id
@@ -89,6 +91,7 @@ public struct RequestTimelinePoint: Codable, Equatable, Identifiable, Sendable {
         self.turnID = turnID
         self.sourceLine = sourceLine
         self.responseID = responseID
+        self.inputTokens = inputTokens
         self.cachedInputTokens = cachedInputTokens
         self.uncachedInputTokens = uncachedInputTokens
         self.evidence = evidence

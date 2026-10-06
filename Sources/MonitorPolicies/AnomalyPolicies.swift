@@ -252,12 +252,12 @@ private struct ExcessiveStartupDecision: DecisionSpec {
         let startupResponses = firstTurnRequests.compactMap(\.responseID).sorted()
         let unknownStartupSamples = firstTurnRequests.count - startupInputs.count
         let startupCoverage: AnomalyCoverage = unknownStartupSamples > 0
-            ? .partial(reason: "Some first-turn cache values were unknown and excluded from startup comparison.")
+            ? .partial(reason: "Some first-turn input values were unknown and excluded from startup comparison.")
             : .observed
         let startupUnknownEvidence = unknownStartupSamples > 0
             ? [DiagnosticEvidenceItem(
                 source: "confirmed",
-                detail: "\(unknownStartupSamples) first-turn request(s) with unknown cache were excluded.",
+                detail: "\(unknownStartupSamples) first-turn request(s) with unknown input were excluded.",
                 sessionIDs: [context.session.id]
             )]
             : []

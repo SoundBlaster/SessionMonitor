@@ -1,10 +1,17 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-01. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-06. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
+
+**Приоритет пользователя (2026-10-06): core-аналитика, live watchdog и алерты; TUI/UI-полировка
+отложены.** SM-323 — **в работе** в ветке `fix/sm-323-startup-known-input`: startup policy
+использует известный input даже при unknown cache split. Затем по порядку: SM-205 (автозапуск
+watch сохранённой папки), SM-324 (live watchdog в Runtime), SM-325 (уведомления macOS),
+SM-326 (ретроспективные findings в GUI), SM-327 (live-правила burn rate/runaway/quota projection).
+SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
 merge `47891f2` (2026-10-01): Sidebar Cache Hit Rate следует общему периоду отчёта;
@@ -320,6 +327,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
   AppKit сообщает, что reentrant operation в table delegate станет assert в будущей версии.
   Готово, когда причина локализована до собственного update/navigation кода или upstream SwiftUI,
   повторяемый сценарий не пишет warning, а selection, refresh и multi-window tests остаются зелёными.
+
+- [ ] **SM-205** — Автоматически запускать watch сохранённой папки при старте приложения.
+  Добавлено 2026-10-06 по приоритету пользователя. Сейчас watch запускается только вручную из menu bar
+  и не восстанавливается после перезапуска; SM-322 хранит лишь путь для ручного Update.
+  Хранить security-scoped bookmark выбранной папки, при запуске стартовать один app-owned watch,
+  настройка «Watch on launch» (по умолчанию включена после первого выбора), понятный статус при
+  отсутствии папки/прав. Опционально — Login Item через `SMAppService`. Готово, когда после
+  перезапуска приложения новые JSONL импортируются без действий пользователя, а lifecycle tests
+  SM-202 остаются зелёными.
 
 ## 3. Аналитический GUI и диагностика
 
@@ -649,6 +665,35 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `91c36b2` (2026-09-22). Инспектор называет блок `Service diagnostics` и поясняет, что значения
   агрегированы по импортированному хранилищу и не относятся к выбранной сессии. `make lint` и
   `git diff --check` прошли; ограничений реализации не выявлено.
+
+- [ ] **SM-323** — Startup overhead не должен терять запросы с unknown cache split.
+  **Статус: в работе (2026-10-06), ветка `fix/sm-323-startup-known-input`.** Дефект: timeline point
+  хранил input только как `cached + uncached`, поэтому при unknown cache `ExcessiveStartupSpec`
+  исключал запрос, хотя canonical input известен. `RequestTimelinePoint.inputTokens` теперь
+  заполняется из `confirmed`; cache-зависимые правила по-прежнему требуют известный cached.
+  Coverage `partial` теперь означает неизвестный input. Тесты policy обновлены и добавлен
+  regression на сессию без cache split. Локально Swift недоступен (Linux), проверка — GitHub `CI`.
+
+- [ ] **SM-324** — Live watchdog: инкрементальная оценка политик после каждого import commit.
+  Добавлено 2026-10-06. Зависит от SM-103/SM-308c. В `MonitorRuntime` после commit watch
+  переоценивать политики только для изменённых сессий в скользящем окне; хранить состояние
+  алертов (stable finding id, first/last seen, acknowledged, cooldown), чтобы одно и то же
+  событие не повторялось. Общий API для CLI (`watch --alerts`, JSON lines) и GUI. Готово, когда
+  replay fixture с append-тактами выдаёт ожидаемую последовательность new/updated/resolved алертов.
+- [ ] **SM-325** — Уведомления macOS по алертам watchdog.
+  Добавлено 2026-10-06. Зависит от SM-324/SM-205. UserNotifications с настройкой по kind/severity,
+  rate limit и quiet mode; клик открывает сессию с evidence. Готово, когда алерт из live watch
+  доходит как notification ровно один раз и ведёт к той же finding в Session Explorer.
+- [ ] **SM-326** — Ретроспективные findings в GUI.
+  Добавлено 2026-10-06. `doctor` доступен только в CLI; GUI findings не показывает. Панель findings
+  за выбранный период/account scope с evidence (observed/inference/unknown), фильтрами по kind
+  и переходом к timeline. Готово, когда GUI и `doctor --json` дают одинаковый набор findings.
+- [ ] **SM-327** — Live-правила для работающих сессий.
+  Добавлено 2026-10-06. Зависит от SM-324. Кандидаты: burn rate (input/min относительно baseline
+  своей истории), runaway loop (N запросов без human turn), рост input на запрос (сигнал для
+  compaction), проекция quota до reset по наблюдаемой скорости. Каждое правило — Specification
+  с evidence, coverage и negative cases; пороги — из собственной истории пользователя, не константы.
+  Готово, когда каждое правило имеет fixture positive/negative и не срабатывает на unknown данных.
 
 - [ ] **SM-403** — Ввести иерархические accessibility identifiers через NestedA11yIDs.
   Реализация доставлена через [PR #64](https://github.com/SoundBlaster/SessionMonitor/pull/64),

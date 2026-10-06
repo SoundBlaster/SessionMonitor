@@ -62,7 +62,9 @@ enum AnomalyPolicySupport {
         return Array(best)
     }
 
+    /// Input volume does not depend on cache coverage; the split is only a fallback for older points.
     static func inputTokens(_ point: RequestTimelinePoint) -> Int64? {
+        if let input = point.inputTokens { return input }
         guard let cached = point.cachedInputTokens, let uncached = point.uncachedInputTokens else { return nil }
         let (total, overflow) = cached.addingReportingOverflow(uncached)
         return overflow ? nil : total
