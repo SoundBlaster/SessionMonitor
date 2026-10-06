@@ -119,6 +119,7 @@ private struct SessionMonitorWindow: View {
 actor SessionMonitorRuntimeLoader {
     private var runtime: SharedReportRuntime?
     private var databaseRuntime: MonitorRuntime.SessionMonitor?
+    private var watchdog: AlertWatchdog?
 
     private func database() throws -> MonitorRuntime.SessionMonitor {
         if let databaseRuntime { return databaseRuntime }
@@ -127,8 +128,20 @@ actor SessionMonitorRuntimeLoader {
         return value
     }
 
-    func watch(_ directory: URL) async throws -> SessionWatch {
-        try await database().watch(directory)
+    func watch(_ directory: URL) async throws -> any AppWatchHandle {
+        let watch = try await database().watch(directory)
+        return AlertingWatchHandle(watch: watch, root: directory, watchdog: try await alertWatchdog())
+    }
+
+    /// One watchdog per app process; its center drains the shared alert outbox into macOS notifications.
+    private func alertWatchdog() async throws -> AlertWatchdog {
+        if let watchdog { return watchdog }
+        let monitor = try database()
+        let center = AlertCenter(monitor: monitor, sinks: [UserNotificationAlertSink()])
+        let value = AlertWatchdog(monitor: monitor, center: center)
+        watchdog = value
+        await UserNotificationAlertSink.requestAuthorization()
+        return value
     }
 
     func load() async throws -> SharedReportRuntime {

@@ -1,18 +1,22 @@
 import ArgumentParser
 import Darwin
 import Foundation
+import MonitorCore
 import MonitorRuntime
 
 extension MonitorCommand {
     struct Watch: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Watch a JSONL directory with FSEvents and emit JSON status lines.",
-            discussion: "SIGUSR1 pauses, SIGUSR2 resumes with reconciliation; SIGINT/SIGTERM stop gracefully."
+            discussion: "SIGUSR1 pauses, SIGUSR2 resumes with reconciliation; SIGINT/SIGTERM stop gracefully. "
+                + "With --alerts, alert transitions are emitted as {\"alert\": ...} lines after each import."
         )
         @OptionGroup var options: DatabaseOptions
         @Argument(help: "Source directory, recursively watched. Sources remain read only.") var path: String
         @Option(help: "Bounded event coalescing window in milliseconds (1...60000).")
         var debounceMilliseconds = 250
+        @Flag(help: "Evaluate existing analytics after each import and emit alert transition lines.")
+        var alerts = false
 
         mutating func validate() throws {
             guard (1...60_000).contains(debounceMilliseconds) else {
@@ -26,6 +30,9 @@ extension MonitorCommand {
             let timing = WatchOptions(debounce: .milliseconds(debounceMilliseconds))
             let writer = try WatchOutput()
             let watch = try await monitor.watch(root, options: timing)
+            let watchdog = alerts ? AlertWatchdog(
+                monitor: monitor, center: AlertCenter(monitor: monitor, sinks: [AlertLineSink(writer: writer)])
+            ) : nil
             let signals = WatchSignals { number in
                 Task {
                     switch number {
@@ -44,6 +51,10 @@ extension MonitorCommand {
                         var line = try encoder.encode(status)
                         line.append(10)
                         try await writer.write(line)
+                        // An alert evaluation failure must not stop the watch; it is reported on stderr.
+                        do { try await watchdog?.handle(status, root: root) } catch {
+                            FileHandle.standardError.write(Data("alert evaluation failed: \(error)\n".utf8))
+                        }
                     }
                 } catch {
                     await watch.stop()
@@ -57,6 +68,23 @@ extension MonitorCommand {
             }
             defer { deadline.cancel() }
             do { try await output.value } catch is CancellationError { /* Drop backpressured output on shutdown. */ }
+        }
+    }
+}
+
+/// Writes alert transitions on the watch output as `{"alert": event}` lines, next to status lines.
+struct AlertLineSink: AlertSink {
+    private struct Line: Encodable { let alert: AlertEvent }
+    let writer: WatchOutput
+
+    func deliver(_ events: [AlertEvent]) async {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.sortedKeys]
+        for event in events {
+            guard var line = try? encoder.encode(Line(alert: event)) else { continue }
+            line.append(10)
+            try? await writer.write(line)
         }
     }
 }

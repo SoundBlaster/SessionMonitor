@@ -19,11 +19,15 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 - CLI `quota`: read-only usage-limit observations из импортированных rollouts; показывает observed used,
   derived remaining, reset и freshness. Отсутствующие/неподдерживаемые данные остаются unknown;
   сетевого polling нет.
-- Alert pipeline (SM-324): общий для CLI/GUI/агентов state machine raise/escalate/update/resolve с
-  dedup по стабильному ключу, cooldown, rate limit, muted kinds и подавлением unknown coverage.
-  Состояние хранится в SQLite и не меняет canonical totals и watermark; sinks получают каждое событие
-  (`JSONLinesAlertSink` для пайпов и агентов). CLI `alerts [--status active|resolved|all] [--json]`
-  показывает сохранённое состояние. Источники сигналов подключаются в SM-325.
+- Alerts (SM-324/SM-325): общий для CLI/GUI/агентов state machine raise/escalate/update/resolve с dedup по
+  стабильному ключу, cooldown, rate limit, muted kinds и подавлением unknown coverage; состояние и durable
+  outbox в SQLite не меняют canonical totals и watermark. Сигналы берутся из существующей аналитики за
+  последние 6 часов: anomaly findings `doctor` по сессиям, database-wide diagnostics, свежие quota
+  `sharp_shift`, низкий остаток quota (≤20% warning, ≤5% error; stale — unknown coverage), cache hit ниже
+  порога (только info) и здоровье watch. CLI: `alerts [list] [--status active|resolved|all] [--json]`,
+  `alerts evaluate [--lookback-hours N] [--json]`, `watch --alerts` (строки `{"alert": ...}` после каждого
+  импорта). Приложение оценивает сигналы после каждого импорта своего watch и показывает уведомления macOS
+  для событий с `notify = true`.
 - CLI `profiles`: явное сопоставление однородного каталога источников с локальным account profile;
   `report`, `activity` и `quota` поддерживают `--profile ID` и `--unknown-or-mixed`.
 - GUI account scope selector общий для Session Explorer и menu bar, сохраняется между запусками и предлагает
