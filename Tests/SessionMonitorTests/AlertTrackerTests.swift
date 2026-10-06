@@ -132,6 +132,24 @@ struct AlertTrackerTests {
         #expect(notify == ["loud": true, "quiet": false])
     }
 
+    @Test func resolutionNotificationsShareTheRateLimit() {
+        let tracker = AlertTracker(configuration: AlertPolicyConfiguration(
+            cooldown: 0, rateLimitWindow: 60, maximumNotificationsPerWindow: 1, notifyResolutions: true
+        ))
+        var records: [AlertRecord] = []
+        for (index, key) in ["A", "B", "C"].enumerated() {
+            let evaluation = Self.evaluation([Self.alert(key, scope: key)], at: Double(index) * 100)
+            records += tracker.apply(evaluation, to: records).changedRecords
+        }
+        let resolved = tracker.apply(
+            AlertEvaluation(scopes: [AlertScope("A"), AlertScope("B"), AlertScope("C")], candidates: [],
+                            observedAt: Date(timeIntervalSince1970: 1_000)),
+            to: records
+        )
+        #expect(resolved.events.filter(\.notify).map(\.record.id) == ["A"])
+        #expect(resolved.events.filter { !$0.notify }.allSatisfy { $0.suppression == .rateLimited })
+    }
+
     @Test func duplicateKeysInOneEvaluationProduceOneAlert() {
         let result = AlertTracker().apply(Self.evaluation([Self.alert("A"), Self.alert("A")], at: 0), to: [])
         #expect(result.events.count == 1)

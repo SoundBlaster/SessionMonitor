@@ -39,6 +39,34 @@ struct AlertCenterTests {
         #expect(decoded == (await first.events))
         #expect(await lines.values.allSatisfy { $0.last == 10 })
         #expect(try await monitor.alerts(status: .resolved).map(\.id) == ["watch|recovering"])
+        #expect(try await monitor.pendingAlertEvents().isEmpty)
+    }
+
+    @Test func outboxKeepsCommittedEventsUntilASinkReceivesThem() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let monitor = try SessionMonitor(databaseURL: directory.appending(path: "usage.sqlite"))
+        let center = AlertCenter(monitor: monitor)
+        let candidate = AlertCandidate(
+            key: "quota|sharp_shift|weekly", scope: AlertScope("quota:account:one"), source: .quota,
+            kind: "sharp_shift", severity: .warning, title: "Quota rate shift", message: "Fixture."
+        )
+
+        // Committed without any sink, as after a crash before delivery: the event must stay pending.
+        let committed = try await center.submit(AlertEvaluation(
+            scopes: [], candidates: [candidate], observedAt: Date(timeIntervalSince1970: 0)
+        ))
+        #expect(committed.map(\.notify) == [true])
+        #expect(try await monitor.pendingAlertEvents().map(\.event) == committed)
+
+        let sink = CollectingAlertSink()
+        await center.add(sink)
+        let delivered = try await center.deliverPending()
+        #expect(delivered == committed)
+        #expect(await sink.events == committed)
+        #expect(try await monitor.pendingAlertEvents().isEmpty)
+        #expect(try await center.deliverPending().isEmpty)
     }
 }
 

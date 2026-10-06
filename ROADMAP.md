@@ -684,8 +684,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   (candidate/scope/record/event/suppression), `AlertTracker` + `AlertNotificationDecision` на
   SpecificationCore (severity → muted → unknown coverage → cooldown → rate limit; resolve только внутри
   оценённых scopes; rate limit отдаёт приоритет более высокой severity), таблица `alert_records` с
-  атомарным read-transition-write без сдвига watermark, `AlertCenter` + `AlertSink`/`JSONLinesAlertSink`,
-  CLI `alerts`. Evidence: Linux Swift 6.2 scratch package — 66 tests passed (включая 10 новых alert
+  атомарным read-transition-write без сдвига watermark, durable `alert_outbox` в той же транзакции
+  (at-least-once доставка, ack после всех sinks; без sinks события ждут), уведомления о resolve подчиняются
+  rate limit, `AlertCenter` + `AlertSink`/`JSONLinesAlertSink`, CLI `alerts`. Review Codex (2×P2) учтён.
+  Evidence: Linux Swift 6.2 scratch package — 68 tests passed (включая 12 новых alert
   tests; `AlertCenter` проверен против stub `SessionMonitor`), CLI собран и выполнен на пустой БД;
   SwiftLint 0.63.3 `--strict` — 0 violations (SourceKit-правила проверяет CI). Остаток: macOS
   UserNotifications sink и in-app список в приложении (делается вместе с SM-325, когда есть сигналы).

@@ -46,6 +46,11 @@ struct AlertStoreTests {
         #expect(try reopened.alertRecords(status: .resolved).map(\.id) == [candidate.key])
         #expect(try reopened.alertRecords().count == 1)
 
+        let pending = try reopened.pendingAlertEvents()
+        #expect(pending.map(\.event.transition) == [.raised, .resolved])
+        try reopened.acknowledgeAlertEvents(ids: pending.map(\.id))
+        #expect(try reopened.pendingAlertEvents().isEmpty)
+
         let after = try #require(try reopened.snapshot(query: query)).watermark
         #expect(after == before)
     }

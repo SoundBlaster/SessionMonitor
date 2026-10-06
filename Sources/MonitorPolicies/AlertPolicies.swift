@@ -178,7 +178,10 @@ public struct AlertTracker: Sendable {
                 && !currentKeys.contains(record.id)
         }.sorted { $0.id < $1.id }
         for previous in resolvable {
-            let notify = configuration.notifyResolutions && previous.lastNotifiedAt != nil
+            let requested = configuration.notifyResolutions && previous.lastNotifiedAt != nil
+            let withinLimit = notified < configuration.maximumNotificationsPerWindow
+            let notify = requested && withinLimit
+            if notify { notified += 1 }
             let record = AlertRecord(
                 candidate: previous.candidate, status: .resolved, firstSeenAt: previous.firstSeenAt,
                 raisedAt: previous.raisedAt, lastSeenAt: previous.lastSeenAt, resolvedAt: now,
@@ -186,7 +189,8 @@ public struct AlertTracker: Sendable {
             )
             changed.append(record)
             events.append(AlertEvent(
-                transition: .resolved, record: record, notify: notify, suppression: .resolutionNotRequested
+                transition: .resolved, record: record, notify: notify,
+                suppression: requested ? .rateLimited : .resolutionNotRequested
             ))
         }
         return AlertTrackerResult(changedRecords: changed, events: events)

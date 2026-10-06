@@ -29,7 +29,7 @@ public struct JSONLinesAlertSink: AlertSink {
     }
 }
 
-/// Signal-agnostic alert pipeline: persists transitions atomically, then fans them out to sinks.
+/// Signal-agnostic alert pipeline: persists transitions with an outbox atomically, then fans them out.
 /// Signal adapters (anomalies, quota, diagnostics, watch) submit `AlertEvaluation`s separately.
 public actor AlertCenter {
     private let monitor: SessionMonitor
@@ -52,14 +52,26 @@ public actor AlertCenter {
         self.configuration = configuration
     }
 
-    /// Returns the committed events after every sink has received them.
+    /// Commits the evaluation, then drains the outbox. Returns the transitions this evaluation committed.
     @discardableResult
     public func submit(_ evaluation: AlertEvaluation) async throws -> [AlertEvent] {
         let events = try await monitor.applyAlertEvaluation(evaluation, configuration: configuration)
-        guard !events.isEmpty else { return events }
+        try await deliverPending()
+        return events
+    }
+
+    /// At-least-once delivery: entries are acknowledged only after every sink returned. Without sinks
+    /// the outbox is kept, so events committed earlier (or before a crash) reach sinks added later.
+    @discardableResult
+    public func deliverPending() async throws -> [AlertEvent] {
+        guard !sinks.isEmpty else { return [] }
+        let pending = try await monitor.pendingAlertEvents()
+        guard !pending.isEmpty else { return [] }
+        let events = pending.map(\.event)
         for sink in sinks {
             await sink.deliver(events)
         }
+        try await monitor.acknowledgeAlertEvents(ids: pending.map(\.id))
         return events
     }
 }
@@ -73,5 +85,13 @@ extension SessionMonitor {
 
     public func alerts(status: AlertStatus? = nil) throws -> [AlertRecord] {
         try store.alertRecords(status: status)
+    }
+
+    public func pendingAlertEvents() throws -> [PendingAlertEvent] {
+        try store.pendingAlertEvents()
+    }
+
+    public func acknowledgeAlertEvents(ids: [Int64]) throws {
+        try store.acknowledgeAlertEvents(ids: ids)
     }
 }
