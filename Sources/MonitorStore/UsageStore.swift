@@ -121,6 +121,7 @@ public final class UsageStore: Sendable {
         }
         Self.registerUsageLimitSnapshotMigration(on: &migrator)
         Self.registerAccountProfileMigration(on: &migrator)
+        Self.registerAlertMigration(on: &migrator)
         return migrator
     }
 

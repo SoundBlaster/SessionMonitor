@@ -7,7 +7,8 @@
 ## Текущая точка
 
 **Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
-TUI/UI-полировка отложены.** SM-323 — **в работе**, PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80)
+TUI/UI-полировка отложены.** SM-324 — **в работе** (core pipeline готов, ветка `feat/sm-324-alert-pipeline`,
+строится поверх SM-323). SM-323 — **в работе**, PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80)
 (ветка `fix/sm-323-startup-known-input`): startup policy использует известный input даже при unknown
 cache split. Порядок дальше: SM-324 (модуль уведомлений) → SM-325 (подключить существующие сигналы)
 → SM-328 (agent tool/hook/mod) → SM-329 (Agent Surface Protocol, ждёт spec). Параллельно по
@@ -679,6 +680,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
   на macOS — GitHub `CI`.
 
 - [ ] **SM-324** — Модуль уведомлений: транспортно-независимый alert pipeline.
+  **Статус: в работе (2026-10-06), ветка `feat/sm-324-alert-pipeline`.** Сделано (core): `MonitorCore/Alert`
+  (candidate/scope/record/event/suppression), `AlertTracker` + `AlertNotificationDecision` на
+  SpecificationCore (severity → muted → unknown coverage → cooldown → rate limit; resolve только внутри
+  оценённых scopes; rate limit отдаёт приоритет более высокой severity), таблица `alert_records` с
+  атомарным read-transition-write без сдвига watermark, `AlertCenter` + `AlertSink`/`JSONLinesAlertSink`,
+  CLI `alerts`. Evidence: Linux Swift 6.2 scratch package — 66 tests passed (включая 10 новых alert
+  tests; `AlertCenter` проверен против stub `SessionMonitor`), CLI собран и выполнен на пустой БД;
+  SwiftLint 0.63.3 `--strict` — 0 violations (SourceKit-правила проверяет CI). Остаток: macOS
+  UserNotifications sink и in-app список в приложении (делается вместе с SM-325, когда есть сигналы).
   Добавлено 2026-10-06, приоритет пользователя №1 после SM-323. Общий для CLI/GUI/агентов модуль:
   `Alert` (stable dedup key, kind, severity, session/account scope, evidence, coverage, first/last seen,
   resolved), `AlertPolicy` (cooldown, rate limit, минимальная severity, quiet mode) на SpecificationCore,
