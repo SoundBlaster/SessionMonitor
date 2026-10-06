@@ -67,13 +67,13 @@ struct AnomalyPolicyTests {
     }
 
     private static func request(
-        id: String, turn: String, timestamp: TimeInterval, input: Int64, cached: Int64?,
+        id: String, turn: String, timestamp: TimeInterval, input: Int64?, cached: Int64?,
         session: String = "session", model: String = "fixture"
     ) -> RequestTimelinePoint {
         RequestTimelinePoint(
             id: id, sessionID: session, timestamp: Date(timeIntervalSince1970: timestamp),
-            kind: .usageRequest, turnID: turn, responseID: id, cachedInputTokens: cached,
-            uncachedInputTokens: cached.map { input - $0 }, model: model
+            kind: .usageRequest, turnID: turn, responseID: id, inputTokens: input, cachedInputTokens: cached,
+            uncachedInputTokens: input.flatMap { input in cached.map { input - $0 } }, model: model
         )
     }
 
@@ -168,7 +168,7 @@ struct AnomalyPolicyTests {
         #expect(findings.contains { $0.kind == .cacheRecovery })
     }
 
-    @Test func startupRequiresTwoKnownSamplesAndReportsPartialCoverage() throws {
+    @Test func startupRequiresTwoKnownInputSamplesAndReportsPartialCoverage() throws {
         let insufficient = AnomalyPolicyContext(
             session: SessionSummary(id: "insufficient", model: "fixture", totals: UsageTotals(requests: 3)),
             timeline: RequestTimeline(sessionID: "insufficient", query: try UsageQuery(), points: [
@@ -176,7 +176,7 @@ struct AnomalyPolicyTests {
                     id: "I1", turn: "first", timestamp: 1, input: 1_000, cached: 900, session: "insufficient"
                 ),
                 Self.request(
-                    id: "I2", turn: "first", timestamp: 2, input: 1_000, cached: nil, session: "insufficient"
+                    id: "I2", turn: "first", timestamp: 2, input: nil, cached: nil, session: "insufficient"
                 ),
                 Self.request(
                     id: "I3", turn: "later", timestamp: 3, input: 400, cached: 300, session: "insufficient"
@@ -195,15 +195,31 @@ struct AnomalyPolicyTests {
                     id: "P2", turn: "first", timestamp: 2, input: 1_000, cached: 900, session: "partial-startup"
                 ),
                 Self.request(
-                    id: "P3", turn: "first", timestamp: 3, input: 1_000, cached: nil, session: "partial-startup"
+                    id: "P3", turn: "first", timestamp: 3, input: nil, cached: nil, session: "partial-startup"
                 ),
                 Self.request(id: "P4", turn: "later", timestamp: 4, input: 400, cached: 300, session: "partial-startup")
             ])
         )
         let finding = AnomalyPolicyEngine().evaluate(partial).first { $0.kind == .startupOverhead }
         #expect(finding?.coverage == .partial(
-            reason: "Some first-turn cache values were unknown and excluded from startup comparison."
+            reason: "Some first-turn input values were unknown and excluded from startup comparison."
         ))
+    }
+
+    @Test func startupUsesKnownInputWhenCacheSplitIsUnknown() throws {
+        let context = AnomalyPolicyContext(
+            session: SessionSummary(id: "no-cache", model: "fixture", totals: UsageTotals(requests: 3)),
+            timeline: RequestTimeline(sessionID: "no-cache", query: try UsageQuery(), points: [
+                Self.request(id: "U1", turn: "first", timestamp: 1, input: 1_000, cached: nil, session: "no-cache"),
+                Self.request(id: "U2", turn: "first", timestamp: 2, input: 1_000, cached: nil, session: "no-cache"),
+                Self.request(id: "U3", turn: "later", timestamp: 3, input: 400, cached: nil, session: "no-cache")
+            ])
+        )
+
+        let findings = AnomalyPolicyEngine().evaluate(context)
+        let finding = try #require(findings.first { $0.kind == .startupOverhead })
+        #expect(finding.coverage == .observed)
+        #expect(!findings.contains { $0.kind == .cacheDrop || $0.kind == .uncachedBurst })
     }
 
     @Test func highUsageAndDominantSessionRemainIndependentFromCacheRatio() throws {

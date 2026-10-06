@@ -56,7 +56,7 @@ extension UsageStore {
                         sessionID: sessionID,
                         timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: .usageRequest,
                         turnID: row["turn"], responseID: row["response"],
-                        cachedInputTokens: cached,
+                        inputTokens: input, cachedInputTokens: cached,
                         uncachedInputTokens: cached.map { input - $0 }, evidence: "token_usage_record",
                         model: row["model"]
                     )
