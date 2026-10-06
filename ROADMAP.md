@@ -12,7 +12,8 @@ merge `6e193bc` (2026-10-06): существующие сигналы подкл
 и macOS-уведомления приложения; **ожидает живой проверки уведомления на Mac пользователя.**
 SM-324 доставлена (PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81) + macOS sink в #82),
 SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
-**Следующая задача — SM-328** (agent tool/hook/mod), затем SM-329 (Agent Surface Protocol, ждёт spec).
+**SM-328 — в работе** (ветка `feat/sm-328-agent-status`): CLI `agent status`; затем SM-329 (Agent
+Surface Protocol, ждёт spec).
 Параллельно по возможности: SM-205 (автозапуск watch), SM-326 (findings и список алертов в GUI), SM-327
 (новые live-правила), SM-330 (переход к сессии по клику на уведомление).
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
@@ -748,6 +749,16 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `alertKey`/`sessionIDs` из `userInfo` и выбирает сессию в Session Explorer (как deep link виджета).
   Готово, когда клик по уведомлению anomaly-алерта открывает окно с выбранной сессией.
 - [ ] **SM-328** — Agent-facing surface: актуальные данные монитора для работающего агента.
+  **Статус: в работе (2026-10-06), ветка `feat/sm-328-agent-status`.** Выбран общий путь — CLI tool, поверх
+  которого строятся hook и mod. Сделано: `AgentStatusReport` (Core, без prompts/outputs/путей),
+  `AgentStatusBuilder` (Policies, чистая проекция: alerts сессии + quota/watch/diagnostics, недавняя
+  активность с wait-вызовами без двойного счёта call/output, unknown input не превращается в 0),
+  `SessionMonitor.agentStatus` (Runtime, только чтение; без `--session` берётся сессия с самым свежим
+  request в lookback), `UsageStore.latestSessionID`, CLI `agent status [--session] [--lookback-hours]
+  [--recent-minutes] [--evaluate] [--fail-on] [--json]` с exit 2 для hook'ов. Evidence: Linux Swift 6.2 —
+  79 tests passed (3 новых: builder и runtime end-to-end на SQLite), CLI собран и выполнен (пустая БД,
+  `--fail-on`), SwiftLint `--strict` — 0 violations. Остаток: подключить к реальному hook Claude Code /
+  Codex на Mac пользователя и проверить, что агент видит алерт своей сессии.
   Добавлено 2026-10-06, целевое направление пользователя. Агент во время работы получает состояние
   своей сессии/аккаунта (расход, coverage, активные алерты, quota до reset) без повторного audit и без
   LLM polling. Варианты доставки — CLI tool с компактным JSON, Codex hook и Claude Code mod поверх

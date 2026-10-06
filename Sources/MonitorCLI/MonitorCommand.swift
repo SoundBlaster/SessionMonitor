@@ -10,7 +10,7 @@ struct MonitorCommand: AsyncParsableCommand {
         commandName: "codex-monitor", abstract: "Inspect local Codex canonical request usage.",
         version: "0.1.0", subcommands: [Import.self, Report.self, Watch.self, Snapshot.self,
                                          Sessions.self, Inspect.self, Activity.self, Doctor.self, Quota.self]
-            + [Profiles.self, Alerts.self]
+            + [Profiles.self, Alerts.self, Agent.self]
     )
 }
 
