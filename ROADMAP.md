@@ -6,11 +6,12 @@
 
 ## Текущая точка
 
-**Приоритет пользователя (2026-10-06): core-аналитика, live watchdog и алерты; TUI/UI-полировка
-отложены.** SM-323 — **в работе** в ветке `fix/sm-323-startup-known-input`: startup policy
-использует известный input даже при unknown cache split. Затем по порядку: SM-205 (автозапуск
-watch сохранённой папки), SM-324 (live watchdog в Runtime), SM-325 (уведомления macOS),
-SM-326 (ретроспективные findings в GUI), SM-327 (live-правила burn rate/runaway/quota projection).
+**Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
+TUI/UI-полировка отложены.** SM-323 — **в работе**, PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80)
+(ветка `fix/sm-323-startup-known-input`): startup policy использует известный input даже при unknown
+cache split. Порядок дальше: SM-324 (модуль уведомлений) → SM-325 (подключить существующие сигналы)
+→ SM-328 (agent tool/hook/mod) → SM-329 (Agent Surface Protocol, ждёт spec). Параллельно по
+возможности: SM-205 (автозапуск watch), SM-326 (findings в GUI), SM-327 (новые live-правила).
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -674,26 +675,41 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Coverage `partial` теперь означает неизвестный input. Тесты policy обновлены и добавлен
   regression на сессию без cache split. Локально Swift недоступен (Linux), проверка — GitHub `CI`.
 
-- [ ] **SM-324** — Live watchdog: инкрементальная оценка политик после каждого import commit.
-  Добавлено 2026-10-06. Зависит от SM-103/SM-308c. В `MonitorRuntime` после commit watch
-  переоценивать политики только для изменённых сессий в скользящем окне; хранить состояние
-  алертов (stable finding id, first/last seen, acknowledged, cooldown), чтобы одно и то же
-  событие не повторялось. Общий API для CLI (`watch --alerts`, JSON lines) и GUI. Готово, когда
-  replay fixture с append-тактами выдаёт ожидаемую последовательность new/updated/resolved алертов.
-- [ ] **SM-325** — Уведомления macOS по алертам watchdog.
-  Добавлено 2026-10-06. Зависит от SM-324/SM-205. UserNotifications с настройкой по kind/severity,
-  rate limit и quiet mode; клик открывает сессию с evidence. Готово, когда алерт из live watch
-  доходит как notification ровно один раз и ведёт к той же finding в Session Explorer.
+- [ ] **SM-324** — Модуль уведомлений: транспортно-независимый alert pipeline.
+  Добавлено 2026-10-06, приоритет пользователя №1 после SM-323. Общий для CLI/GUI/агентов модуль:
+  `Alert` (stable dedup key, kind, severity, session/account scope, evidence, coverage, first/last seen,
+  resolved), `AlertPolicy` (cooldown, rate limit, минимальная severity, quiet mode) на SpecificationCore,
+  persistent alert state в store и `AlertSink` с реализациями: JSON lines (CLI/агенты), macOS
+  UserNotifications (app), in-app список. Сигналы подключаются отдельно в SM-325. Готово, когда
+  тесты подтверждают dedup, cooldown, resolve и доставку одного алерта во все sinks ровно один раз.
+- [ ] **SM-325** — Подключить к уведомлениям уже существующие сигналы.
+  Добавлено 2026-10-06. Зависит от SM-324. Источники без новой аналитики: `AnomalyPolicyEngine`
+  findings (7 kinds), quota assessments (`sharp_shift`, `reset_discontinuity`) и quota presentation
+  (remaining/reset/freshness), import diagnostics (conflicts, malformed, unowned), watch status
+  (`recovering`/error), `CacheHitThresholdPolicy`. После каждого commit watch переоценивать только
+  изменённые сессии; unknown/partial coverage не поднимать до warning. Готово, когда replay fixture
+  с append-тактами выдаёт ожидаемую последовательность new/updated/resolved алертов в CLI и app.
 - [ ] **SM-326** — Ретроспективные findings в GUI.
   Добавлено 2026-10-06. `doctor` доступен только в CLI; GUI findings не показывает. Панель findings
   за выбранный период/account scope с evidence (observed/inference/unknown), фильтрами по kind
   и переходом к timeline. Готово, когда GUI и `doctor --json` дают одинаковый набор findings.
 - [ ] **SM-327** — Live-правила для работающих сессий.
-  Добавлено 2026-10-06. Зависит от SM-324. Кандидаты: burn rate (input/min относительно baseline
+  Добавлено 2026-10-06. Зависит от SM-325. Кандидаты: burn rate (input/min относительно baseline
   своей истории), runaway loop (N запросов без human turn), рост input на запрос (сигнал для
   compaction), проекция quota до reset по наблюдаемой скорости. Каждое правило — Specification
   с evidence, coverage и negative cases; пороги — из собственной истории пользователя, не константы.
   Готово, когда каждое правило имеет fixture positive/negative и не срабатывает на unknown данных.
+
+- [ ] **SM-328** — Agent-facing surface: актуальные данные монитора для работающего агента.
+  Добавлено 2026-10-06, целевое направление пользователя. Агент во время работы получает состояние
+  своей сессии/аккаунта (расход, coverage, активные алерты, quota до reset) без повторного audit и без
+  LLM polling. Варианты доставки — CLI tool с компактным JSON, Codex hook и Claude Code mod поверх
+  того же query/alert API; выбрать после spike. Сырые prompts/outputs не раскрывать. Готово, когда
+  агент из hook/tool видит алерт своей сессии, появившийся в SM-325, и данные совпадают с CLI/GUI.
+- [ ] **SM-329** — Интеграция Agent Surface Protocol пользователя в приложение (двусторонняя).
+  Добавлено 2026-10-06. **Статус: заблокировано** — нужна спецификация/репозиторий протокола от
+  пользователя. Цель: Codex может работать внутри приложения и приложение — с Codex через протокол.
+  Продолжение: после получения spec описать границы (доступные действия, права, provenance).
 
 - [ ] **SM-403** — Ввести иерархические accessibility identifiers через NestedA11yIDs.
   Реализация доставлена через [PR #64](https://github.com/SoundBlaster/SessionMonitor/pull/64),
