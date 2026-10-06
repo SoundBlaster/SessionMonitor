@@ -19,6 +19,11 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
 - CLI `quota`: read-only usage-limit observations из импортированных rollouts; показывает observed used,
   derived remaining, reset и freshness. Отсутствующие/неподдерживаемые данные остаются unknown;
   сетевого polling нет.
+- Alert pipeline (SM-324): общий для CLI/GUI/агентов state machine raise/escalate/update/resolve с
+  dedup по стабильному ключу, cooldown, rate limit, muted kinds и подавлением unknown coverage.
+  Состояние хранится в SQLite и не меняет canonical totals и watermark; sinks получают каждое событие
+  (`JSONLinesAlertSink` для пайпов и агентов). CLI `alerts [--status active|resolved|all] [--json]`
+  показывает сохранённое состояние. Источники сигналов подключаются в SM-325.
 - CLI `profiles`: явное сопоставление однородного каталога источников с локальным account profile;
   `report`, `activity` и `quota` поддерживают `--profile ID` и `--unknown-or-mixed`.
 - GUI account scope selector общий для Session Explorer и menu bar, сохраняется между запусками и предлагает
