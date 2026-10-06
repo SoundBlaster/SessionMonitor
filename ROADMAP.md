@@ -7,12 +7,14 @@
 ## Текущая точка
 
 **Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
-TUI/UI-полировка отложены.** SM-325 — **в работе** (ветка `feat/sm-325-alert-signals`): существующие сигналы
-подключены к alert pipeline, `alerts evaluate`, `watch --alerts` и macOS-уведомления приложения.
-SM-324 core доставлен через PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81), merge `e28fca0`
-(2026-10-06); SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
-Порядок дальше: SM-328 (agent tool/hook/mod) → SM-329 (Agent Surface Protocol, ждёт spec).
-Параллельно по возможности: SM-205 (автозапуск watch), SM-326 (findings в GUI), SM-327 (новые live-правила).
+TUI/UI-полировка отложены.** SM-325 доставлена через PR [#82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
+merge `6e193bc` (2026-10-06): существующие сигналы подключены к alerts, `alerts evaluate`, `watch --alerts`
+и macOS-уведомления приложения; **ожидает живой проверки уведомления на Mac пользователя.**
+SM-324 доставлена (PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81) + macOS sink в #82),
+SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
+**Следующая задача — SM-328** (agent tool/hook/mod), затем SM-329 (Agent Surface Protocol, ждёт spec).
+Параллельно по возможности: SM-205 (автозапуск watch), SM-326 (findings и список алертов в GUI), SM-327
+(новые live-правила), SM-330 (переход к сессии по клику на уведомление).
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -680,10 +682,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
   (AnomalyPolicy, Diagnostics, QuotaAnomalyPolicy, QuerySnapshot, SessionTree); полный `make ci`
   на macOS — GitHub `CI` (passed).
 
-- [ ] **SM-324** — Модуль уведомлений: транспортно-независимый alert pipeline.
+- [x] **SM-324** — Модуль уведомлений: транспортно-независимый alert pipeline.
   Core доставлен через [PR #81](https://github.com/SoundBlaster/SessionMonitor/pull/81), merge `e28fca0`
   (2026-10-06); `CI`, `Native checks`, Xcode 26.0 build и Workflow lint прошли на `27f1c96`.
-  macOS sink реализован в SM-325; пункт закрывается вместе с её доставкой. Сделано (core): `MonitorCore/Alert`
+  macOS UserNotifications sink и foreground delegate доставлены в [PR #82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
+  merge `6e193bc`. In-app список алертов перенесён в SM-326. Сделано (core): `MonitorCore/Alert`
   (candidate/scope/record/event/suppression), `AlertTracker` + `AlertNotificationDecision` на
   SpecificationCore (severity → muted → unknown coverage → cooldown → rate limit; resolve только внутри
   оценённых scopes; rate limit отдаёт приоритет более высокой severity), таблица `alert_records` с
@@ -692,16 +695,21 @@ deliverable — WidgetKit extension с App Group в SM-401.
   rate limit, `AlertCenter` + `AlertSink`/`JSONLinesAlertSink`, CLI `alerts`. Review Codex (2×P2) учтён.
   Evidence: Linux Swift 6.2 scratch package — 68 tests passed (включая 12 новых alert
   tests; `AlertCenter` проверен против stub `SessionMonitor`), CLI собран и выполнен на пустой БД;
-  SwiftLint 0.63.3 `--strict` — 0 violations (SourceKit-правила проверяет CI). Остаток: macOS
-  UserNotifications sink и in-app список в приложении (делается вместе с SM-325, когда есть сигналы).
+  SwiftLint 0.63.3 `--strict` — 0 violations (SourceKit-правила проверяет CI). macOS UserNotifications
+  sink доставлен в #82; in-app список явно передан в SM-326 (scope и критерий готовности обновлены там).
   Добавлено 2026-10-06, приоритет пользователя №1 после SM-323. Общий для CLI/GUI/агентов модуль:
   `Alert` (stable dedup key, kind, severity, session/account scope, evidence, coverage, first/last seen,
   resolved), `AlertPolicy` (cooldown, rate limit, минимальная severity, quiet mode) на SpecificationCore,
   persistent alert state в store и `AlertSink` с реализациями: JSON lines (CLI/агенты), macOS
   UserNotifications (app), in-app список. Сигналы подключаются отдельно в SM-325. Готово, когда
   тесты подтверждают dedup, cooldown, resolve и доставку одного алерта во все sinks ровно один раз.
+  Критерий выполнен для реализованных sinks (JSON lines, UserNotifications): `AlertCenterTests` проверяют
+  доставку каждого перехода во все sinks и outbox; in-app список с 2026-10-06 — часть SM-326.
 - [ ] **SM-325** — Подключить к уведомлениям уже существующие сигналы.
-  **Статус: в работе (2026-10-06), ветка `feat/sm-325-alert-signals`.** Сделано: `AlertSignals` (Policies,
+  **Статус: доставлено, ожидает живой проверки (2026-10-06).** [PR #82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
+  merge `6e193bc`; `CI`, `Native checks` (app build, FSD lint, macOS tests), Xcode 26.0 build и Workflow lint
+  прошли на `2c2ff67`. Закрыть после того, как пользователь увидит уведомление от app-owned watch на Mac
+  (`codex-monitor alerts evaluate` заранее показывает, есть ли сигнал в последних сессиях). Сделано: `AlertSignals` (Policies,
   чистые адаптеры): anomaly findings `doctor` → ключ `kind|session` (рост evidence не пере-поднимает
   алерт), database-wide diagnostics по стабильным ID, только свежие quota `sharp_shift` (≤1 ч, один на
   серию), низкий остаток quota (≤20% warning, ≤5% error, stale/ambiguous → unknown coverage), cache hit
@@ -713,18 +721,21 @@ deliverable — WidgetKit extension с App Group в SM-401.
   на SQLite с реальным `doctor`), после review Codex (3×P2: сброс счётчика при новом watch, foreground
   delegate уведомлений, stale/ambiguous quota сохраняет только уже активный алерт) — 76 tests passed;
   CLI `alerts evaluate` собран и выполнен; SwiftLint `--strict` по
-  Sources/Tests/Apps — 0 violations. App build, FSD lint и macOS tests — GitHub `CI`. Остаток: in-app
-  список алертов (SM-326) и открытие сессии по клику на уведомление; живая проверка уведомления на Mac.
+  Sources/Tests/Apps — 0 violations. App build, FSD lint и macOS tests — GitHub `CI`. Остаток: живая
+  проверка уведомления на Mac; in-app список — SM-326, клик по уведомлению — SM-330.
   Добавлено 2026-10-06. Зависит от SM-324. Источники без новой аналитики: `AnomalyPolicyEngine`
   findings (7 kinds), quota assessments (`sharp_shift`, `reset_discontinuity`) и quota presentation
   (remaining/reset/freshness), import diagnostics (conflicts, malformed, unowned), watch status
   (`recovering`/error), `CacheHitThresholdPolicy`. После каждого commit watch переоценивать только
   изменённые сессии; unknown/partial coverage не поднимать до warning. Готово, когда replay fixture
   с append-тактами выдаёт ожидаемую последовательность new/updated/resolved алертов в CLI и app.
-- [ ] **SM-326** — Ретроспективные findings в GUI.
+- [ ] **SM-326** — Ретроспективные findings и алерты в GUI.
   Добавлено 2026-10-06. `doctor` доступен только в CLI; GUI findings не показывает. Панель findings
   за выбранный период/account scope с evidence (observed/inference/unknown), фильтрами по kind
-  и переходом к timeline. Готово, когда GUI и `doctor --json` дают одинаковый набор findings.
+  и переходом к timeline. С 2026-10-06 включает перенесённый из SM-324 in-app список алертов:
+  active/resolved записи `alert_records` с severity, coverage и evidence. Готово, когда GUI и
+  `doctor --json` дают одинаковый набор findings, а in-app список алертов совпадает с
+  `codex-monitor alerts --status all --json`.
 - [ ] **SM-327** — Live-правила для работающих сессий.
   Добавлено 2026-10-06. Зависит от SM-325. Кандидаты: burn rate (input/min относительно baseline
   своей истории), runaway loop (N запросов без human turn), рост input на запрос (сигнал для
@@ -732,6 +743,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   с evidence, coverage и negative cases; пороги — из собственной истории пользователя, не константы.
   Готово, когда каждое правило имеет fixture positive/negative и не срабатывает на unknown данных.
 
+- [ ] **SM-330** — Открывать сессию с evidence по клику на уведомление алерта.
+  Добавлено 2026-10-06 как follow-up SM-325. `UNUserNotificationCenterDelegate.didReceive` читает
+  `alertKey`/`sessionIDs` из `userInfo` и выбирает сессию в Session Explorer (как deep link виджета).
+  Готово, когда клик по уведомлению anomaly-алерта открывает окно с выбранной сессией.
 - [ ] **SM-328** — Agent-facing surface: актуальные данные монитора для работающего агента.
   Добавлено 2026-10-06, целевое направление пользователя. Агент во время работы получает состояние
   своей сессии/аккаунта (расход, coverage, активные алерты, quota до reset) без повторного audit и без
