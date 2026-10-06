@@ -75,13 +75,17 @@ public struct AgentStatusReport: Codable, Equatable, Sendable {
         public let raisedAt: Date
         public let lastSeenAt: Date
 
+        /// Watch alerts carry the watched folder in their key and message; agents get a path-free form.
         public init(_ record: AlertRecord) {
-            key = record.candidate.key
+            let isWatch = record.candidate.source == .watch
+            key = isWatch ? "watch|\(record.candidate.kind)" : record.candidate.key
             source = record.candidate.source
             kind = record.candidate.kind
             severity = record.candidate.severity
             title = record.candidate.title
-            message = record.candidate.message
+            message = isWatch
+                ? "The session watch is not healthy; open SessionMonitor for details."
+                : record.candidate.message
             coverage = record.candidate.coverage
             raisedAt = record.raisedAt
             lastSeenAt = record.lastSeenAt

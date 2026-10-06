@@ -89,6 +89,29 @@ struct AgentStatusTests {
         let missing = try await monitor.agentStatus(sessionID: "absent", now: now, lookback: 3_600)
         #expect(missing.session == nil)
         #expect(missing.recent == nil)
+
+        // The window ends at `now`: a request at now - 120 s is outside a status generated 200 s earlier.
+        let earlier = try await monitor.agentStatus(now: now.addingTimeInterval(-200), lookback: 3_600)
+        #expect(earlier.session?.id == "older")
+
+        let clamped = try await monitor.agentStatus(now: now, lookback: 300, recentWindow: 3_600)
+        #expect(clamped.recent?.windowSeconds == 300)
+    }
+
+    @Test func watchAlertsAreReportedWithoutPaths() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let record = AlertRecord(
+            candidate: AlertCandidate(
+                key: "watch|unhealthy|/Users/someone/.codex/sessions", scope: AlertScope("watch:/Users/someone"),
+                source: .watch, kind: "unhealthy", severity: .warning, title: "Session watch needs attention",
+                message: "Watch for sessions is recovering: /Users/someone/.codex/sessions denied"
+            ),
+            status: .active, firstSeenAt: now, raisedAt: now, lastSeenAt: now
+        )
+        let alert = AgentStatusReport.Alert(record)
+        #expect(alert.key == "watch|unhealthy")
+        #expect(!alert.message.contains("/"))
+        #expect(!alert.message.contains("sessions"))
     }
 
     private static func request(_ id: String, at seconds: TimeInterval, input: Int64?) -> RequestTimelinePoint {

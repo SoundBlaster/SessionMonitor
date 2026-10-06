@@ -757,7 +757,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   request в lookback), `UsageStore.latestSessionID`, CLI `agent status [--session] [--lookback-hours]
   [--recent-minutes] [--evaluate] [--fail-on] [--json]` с exit 2 для hook'ов. Evidence: Linux Swift 6.2 —
   79 tests passed (3 новых: builder и runtime end-to-end на SQLite), CLI собран и выполнен (пустая БД,
-  `--fail-on`), SwiftLint `--strict` — 0 violations. Остаток: подключить к реальному hook Claude Code /
+  `--fail-on`), SwiftLint `--strict` — 0 violations. После review Codex (P1: watch-алерт без пути к
+  папке; P2: выбор сессии до snapshot, окно ограничено `generatedAt`, recent не длиннее lookback) —
+  80 tests passed. Остаток: подключить к реальному hook Claude Code /
   Codex на Mac пользователя и проверить, что агент видит алерт своей сессии.
   Добавлено 2026-10-06, целевое направление пользователя. Агент во время работы получает состояние
   своей сессии/аккаунта (расход, coverage, активные алерты, quota до reset) без повторного audit и без

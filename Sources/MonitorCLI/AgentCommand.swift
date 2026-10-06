@@ -37,6 +37,9 @@ extension MonitorCommand {
             guard (1...1_440).contains(recentMinutes) else {
                 throw ValidationError("--recent-minutes must be between 1 and 1440.")
             }
+            guard recentMinutes <= lookbackHours * 60 else {
+                throw ValidationError("--recent-minutes must not exceed the lookback window.")
+            }
         }
 
         mutating func run() async throws {
