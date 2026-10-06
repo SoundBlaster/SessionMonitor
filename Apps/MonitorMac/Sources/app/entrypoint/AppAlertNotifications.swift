@@ -26,6 +26,15 @@ struct UserNotificationAlertSink: AlertSink {
     }
 }
 
+/// Shows alert notifications while SessionMonitor is frontmost; without it they would be silent.
+final class ForegroundNotificationPresenter: NSObject, UNUserNotificationCenterDelegate, Sendable {
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter, willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound]
+    }
+}
+
 /// Tees the single `SessionWatch.updates` stream: the controller keeps receiving every status while
 /// the watchdog evaluates alerts after each committed import.
 final class AlertingWatchHandle: AppWatchHandle {

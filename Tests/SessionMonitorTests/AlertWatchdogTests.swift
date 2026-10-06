@@ -67,6 +67,35 @@ struct AlertWatchdogTests {
         #expect(resolved.map(\.transition) == [.resolved])
     }
 
+    @Test func newWatchStartsImportCountingAgain() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let monitor = try SessionMonitor(databaseURL: directory.appending(path: "usage.sqlite"))
+        let watchdog = AlertWatchdog(monitor: monitor, center: AlertCenter(monitor: monitor))
+        let first = URL(fileURLWithPath: "/tmp/first", isDirectory: true)
+        let second = URL(fileURLWithPath: "/tmp/second", isDirectory: true)
+
+        var status = WatchStatus()
+        status.phase = .watching
+        status.completedImports = 5
+        _ = try await watchdog.handle(status, root: first)
+        #expect(await watchdog.evaluatedImports == 5)
+
+        status.completedImports = 1
+        _ = try await watchdog.handle(status, root: second)
+        #expect(await watchdog.evaluatedImports == 1)
+
+        status.completedImports = 3
+        _ = try await watchdog.handle(status, root: second)
+        #expect(await watchdog.evaluatedImports == 3)
+
+        // Same root restarted: its counter goes back down, so it is a new watch as well.
+        status.completedImports = 1
+        _ = try await watchdog.handle(status, root: second)
+        #expect(await watchdog.evaluatedImports == 1)
+    }
+
     /// 90% cache hit keeps the fixture above the default cache threshold.
     private static func record(
         id: String, turn: String, at seconds: TimeInterval, input: Int64, line: Int

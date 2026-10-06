@@ -709,8 +709,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   lookback 6 ч, сессии вне окна резолвятся; `handle(status)` для единственного потребителя
   `SessionWatch.updates` (здоровье watch + оценка после каждого import). CLI: `alerts evaluate`,
   `watch --alerts`. App: `UserNotificationAlertSink` и `AlertingWatchHandle` (tee статусов), watchdog
-  на app-owned watch. Evidence: Linux Swift 6.2 — 75 tests passed (7 новых: адаптеры и watchdog end-to-end
-  на SQLite с реальным `doctor`), CLI `alerts evaluate` собран и выполнен; SwiftLint `--strict` по
+  на app-owned watch. Evidence: Linux Swift 6.2 — изначально 75 tests passed (7 новых: адаптеры и watchdog end-to-end
+  на SQLite с реальным `doctor`), после review Codex (3×P2: сброс счётчика при новом watch, foreground
+  delegate уведомлений, stale/ambiguous quota сохраняет только уже активный алерт) — 76 tests passed;
+  CLI `alerts evaluate` собран и выполнен; SwiftLint `--strict` по
   Sources/Tests/Apps — 0 violations. App build, FSD lint и macOS tests — GitHub `CI`. Остаток: in-app
   список алертов (SM-326) и открытие сессии по клику на уведомление; живая проверка уведомления на Mac.
   Добавлено 2026-10-06. Зависит от SM-324. Источники без новой аналитики: `AnomalyPolicyEngine`

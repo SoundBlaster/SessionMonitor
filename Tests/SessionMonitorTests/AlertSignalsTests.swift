@@ -51,24 +51,33 @@ struct AlertSignalsTests {
         #expect(batch.scopes == [AlertSignals.quotaShiftScope])
     }
 
-    @Test func lowRemainingQuotaUsesSeverityAndKeepsStaleWindowsUncertain() throws {
+    @Test func lowRemainingQuotaUsesSeverityAndOnlyKeepsUncertainWindowsAlreadyActive() throws {
         let report = QuotaPresentationReport(
             query: try UsageQuery(), generatedAt: Date(timeIntervalSince1970: 0), freshnessThresholdSeconds: 900,
             coverage: UsageLimitTelemetryCoverage(snapshots: []), windows: [
                 Self.window(id: "low", used: 85, freshness: .current),
                 Self.window(id: "critical", used: 97, freshness: .current),
-                Self.window(id: "stale", used: 90, freshness: .stale),
+                Self.window(id: "stale-active", used: 90, freshness: .stale),
+                Self.window(id: "stale-new", used: 90, freshness: .stale),
+                Self.window(id: "ambiguous-active", used: nil, freshness: .current, ambiguous: true),
                 Self.window(id: "healthy", used: 40, freshness: .current)
             ]
         )
-        let batch = AlertSignals.quotaRemaining(report)
+        let batch = AlertSignals.quotaRemaining(report, activeKeys: [
+            "quota|remaining|stale-active", "quota|remaining|ambiguous-active", "quota|remaining|healthy"
+        ])
         let byKey = Dictionary(uniqueKeysWithValues: batch.candidates.map { ($0.key, $0) })
+        let uncertain = AnomalyCoverage.unknown(reason: "The latest quota observation is stale or ambiguous.")
 
-        #expect(Set(byKey.keys) == ["quota|remaining|low", "quota|remaining|critical", "quota|remaining|stale"])
+        #expect(Set(byKey.keys) == [
+            "quota|remaining|low", "quota|remaining|critical",
+            "quota|remaining|stale-active", "quota|remaining|ambiguous-active"
+        ])
         #expect(byKey["quota|remaining|low"]?.severity == .warning)
         #expect(byKey["quota|remaining|critical"]?.severity == .error)
-        #expect(byKey["quota|remaining|stale"]?.coverage
-            == .unknown(reason: "The latest quota observation is stale or ambiguous."))
+        #expect(byKey["quota|remaining|stale-active"]?.coverage == uncertain)
+        #expect(byKey["quota|remaining|ambiguous-active"]?.coverage == uncertain)
+        #expect(byKey["quota|remaining|ambiguous-active"]?.message.contains("an unknown remaining") == true)
     }
 
     @Test func cacheThresholdIsInformationalAndSkipsUnknownCoverage() {
@@ -109,13 +118,15 @@ struct AlertSignalsTests {
         )
     }
 
-    static func window(id: String, used: Double, freshness: QuotaFreshnessState) -> QuotaWindowPresentation {
+    static func window(
+        id: String, used: Double?, freshness: QuotaFreshnessState, ambiguous: Bool = false
+    ) -> QuotaWindowPresentation {
         QuotaWindowPresentation(
             id: id, accountScopeID: "account-1", scope: .account, scopeIdentifier: nil, limitID: "codex",
             limitName: nil, planType: nil, slot: .primary, windowKind: .fiveHour, windowMinutes: 300,
-            usedPercent: used, remainingPercent: 100 - used, resetsAt: nil,
+            usedPercent: used, remainingPercent: used.map { 100 - $0 }, resetsAt: nil,
             observedAt: Date(timeIntervalSince1970: 0), freshness: QuotaFreshness(state: freshness, ageSeconds: 0),
-            isResetDiscontinuity: false
+            isResetDiscontinuity: false, isAmbiguous: ambiguous
         )
     }
 }

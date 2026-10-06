@@ -124,32 +124,39 @@ public enum AlertSignals {
         return batch
     }
 
-    /// Low remaining quota from the latest observation per window. A stale or ambiguous window keeps
-    /// an existing alert visible with unknown coverage instead of claiming the quota recovered.
+    /// Low remaining quota from the latest observation per window. Only a current, unambiguous window
+    /// raises. A stale or ambiguous window cannot prove recovery, so an alert already in `activeKeys`
+    /// stays with unknown coverage instead of resolving; without one, nothing new is raised.
     public static func quotaRemaining(
-        _ report: QuotaPresentationReport, configuration: AlertSignalConfiguration = .init()
+        _ report: QuotaPresentationReport, activeKeys: Set<String> = [],
+        configuration: AlertSignalConfiguration = .init()
     ) -> AlertSignalBatch {
         var batch = AlertSignalBatch(scopes: [quotaRemainingScope])
         for window in report.windows {
-            guard let remaining = window.remainingPercent,
-                  remaining <= configuration.quotaLowRemainingPercent else { continue }
-            let isCurrent = window.freshness.state == .current && !window.isAmbiguous
-            let isCritical = remaining <= configuration.quotaCriticalRemainingPercent
-            let severity: DiagnosticSeverity = isCritical ? .error : .warning
+            let key = "quota|remaining|\(window.id)"
+            let isCurrent = window.freshness.state == .current && !window.isAmbiguous && window.remainingPercent != nil
+            let severity: DiagnosticSeverity
+            if isCurrent, let remaining = window.remainingPercent {
+                guard remaining <= configuration.quotaLowRemainingPercent else { continue }
+                severity = remaining <= configuration.quotaCriticalRemainingPercent ? .error : .warning
+            } else {
+                guard activeKeys.contains(key) else { continue }
+                severity = .warning
+            }
             let account = window.accountProfileLabel ?? window.accountProfileID ?? "account"
+            let remainingText = window.remainingPercent.map { "\(String(format: "%.0f", $0))%" } ?? "an unknown"
             let reset = window.resetsAt.map { " Resets at \(ISO8601DateFormatter().string(from: $0))." } ?? ""
             batch.candidates.append(AlertCandidate(
-                key: "quota|remaining|\(window.id)", scope: quotaRemainingScope, source: .quota,
-                kind: "low_remaining", severity: severity, title: "Low remaining quota",
-                message: "\(account) \(window.windowKind.rawValue) window has "
-                    + "\(String(format: "%.0f", remaining))% remaining.\(reset)",
+                key: key, scope: quotaRemainingScope, source: .quota, kind: "low_remaining", severity: severity,
+                title: "Low remaining quota",
+                message: "\(account) \(window.windowKind.rawValue) window has \(remainingText) remaining.\(reset)",
                 accountScopeID: window.accountScopeID,
                 coverage: isCurrent
                     ? .observed : .unknown(reason: "The latest quota observation is stale or ambiguous."),
                 evidence: DiagnosticEvidence(observed: [DiagnosticEvidenceItem(
                     source: "source_usage_limit_snapshots",
-                    detail: "Latest observation at \(ISO8601DateFormatter().string(from: window.observedAt)) reports "
-                        + "\(String(format: "%.1f", 100 - remaining))% used."
+                    detail: "Latest observation at \(ISO8601DateFormatter().string(from: window.observedAt)); "
+                        + "used \(window.usedPercent.map { String(format: "%.1f%%", $0) } ?? "unknown")."
                 )], limitations: ["Remaining percentage is derived from observed used percentage."])
             ))
         }

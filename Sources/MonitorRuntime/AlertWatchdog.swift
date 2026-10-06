@@ -22,6 +22,9 @@ public actor AlertWatchdog {
     private var lastPhase: WatchStatus.Phase?
     private var lastError: String?
     private var completedImports = 0
+    /// Imports of the current watch already followed by an evaluation.
+    var evaluatedImports: Int { completedImports }
+    private var lastRoot: URL?
 
     public init(monitor: SessionMonitor, center: AlertCenter, options: AlertWatchdogOptions = .init()) {
         self.monitor = monitor
@@ -37,15 +40,18 @@ public actor AlertWatchdog {
         let snapshot = try await monitor.snapshot(query: query)
         let sessions = snapshot.report.sessions
         let report = try await monitor.doctor(query: query)
-        let quota = try await monitor.quotaPresentation(query: query, generatedAt: now)
+        // Latest observation per window regardless of age: a stale window keeps its alert uncertain.
+        let quota = try await monitor.quotaPresentation(query: UsageQuery(), generatedAt: now)
+        let active = try await monitor.alerts(status: .active)
 
         var batch = AlertSignals.diagnostics(report, evaluatedSessions: sessions.map(\.id))
         batch.merge(AlertSignals.quotaShifts(report.quotaAssessments, now: now, configuration: options.signals))
-        batch.merge(AlertSignals.quotaRemaining(quota, configuration: options.signals))
+        batch.merge(AlertSignals.quotaRemaining(
+            quota, activeKeys: Set(active.map(\.id)), configuration: options.signals
+        ))
         batch.merge(AlertSignals.cacheThreshold(sessions, configuration: options.signals))
         let sessionSources: Set<AlertSource> = [.anomaly, .cacheThreshold]
-        for record in try await monitor.alerts(status: .active)
-        where sessionSources.contains(record.candidate.source) {
+        for record in active where sessionSources.contains(record.candidate.source) {
             batch.scopes.insert(record.candidate.scope)
         }
         return try await center.submit(batch.evaluation(at: now))
@@ -62,6 +68,13 @@ public actor AlertWatchdog {
     @discardableResult
     public func handle(_ status: WatchStatus, root: URL, now: Date = Date()) async throws -> [AlertEvent] {
         var events: [AlertEvent] = []
+        // A new watch (another root, or a restart of the same root) counts imports from zero again.
+        if root != lastRoot || status.completedImports < completedImports {
+            lastRoot = root
+            lastPhase = nil
+            lastError = nil
+            completedImports = 0
+        }
         if status.phase != lastPhase || status.error != lastError {
             lastPhase = status.phase
             lastError = status.error
