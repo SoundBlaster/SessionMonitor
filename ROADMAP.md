@@ -7,12 +7,14 @@
 ## Текущая точка
 
 **Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
-TUI/UI-полировка отложены.** SM-325 — **в работе** (ветка `feat/sm-325-alert-signals`): существующие сигналы
-подключены к alert pipeline, `alerts evaluate`, `watch --alerts` и macOS-уведомления приложения.
-SM-324 core доставлен через PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81), merge `e28fca0`
-(2026-10-06); SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
-Порядок дальше: SM-328 (agent tool/hook/mod) → SM-329 (Agent Surface Protocol, ждёт spec).
-Параллельно по возможности: SM-205 (автозапуск watch), SM-326 (findings в GUI), SM-327 (новые live-правила).
+TUI/UI-полировка отложены.** SM-325 доставлена через PR [#82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
+merge `6e193bc` (2026-10-06): существующие сигналы подключены к alerts, `alerts evaluate`, `watch --alerts`
+и macOS-уведомления приложения; **ожидает живой проверки уведомления на Mac пользователя.**
+SM-324 доставлена (PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81) + macOS sink в #82),
+SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
+**Следующая задача — SM-328** (agent tool/hook/mod), затем SM-329 (Agent Surface Protocol, ждёт spec).
+Параллельно по возможности: SM-205 (автозапуск watch), SM-326 (findings и алерты в GUI), SM-327
+(новые live-правила), SM-330 (переход к сессии по клику на уведомление).
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -680,10 +682,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
   (AnomalyPolicy, Diagnostics, QuotaAnomalyPolicy, QuerySnapshot, SessionTree); полный `make ci`
   на macOS — GitHub `CI` (passed).
 
-- [ ] **SM-324** — Модуль уведомлений: транспортно-независимый alert pipeline.
+- [x] **SM-324** — Модуль уведомлений: транспортно-независимый alert pipeline.
   Core доставлен через [PR #81](https://github.com/SoundBlaster/SessionMonitor/pull/81), merge `e28fca0`
   (2026-10-06); `CI`, `Native checks`, Xcode 26.0 build и Workflow lint прошли на `27f1c96`.
-  macOS sink реализован в SM-325; пункт закрывается вместе с её доставкой. Сделано (core): `MonitorCore/Alert`
+  macOS UserNotifications sink и foreground delegate доставлены в [PR #82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
+  merge `6e193bc`. In-app список алертов перенесён в SM-326. Сделано (core): `MonitorCore/Alert`
   (candidate/scope/record/event/suppression), `AlertTracker` + `AlertNotificationDecision` на
   SpecificationCore (severity → muted → unknown coverage → cooldown → rate limit; resolve только внутри
   оценённых scopes; rate limit отдаёт приоритет более высокой severity), таблица `alert_records` с
@@ -701,7 +704,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   UserNotifications (app), in-app список. Сигналы подключаются отдельно в SM-325. Готово, когда
   тесты подтверждают dedup, cooldown, resolve и доставку одного алерта во все sinks ровно один раз.
 - [ ] **SM-325** — Подключить к уведомлениям уже существующие сигналы.
-  **Статус: в работе (2026-10-06), ветка `feat/sm-325-alert-signals`.** Сделано: `AlertSignals` (Policies,
+  **Статус: доставлено, ожидает живой проверки (2026-10-06).** [PR #82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
+  merge `6e193bc`; `CI`, `Native checks` (app build, FSD lint, macOS tests), Xcode 26.0 build и Workflow lint
+  прошли на `2c2ff67`. Закрыть после того, как пользователь увидит уведомление от app-owned watch на Mac
+  (`codex-monitor alerts evaluate` заранее показывает, есть ли сигнал в последних сессиях). Сделано: `AlertSignals` (Policies,
   чистые адаптеры): anomaly findings `doctor` → ключ `kind|session` (рост evidence не пере-поднимает
   алерт), database-wide diagnostics по стабильным ID, только свежие quota `sharp_shift` (≤1 ч, один на
   серию), низкий остаток quota (≤20% warning, ≤5% error, stale/ambiguous → unknown coverage), cache hit
@@ -713,8 +719,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   на SQLite с реальным `doctor`), после review Codex (3×P2: сброс счётчика при новом watch, foreground
   delegate уведомлений, stale/ambiguous quota сохраняет только уже активный алерт) — 76 tests passed;
   CLI `alerts evaluate` собран и выполнен; SwiftLint `--strict` по
-  Sources/Tests/Apps — 0 violations. App build, FSD lint и macOS tests — GitHub `CI`. Остаток: in-app
-  список алертов (SM-326) и открытие сессии по клику на уведомление; живая проверка уведомления на Mac.
+  Sources/Tests/Apps — 0 violations. App build, FSD lint и macOS tests — GitHub `CI`. Остаток: живая
+  проверка уведомления на Mac; in-app список — SM-326, клик по уведомлению — SM-330.
   Добавлено 2026-10-06. Зависит от SM-324. Источники без новой аналитики: `AnomalyPolicyEngine`
   findings (7 kinds), quota assessments (`sharp_shift`, `reset_discontinuity`) и quota presentation
   (remaining/reset/freshness), import diagnostics (conflicts, malformed, unowned), watch status
@@ -732,6 +738,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   с evidence, coverage и negative cases; пороги — из собственной истории пользователя, не константы.
   Готово, когда каждое правило имеет fixture positive/negative и не срабатывает на unknown данных.
 
+- [ ] **SM-330** — Открывать сессию с evidence по клику на уведомление алерта.
+  Добавлено 2026-10-06 как follow-up SM-325. `UNUserNotificationCenterDelegate.didReceive` читает
+  `alertKey`/`sessionIDs` из `userInfo` и выбирает сессию в Session Explorer (как deep link виджета).
+  Готово, когда клик по уведомлению anomaly-алерта открывает окно с выбранной сессией.
 - [ ] **SM-328** — Agent-facing surface: актуальные данные монитора для работающего агента.
   Добавлено 2026-10-06, целевое направление пользователя. Агент во время работы получает состояние
   своей сессии/аккаунта (расход, coverage, активные алерты, quota до reset) без повторного audit и без
