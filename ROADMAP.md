@@ -673,7 +673,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   исключал запрос, хотя canonical input известен. `RequestTimelinePoint.inputTokens` теперь
   заполняется из `confirmed`; cache-зависимые правила по-прежнему требуют известный cached.
   Coverage `partial` теперь означает неизвестный input. Тесты policy обновлены и добавлен
-  regression на сессию без cache split. Локально Swift недоступен (Linux), проверка — GitHub `CI`.
+  regression на сессию без cache split. Evidence 2026-10-06: Linux Swift 6.2 + SwiftLint 0.63.3
+  (scratch package из MonitorCore/Policies/Store; CryptoKit через swift-crypto) — 55 tests passed
+  (AnomalyPolicy, Diagnostics, QuotaAnomalyPolicy, QuerySnapshot, SessionTree); полный `make ci`
+  на macOS — GitHub `CI`.
 
 - [ ] **SM-324** — Модуль уведомлений: транспортно-независимый alert pipeline.
   Добавлено 2026-10-06, приоритет пользователя №1 после SM-323. Общий для CLI/GUI/агентов модуль:
