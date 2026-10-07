@@ -33,6 +33,8 @@ struct SessionMonitorApp: App {
             return await runtime.snapshots(query: query)
         }))
         appDelegate.shutdown = { await watch.shutdown() }
+        // SM-205: resume watching the last chosen folder without user action.
+        Task { await watch.startSaved(WatchLaunchSettings()) }
     }
 
     var body: some Scene {

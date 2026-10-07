@@ -13,11 +13,11 @@ merge `6e193bc` (2026-10-06): существующие сигналы подкл
 SM-324 доставлена (PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81) + macOS sink в #82),
 SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
 SM-709 (README через боли пользователя и quick start) доставлена через PR [#85](https://github.com/SoundBlaster/SessionMonitor/pull/85), merge `fb03c2c`.
-SM-328 CLI `agent status` доставлен через PR [#84](https://github.com/SoundBlaster/SessionMonitor/pull/84), merge
-`9648806`; остаток — проверенная интеграция hook'ов.
-**Порядок пользователя (2026-10-07):** SM-328 — **в работе**, ветка `feat/sm-328-agent-hooks` (hook'и Claude Code/Codex по актуальной документации, проверенные
-конфиги, привязка к собственной сессии Codex) → SM-205 (автозапуск watch) → SM-331 (совместимость CLI
-с Linux). Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
+SM-328: CLI `agent status` — PR [#84](https://github.com/SoundBlaster/SessionMonitor/pull/84), merge `9648806`;
+hook-адаптер `agent hook` — PR [#86](https://github.com/SoundBlaster/SessionMonitor/pull/86), merge `1a666ce`;
+**ожидает живой проверки hook'ов в Codex и Claude Code на Mac пользователя.**
+**Порядок пользователя (2026-10-07):** SM-328 → SM-205 (автозапуск watch, **в работе**, ветка
+`feat/sm-205-watch-on-launch`) → SM-331 (совместимость CLI с Linux, ветка `feat/sm-331-linux-cli`). Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -336,6 +336,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
   повторяемый сценарий не пишет warning, а selection, refresh и multi-window tests остаются зелёными.
 
 - [ ] **SM-205** — Автоматически запускать watch сохранённой папки при старте приложения.
+  **Статус: в работе (2026-10-07), ветка `feat/sm-205-watch-on-launch`.** Сделано: `WatchLaunchSettings`
+  (shared/lib; приложение не в sandbox, поэтому хранится путь, bookmark не нужен) запоминает папку при
+  выборе в menu bar; при запуске `AppWatchController.startSaved` возобновляет watch, а при недоступной
+  папке показывает понятную ошибку вместо тихого «Watch not started». В Settings — переключатель
+  «Resume watching the last folder at launch» (по умолчанию включён). Watchdog и уведомления SM-325
+  подключаются к этому watch автоматически. Evidence: XCTest для настроек (пусто/запомнено/выключено/
+  папка удалена) и для контроллера (возобновление и ошибка); SwiftLint `--strict` — 0 violations.
+  Сборка приложения и macOS tests — GitHub `CI` (локально только Linux). Остаток: живая проверка
+  перезапуска на Mac; Login Item (`SMAppService`) — отдельно по запросу.
   Добавлено 2026-10-06 по приоритету пользователя. Сейчас watch запускается только вручную из menu bar
   и не восстанавливается после перезапуска; SM-322 хранит лишь путь для ручного Update.
   Хранить security-scoped bookmark выбранной папки, при запуске стартовать один app-owned watch,
@@ -751,7 +760,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `alertKey`/`sessionIDs` из `userInfo` и выбирает сессию в Session Explorer (как deep link виджета).
   Готово, когда клик по уведомлению anomaly-алерта открывает окно с выбранной сессией.
 - [ ] **SM-328** — Agent-facing surface: актуальные данные монитора для работающего агента.
-  **Статус: в работе (2026-10-07), ветка `feat/sm-328-agent-hooks`: hook-адаптер.** Документация (Claude Code
+  **Статус: hook-адаптер доставлен (2026-10-07), [PR #86](https://github.com/SoundBlaster/SessionMonitor/pull/86),
+  merge `1a666ce`; `CI` прошёл на `1fbe1c1`; остаток — живая проверка.** Документация (Claude Code
   hooks reference; Codex hooks на learn.chatgpt.com/docs/hooks): оба клиента передают на stdin `session_id`,
   `transcript_path`, `hook_event_name` и принимают `hookSpecificOutput.additionalContext` в
   `UserPromptSubmit`/`SessionStart`/`PreToolUse`/`PostToolUse`/`Stop` (Codex — feature flag `hooks`,
