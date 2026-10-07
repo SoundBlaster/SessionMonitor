@@ -14,9 +14,10 @@ SM-324 доставлена (PR [#81](https://github.com/SoundBlaster/SessionMon
 SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
 **SM-709 — в работе** (ветка `docs/sm-709-readme-positioning`): README через боли пользователя и quick start.
 SM-328 CLI `agent status` доставлен через PR [#84](https://github.com/SoundBlaster/SessionMonitor/pull/84), merge
-`9648806`; остаток — проверенная интеграция hook'ов. Затем SM-329 (Agent Surface Protocol, ждёт spec).
-Параллельно по возможности: SM-205 (автозапуск watch), SM-326 (findings и список алертов в GUI), SM-327
-(новые live-правила), SM-330 (переход к сессии по клику на уведомление).
+`9648806`; остаток — проверенная интеграция hook'ов.
+**Порядок пользователя (2026-10-07):** SM-328 (hook'и Claude Code/Codex по актуальной документации, проверенные
+конфиги, привязка к собственной сессии Codex) → SM-205 (автозапуск watch) → SM-331 (совместимость CLI
+с Linux). Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -948,6 +949,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
   После исправления `make test-macos` — 8 tests passed, включая external-process GUI observation;
   локальное evidence `.build/sm104-app.log`. Доставка совместно с SM-104: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
 
+- [ ] **SM-331** — Совместимость CLI `codex-monitor` с Linux.
+  Добавлено 2026-10-07 по запросу пользователя. Сейчас пакет собирается только на macOS: `MonitorStore`
+  импортирует CryptoKit и Darwin, `MonitorRuntime` — FSEvents/Darwin, `MonitorCore` — App Group
+  container API. При подготовке SM-324…SM-328 core проверялся на Linux scratch-пакетом с shim'ами
+  (swift-crypto, Glibc). Готово, когда `swift build` и core-тесты проходят на Linux без shim'ов
+  (условный CryptoKit/Crypto, Glibc/Darwin, watch через polling или inotify вместо FSEvents), а
+  Linux-сборка закреплена в GitHub CI.
 - [ ] **SM-709** — README: позиционирование через боли пользователя и проверенный quick start.
   **Статус: в работе (2026-10-07), ветка `docs/sm-709-readme-positioning`.** Добавлено по запросу пользователя:
   верх README продаёт решение через конкретные боли (квота кончается посреди работы, неясно, куда
