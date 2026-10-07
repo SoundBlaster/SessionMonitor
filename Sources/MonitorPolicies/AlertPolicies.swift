@@ -27,16 +27,6 @@ public struct AlertPolicyConfiguration: Equatable, Sendable {
     }
 }
 
-extension DiagnosticSeverity {
-    var alertRank: Int {
-        switch self {
-        case .info: 0
-        case .warning: 1
-        case .error: 2
-        }
-    }
-}
-
 /// Context for one notification decision inside a tracker batch.
 struct AlertNotificationContext {
     let candidate: AlertCandidate
@@ -48,7 +38,7 @@ struct AlertNotificationContext {
 
 struct MeetsMinimumSeveritySpec: Specification {
     func isSatisfiedBy(_ candidate: AlertNotificationContext) -> Bool {
-        candidate.candidate.severity.alertRank >= candidate.configuration.minimumSeverity.alertRank
+        candidate.candidate.severity.rank >= candidate.configuration.minimumSeverity.rank
     }
 }
 
@@ -130,7 +120,7 @@ public struct AlertTracker: Sendable {
             let previous = records[candidate.key]
             let transition: AlertTransition?
             if let previous, previous.status == .active {
-                if candidate.severity.alertRank > previous.candidate.severity.alertRank {
+                if candidate.severity.rank > previous.candidate.severity.rank {
                     transition = .escalated
                 } else if candidate.severity != previous.candidate.severity
                             || candidate.title != previous.candidate.title
@@ -203,8 +193,8 @@ public struct AlertTracker: Sendable {
             unique[candidate.key] = candidate
         }
         return unique.values.sorted { (lhs: AlertCandidate, rhs: AlertCandidate) -> Bool in
-            let left = lhs.severity.alertRank
-            let right = rhs.severity.alertRank
+            let left = lhs.severity.rank
+            let right = rhs.severity.rank
             return left == right ? lhs.key < rhs.key : left > right
         }
     }

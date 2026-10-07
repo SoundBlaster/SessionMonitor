@@ -28,6 +28,8 @@ Swift CLI, общее ядро и SwiftUI Session Explorer с SQLite storage.
   `alerts evaluate [--lookback-hours N] [--json]`, `watch --alerts` (строки `{"alert": ...}` после каждого
   импорта). Приложение оценивает сигналы после каждого импорта своего watch и показывает уведомления macOS
   для событий с `notify = true`.
+- CLI `agent status` (SM-328): компактный статус сессии для агента — расход, недавняя активность, активные
+  алерты и quota; `--fail-on` для hook'ов. См. раздел Agent status.
 - CLI `profiles`: явное сопоставление однородного каталога источников с локальным account profile;
   `report`, `activity` и `quota` поддерживают `--profile ID` и `--unknown-or-mixed`.
 - GUI account scope selector общий для Session Explorer и menu bar, сохраняется между запусками и предлагает
@@ -163,6 +165,28 @@ Swift API: `try await monitor.watch(directory)` возвращает `SessionWat
 второй watch или одноразовый import получает `importerBusy`. Читатели продолжают работать.
 Lock освобождается после завершения importer, а при аварии/SIGKILL — операционной системой.
 Symlink к БД не создаёт отдельного владельца; lock files не удаляются при release.
+
+## Agent status
+
+`codex-monitor agent status` даёт агенту, работающему в сессии, компактные данные монитора:
+canonical расход за lookback окно, cache coverage, время простоя, активность за последние минуты
+(requests, input, wait-вызовы, compactions), активные алерты этой сессии плюс quota/watch/diagnostics
+и остаток quota по окнам. Prompts, tool outputs и пути файлов не выводятся. Команда только читает
+индекс; `--evaluate` сначала фиксирует оценку алертов (outbox не забирается, уведомления приложения
+не теряются).
+
+```sh
+codex-monitor agent status --json                      # самая свежая сессия за 24 ч
+codex-monitor agent status --session ID --recent-minutes 5
+codex-monitor agent status --evaluate --fail-on warning # exit 2, если есть алерт ≥ warning
+```
+
+Данные актуальны настолько, насколько актуален индекс (`index.ageSeconds`); для живой работы нужен
+watch (приложение или `codex-monitor watch`). Пример подключения как hook (иллюстрация, проверьте
+формат hook'ов своего клиента): Claude Code показывает агенту stderr команды, завершившейся с кодом 2,
+поэтому `codex-monitor agent status --fail-on warning 1>&2` в hook после tool use сообщит агенту
+о предупреждении. Codex `notify` подходит только для уведомления пользователя: его вывод агенту не
+возвращается.
 
 ## Observable snapshots
 
