@@ -762,15 +762,20 @@ deliverable — WidgetKit extension с App Group в SM-401.
   рост ≥1.5× и достиг p90 собственных запросов (≥50 запросов истории); (4) проекция квоты
   (`projected_exhaustion`, account-level): линейный темп по текущему окну (тот же `resetsAt`, ≥10 минут,
   свежее наблюдение, известный account scope, без убывания used%) исчерпывает окно раньше сброса;
-  error, если до исчерпания <30 минут. Unknown (мало истории, неизвестный input, нет human turn, stale/
-  неоднозначная квота) не алертит и не закрывает существующий алерт; завершённая сессия закрывает свои.
+  error, если до исчерпания <30 минут. Unknown (мало истории, неизвестный input, нет human turn,
+  неизвестный/смешанный account scope, конфликтующие наблюдения) не алертит и не закрывает существующий
+  алерт; закрывают алерт только ясный негатив, уход сессии из окна и «неживая» проекция квоты (нет
+  свежего наблюдения, окно сброшено, серия пропала). Scope проекции — на каждую серию, поэтому неизвестная
+  серия не закрывается соседней; кэш baseline сбрасывается, когда сессия из baseline снова становится
+  живой (замечания review #90).
   Baseline (`LiveBaseline`) строится из самых активных прошлых сессий за 14 дней без идущих сессий и
   кэшируется в `AlertWatchdog` на 30 минут. Новый `AlertSource.liveRule` (`live_rule`); алерты сессии видны
   в `agent status`/hook. Файлы: `MonitorPolicies/LiveRuleBaseline.swift`, `LiveRules.swift`,
   `LiveQuotaProjection.swift`, интеграция в `MonitorRuntime/AlertWatchdog.swift`.
-  Evidence (Linux, Swift 6.2): 189 tests passed, из них 18 новых (`LiveRulesTests` — positive/negative/unknown
+  Evidence (Linux, Swift 6.2): 193 tests passed, из них 22 новых (`LiveRulesTests` — positive/negative/unknown
   по каждому правилу, baseline и конфигурация; `LiveQuotaProjectionTests`; `LiveRulesWatchdogTests` —
-  burst против истории → raised/notify, виден в `agent status`, повтор молчит, завершение сессии → resolved);
+  burst против истории → raised/notify, виден в `agent status`, повтор молчит, завершение сессии → resolved;
+  unknown сохраняет активный алерт; возобновлённая сессия выходит из своего baseline);
   мутационная проверка: снятие порогов и отключение интеграции роняет тесты; SwiftLint `--strict` — 0
   violations. Остаток: зелёный GitHub `CI` в PR; пороги (3×, 2×, 1.5×) — стартовые, подстраиваются по
   опыту использования (`LiveRuleConfiguration`, настройки в UI не выведены).
