@@ -396,7 +396,3 @@ public final class UsageStore: Sendable {
 }
 
 // swiftlint:enable function_body_length type_body_length
-
-public enum CheckpointWriteError: Error {
-    case staleCheckpoint
-}

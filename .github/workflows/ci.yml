@@ -114,7 +114,7 @@ jobs:
       - name: Install smoke prerequisites
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends git make python3 uuid-runtime
+          apt-get install -y --no-install-recommends git libsqlite3-dev make python3 uuid-runtime
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
