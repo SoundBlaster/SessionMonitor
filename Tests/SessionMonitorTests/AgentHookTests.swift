@@ -111,9 +111,11 @@ struct AgentHookTests {
         }
         let rollout = """
             {"timestamp":"1970-01-01T00:01:40Z","type":"session_meta","payload":{"id":"H","timestamp":"1970-01-01T00:01:40Z"}}
+            {"timestamp":"1970-01-01T00:01:41Z","type":"event_msg","payload":{"type":"task_started","turn_id":"first","started_at":101}}
             {"timestamp":"1970-01-01T00:01:41Z","type":"turn_context","payload":{"turn_id":"first","model":"fixture-model"}}
 
             """ + record("R1", turn: "first", second: 42, input: 1_000) + record("R2", turn: "first", second: 43, input: 1_000)
+            + "{\"timestamp\":\"1970-01-01T00:01:44Z\",\"type\":\"event_msg\",\"payload\":{\"type\":\"task_started\",\"turn_id\":\"later\",\"started_at\":104}}\n"
             + "{\"timestamp\":\"1970-01-01T00:01:44Z\",\"type\":\"turn_context\",\"payload\":{\"turn_id\":\"later\",\"model\":\"fixture-model\"}}\n"
             + record("R3", turn: "later", second: 45, input: 100)
         // swiftlint:enable line_length

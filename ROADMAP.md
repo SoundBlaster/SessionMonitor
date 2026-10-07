@@ -756,11 +756,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `transcript_path`, `hook_event_name` и принимают `hookSpecificOutput.additionalContext` в
   `UserPromptSubmit`/`SessionStart`/`PreToolUse`/`PostToolUse`/`Stop` (Codex — feature flag `hooks`,
   `~/.codex/hooks.json` или `[hooks]` в config.toml). Сделано: `codex-monitor agent hook` — читает hook JSON,
-  инкрементально дочитывает свой transcript (пропуская при занятом importer), сопоставляет сессию по
+  инкрементально дочитывает свой transcript (пропуская при занятом importer) и после своего импорта
+  оценивает алерты окном watch (замечание review #86: иначе hook без watch читал устаревшие алерты),
+  сопоставляет сессию по
   `session_id`, затем по `transcript_path` (никогда не берёт чужую «последнюю»), молчит без алертов ≥
   `--min-severity`, ограничивает текст 2 000 символами и всегда завершается с кодом 0. README: конфиги
   для Codex и Claude Code, выбор `UserPromptSubmit`, запрет `Stop` (цикл в Claude Code), ручная проверка.
-  Evidence: Linux Swift 6.2 — 83 tests passed (3 новых: декодирование payload обоих клиентов, рендер и
+  Evidence: Linux Swift 6.2 — `AgentHookTests` 4 passed (новый: импорт transcript поднимает
+  startup-overhead alert в ответе hook; без оценки тест падает); ранее 83 tests passed (3 новых: декодирование payload обоих клиентов, рендер и
   лимит контекста, сопоставление session_id/transcript/none), CLI выполнен с payload, мусором на stdin
   и недоступной БД (exit 0), SwiftLint `--strict` — 0 violations. Остаток: живая проверка в Codex и
   Claude Code на Mac пользователя (совпадение `session_id` Codex с id rollout подтверждается там).
