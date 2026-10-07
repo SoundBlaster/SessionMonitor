@@ -7,7 +7,7 @@ extension MonitorCommand {
     struct Agent: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Compact monitor data for an agent working in a session (tool, hook or mod).",
-            subcommands: [AgentStatusCommand.self], defaultSubcommand: AgentStatusCommand.self
+            subcommands: [AgentStatusCommand.self, AgentHookCommand.self], defaultSubcommand: AgentStatusCommand.self
         )
     }
 
