@@ -55,6 +55,33 @@ final class AppWatchControllerTests: XCTestCase {
         await controller.stop()
     }
 
+    func testStartSavedResumesTheRememberedFolderOrExplainsWhyNot() async throws {
+        let suite = "AppWatchControllerTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = WatchLaunchSettings(defaults: defaults)
+        let factory = WatchFactory()
+        let controller = AppWatchController { directory in try await factory.make(directory) }
+
+        settings.remember(URL(fileURLWithPath: "/tmp/\(UUID().uuidString)", isDirectory: true))
+        await controller.startSaved(settings)
+        let missingCallCount = await factory.callCount
+        XCTAssertEqual(missingCallCount, 0)
+        XCTAssertFalse(controller.isRunning)
+        XCTAssertTrue(controller.errorMessage?.contains("unavailable") == true)
+
+        let folder = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        settings.remember(folder)
+        await controller.startSaved(settings)
+        let startedCallCount = await factory.callCount
+        XCTAssertEqual(startedCallCount, 1)
+        XCTAssertTrue(controller.isRunning)
+        XCTAssertNil(controller.errorMessage)
+        await controller.stop()
+    }
+
     func testPauseResumeAndStopForwardToTheRuntimeHandle() async throws {
         let factory = WatchFactory()
         let controller = AppWatchController { directory in

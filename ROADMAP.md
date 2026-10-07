@@ -334,6 +334,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
   повторяемый сценарий не пишет warning, а selection, refresh и multi-window tests остаются зелёными.
 
 - [ ] **SM-205** — Автоматически запускать watch сохранённой папки при старте приложения.
+  **Статус: в работе (2026-10-07), ветка `feat/sm-205-watch-on-launch`.** Сделано: `WatchLaunchSettings`
+  (shared/lib; приложение не в sandbox, поэтому хранится путь, bookmark не нужен) запоминает папку при
+  выборе в menu bar; при запуске `AppWatchController.startSaved` возобновляет watch, а при недоступной
+  папке показывает понятную ошибку вместо тихого «Watch not started». В Settings — переключатель
+  «Resume watching the last folder at launch» (по умолчанию включён). Watchdog и уведомления SM-325
+  подключаются к этому watch автоматически. Evidence: XCTest для настроек (пусто/запомнено/выключено/
+  папка удалена) и для контроллера (возобновление и ошибка); SwiftLint `--strict` — 0 violations.
+  Сборка приложения и macOS tests — GitHub `CI` (локально только Linux). Остаток: живая проверка
+  перезапуска на Mac; Login Item (`SMAppService`) — отдельно по запросу.
   Добавлено 2026-10-06 по приоритету пользователя. Сейчас watch запускается только вручную из menu bar
   и не восстанавливается после перезапуска; SM-322 хранит лишь путь для ручного Update.
   Хранить security-scoped bookmark выбранной папки, при запуске стартовать один app-owned watch,

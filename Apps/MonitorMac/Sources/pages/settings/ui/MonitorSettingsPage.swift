@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MonitorSettingsPage: View {
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
+    @AppStorage(WatchLaunchSettings.startOnLaunchKey) private var watchOnLaunch = true
     @AppStorage(UsageChartPaletteSelection.storageKey)
     private var chartPaletteRawValue = UsageChartPaletteSelection.system.rawValue
     @Bindable var cacheHitRateWidgetSettings: CacheHitRateWidgetSettings
@@ -11,6 +12,8 @@ struct MonitorSettingsPage: View {
     var body: some View {
         Form {
             Toggle("Show SessionMonitor in the menu bar", isOn: $showMenuBarExtra)
+            Toggle("Resume watching the last folder at launch", isOn: $watchOnLaunch)
+                .accessibilityIdentifier("settings.watchOnLaunch")
             Picker("Cache Hit Rate widget period", selection: Binding(
                 get: { cacheHitRateWidgetSettings.period },
                 set: { cacheHitRateWidgetSettings.selectPeriod($0) }
@@ -32,6 +35,6 @@ struct MonitorSettingsPage: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(24)
-        .frame(width: 440, height: 260)
+        .frame(width: 440, height: 290)
     }
 }
