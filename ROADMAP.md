@@ -948,7 +948,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   пины в обоих `Package.resolved`) и Darwin/Glibc; `RolloutFileVersion` на Linux без birth time
   (identity — device+inode, изменение — mtime/ctime); `FSEventsSource` только при CoreServices,
   на Linux `PollingFileEventSource` (снимок size+mtime rollouts раз в 2 с, событие только при
-  изменении); БД по умолчанию в `$XDG_DATA_HOME`/`~/.local/share`; App Group snapshot на Linux не
+  изменении; снимок включает device/inode/ctime, как `RolloutFileVersion`, а недоступный корень запускает recovery); БД по умолчанию в `$XDG_DATA_HOME`/`~/.local/share`; App Group snapshot на Linux не
   пишется; performance harness меряет через `wait4`/`/proc` вместо Apple `time -l`/`sysctl`.
   `make check-linux`/`make ci-linux` и GitHub job `Linux CLI checks` (container `swift:6.2-noble`)
   входят в обязательный `CI`. Evidence (Ubuntu 24.04, Swift 6.2): `make ci-linux` — build, 166 Swift Testing + 7 XCTest, watch/snapshot/quota/performance CLI smoke прошли.

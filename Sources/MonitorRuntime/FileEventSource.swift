@@ -1,3 +1,8 @@
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 import Foundation
 
 struct FileWatchEvent: Sendable {
@@ -10,7 +15,8 @@ protocol FileEventSource: Sendable {
 }
 
 /// Portable watcher for platforms without FSEvents (Linux). Every `interval` it fingerprints the
-/// rollout files under `root` (path, size, modification time) and reports only when that changes,
+/// rollout files under `root` (path, device, inode, size, modification and status-change times, as
+/// `RolloutFileVersion` compares them) and reports only when that changes,
 /// so an idle folder triggers no imports. Imports stay incremental through checkpoints.
 final class PollingFileEventSource: FileEventSource, @unchecked Sendable {
     private let root: URL
@@ -56,11 +62,17 @@ final class PollingFileEventSource: FileEventSource, @unchecked Sendable {
 
     deinit { stop() }
 
-    /// `nil` when the root itself is unavailable, which asks the watch to reattach.
+    /// `nil` when the root itself is unavailable or cannot be enumerated, which asks the watch to reattach.
     static func fingerprint(root: URL, excludedPaths: Set<String>) -> [String: String]? {
-        let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey]
+        let rootValues = try? root.resourceValues(forKeys: [.isDirectoryKey, .isReadableKey])
+        guard rootValues?.isDirectory == true, rootValues?.isReadable == true else { return nil }
+        var failed = false
         guard let enumerator = FileManager.default.enumerator(
-            at: root, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles]
+            at: root, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles],
+            errorHandler: { _, _ in
+                failed = true
+                return true
+            }
         ) else { return nil }
         var result: [String: String] = [:]
         for case let url as URL in enumerator {
@@ -68,12 +80,23 @@ final class PollingFileEventSource: FileEventSource, @unchecked Sendable {
             let isRollout = url.pathExtension == "jsonl"
                 || (url.deletingPathExtension().pathExtension == "jsonl" && url.pathExtension.allSatisfy(\.isNumber))
             guard isRollout, !excludedPaths.contains(url.path), !name.hasPrefix("."),
-                  let values = try? url.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else {
-                continue
-            }
-            let modified = values.contentModificationDate?.timeIntervalSince1970 ?? 0
-            result[url.path] = "\(values.fileSize ?? 0):\(modified)"
+                  let version = version(of: url) else { continue }
+            result[url.path] = version
         }
-        return result
+        return failed ? nil : result
+    }
+
+    /// Same identity and change fields the importer checks, so a same-size atomic replacement is seen.
+    private static func version(of url: URL) -> String? {
+        var info = stat()
+        guard stat(url.path, &info) == 0, info.st_mode & S_IFMT == S_IFREG else { return nil }
+        #if canImport(Darwin)
+        let modified = "\(info.st_mtimespec.tv_sec).\(info.st_mtimespec.tv_nsec)"
+        let changed = "\(info.st_ctimespec.tv_sec).\(info.st_ctimespec.tv_nsec)"
+        #else
+        let modified = "\(info.st_mtim.tv_sec).\(info.st_mtim.tv_nsec)"
+        let changed = "\(info.st_ctim.tv_sec).\(info.st_ctim.tv_nsec)"
+        #endif
+        return "\(info.st_dev):\(info.st_ino):\(info.st_size):\(modified):\(changed)"
     }
 }
