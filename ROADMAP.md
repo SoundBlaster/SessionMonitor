@@ -12,8 +12,9 @@ merge `6e193bc` (2026-10-06): существующие сигналы подкл
 и macOS-уведомления приложения; **ожидает живой проверки уведомления на Mac пользователя.**
 SM-324 доставлена (PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81) + macOS sink в #82),
 SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
-**SM-328 — в работе** (ветка `feat/sm-328-agent-status`): CLI `agent status`; затем SM-329 (Agent
-Surface Protocol, ждёт spec).
+**SM-709 — в работе** (ветка `docs/sm-709-readme-positioning`): README через боли пользователя и quick start.
+SM-328 CLI `agent status` доставлен через PR [#84](https://github.com/SoundBlaster/SessionMonitor/pull/84), merge
+`9648806`; остаток — проверенная интеграция hook'ов. Затем SM-329 (Agent Surface Protocol, ждёт spec).
 Параллельно по возможности: SM-205 (автозапуск watch), SM-326 (findings и список алертов в GUI), SM-327
 (новые live-правила), SM-330 (переход к сессии по клику на уведомление).
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
@@ -749,7 +750,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `alertKey`/`sessionIDs` из `userInfo` и выбирает сессию в Session Explorer (как deep link виджета).
   Готово, когда клик по уведомлению anomaly-алерта открывает окно с выбранной сессией.
 - [ ] **SM-328** — Agent-facing surface: актуальные данные монитора для работающего агента.
-  **Статус: в работе (2026-10-06), ветка `feat/sm-328-agent-status`.** Выбран общий путь — CLI tool, поверх
+  **Статус: CLI доставлен (2026-10-07), остаток — интеграция hook'ов.** [PR #84](https://github.com/SoundBlaster/SessionMonitor/pull/84),
+  merge `9648806`; `CI`, `Native checks`, Xcode 26.0 build и Workflow lint прошли на `8401177`.
+  Найдено при подготовке quick start: SessionMonitor индексирует только rollouts Codex, поэтому hook
+  Claude Code видит последнюю сессию Codex и общие алерты, а не свою сессию; Codex `notify` не
+  возвращает вывод агенту. Остаток: по актуальной документации выбрать события hook'ов, которые
+  передают данные в контекст агента, привязать вызов к собственной сессии Codex (thread id) и
+  ограничить нагрузку (короткий lookback или событие Stop вместо каждого tool use). Выбран общий путь — CLI tool, поверх
   которого строятся hook и mod. Сделано: `AgentStatusReport` (Core, без prompts/outputs/путей),
   `AgentStatusBuilder` (Policies, чистая проекция: alerts сессии + quota/watch/diagnostics, недавняя
   активность с wait-вызовами без двойного счёта call/output, unknown input не превращается в 0),
@@ -940,6 +947,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
   До исправления реальный runtime test завершался GRDB thread precondition crash.
   После исправления `make test-macos` — 8 tests passed, включая external-process GUI observation;
   локальное evidence `.build/sm104-app.log`. Доставка совместно с SM-104: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
+
+- [ ] **SM-709** — README: позиционирование через боли пользователя и проверенный quick start.
+  **Статус: в работе (2026-10-07), ветка `docs/sm-709-readme-positioning`.** Добавлено по запросу пользователя:
+  верх README продаёт решение через конкретные боли (квота кончается посреди работы, неясно, куда
+  ушли токены, высокий cache hit маскирует объём, агент крутится в ожиданиях, расход виден только
+  постфактум) с реальными цифрами аудита, честными границами и quick start из существующих команд.
+  Пример hook'а исправлен: явно указано, что монитор видит только сессии Codex. Готово, когда все
+  команды quick start соответствуют CLI, утверждения не обещают экономию по cache hit и ссылки целы.
 
 ## Evidence и границы
 
