@@ -99,6 +99,38 @@ struct AgentHookTests {
         #expect(text.contains("not a Codex session"))
     }
 
+    @Test func importedTranscriptIsEvaluatedSoTheHookSeesNewSignals() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let transcript = directory.appending(path: "rollout-hook.jsonl")
+        // Two expensive requests in the first turn, then a cheap one: the startup-overhead anomaly.
+        // swiftlint:disable line_length
+        func record(_ id: String, turn: String, second: Int, input: Int) -> String {
+            "{\"timestamp\":\"1970-01-01T00:01:\(second)Z\",\"type\":\"token_usage_record\",\"payload\":{\"thread_id\":\"H\",\"turn_id\":\"\(turn)\",\"response_id\":\"\(id)\",\"usage\":{\"input_tokens\":\(input),\"cached_input_tokens\":0,\"output_tokens\":10}}}\n"
+        }
+        let rollout = """
+            {"timestamp":"1970-01-01T00:01:40Z","type":"session_meta","payload":{"id":"H","timestamp":"1970-01-01T00:01:40Z"}}
+            {"timestamp":"1970-01-01T00:01:41Z","type":"turn_context","payload":{"turn_id":"first","model":"fixture-model"}}
+
+            """ + record("R1", turn: "first", second: 42, input: 1_000) + record("R2", turn: "first", second: 43, input: 1_000)
+            + "{\"timestamp\":\"1970-01-01T00:01:44Z\",\"type\":\"turn_context\",\"payload\":{\"turn_id\":\"later\",\"model\":\"fixture-model\"}}\n"
+            + record("R3", turn: "later", second: 45, input: 100)
+        // swiftlint:enable line_length
+        try Data(rollout.utf8).write(to: transcript)
+        let monitor = try SessionMonitor(databaseURL: directory.appending(path: "usage.sqlite"))
+        let now = Date(timeIntervalSince1970: 400)
+
+        let result = try await monitor.agentHook(
+            AgentHookInput(sessionID: "H", transcriptPath: transcript.path, hookEventName: "UserPromptSubmit"),
+            now: now
+        )
+        #expect(result.importedTranscript)
+        #expect(result.match == .sessionID)
+        #expect(result.report.alerts.contains { $0.key == "anomaly|excessive_startup_overhead|H" })
+        #expect(AgentHookContext.render(result.report, match: result.match) != nil)
+    }
+
     private static func report(alerts: [AgentStatusReport.Alert]) -> AgentStatusReport {
         AgentStatusReport(
             generatedAt: Date(timeIntervalSince1970: 0), lookbackSeconds: 3_600,

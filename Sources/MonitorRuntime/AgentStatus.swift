@@ -40,16 +40,25 @@ public struct AgentHookResult: Sendable {
 extension SessionMonitor {
     /// Hook entry point. Freshens the hook's own rollout incrementally, matches the session by
     /// `session_id`, then by transcript path, and never selects an unrelated "latest" session.
+    /// After its own import it evaluates alerts like the watch does after an import, so a standalone
+    /// hook reports signals from the freshly imported turns and resolves stale ones.
     public func agentHook(
         _ input: AgentHookInput, now: Date = Date(), importTranscript: Bool = true,
         lookback: TimeInterval = 6 * 3_600, recentWindow: TimeInterval = 600
-    ) throws -> AgentHookResult {
+    ) async throws -> AgentHookResult {
         var imported = false
         let transcript = input.transcriptPath.map { URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath) }
         if importTranscript, let transcript,
            (try? transcript.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true {
-            // Best effort: a busy importer (the running watch) already keeps the index fresh.
+            // Best effort: a busy importer (the running watch) already keeps the index fresh and
+            // evaluates alerts itself.
             imported = (try? importDirectory(transcript)) != nil
+        }
+        if imported {
+            // Events stay in the durable outbox for the app's sinks; the hook itself delivers nothing.
+            // Watch-default options: a shorter hook lookback must not resolve alerts the watch keeps.
+            let watchdog = AlertWatchdog(monitor: self, center: AlertCenter(monitor: self))
+            try await watchdog.evaluate(now: now)
         }
 
         var match = AgentHookSessionMatch.none
