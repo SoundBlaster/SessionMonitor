@@ -42,7 +42,10 @@ struct LiveQuotaProjectionTests {
         #expect(alert.sessionIDs.isEmpty)
         #expect(alert.accountScopeID == "acct")
         #expect(alert.evidence.inference.first?.source == "linear_projection")
-        #expect(result.scopes.contains(LiveRules.quotaProjectionScope))
+        // A raised candidate always evaluates its own per-series scope.
+        let scopes = result.evaluation(at: Self.now).scopes
+        #expect(scopes.count == 1)
+        #expect(scopes.first?.id.hasPrefix("quota:projection:") == true)
     }
 
     @Test func nearExhaustionIsAnError() throws {
@@ -60,21 +63,19 @@ struct LiveQuotaProjectionTests {
         }
         let early = try Self.batch(resetsSoon)
         #expect(early.candidates.isEmpty)
-        #expect(early.scopes.contains(LiveRules.quotaProjectionScope))
+        #expect(early.scopes.count == 1)
 
         let flat = try Self.batch([
             Self.snapshot(1, secondsAgo: 1_800, used: 30), Self.snapshot(2, secondsAgo: 60, used: 30)
         ])
         #expect(flat.candidates.isEmpty)
-        #expect(flat.scopes.contains(LiveRules.quotaProjectionScope))
+        #expect(flat.scopes.count == 1)
     }
 
     @Test func unknownDataNeitherAlertsNorResolves() throws {
         let cases: [[UsageLimitSnapshotObservation]] = [
             // Span shorter than ten minutes.
             [Self.snapshot(1, secondsAgo: 300, used: 20), Self.snapshot(2, secondsAgo: 60, used: 39)],
-            // Newest observation is stale.
-            [Self.snapshot(1, secondsAgo: 5_000, used: 20), Self.snapshot(2, secondsAgo: 3_000, used: 39)],
             // Unknown account scope could blend accounts.
             Self.steady.indices.map { Self.snapshot($0, secondsAgo: 1_800 - Double($0) * 900, used: 20 + Double($0) * 9,
                                                     scope: .unknown) },
@@ -88,7 +89,7 @@ struct LiveQuotaProjectionTests {
         for snapshots in cases {
             let result = try Self.batch(snapshots)
             #expect(result.candidates.isEmpty)
-            #expect(!result.scopes.contains(LiveRules.quotaProjectionScope))
+            #expect(result.scopes.isEmpty)
         }
     }
 
@@ -100,5 +101,33 @@ struct LiveQuotaProjectionTests {
         ])
         let alert = try #require(result.candidates.first)
         #expect(alert.evidence.observed.first?.detail.contains("2 observations") == true)
+    }
+
+    @Test func stalePaceAndPassedResetsResolveButConflictsDoNot() throws {
+        // No fresh observation: the pace is not live any more, so the series is evaluated and quiet.
+        let stale = try Self.batch([
+            Self.snapshot(1, secondsAgo: 5_000, used: 20), Self.snapshot(2, secondsAgo: 3_000, used: 39)
+        ])
+        #expect(stale.candidates.isEmpty)
+        #expect(stale.scopes.count == 1)
+        // Same-time observations with the same used percent but different resets are ambiguous.
+        let ambiguous = try Self.batch(Self.steady + [Self.snapshot(9, secondsAgo: 60, used: 39, resetIn: 9_000)])
+        #expect(ambiguous.candidates.isEmpty)
+        #expect(ambiguous.scopes.isEmpty)
+    }
+
+    @Test func scopesAreIsolatedPerSeriesAndAbsentSeriesResolve() throws {
+        // A known second series must not resolve the alert of an unknown one.
+        let unknownScope = Self.steady.indices.map { index in
+            Self.snapshot(index, secondsAgo: 1_800 - Double(index) * 900, used: 20 + Double(index) * 9, scope: .unknown)
+        }
+        let mixed = try Self.batch(Self.steady + unknownScope)
+        #expect(mixed.candidates.count == 1)
+        #expect(mixed.evaluation(at: Self.now).scopes.count == 1)
+        // An alerting series that no longer has any observation in the report is evaluated and quiet.
+        let report = UsageLimitSnapshotReport(query: try UsageQuery(), generatedAt: Self.now, snapshots: [])
+        let absent = LiveRules.quotaProjection(report, now: Self.now, activeSeriesIDs: ["gone"])
+        #expect(absent.scopes == [LiveRules.quotaProjectionScope("gone")])
+        #expect(LiveRules.quotaProjection(report, now: Self.now).scopes.isEmpty)
     }
 }

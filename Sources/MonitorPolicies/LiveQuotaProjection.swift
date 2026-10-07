@@ -42,13 +42,13 @@ struct QuotaProjectionRule {
               let used = newest.window.usedPercent, let reset = newest.window.resetsAt else {
             return .unknown("The newest quota observation lacks a known account, used percent or reset time.")
         }
+        // A pace that stopped (no fresh observation) or a window that already reset is no longer a
+        // live projection, so the alert resolves; this is not missing evidence about the pace.
         let age = context.now.timeIntervalSince(newest.snapshot.timestamp)
-        guard age >= 0, age <= configuration.projectionFreshness, reset > context.now else {
-            return .unknown("The newest quota observation is stale or its window has already reset.")
-        }
+        guard age >= 0, age <= configuration.projectionFreshness, reset > context.now else { return .quiet }
         if ordered.filter({ $0.snapshot.timestamp == newest.snapshot.timestamp })
-            .contains(where: { $0.window.usedPercent != used }) {
-            return .unknown("Conflicting quota values share the newest observation time.")
+            .contains(where: { $0.window.usedPercent != used || $0.window.resetsAt != reset }) {
+            return .unknown("Conflicting quota values or resets share the newest observation time.")
         }
         // The same reset timestamp identifies one window instance; a different one is a new window.
         let start = newest.snapshot.timestamp.addingTimeInterval(-configuration.projectionWindow)
@@ -78,10 +78,17 @@ struct QuotaProjectionRule {
 }
 
 extension LiveRules {
+    /// `activeSeriesIDs` are the series of currently active projection alerts.
     /// Raises when the observed pace in the current quota window exhausts it before the window resets.
-    /// Account-level: never attributed to a session. Unknown series are left untouched (kept, not resolved).
+    /// Account-level: never attributed to a session. Each series has its own scope and is only evaluated
+    /// when it gave a clear answer, so an unknown series keeps its alert instead of resolving it.
+    public static func quotaProjectionScope(_ seriesID: String) -> AlertScope {
+        AlertScope("quota:projection:\(seriesID)")
+    }
+
     public static func quotaProjection(
-        _ report: UsageLimitSnapshotReport, now: Date, configuration: LiveRuleConfiguration = .init()
+        _ report: UsageLimitSnapshotReport, now: Date, activeSeriesIDs: Set<String> = [],
+        configuration: LiveRuleConfiguration = .init()
     ) -> AlertSignalBatch {
         var series: [QuotaWindowSeriesKey: [QuotaWindowCandidate]] = [:]
         for snapshot in report.snapshots {
@@ -96,18 +103,15 @@ extension LiveRules {
             switch QuotaProjectionRule().outcome(context) {
             case let .projection(projection):
                 batch.candidates.append(candidate(key, series[key] ?? [], projection, now: now, configuration))
-            case .quiet, .unknown:
+            case .quiet:
+                batch.scopes.insert(quotaProjectionScope(key.stableID))
+            case .unknown:
                 continue
             }
         }
-        // The scope is only evaluated when every series gave a clear answer, so an unknown series
-        // cannot resolve an earlier alert by silence.
-        let allKnown = series.keys.allSatisfy { key in
-            let context = QuotaProjectionContext(series: series[key] ?? [], now: now, configuration: configuration)
-            if case .unknown = QuotaProjectionRule().outcome(context) { return false }
-            return true
-        }
-        if allKnown { batch.scopes.insert(quotaProjectionScope) }
+        // An alerting series with no observation at all in the report has no live pace any more.
+        let reported = Set(series.keys.map(\.stableID))
+        for id in activeSeriesIDs where !reported.contains(id) { batch.scopes.insert(quotaProjectionScope(id)) }
         return batch
     }
 
@@ -121,7 +125,8 @@ extension LiveRules {
         let formatter = ISO8601DateFormatter()
         let remaining = projection.exhaustionAt.timeIntervalSince(now)
         return AlertCandidate(
-            key: "quota|projected_exhaustion|\(key.stableID)", scope: quotaProjectionScope, source: .quota,
+            key: "quota|projected_exhaustion|\(key.stableID)", scope: quotaProjectionScope(key.stableID),
+            source: .quota,
             kind: "projected_exhaustion",
             severity: remaining <= configuration.criticalExhaustion ? .error : .warning,
             title: "Quota projected to run out before reset",

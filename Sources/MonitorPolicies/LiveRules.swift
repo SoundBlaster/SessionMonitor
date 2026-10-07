@@ -165,7 +165,6 @@ struct InputGrowthRule {
 /// evidence and coverage, and stays silent when the data it needs is unknown.
 public enum LiveRules {
     public static let kinds = ["burn_rate", "runaway_loop", "input_growth"]
-    public static let quotaProjectionScope = AlertScope("quota:projection")
 
     /// One scope per rule and session, so a finished session's alerts resolve without touching others.
     public static func scope(_ kind: String, _ sessionID: String) -> AlertScope {

@@ -27,6 +27,13 @@ public struct AlertWatchdogOptions: Sendable {
     }
 }
 
+/// A built baseline and the sessions it was built from.
+private struct CachedBaseline {
+    let builtAt: Date
+    let baseline: LiveBaseline
+    let contributors: Set<String>
+}
+
 /// Connects analytics to the alert pipeline: evaluates after each committed import and reports watch
 /// health. Detection rules live in MonitorPolicies; this type only feeds them data.
 public actor AlertWatchdog {
@@ -39,7 +46,7 @@ public actor AlertWatchdog {
     /// Imports of the current watch already followed by an evaluation.
     var evaluatedImports: Int { completedImports }
     private var lastRoot: URL?
-    private var cachedBaseline: (builtAt: Date, baseline: LiveBaseline)?
+    private var cachedBaseline: CachedBaseline?
 
     public init(monitor: SessionMonitor, center: AlertCenter, options: AlertWatchdogOptions = .init()) {
         self.monitor = monitor
@@ -69,13 +76,27 @@ public actor AlertWatchdog {
         let projectionQuery = try UsageQuery(
             since: now.addingTimeInterval(-(options.live.projectionWindow + options.live.projectionFreshness))
         )
+        let projectionPrefix = "quota|projected_exhaustion|"
         batch.merge(LiveRules.quotaProjection(
             try await monitor.usageLimitSnapshots(query: projectionQuery, generatedAt: now), now: now,
+            activeSeriesIDs: Set(active.map(\.id).filter { $0.hasPrefix(projectionPrefix) }
+                .map { String($0.dropFirst(projectionPrefix.count)) }),
             configuration: options.live
         ))
-        let sessionSources: Set<AlertSource> = [.anomaly, .cacheThreshold, .liveRule]
-        for record in active where sessionSources.contains(record.candidate.source) {
-            batch.scopes.insert(record.candidate.scope)
+        let evaluated = Set(sessions.map(\.id))
+        for record in active {
+            switch record.candidate.source {
+            case .anomaly, .cacheThreshold:
+                batch.scopes.insert(record.candidate.scope)
+            case .liveRule:
+                // Live rules decide per session (unknown keeps the alert); only a session that left the
+                // lookback window is history and resolves here.
+                if evaluated.isDisjoint(with: record.candidate.sessionIDs) {
+                    batch.scopes.insert(record.candidate.scope)
+                }
+            case .quota, .importDiagnostics, .watch:
+                break
+            }
         }
         return try await center.submit(batch.evaluation(at: now))
     }
@@ -91,8 +112,10 @@ public actor AlertWatchdog {
 
     /// Personal baseline from the busiest earlier sessions, rebuilt at most every `baselineRefresh`.
     private func liveBaseline(excluding live: Set<String>, now: Date) async throws -> LiveBaseline {
+        // A session that became live after the baseline was built must not remain part of its own baseline.
         if let cached = cachedBaseline, now.timeIntervalSince(cached.builtAt) >= 0,
-           now.timeIntervalSince(cached.builtAt) < options.baselineRefresh {
+           now.timeIntervalSince(cached.builtAt) < options.baselineRefresh,
+           live.isDisjoint(with: cached.contributors) {
             return cached.baseline
         }
         let history = try UsageQuery(since: now.addingTimeInterval(-options.baselineHistory), until: now)
@@ -103,7 +126,7 @@ public actor AlertWatchdog {
         let baseline = LiveBaselineBuilder.build(
             timelines, bucket: options.live.burnWindow, configuration: options.live
         )
-        cachedBaseline = (now, baseline)
+        cachedBaseline = CachedBaseline(builtAt: now, baseline: baseline, contributors: Set(listed.map(\.id)))
         return baseline
     }
 
