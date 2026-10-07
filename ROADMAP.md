@@ -12,11 +12,14 @@ merge `6e193bc` (2026-10-06): существующие сигналы подкл
 и macOS-уведомления приложения; **ожидает живой проверки уведомления на Mac пользователя.**
 SM-324 доставлена (PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81) + macOS sink в #82),
 SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
-**SM-328 — в работе** (ветка `feat/sm-328-agent-status`): CLI `agent status`; затем SM-329 (Agent
-Surface Protocol, ждёт spec).
-Параллельно по возможности: SM-205 (автозапуск watch), SM-326 (findings и список алертов в GUI), SM-327
-(новые live-правила), SM-330 (переход к сессии по клику на уведомление).
-**SM-331 — в работе** (ветка `feat/sm-331-linux-cli`): CLI собирается и тестируется на Linux, job `Linux CLI checks`.
+SM-709 (README через боли пользователя и quick start) доставлена через PR [#85](https://github.com/SoundBlaster/SessionMonitor/pull/85), merge `fb03c2c`.
+SM-328: CLI `agent status` — PR [#84](https://github.com/SoundBlaster/SessionMonitor/pull/84), merge `9648806`;
+hook-адаптер `agent hook` — PR [#86](https://github.com/SoundBlaster/SessionMonitor/pull/86), merge `1a666ce`;
+**ожидает живой проверки hook'ов в Codex и Claude Code на Mac пользователя.**
+SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster/SessionMonitor/pull/87), merge `6c60737`;
+**ожидает живой проверки перезапуска на Mac пользователя.**
+**Порядок пользователя (2026-10-07):** SM-328 → SM-205 → SM-331 (совместимость CLI с Linux, **в работе**,
+ветка `feat/sm-331-linux-cli`, job `Linux CLI checks`). Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -335,6 +338,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
   повторяемый сценарий не пишет warning, а selection, refresh и multi-window tests остаются зелёными.
 
 - [ ] **SM-205** — Автоматически запускать watch сохранённой папки при старте приложения.
+  **Статус: доставлено (2026-10-07), [PR #87](https://github.com/SoundBlaster/SessionMonitor/pull/87), merge `6c60737`; `CI` прошёл на `9d0d8d8`; остаток — живая проверка перезапуска.** Сделано: `WatchLaunchSettings`
+  (shared/lib; приложение не в sandbox, поэтому хранится путь, bookmark не нужен) запоминает папку при
+  выборе в menu bar; при запуске `AppWatchController.startSaved` возобновляет watch, а при недоступной
+  папке показывает понятную ошибку вместо тихого «Watch not started». В Settings — переключатель
+  «Resume watching the last folder at launch» (по умолчанию включён). Watchdog и уведомления SM-325
+  подключаются к этому watch автоматически. Evidence: XCTest для настроек (пусто/запомнено/выключено/
+  папка удалена) и для контроллера (возобновление и ошибка); SwiftLint `--strict` — 0 violations.
+  Сборка приложения и macOS tests — GitHub `CI` (локально только Linux). Остаток: живая проверка
+  перезапуска на Mac; Login Item (`SMAppService`) — отдельно по запросу.
   Добавлено 2026-10-06 по приоритету пользователя. Сейчас watch запускается только вручную из menu bar
   и не восстанавливается после перезапуска; SM-322 хранит лишь путь для ручного Update.
   Хранить security-scoped bookmark выбранной папки, при запуске стартовать один app-owned watch,
@@ -750,7 +762,30 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `alertKey`/`sessionIDs` из `userInfo` и выбирает сессию в Session Explorer (как deep link виджета).
   Готово, когда клик по уведомлению anomaly-алерта открывает окно с выбранной сессией.
 - [ ] **SM-328** — Agent-facing surface: актуальные данные монитора для работающего агента.
-  **Статус: в работе (2026-10-06), ветка `feat/sm-328-agent-status`.** Выбран общий путь — CLI tool, поверх
+  **Статус: hook-адаптер доставлен (2026-10-07), [PR #86](https://github.com/SoundBlaster/SessionMonitor/pull/86),
+  merge `1a666ce`; `CI` прошёл на `1fbe1c1`; остаток — живая проверка.** Документация (Claude Code
+  hooks reference; Codex hooks на learn.chatgpt.com/docs/hooks): оба клиента передают на stdin `session_id`,
+  `transcript_path`, `hook_event_name` и принимают `hookSpecificOutput.additionalContext` в
+  `UserPromptSubmit`/`SessionStart`/`PreToolUse`/`PostToolUse`/`Stop` (Codex — feature flag `hooks`,
+  `~/.codex/hooks.json` или `[hooks]` в config.toml). Сделано: `codex-monitor agent hook` — читает hook JSON,
+  инкрементально дочитывает свой transcript (пропуская при занятом importer) и после своего импорта
+  оценивает алерты окном watch (замечание review #86: иначе hook без watch читал устаревшие алерты),
+  сопоставляет сессию по
+  `session_id`, затем по `transcript_path` (никогда не берёт чужую «последнюю»), молчит без алертов ≥
+  `--min-severity`, ограничивает текст 2 000 символами и всегда завершается с кодом 0. README: конфиги
+  для Codex и Claude Code, выбор `UserPromptSubmit`, запрет `Stop` (цикл в Claude Code), ручная проверка.
+  Evidence: Linux Swift 6.2 — `AgentHookTests` 4 passed (новый: импорт transcript поднимает
+  startup-overhead alert в ответе hook; без оценки тест падает); ранее 83 tests passed (3 новых: декодирование payload обоих клиентов, рендер и
+  лимит контекста, сопоставление session_id/transcript/none), CLI выполнен с payload, мусором на stdin
+  и недоступной БД (exit 0), SwiftLint `--strict` — 0 violations. Остаток: живая проверка в Codex и
+  Claude Code на Mac пользователя (совпадение `session_id` Codex с id rollout подтверждается там).
+  CLI `agent status` доставлен (2026-10-07). [PR #84](https://github.com/SoundBlaster/SessionMonitor/pull/84),
+  merge `9648806`; `CI`, `Native checks`, Xcode 26.0 build и Workflow lint прошли на `8401177`.
+  Найдено при подготовке quick start: SessionMonitor индексирует только rollouts Codex, поэтому hook
+  Claude Code видит последнюю сессию Codex и общие алерты, а не свою сессию; Codex `notify` не
+  возвращает вывод агенту. Остаток: по актуальной документации выбрать события hook'ов, которые
+  передают данные в контекст агента, привязать вызов к собственной сессии Codex (thread id) и
+  ограничить нагрузку (короткий lookback или событие Stop вместо каждого tool use). Выбран общий путь — CLI tool, поверх
   которого строятся hook и mod. Сделано: `AgentStatusReport` (Core, без prompts/outputs/путей),
   `AgentStatusBuilder` (Policies, чистая проекция: alerts сессии + quota/watch/diagnostics, недавняя
   активность с wait-вызовами без двойного счёта call/output, unknown input не превращается в 0),
@@ -954,6 +989,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
   входят в обязательный `CI`. Evidence (Ubuntu 24.04, Swift 6.2): `make ci-linux` — build, 166 Swift Testing + 7 XCTest, watch/snapshot/quota/performance CLI smoke прошли.
   Остаток: зелёный `CI` в PR (включая проверку `Apps/MonitorMac/Package.resolved` в Xcode — пины
   swift-crypto/swift-asn1 перенесены вручную, originHash пересчитает Xcode).
+- [x] **SM-709** — README: позиционирование через боли пользователя и проверенный quick start.
+  **Статус: доставлено (2026-10-07), [PR #85](https://github.com/SoundBlaster/SessionMonitor/pull/85), merge
+  `fb03c2c`; `CI` прошёл на `32a2383`; команды quick start сверены с исходниками CLI, ссылки целы.** Добавлено по запросу пользователя:
+  верх README продаёт решение через конкретные боли (квота кончается посреди работы, неясно, куда
+  ушли токены, высокий cache hit маскирует объём, агент крутится в ожиданиях, расход виден только
+  постфактум) с реальными цифрами аудита, честными границами и quick start из существующих команд.
+  Пример hook'а исправлен: явно указано, что монитор видит только сессии Codex. Готово, когда все
+  команды quick start соответствуют CLI, утверждения не обещают экономию по cache hit и ссылки целы.
 
 ## Evidence и границы
 

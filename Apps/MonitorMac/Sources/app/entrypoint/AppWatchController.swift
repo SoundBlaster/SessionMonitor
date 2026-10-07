@@ -88,6 +88,20 @@ final class AppWatchController {
         await task.value
     }
 
+    /// Resumes the saved folder at launch. A missing folder leaves an actionable message instead
+    /// of starting nothing silently.
+    func startSaved(_ settings: WatchLaunchSettings) async {
+        switch settings.launchDirectory() {
+        case nil:
+            return
+        case let .failure(error):
+            guard !isRunning else { return }
+            errorMessage = error.localizedDescription
+        case let .success(directory):
+            await start(directory)
+        }
+    }
+
     func pause() async {
         guard !isShuttingDown, !isBusy, let handle else { return }
         let activity = beginActivity()
