@@ -18,8 +18,8 @@ hook-адаптер `agent hook` — PR [#86](https://github.com/SoundBlaster/Se
 **ожидает живой проверки hook'ов в Codex и Claude Code на Mac пользователя.**
 SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster/SessionMonitor/pull/87), merge `6c60737`;
 **ожидает живой проверки перезапуска на Mac пользователя.**
-**Порядок пользователя (2026-10-07):** SM-328 → SM-205 → SM-331 (совместимость CLI с Linux, **в работе**,
-ветка `feat/sm-331-linux-cli`, job `Linux CLI checks`). Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
+**Порядок пользователя (2026-10-07):** SM-328 → SM-205 → SM-331 (совместимость CLI с Linux) — PR [#88](https://github.com/SoundBlaster/SessionMonitor/pull/88),
+merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -977,8 +977,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   После исправления `make test-macos` — 8 tests passed, включая external-process GUI observation;
   локальное evidence `.build/sm104-app.log`. Доставка совместно с SM-104: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
 
-- [ ] **SM-331** — Совместимость CLI `codex-monitor` с Linux.
-  **Статус: в работе (2026-10-07), ветка `feat/sm-331-linux-cli`.** Добавлено по запросу пользователя.
+- [x] **SM-331** — Совместимость CLI `codex-monitor` с Linux.
+  **Статус: доставлено (2026-10-07), [PR #88](https://github.com/SoundBlaster/SessionMonitor/pull/88), merge
+  `9d05314`; `CI` прошёл на `a893599`.** Добавлено по запросу пользователя.
   Сделано: условные импорты CryptoKit/`Crypto` (swift-crypto 3.15.1, зависимость только для Linux,
   пины в обоих `Package.resolved`) и Darwin/Glibc; `RolloutFileVersion` на Linux без birth time
   (identity — device+inode, изменение — mtime/ctime); `FSEventsSource` только при CoreServices,
@@ -987,8 +988,10 @@ deliverable — WidgetKit extension с App Group в SM-401.
   пишется; performance harness меряет через `wait4`/`/proc` вместо Apple `time -l`/`sysctl`.
   `make check-linux`/`make ci-linux` и GitHub job `Linux CLI checks` (container `swift:6.2-noble`)
   входят в обязательный `CI`. Evidence (Ubuntu 24.04, Swift 6.2): `make ci-linux` — build, 166 Swift Testing + 7 XCTest, watch/snapshot/quota/performance CLI smoke прошли.
-  Остаток: зелёный `CI` в PR (включая проверку `Apps/MonitorMac/Package.resolved` в Xcode — пины
-  swift-crypto/swift-asn1 перенесены вручную, originHash пересчитает Xcode).
+  GitHub `CI` на `a893599`: Linux CLI checks, Native checks (включая проверку, что оба `Package.resolved`
+  не меняются; пины swift-crypto/swift-asn1 в app-файле, перенесённые вручную, приняты Xcode без правок),
+  Xcode 26.0 build и Workflow lint прошли. Ограничение: watch на Linux опрашивает каталог раз в 2 с
+  (inotify не используется); GUI, виджет и уведомления — только macOS.
 - [x] **SM-709** — README: позиционирование через боли пользователя и проверенный quick start.
   **Статус: доставлено (2026-10-07), [PR #85](https://github.com/SoundBlaster/SessionMonitor/pull/85), merge
   `fb03c2c`; `CI` прошёл на `32a2383`; команды quick start сверены с исходниками CLI, ссылки целы.** Добавлено по запросу пользователя:
