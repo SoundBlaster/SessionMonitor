@@ -7,6 +7,7 @@ public enum AlertSource: String, Codable, CaseIterable, Sendable {
     case importDiagnostics = "import_diagnostics"
     case watch
     case cacheThreshold = "cache_threshold"
+    case liveRule = "live_rule"
 }
 
 /// One evaluated unit, for example `anomaly:session:<id>`. Only active alerts inside an evaluated

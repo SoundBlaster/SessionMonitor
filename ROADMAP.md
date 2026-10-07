@@ -20,6 +20,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 **ожидает живой проверки перезапуска на Mac пользователя.**
 **Порядок пользователя (2026-10-07):** SM-328 → SM-205 → SM-331 (совместимость CLI с Linux) — PR [#88](https://github.com/SoundBlaster/SessionMonitor/pull/88),
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
+**SM-327 — в работе** (ветка `feat/sm-327-live-rules`): live-правила burn rate, runaway loop, рост input и проекция квоты.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -751,11 +752,28 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `doctor --json` дают одинаковый набор findings, а in-app список алертов совпадает с
   `codex-monitor alerts --status all --json`.
 - [ ] **SM-327** — Live-правила для работающих сессий.
-  Добавлено 2026-10-06. Зависит от SM-325. Кандидаты: burn rate (input/min относительно baseline
-  своей истории), runaway loop (N запросов без human turn), рост input на запрос (сигнал для
-  compaction), проекция quota до reset по наблюдаемой скорости. Каждое правило — Specification
-  с evidence, coverage и negative cases; пороги — из собственной истории пользователя, не константы.
-  Готово, когда каждое правило имеет fixture positive/negative и не срабатывает на unknown данных.
+  **Статус: реализовано, ожидает PR/CI (2026-10-07), ветка `feat/sm-327-live-rules`; выбрана пользователем.**
+  Зависимость SM-325 выполнена. Сделано: каждое правило — Specification с evidence (observed/inference/
+  limitations), coverage и негативными случаями; пороги — кратные множители собственной истории пользователя
+  и защитные минимумы выборки, а не лимиты использования. (1) `burn_rate`: input/мин за 10 минут выше
+  3× p90 темпа активных 10-минутных интервалов истории (≥20 интервалов, ≥3 запросов, все input известны);
+  (2) `runaway_loop`: запросов после последнего human/goal turn больше max(10, 2× p90 завершённых turn'ов
+  истории, ≥10 turn'ов); (3) `input_growth` (info): 6 запросов подряд без compaction, input не убывает,
+  рост ≥1.5× и достиг p90 собственных запросов (≥50 запросов истории); (4) проекция квоты
+  (`projected_exhaustion`, account-level): линейный темп по текущему окну (тот же `resetsAt`, ≥10 минут,
+  свежее наблюдение, известный account scope, без убывания used%) исчерпывает окно раньше сброса;
+  error, если до исчерпания <30 минут. Unknown (мало истории, неизвестный input, нет human turn, stale/
+  неоднозначная квота) не алертит и не закрывает существующий алерт; завершённая сессия закрывает свои.
+  Baseline (`LiveBaseline`) строится из самых активных прошлых сессий за 14 дней без идущих сессий и
+  кэшируется в `AlertWatchdog` на 30 минут. Новый `AlertSource.liveRule` (`live_rule`); алерты сессии видны
+  в `agent status`/hook. Файлы: `MonitorPolicies/LiveRuleBaseline.swift`, `LiveRules.swift`,
+  `LiveQuotaProjection.swift`, интеграция в `MonitorRuntime/AlertWatchdog.swift`.
+  Evidence (Linux, Swift 6.2): 189 tests passed, из них 18 новых (`LiveRulesTests` — positive/negative/unknown
+  по каждому правилу, baseline и конфигурация; `LiveQuotaProjectionTests`; `LiveRulesWatchdogTests` —
+  burst против истории → raised/notify, виден в `agent status`, повтор молчит, завершение сессии → resolved);
+  мутационная проверка: снятие порогов и отключение интеграции роняет тесты; SwiftLint `--strict` — 0
+  violations. Остаток: зелёный GitHub `CI` в PR; пороги (3×, 2×, 1.5×) — стартовые, подстраиваются по
+  опыту использования (`LiveRuleConfiguration`, настройки в UI не выведены).
 
 - [ ] **SM-330** — Открывать сессию с evidence по клику на уведомление алерта.
   Добавлено 2026-10-06 как follow-up SM-325. `UNUserNotificationCenterDelegate.didReceive` читает
