@@ -16,8 +16,10 @@ SM-709 (README через боли пользователя и quick start) до
 SM-328: CLI `agent status` — PR [#84](https://github.com/SoundBlaster/SessionMonitor/pull/84), merge `9648806`;
 hook-адаптер `agent hook` — PR [#86](https://github.com/SoundBlaster/SessionMonitor/pull/86), merge `1a666ce`;
 **ожидает живой проверки hook'ов в Codex и Claude Code на Mac пользователя.**
-**Порядок пользователя (2026-10-07):** SM-328 → SM-205 (автозапуск watch, **в работе**, ветка
-`feat/sm-205-watch-on-launch`) → SM-331 (совместимость CLI с Linux, ветка `feat/sm-331-linux-cli`). Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
+SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster/SessionMonitor/pull/87), merge `6c60737`;
+**ожидает живой проверки перезапуска на Mac пользователя.**
+**Порядок пользователя (2026-10-07):** SM-328 → SM-205 → SM-331 (совместимость CLI с Linux, **в работе**,
+ветка `feat/sm-331-linux-cli`, job `Linux CLI checks`). Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -336,7 +338,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   повторяемый сценарий не пишет warning, а selection, refresh и multi-window tests остаются зелёными.
 
 - [ ] **SM-205** — Автоматически запускать watch сохранённой папки при старте приложения.
-  **Статус: в работе (2026-10-07), ветка `feat/sm-205-watch-on-launch`.** Сделано: `WatchLaunchSettings`
+  **Статус: доставлено (2026-10-07), [PR #87](https://github.com/SoundBlaster/SessionMonitor/pull/87), merge `6c60737`; `CI` прошёл на `9d0d8d8`; остаток — живая проверка перезапуска.** Сделано: `WatchLaunchSettings`
   (shared/lib; приложение не в sandbox, поэтому хранится путь, bookmark не нужен) запоминает папку при
   выборе в menu bar; при запуске `AppWatchController.startSaved` возобновляет watch, а при недоступной
   папке показывает понятную ошибку вместо тихого «Watch not started». В Settings — переключатель
@@ -976,12 +978,17 @@ deliverable — WidgetKit extension с App Group в SM-401.
   локальное evidence `.build/sm104-app.log`. Доставка совместно с SM-104: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
 
 - [ ] **SM-331** — Совместимость CLI `codex-monitor` с Linux.
-  Добавлено 2026-10-07 по запросу пользователя. Сейчас пакет собирается только на macOS: `MonitorStore`
-  импортирует CryptoKit и Darwin, `MonitorRuntime` — FSEvents/Darwin, `MonitorCore` — App Group
-  container API. При подготовке SM-324…SM-328 core проверялся на Linux scratch-пакетом с shim'ами
-  (swift-crypto, Glibc). Готово, когда `swift build` и core-тесты проходят на Linux без shim'ов
-  (условный CryptoKit/Crypto, Glibc/Darwin, watch через polling или inotify вместо FSEvents), а
-  Linux-сборка закреплена в GitHub CI.
+  **Статус: в работе (2026-10-07), ветка `feat/sm-331-linux-cli`.** Добавлено по запросу пользователя.
+  Сделано: условные импорты CryptoKit/`Crypto` (swift-crypto 3.15.1, зависимость только для Linux,
+  пины в обоих `Package.resolved`) и Darwin/Glibc; `RolloutFileVersion` на Linux без birth time
+  (identity — device+inode, изменение — mtime/ctime); `FSEventsSource` только при CoreServices,
+  на Linux `PollingFileEventSource` (снимок size+mtime rollouts раз в 2 с, событие только при
+  изменении; снимок включает device/inode/ctime, как `RolloutFileVersion`, а недоступный корень запускает recovery); БД по умолчанию в `$XDG_DATA_HOME`/`~/.local/share`; App Group snapshot на Linux не
+  пишется; performance harness меряет через `wait4`/`/proc` вместо Apple `time -l`/`sysctl`.
+  `make check-linux`/`make ci-linux` и GitHub job `Linux CLI checks` (container `swift:6.2-noble`)
+  входят в обязательный `CI`. Evidence (Ubuntu 24.04, Swift 6.2): `make ci-linux` — build, 166 Swift Testing + 7 XCTest, watch/snapshot/quota/performance CLI smoke прошли.
+  Остаток: зелёный `CI` в PR (включая проверку `Apps/MonitorMac/Package.resolved` в Xcode — пины
+  swift-crypto/swift-asn1 перенесены вручную, originHash пересчитает Xcode).
 - [x] **SM-709** — README: позиционирование через боли пользователя и проверенный quick start.
   **Статус: доставлено (2026-10-07), [PR #85](https://github.com/SoundBlaster/SessionMonitor/pull/85), merge
   `fb03c2c`; `CI` прошёл на `32a2383`; команды quick start сверены с исходниками CLI, ссылки целы.** Добавлено по запросу пользователя:

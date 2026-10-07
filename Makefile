@@ -26,7 +26,7 @@ CONFIGURATION ?= Debug
 DESTINATION ?= platform=macOS
 BUILD_ROOT ?= .build/quality
 DERIVED_DATA ?= .build/xcode
-RUN_ID := $(shell date -u +%Y%m%dT%H%M%S)-$(shell uuidgen)
+RUN_ID := $(shell date -u +%Y%m%dT%H%M%S)-$(shell uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)
 RESULT_BUNDLE ?= $(BUILD_ROOT)/$(RUN_ID).xcresult
 ARCHIVE_PATH ?= $(BUILD_ROOT)/MonitorMac-$(RUN_ID).xcarchive
 DEVELOPMENT_TEAM ?=
@@ -42,7 +42,7 @@ endif
 
 .PHONY: help doctor generate install-hooks guard-package guard-app lint-version resolve build-cli test-core build-mcp
 .PHONY: lint-core lint lint-architecture build-macos test-macos test-widget check-core check archive
-.PHONY: ci lint-ci test-architecture test-cli build-cli-release benchmark release-local
+.PHONY: ci ci-linux check-linux lint-ci test-architecture test-cli build-cli-release benchmark release-local
 
 help:
 	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate install-hooks build-macos build-mcp test-macos lint lint-architecture check archive' 'ci lint-ci test-architecture build-cli-release benchmark release-local'
@@ -153,6 +153,16 @@ ci:
 		XCODEBUILD_FLAGS="$(XCODEBUILD_FLAGS) -onlyUsePackageVersionsFromResolvedFile -disableAutomaticPackageResolution" \
 		SIGNING_ARGS="CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM="
 	git diff --exit-code -- Package.resolved Apps/MonitorMac/Package.resolved
+
+# Linux CLI gate: package build, Swift tests and CLI smokes; no Xcode, app or SwiftLint.
+check-linux:
+	$(MAKE) build-cli SWIFT=swift
+	$(MAKE) test-core SWIFT=swift
+	$(MAKE) test-cli SWIFT=swift
+
+ci-linux:
+	$(MAKE) check-linux SWIFT_FLAGS="--force-resolved-versions"
+	git diff --exit-code -- Package.resolved
 
 # Local archive only. Export, notarization and publication are separate workflows.
 archive: guard-app

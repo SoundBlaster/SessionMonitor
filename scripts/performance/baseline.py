@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Reproducible, isolated macOS CLI baseline. Raw corpus and detailed evidence stay in .build."""
+"""Reproducible, isolated CLI baseline (macOS or Linux). Raw corpus and detailed evidence stay in .build."""
 import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 from pathlib import Path
 import platform
 import shutil
@@ -35,6 +36,21 @@ def digest(path):
         while chunk := source.read(1024*1024):
             hasher.update(chunk)
     return hasher.hexdigest()
+
+
+def host_metadata():
+    """Host description; macOS keeps its Xcode fields, Linux reports the kernel and toolchain."""
+    if sys.platform == 'darwin':
+        return {'macos': platform.mac_ver()[0], 'python': platform.python_version(),
+                'hardware': subprocess.check_output(['/usr/sbin/sysctl', '-n', 'hw.model'], text=True).strip(),
+                'memory_bytes': int(subprocess.check_output(['/usr/sbin/sysctl', '-n', 'hw.memsize'])),
+                'swift': subprocess.check_output(['xcrun', 'swift', '--version'], text=True).strip(),
+                'xcode': subprocess.check_output(['xcodebuild', '-version'], text=True).strip()}
+    swift = shutil.which('swift')
+    return {'os': f'{platform.system()} {platform.release()}', 'python': platform.python_version(),
+            'hardware': platform.processor() or platform.machine(),
+            'memory_bytes': os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES'),
+            'swift': subprocess.check_output([swift, '--version'], text=True).strip() if swift else None}
 
 
 def version(path):
@@ -138,11 +154,7 @@ def run(args):
     metadata = {'schema_version': 1, 'created_at': dt.datetime.now(dt.timezone.utc).isoformat(),
                 'corpus': corpus, 'repetitions': args.repetitions, 'binary_sha256': digest(binary),
                 'build_configuration': args.configuration, 'machine': platform.machine(),
-                'macos': platform.mac_ver()[0], 'python': platform.python_version(),
-                'hardware': subprocess.check_output(['/usr/sbin/sysctl', '-n', 'hw.model'], text=True).strip(),
-                'memory_bytes': int(subprocess.check_output(['/usr/sbin/sysctl', '-n', 'hw.memsize'])),
-                'swift': subprocess.check_output(['xcrun', 'swift', '--version'], text=True).strip(),
-                'xcode': subprocess.check_output(['xcodebuild', '-version'], text=True).strip(),
+                **host_metadata(),
                 'git_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPOSITORY, text=True).strip(),
                 'harness_sha256': {name: digest(Path(__file__).with_name(name))
                                    for name in ('baseline.py', 'measure.py')},

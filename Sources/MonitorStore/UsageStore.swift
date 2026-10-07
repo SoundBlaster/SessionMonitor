@@ -1,4 +1,8 @@
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+import Crypto
+#endif
 import Foundation
 import GRDB
 import MonitorCore
@@ -392,7 +396,3 @@ public final class UsageStore: Sendable {
 }
 
 // swiftlint:enable function_body_length type_body_length
-
-public enum CheckpointWriteError: Error {
-    case staleCheckpoint
-}

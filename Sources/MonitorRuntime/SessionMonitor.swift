@@ -1,5 +1,9 @@
 import CodexSource
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 import Foundation
 import MonitorCore
 import MonitorPolicies
@@ -10,7 +14,15 @@ public actor SessionMonitor {
         if let path = ProcessInfo.processInfo.environment["SESSIONMONITOR_DATABASE"], !path.isEmpty {
             return URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
         }
+        #if canImport(Darwin)
         return URL.applicationSupportDirectory.appending(path: "SessionMonitor/usage.sqlite")
+        #else
+        // XDG base directory spec: $XDG_DATA_HOME, defaulting to ~/.local/share.
+        let environment = ProcessInfo.processInfo.environment
+        let dataHome = environment["XDG_DATA_HOME"].flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0) }
+            ?? FileManager.default.homeDirectoryForCurrentUser.appending(path: ".local/share")
+        return dataHome.appending(path: "SessionMonitor/usage.sqlite")
+        #endif
     }
 
     let store: UsageStore
@@ -175,7 +187,11 @@ public actor SessionMonitor {
             throw WatchError.directoryRequired
         }
         let lease = try ImportLock(url: databaseURL.appendingPathExtension("import-lock"))
+        #if canImport(CoreServices)
         let source = FSEventsSource(root: root, excludedPaths: databaseSourcePaths)
+        #else
+        let source = PollingFileEventSource(root: root, excludedPaths: databaseSourcePaths)
+        #endif
         let watch = try SessionWatch(source: source, options: options, lease: lease) {
             try await self.importSources(root, rescan: false, directoryOnly: true, ownsLease: true)
         }
