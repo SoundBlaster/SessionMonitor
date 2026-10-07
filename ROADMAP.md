@@ -12,7 +12,7 @@ merge `6e193bc` (2026-10-06): существующие сигналы подкл
 и macOS-уведомления приложения; **ожидает живой проверки уведомления на Mac пользователя.**
 SM-324 доставлена (PR [#81](https://github.com/SoundBlaster/SessionMonitor/pull/81) + macOS sink в #82),
 SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), merge `ec9ff56`.
-**SM-709 — в работе** (ветка `docs/sm-709-readme-positioning`): README через боли пользователя и quick start.
+SM-709 (README через боли пользователя и quick start) доставлена через PR [#85](https://github.com/SoundBlaster/SessionMonitor/pull/85), merge `fb03c2c`.
 SM-328 CLI `agent status` доставлен через PR [#84](https://github.com/SoundBlaster/SessionMonitor/pull/84), merge
 `9648806`; остаток — проверенная интеграция hook'ов.
 **Порядок пользователя (2026-10-07):** SM-328 — **в работе**, ветка `feat/sm-328-agent-hooks` (hook'и Claude Code/Codex по актуальной документации, проверенные
@@ -972,8 +972,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   (swift-crypto, Glibc). Готово, когда `swift build` и core-тесты проходят на Linux без shim'ов
   (условный CryptoKit/Crypto, Glibc/Darwin, watch через polling или inotify вместо FSEvents), а
   Linux-сборка закреплена в GitHub CI.
-- [ ] **SM-709** — README: позиционирование через боли пользователя и проверенный quick start.
-  **Статус: в работе (2026-10-07), ветка `docs/sm-709-readme-positioning`.** Добавлено по запросу пользователя:
+- [x] **SM-709** — README: позиционирование через боли пользователя и проверенный quick start.
+  **Статус: доставлено (2026-10-07), [PR #85](https://github.com/SoundBlaster/SessionMonitor/pull/85), merge
+  `fb03c2c`; `CI` прошёл на `32a2383`; команды quick start сверены с исходниками CLI, ссылки целы.** Добавлено по запросу пользователя:
   верх README продаёт решение через конкретные боли (квота кончается посреди работы, неясно, куда
   ушли токены, высокий cache hit маскирует объём, агент крутится в ожиданиях, расход виден только
   постфактум) с реальными цифрами аудита, честными границами и quick start из существующих команд.
