@@ -19,6 +19,52 @@ struct QuotaProjection: Equatable {
     let span: TimeInterval
 }
 
+enum QuotaProjectionOutcome: Equatable {
+    case projection(QuotaProjection)
+    case quiet
+    case unknown(String)
+}
+
+// MARK: - Measures
+
+extension QuotaProjectionContext {
+    var ordered: [QuotaWindowCandidate] { series.sorted { $0.snapshot.timestamp < $1.snapshot.timestamp } }
+
+    var newest: QuotaWindowCandidate? { ordered.last }
+
+    var used: Double? { newest?.window.usedPercent }
+
+    var reset: Date? { newest?.window.resetsAt }
+
+    /// The same reset timestamp identifies one window instance; a different one is a new window.
+    var windowSeries: [QuotaWindowCandidate] {
+        guard let newest, let reset else { return [] }
+        let start = newest.snapshot.timestamp.addingTimeInterval(-configuration.projectionWindow)
+        return ordered.filter {
+            $0.window.resetsAt == reset && $0.snapshot.timestamp >= start
+                && HasKnownAccountScopeSpec().isSatisfiedBy($0)
+        }
+    }
+
+    var span: TimeInterval {
+        guard let newest, let oldest = windowSeries.first else { return 0 }
+        return newest.snapshot.timestamp.timeIntervalSince(oldest.snapshot.timestamp)
+    }
+
+    /// Percentage points per hour between the oldest and newest observation of the current window.
+    var rate: Double? {
+        guard let used, let oldestUsed = windowSeries.first?.window.usedPercent, span > 0 else { return nil }
+        return (used - oldestUsed) / (span / 3_600)
+    }
+
+    var exhaustionAt: Date? {
+        guard let newest, let used, let rate, rate > 0, used < 100 else { return nil }
+        return newest.snapshot.timestamp.addingTimeInterval((100 - used) / rate * 3_600)
+    }
+}
+
+// MARK: - Specifications
+
 /// Account scope must be known: a mixed or unknown scope could blend two accounts into one rate.
 struct HasKnownAccountScopeSpec: Specification {
     func isSatisfiedBy(_ candidate: QuotaWindowCandidate) -> Bool {
@@ -28,51 +74,103 @@ struct HasKnownAccountScopeSpec: Specification {
     }
 }
 
-enum QuotaProjectionOutcome: Equatable {
-    case projection(QuotaProjection)
-    case quiet
-    case unknown(String)
+struct HasKnownNewestObservationSpec: Specification {
+    func isSatisfiedBy(_ context: QuotaProjectionContext) -> Bool {
+        guard let newest = context.newest else { return false }
+        return HasKnownAccountScopeSpec().isSatisfiedBy(newest) && context.used != nil && context.reset != nil
+    }
 }
 
-struct QuotaProjectionRule {
-    func outcome(_ context: QuotaProjectionContext) -> QuotaProjectionOutcome {
-        let configuration = context.configuration
-        let ordered = context.series.sorted { $0.snapshot.timestamp < $1.snapshot.timestamp }
-        guard let newest = ordered.last, HasKnownAccountScopeSpec().isSatisfiedBy(newest),
-              let used = newest.window.usedPercent, let reset = newest.window.resetsAt else {
-            return .unknown("The newest quota observation lacks a known account, used percent or reset time.")
-        }
-        // A pace that stopped (no fresh observation) or a window that already reset is no longer a
-        // live projection, so the alert resolves; this is not missing evidence about the pace.
+/// A pace that stopped (no fresh observation) or a window that already reset is no longer a live projection.
+struct IsLiveProjectionSpec: Specification {
+    func isSatisfiedBy(_ context: QuotaProjectionContext) -> Bool {
+        guard let newest = context.newest, let reset = context.reset else { return false }
         let age = context.now.timeIntervalSince(newest.snapshot.timestamp)
-        guard age >= 0, age <= configuration.projectionFreshness, reset > context.now else { return .quiet }
-        if ordered.filter({ $0.snapshot.timestamp == newest.snapshot.timestamp })
-            .contains(where: { $0.window.usedPercent != used || $0.window.resetsAt != reset }) {
-            return .unknown("Conflicting quota values or resets share the newest observation time.")
+        return age >= 0 && age <= context.configuration.projectionFreshness && reset > context.now
+    }
+}
+
+/// Observations of one instant that disagree on value or reset make the window identity ambiguous.
+struct HasUnambiguousNewestSpec: Specification {
+    func isSatisfiedBy(_ context: QuotaProjectionContext) -> Bool {
+        guard let newest = context.newest else { return false }
+        return !context.ordered.contains {
+            $0.snapshot.timestamp == newest.snapshot.timestamp
+                && ($0.window.usedPercent != context.used || $0.window.resetsAt != context.reset)
         }
-        // The same reset timestamp identifies one window instance; a different one is a new window.
-        let start = newest.snapshot.timestamp.addingTimeInterval(-configuration.projectionWindow)
-        let window = ordered.filter {
-            $0.window.resetsAt == reset && $0.snapshot.timestamp >= start
-                && HasKnownAccountScopeSpec().isSatisfiedBy($0)
-        }
-        guard let oldest = window.first, let oldestUsed = oldest.window.usedPercent else { return .quiet }
-        let span = newest.snapshot.timestamp.timeIntervalSince(oldest.snapshot.timestamp)
-        guard span >= configuration.projectionMinimumSpan else {
-            let shortest = LiveRuleText.minutes(configuration.projectionMinimumSpan)
-            return .unknown("Observed span is shorter than \(shortest).")
-        }
-        let values = window.compactMap(\.window.usedPercent)
-        guard zip(values, values.dropFirst()).allSatisfy({ $0 <= $1 }) else {
-            return .unknown("Used percent decreased inside one window, so the series is not comparable.")
-        }
-        let rate = (used - oldestUsed) / (span / 3_600)
-        guard rate > 0, used < 100 else { return .quiet }
-        let exhaustion = newest.snapshot.timestamp.addingTimeInterval((100 - used) / rate * 3_600)
-        guard exhaustion < reset else { return .quiet }
+    }
+}
+
+struct HasProjectionSpanSpec: Specification {
+    func isSatisfiedBy(_ context: QuotaProjectionContext) -> Bool {
+        context.span >= context.configuration.projectionMinimumSpan
+    }
+}
+
+/// Used percent that falls inside one window means the series is not comparable.
+struct IsMonotonicUsageSpec: Specification {
+    func isSatisfiedBy(_ context: QuotaProjectionContext) -> Bool {
+        let values = context.windowSeries.compactMap(\.window.usedPercent)
+        return zip(values, values.dropFirst()).allSatisfy { $0 <= $1 }
+    }
+}
+
+struct HasRisingUsageSpec: Specification {
+    func isSatisfiedBy(_ context: QuotaProjectionContext) -> Bool { context.exhaustionAt != nil }
+}
+
+struct ExhaustsBeforeResetSpec: Specification {
+    func isSatisfiedBy(_ context: QuotaProjectionContext) -> Bool {
+        guard let exhaustion = context.exhaustionAt, let reset = context.reset else { return false }
+        return exhaustion < reset
+    }
+}
+
+// MARK: - Decision
+
+struct QuotaProjectionDecision: DecisionSpec {
+    typealias Context = QuotaProjectionContext
+    typealias Result = QuotaProjectionOutcome
+
+    typealias Match = FirstMatchSpec<QuotaProjectionContext, QuotaProjectionOutcome>
+    typealias Blocker = Match.SpecificationPair
+
+    private static func requiring<S: Specification>(_ spec: S, otherwise outcome: QuotaProjectionOutcome) -> Blocker
+        where S.T == QuotaProjectionContext {
+        (AnySpecification(spec.not()), outcome)
+    }
+
+    /// The first unmet requirement decides: `quiet` resolves an existing alert, `unknown` leaves it.
+    private static func blockers() -> Match {
+        let blockers: [Blocker] = [
+            requiring(
+                HasKnownNewestObservationSpec(),
+                otherwise: .unknown("The newest quota observation lacks a known account, used percent or reset time.")
+            ),
+            requiring(IsLiveProjectionSpec(), otherwise: .quiet),
+            requiring(
+                HasUnambiguousNewestSpec(),
+                otherwise: .unknown("Conflicting quota values or resets share the newest observation time.")
+            ),
+            requiring(HasProjectionSpanSpec(), otherwise: .unknown("The observed span is too short for a pace.")),
+            requiring(
+                IsMonotonicUsageSpec(),
+                otherwise: .unknown("Used percent decreased inside one window, so the series is not comparable.")
+            ),
+            requiring(HasRisingUsageSpec(), otherwise: .quiet),
+            requiring(ExhaustsBeforeResetSpec(), otherwise: .quiet)
+        ]
+        return Match(blockers)
+    }
+
+    func decide(_ context: QuotaProjectionContext) -> QuotaProjectionOutcome? {
+        if let blocked = Self.blockers().decide(context) { return blocked }
+        guard let newest = context.newest, let used = context.used, let reset = context.reset,
+              let rate = context.rate, let exhaustion = context.exhaustionAt else { return .quiet }
         return .projection(QuotaProjection(
             latest: newest.snapshot.timestamp, usedPercent: used, ratePercentPerHour: rate,
-            exhaustionAt: exhaustion, resetsAt: reset, observations: window.count, span: span
+            exhaustionAt: exhaustion, resetsAt: reset, observations: context.windowSeries.count,
+            span: context.span
         ))
     }
 }
@@ -100,7 +198,7 @@ extension LiveRules {
         var batch = AlertSignalBatch()
         for key in series.keys.sorted(by: { $0.stableID < $1.stableID }) {
             let context = QuotaProjectionContext(series: series[key] ?? [], now: now, configuration: configuration)
-            switch QuotaProjectionRule().outcome(context) {
+            switch QuotaProjectionDecision().decide(context) ?? .quiet {
             case let .projection(projection):
                 batch.candidates.append(candidate(key, series[key] ?? [], projection, now: now, configuration))
             case .quiet:

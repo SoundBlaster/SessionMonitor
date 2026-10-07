@@ -753,8 +753,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `codex-monitor alerts --status all --json`.
 - [ ] **SM-327** — Live-правила для работающих сессий.
   **Статус: реализовано, ожидает PR/CI (2026-10-07), ветка `feat/sm-327-live-rules`; выбрана пользователем.**
-  Зависимость SM-325 выполнена. Сделано: каждое правило — Specification с evidence (observed/inference/
-  limitations), coverage и негативными случаями; пороги — кратные множители собственной истории пользователя
+  Зависимость SM-325 выполнена. Сделано: каждое условие правила — отдельная Specification (SpecificationCore), порядок условий — `FirstMatchSpec`
+  (первое невыполненное называет причину: `quiet` или `unknown`), итог — `DecisionSpec` с evidence
+  (observed/inference/limitations), coverage и негативными случаями; пороги — кратные множители собственной истории пользователя
   и защитные минимумы выборки, а не лимиты использования. (1) `burn_rate`: input/мин за 10 минут выше
   3× p90 темпа активных 10-минутных интервалов истории (≥20 интервалов, ≥3 запросов, все input известны);
   (2) `runaway_loop`: запросов после последнего human/goal turn больше max(10, 2× p90 завершённых turn'ов
@@ -771,9 +772,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Baseline (`LiveBaseline`) строится из самых активных прошлых сессий за 14 дней без идущих сессий и
   кэшируется в `AlertWatchdog` на 30 минут. Новый `AlertSource.liveRule` (`live_rule`); алерты сессии видны
   в `agent status`/hook. Файлы: `MonitorPolicies/LiveRuleBaseline.swift`, `LiveRules.swift`,
-  `LiveQuotaProjection.swift`, интеграция в `MonitorRuntime/AlertWatchdog.swift`.
-  Evidence (Linux, Swift 6.2): 193 tests passed, из них 22 новых (`LiveRulesTests` — positive/negative/unknown
-  по каждому правилу, baseline и конфигурация; `LiveQuotaProjectionTests`; `LiveRulesWatchdogTests` —
+  `LiveRuleSpecs.swift`, `LiveRuleDecisions.swift`, `LiveQuotaProjection.swift`, интеграция в `MonitorRuntime/AlertWatchdog.swift`.
+  Evidence (Linux, Swift 6.2): 199 tests passed, из них 28 новых (`LiveRulesTests` — positive/negative/unknown
+  по каждому правилу, baseline и конфигурация; `LiveRuleSpecsTests` и `LiveQuotaProjectionSpecsTests` (каждое условие отдельно); `LiveQuotaProjectionTests`; `LiveRulesWatchdogTests` —
   burst против истории → raised/notify, виден в `agent status`, повтор молчит, завершение сессии → resolved;
   unknown сохраняет активный алерт; возобновлённая сессия выходит из своего baseline);
   мутационная проверка: снятие порогов и отключение интеграции роняет тесты; SwiftLint `--strict` — 0

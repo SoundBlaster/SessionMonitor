@@ -131,3 +131,43 @@ struct LiveQuotaProjectionTests {
         #expect(LiveRules.quotaProjection(report, now: Self.now).scopes.isEmpty)
     }
 }
+
+/// The quota requirements are Specifications too, judged one at a time.
+struct LiveQuotaProjectionSpecsTests {
+    private static func context(_ snapshots: [UsageLimitSnapshotObservation]) -> QuotaProjectionContext {
+        QuotaProjectionContext(
+            series: snapshots.flatMap { snapshot in
+                snapshot.windows.map { QuotaWindowCandidate(snapshot: snapshot, window: $0) }
+            },
+            now: LiveQuotaProjectionTests.now, configuration: LiveRuleConfiguration()
+        )
+    }
+
+    @Test func eachRequirementIsIndependent() {
+        let steady = Self.context(LiveQuotaProjectionTests.steady)
+        #expect(HasKnownNewestObservationSpec().isSatisfiedBy(steady))
+        #expect(IsLiveProjectionSpec().isSatisfiedBy(steady))
+        #expect(HasUnambiguousNewestSpec().isSatisfiedBy(steady))
+        #expect(HasProjectionSpanSpec().isSatisfiedBy(steady))
+        #expect(IsMonotonicUsageSpec().isSatisfiedBy(steady))
+        #expect(HasRisingUsageSpec().isSatisfiedBy(steady))
+        #expect(ExhaustsBeforeResetSpec().isSatisfiedBy(steady))
+
+        let flat = Self.context([
+            LiveQuotaProjectionTests.snapshot(1, secondsAgo: 1_800, used: 30),
+            LiveQuotaProjectionTests.snapshot(2, secondsAgo: 60, used: 30)
+        ])
+        #expect(!HasRisingUsageSpec().isSatisfiedBy(flat))
+        let early = Self.context(LiveQuotaProjectionTests.steady.enumerated().map { index, snapshot in
+            LiveQuotaProjectionTests.snapshot(
+                index, secondsAgo: LiveQuotaProjectionTests.now.timeIntervalSince(snapshot.timestamp),
+                used: snapshot.windows[0].usedPercent, resetIn: 3_600
+            )
+        })
+        #expect(HasRisingUsageSpec().isSatisfiedBy(early))
+        #expect(!ExhaustsBeforeResetSpec().isSatisfiedBy(early))
+        let stale = Self.context([LiveQuotaProjectionTests.snapshot(1, secondsAgo: 5_000, used: 20)])
+        #expect(!IsLiveProjectionSpec().isSatisfiedBy(stale))
+        #expect(!HasProjectionSpanSpec().isSatisfiedBy(stale))
+    }
+}
