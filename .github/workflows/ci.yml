@@ -102,10 +102,33 @@ jobs:
       - name: Build macOS app with Xcode 26.0 SDK
         run: make build-macos DERIVED_DATA=.build/xcode-26-compat
 
+  linux-cli:
+    name: Linux CLI checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: swift:6.2-noble
+    env:
+      GIT_TERMINAL_PROMPT: 0
+    steps:
+      - name: Install smoke prerequisites
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git make python3 uuid-runtime
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Trust workspace for git
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Identify toolchain
+        run: swift --version
+      - name: Build and test the CLI on Linux
+        run: make ci-linux
+
   ci:
     name: CI
     if: ${{ always() }}
-    needs: [workflow, native, xcode26-compatibility]
+    needs: [workflow, native, xcode26-compatibility, linux-cli]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -114,7 +137,9 @@ jobs:
           WORKFLOW_RESULT: ${{ needs.workflow.result }}
           NATIVE_RESULT: ${{ needs.native.result }}
           XCODE26_RESULT: ${{ needs.xcode26-compatibility.result }}
+          LINUX_RESULT: ${{ needs.linux-cli.result }}
         run: |
           test "$WORKFLOW_RESULT" = success
           test "$NATIVE_RESULT" = success
           test "$XCODE26_RESULT" = success
+          test "$LINUX_RESULT" = success

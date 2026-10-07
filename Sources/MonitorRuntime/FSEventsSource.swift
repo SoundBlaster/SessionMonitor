@@ -1,15 +1,7 @@
+#if canImport(CoreServices)
 import CoreServices
 import Darwin
 import Foundation
-
-struct FileWatchEvent: Sendable {
-    let needsReattach: Bool
-}
-
-protocol FileEventSource: Sendable {
-    func start(_ receive: @escaping @Sendable (FileWatchEvent) -> Void) throws
-    func stop()
-}
 
 /// The lock owns all native stream state. Callbacks use a separate immutable context
 /// and never take this lock, so stopping a stream cannot deadlock its callback.
@@ -155,3 +147,5 @@ private enum FileEventsError: Error, LocalizedError {
         }
     }
 }
+
+#endif

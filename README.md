@@ -64,7 +64,13 @@ make lint-architecture    # FSD strict architecture gate
 make check                # Полный последовательный набор локальных проверок
 make ci                   # Те же native gates, locked packages и ad-hoc signing
 make lint-ci              # Проверка GitHub workflow (нужен actionlint)
+make check-linux          # Linux: CLI build, core tests и CLI smoke без Xcode и GUI
 ```
+
+CLI `codex-monitor` собирается и на Linux (Swift 6.2, проверено на Ubuntu 24.04; GitHub CI
+job `Linux CLI checks`): `swift build --product codex-monitor`. Отличия от macOS: `watch`
+опрашивает каталог раз в 2 секунды вместо FSEvents, у файлов нет birth time (identity —
+device+inode), App Group snapshot для виджета не пишется. GUI, виджет и уведомления — только macOS.
 
 `make generate` создаёт `Apps/MonitorMac/MonitorMac.xcodeproj` из versioned `project.yml`.
 Оба SwiftPM graphs закреплены в root `Package.resolved` и `Apps/MonitorMac/Package.resolved`.
@@ -113,7 +119,8 @@ attribution остаются в `Unknown/Mixed`; mixed source roots исключ
 означает unknown, а не нулевой расход. Подробнее: [SM-308a report](reports/SM-308a-quota-snapshot-ingestion.md).
 
 CLI и GUI по умолчанию используют одну БД:
-`~/Library/Application Support/SessionMonitor/usage.sqlite`.
+`~/Library/Application Support/SessionMonitor/usage.sqlite`
+(на Linux — `$XDG_DATA_HOME/SessionMonitor/usage.sqlite`, по умолчанию `~/.local/share/...`).
 CLI поддерживает `--database PATH`; переменная `SESSIONMONITOR_DATABASE` позволяет
 обоим интерфейсам использовать отдельную БД для проверки. Архивные rollouts можно
 импортировать отдельным запуском из `~/.codex/archived_sessions`.

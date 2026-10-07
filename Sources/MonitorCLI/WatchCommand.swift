@@ -1,5 +1,9 @@
 import ArgumentParser
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 import Foundation
 import MonitorCore
 import MonitorRuntime
@@ -105,7 +109,7 @@ final class WatchOutput: Sendable {
         while offset < data.count {
             try Task.checkCancellation()
             let (written, code) = data.withUnsafeBytes { bytes in
-                (Darwin.write(STDOUT_FILENO, bytes.baseAddress?.advanced(by: offset), data.count - offset), errno)
+                (systemWrite(STDOUT_FILENO, bytes.baseAddress?.advanced(by: offset), data.count - offset), errno)
             }
             if written > 0 {
                 offset += written
@@ -120,6 +124,15 @@ final class WatchOutput: Sendable {
     }
 
     deinit { _ = fcntl(STDOUT_FILENO, F_SETFL, previousFlags) }
+}
+
+/// The C `write`, qualified per platform so it is not shadowed by `WatchOutput.write`.
+private func systemWrite(_ descriptor: Int32, _ buffer: UnsafeRawPointer?, _ count: Int) -> Int {
+    #if canImport(Darwin)
+    Darwin.write(descriptor, buffer, count)
+    #else
+    Glibc.write(descriptor, buffer, count)
+    #endif
 }
 
 /// CLI-only signal dispositions; restored after the event sources are cancelled.

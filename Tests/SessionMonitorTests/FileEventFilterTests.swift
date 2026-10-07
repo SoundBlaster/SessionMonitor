@@ -1,3 +1,4 @@
+#if canImport(CoreServices)
 import CoreServices
 import Foundation
 @testable import MonitorRuntime
@@ -51,3 +52,4 @@ struct FileEventFilterTests {
         #expect(filter.event(path: physical, flags: UInt32(kFSEventStreamEventFlagItemIsDir)) != nil)
     }
 }
+#endif

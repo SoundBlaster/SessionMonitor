@@ -1,4 +1,8 @@
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 import Foundation
 
 struct RolloutFileVersion: Codable, Equatable {
@@ -14,11 +18,19 @@ struct RolloutFileVersion: Codable, Equatable {
         guard attributes.st_mode & S_IFMT == S_IFREG, attributes.st_size >= 0 else {
             throw CocoaError(.fileReadUnsupportedScheme)
         }
+        size = UInt64(attributes.st_size)
+        #if canImport(Darwin)
         identity = "\(attributes.st_dev):\(attributes.st_ino):"
             + "\(attributes.st_birthtimespec.tv_sec):\(attributes.st_birthtimespec.tv_nsec)"
-        size = UInt64(attributes.st_size)
         modification = "\(attributes.st_mtimespec.tv_sec):\(attributes.st_mtimespec.tv_nsec):"
             + "\(attributes.st_ctimespec.tv_sec):\(attributes.st_ctimespec.tv_nsec)"
+        #else
+        // Linux `stat` has no birth time; device and inode identify the file, and a replacement
+        // is still detected through size, modification and status-change times.
+        identity = "\(attributes.st_dev):\(attributes.st_ino)"
+        modification = "\(attributes.st_mtim.tv_sec):\(attributes.st_mtim.tv_nsec):"
+            + "\(attributes.st_ctim.tv_sec):\(attributes.st_ctim.tv_nsec)"
+        #endif
     }
 }
 

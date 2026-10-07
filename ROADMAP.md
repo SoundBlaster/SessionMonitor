@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-06. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-07. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -16,6 +16,7 @@ SM-323 — PR [#80](https://github.com/SoundBlaster/SessionMonitor/pull/80), mer
 Surface Protocol, ждёт spec).
 Параллельно по возможности: SM-205 (автозапуск watch), SM-326 (findings и список алертов в GUI), SM-327
 (новые live-правила), SM-330 (переход к сессии по клику на уведомление).
+**SM-331 — в работе** (ветка `feat/sm-331-linux-cli`): CLI собирается и тестируется на Linux, job `Linux CLI checks`.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -940,6 +941,19 @@ deliverable — WidgetKit extension с App Group в SM-401.
   До исправления реальный runtime test завершался GRDB thread precondition crash.
   После исправления `make test-macos` — 8 tests passed, включая external-process GUI observation;
   локальное evidence `.build/sm104-app.log`. Доставка совместно с SM-104: [PR #5](https://github.com/SoundBlaster/SessionMonitor/pull/5).
+
+- [ ] **SM-331** — Совместимость CLI `codex-monitor` с Linux.
+  **Статус: в работе (2026-10-07), ветка `feat/sm-331-linux-cli`.** Добавлено по запросу пользователя.
+  Сделано: условные импорты CryptoKit/`Crypto` (swift-crypto 3.15.1, зависимость только для Linux,
+  пины в обоих `Package.resolved`) и Darwin/Glibc; `RolloutFileVersion` на Linux без birth time
+  (identity — device+inode, изменение — mtime/ctime); `FSEventsSource` только при CoreServices,
+  на Linux `PollingFileEventSource` (снимок size+mtime rollouts раз в 2 с, событие только при
+  изменении); БД по умолчанию в `$XDG_DATA_HOME`/`~/.local/share`; App Group snapshot на Linux не
+  пишется; performance harness меряет через `wait4`/`/proc` вместо Apple `time -l`/`sysctl`.
+  `make check-linux`/`make ci-linux` и GitHub job `Linux CLI checks` (container `swift:6.2-noble`)
+  входят в обязательный `CI`. Evidence (Ubuntu 24.04, Swift 6.2): `make ci-linux` — build, 166 Swift Testing + 7 XCTest, watch/snapshot/quota/performance CLI smoke прошли.
+  Остаток: зелёный `CI` в PR (включая проверку `Apps/MonitorMac/Package.resolved` в Xcode — пины
+  swift-crypto/swift-asn1 перенесены вручную, originHash пересчитает Xcode).
 
 ## Evidence и границы
 

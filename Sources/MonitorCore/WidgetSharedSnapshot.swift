@@ -256,11 +256,16 @@ public struct WidgetSharedSnapshotStore: Sendable {
 
     public init(fileURL: URL) { self.fileURL = fileURL }
 
+    /// App Groups exist only on Apple platforms; elsewhere there is no shared widget container.
     public static func appGroup(identifier: String = WidgetSharedSnapshot.appGroupIdentifier) -> Self? {
+        #if canImport(Darwin)
         guard let directory = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: identifier) else {
             return nil
         }
         return Self(fileURL: directory.appending(path: "widget-snapshot.json"))
+        #else
+        return nil
+        #endif
     }
 
     public func write(_ snapshot: WidgetSharedSnapshot) throws {

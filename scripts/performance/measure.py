@@ -1,4 +1,4 @@
-"""macOS measurement primitives; standard library and Apple's time/ps only."""
+"""Measurement primitives: Apple's time/ps on macOS, wait4 and /proc on Linux; standard library only."""
 import contextlib
 import json
 import os
@@ -6,10 +6,47 @@ from pathlib import Path
 import selectors
 import signal
 import subprocess
+import sys
 import time
+
+DARWIN = sys.platform == 'darwin'
 
 
 def timed(command, destination, timeout=600):
+    if not DARWIN:
+        return timed_wait4(command, destination, timeout)
+    return timed_apple(command, destination, timeout)
+
+
+def timed_wait4(command, destination, timeout):
+    """Linux: the CLI is a direct child, so wait4 rusage gives its CPU and peak RSS (KiB)."""
+    destination = Path(destination)
+    with destination.open('wb') as output, destination.with_suffix('.stderr').open('wb') as errors:
+        start = time.monotonic()
+        process = subprocess.Popen(list(map(str, command)), stdout=output, stderr=errors, start_new_session=True)
+        try:
+            while True:
+                pid, status, usage = os.wait4(process.pid, os.WNOHANG)
+                if pid:
+                    break
+                if time.monotonic() - start > timeout:
+                    raise subprocess.TimeoutExpired(command, timeout)
+                time.sleep(0.005)
+        except BaseException:
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(process.pid, signal.SIGKILL)
+            with contextlib.suppress(ChildProcessError):
+                os.waitpid(process.pid, 0)
+            raise
+        elapsed = time.monotonic() - start
+        process.returncode = os.waitstatus_to_exitcode(status)
+    if process.returncode:
+        raise subprocess.CalledProcessError(process.returncode, command)
+    return {'peak_rss_bytes': usage.ru_maxrss * 1024, 'cpu_seconds': usage.ru_utime + usage.ru_stime,
+            'wall_seconds': elapsed}
+
+
+def timed_apple(command, destination, timeout):
     """Apple time -l reports peak RSS in bytes; elapsed/CPU have centisecond resolution."""
     destination = Path(destination)
     timing = destination.with_suffix('.time')
@@ -43,6 +80,10 @@ def timed(command, destination, timeout=600):
 
 
 def cpu_seconds(pid):
+    if not DARWIN:
+        # /proc/<pid>/stat fields 14 and 15 (after the parenthesised name) are utime/stime in clock ticks.
+        fields = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()
+        return (int(fields[11]) + int(fields[12])) / os.sysconf('SC_CLK_TCK')
     raw = subprocess.check_output(['/bin/ps', '-o', 'time=', '-p', str(pid)], text=True).strip()
     seconds = 0.0
     for part in raw.split(':'):
@@ -115,7 +156,7 @@ def idle(binary, root, database, directory, seconds, combined):
             observer = stack.enter_context(stream([binary, 'snapshot', '--follow', '--database', database], errors))
             observer.next()
             children['observer'] = observer
-        # Allow initial FSEvents batches/startup queries to settle outside the sample.
+        # Allow initial file-event batches/startup queries to settle outside the sample.
         time.sleep(1)
         before = {name: cpu_seconds(child.process.pid) for name, child in children.items()}
         start = time.monotonic()
