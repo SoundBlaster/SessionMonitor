@@ -48,7 +48,7 @@ final class CacheHitRateWidgetBucketDetailTests: XCTestCase {
         let query = try UsagePeriodPreset.today.resolve(referenceDate: now, timeZoneIdentifier: zone.identifier)
         let interval = try DateInterval(start: XCTUnwrap(query.since), end: XCTUnwrap(query.until))
         let report = CacheHitRateWidgetBuilder.build(
-            observations: [observation(interval.start.addingTimeInterval(10 * 3_600), session: "a", rate: 90)],
+            observations: requests(interval.start.addingTimeInterval(10 * 3_600), session: "a", rate: 90),
             period: .last24Hours, referenceDate: now, timeZone: zone, interval: interval)
         let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
         let text = CacheHitRateWidgetBucketDetail.text(for: slots[10], report: report,
@@ -91,6 +91,26 @@ final class CacheHitRateWidgetBucketDetailTests: XCTestCase {
         XCTAssertNil(CacheHitRateWidgetBucketDetail.interval(ofSlot: 99, in: slots, report: report))
     }
 
+    func testAnIntervalOfOnlySingleRequestSessionsHasNoRangeButCanBeSelected() throws {
+        let now = date("2026-09-30T09:30:00Z")
+        let query = try UsagePeriodPreset.lastSevenDays.resolve(referenceDate: now, timeZoneIdentifier: "UTC")
+        let interval = try DateInterval(start: XCTUnwrap(query.since), end: XCTUnwrap(query.until))
+        let report = CacheHitRateWidgetBuilder.build(
+            observations: [observation(date("2026-09-28T10:00:00Z"), session: "only", rate: 0)],
+            period: .last7Days, referenceDate: now, timeZone: .gmt, interval: interval)
+        let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
+        let cold = try XCTUnwrap(slots.first { $0.start == date("2026-09-28T00:00:00Z") })
+
+        XCTAssertNil(cold.bucket)
+        XCTAssertTrue(cold.hasUsage)
+        XCTAssertTrue(CacheHitRateWidgetBucketDetail.text(for: cold, report: report, locale: english)
+            .hasSuffix("only single-request sessions, no range"))
+        XCTAssertEqual(CacheHitRateWidgetBucketDetail.interval(ofSlot: cold.id, in: slots, report: report)?.start,
+                       date("2026-09-28T00:00:00Z"))
+        let empty = try XCTUnwrap(slots.first { !$0.hasUsage })
+        XCTAssertNil(CacheHitRateWidgetBucketDetail.interval(ofSlot: empty.id, in: slots, report: report))
+    }
+
     func testTheLastSlotEndsAtThePeriodEnd() throws {
         let report = try weekReport()
         let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
@@ -115,15 +135,23 @@ final class CacheHitRateWidgetBucketDetailTests: XCTestCase {
         let now = date("2026-09-30T09:30:00Z")
         let query = try UsagePeriodPreset.lastSevenDays.resolve(referenceDate: now, timeZoneIdentifier: "UTC")
         let interval = try DateInterval(start: XCTUnwrap(query.since), end: XCTUnwrap(query.until))
-        return CacheHitRateWidgetBuilder.build(observations: [
-            observation(date("2026-09-28T10:00:00Z"), session: "session-a", rate: 80),
-            observation(date("2026-09-28T11:00:00Z"), session: "session-b", rate: 90),
-            observation(date("2026-09-26T10:00:00Z"), session: "session-c", rate: 95)
-        ], period: .last7Days, referenceDate: now, timeZone: .gmt, interval: interval)
+        return CacheHitRateWidgetBuilder.build(observations:
+            requests(date("2026-09-28T10:00:00Z"), session: "session-a", rate: 80)
+            + requests(date("2026-09-28T11:00:00Z"), session: "session-b", rate: 90)
+            + requests(date("2026-09-26T10:00:00Z"), session: "session-c", rate: 95),
+        period: .last7Days, referenceDate: now, timeZone: .gmt, interval: interval)
     }
 
     private func observation(_ timestamp: Date, session: String, rate: Int64) -> CacheHitRateObservation {
         .init(timestamp: timestamp, sessionID: session, cacheableInputTokens: 100, cachedInputTokens: rate)
+    }
+
+    /// Two requests: a session with a single request is a cold start and is not plotted.
+    private func requests(_ timestamp: Date, session: String, rate: Int64) -> [CacheHitRateObservation] {
+        [0, 60].map {
+            .init(timestamp: timestamp.addingTimeInterval($0), sessionID: session,
+                  cacheableInputTokens: 100, cachedInputTokens: rate)
+        }
     }
 
     private func date(_ value: String) -> Date {

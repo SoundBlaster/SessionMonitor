@@ -22,7 +22,9 @@ enum CacheHitRateWidgetBucketDetail {
     ) -> String {
         let when = dateLabel(slot.start, period: report.period,
                              timeZoneIdentifier: report.timeZoneIdentifier, locale: locale)
-        guard let bucket = slot.bucket else { return "\(when) · no cache data" }
+        guard let bucket = slot.bucket else {
+            return "\(when) · \(slot.hasUsage ? "only single-request sessions, no range" : "no cache data")"
+        }
         let range = bucket.usesMinMaxFallback ? "min–max" : "typical"
         return [
             when,
@@ -48,7 +50,7 @@ enum CacheHitRateWidgetBucketDetail {
     static func interval(
         ofSlot id: Int, in slots: [CacheHitRateWidgetSlot], report: CacheHitRateWidgetReport
     ) -> DateInterval? {
-        guard let slot = slots.first(where: { $0.id == id }), slot.bucket != nil else { return nil }
+        guard let slot = slots.first(where: { $0.id == id }), slot.hasUsage else { return nil }
         let end = slots.first(where: { $0.id == id + 1 })?.start ?? report.periodEnd
         guard end > slot.start else { return nil }
         return DateInterval(start: slot.start, end: end)

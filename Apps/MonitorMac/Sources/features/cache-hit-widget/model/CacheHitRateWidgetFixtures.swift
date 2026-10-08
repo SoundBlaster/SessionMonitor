@@ -29,7 +29,7 @@ enum CacheHitRateWidgetFixture: String, CaseIterable, Identifiable {
 
     private func observations(period: CacheHitRateWidgetPeriod) -> [CacheHitRateObservation] {
         if self == .empty { return [] }
-        if self == .single { return [observation(day: 3, rate: 88)] }
+        if self == .single { return [observation(day: 3, rate: 88), observation(day: 3, rate: 88, offset: 60)] }
         if self == .zero { return [observation(day: 3, rate: 0, weight: 0)] }
         if self == .partial {
             return [.init(timestamp: Self.referenceDate.addingTimeInterval(-3_600), sessionID: "synthetic",
@@ -42,17 +42,22 @@ enum CacheHitRateWidgetFixture: String, CaseIterable, Identifiable {
             let rates = self == .weighted ? [80, 82, 83, 84, 85, 85, 86, 87, 88, 100]
                 : self == .outliers ? [5, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 99]
                 : [81, 84, 87, 89, 92, 94]
-            return rates.enumerated().map { offset, rate in
+            // Two requests per session: a session with a single request is a cold start and is not plotted.
+            return rates.enumerated().flatMap { offset, rate -> [CacheHitRateObservation] in
                 let weight: Int64 = self == .weighted && offset == rates.count - 1 ? 100_000 : 100
-                return .init(timestamp: Self.referenceDate.addingTimeInterval(-period.duration
-                    + Double(index) * step + step / 2), sessionID: "synthetic-\(index)-\(offset)",
-                    cacheableInputTokens: weight, cachedInputTokens: Int64(rate) * weight / 100)
+                return [0.0, 60].map { shift in
+                    .init(timestamp: Self.referenceDate.addingTimeInterval(-period.duration
+                        + Double(index) * step + step / 2 + shift), sessionID: "synthetic-\(index)-\(offset)",
+                        cacheableInputTokens: weight, cachedInputTokens: Int64(rate) * weight / 100)
+                }
             }
         }
     }
 
-    private func observation(day: Int, rate: Int64, weight: Int64 = 100) -> CacheHitRateObservation {
-        .init(timestamp: Self.referenceDate.addingTimeInterval(-Double(day) * 86_400 + 3_600),
+    private func observation(
+        day: Int, rate: Int64, weight: Int64 = 100, offset: TimeInterval = 0
+    ) -> CacheHitRateObservation {
+        .init(timestamp: Self.referenceDate.addingTimeInterval(-Double(day) * 86_400 + 3_600 + offset),
               sessionID: "synthetic", cacheableInputTokens: weight, cachedInputTokens: rate * weight / 100)
     }
 

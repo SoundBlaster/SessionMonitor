@@ -12,12 +12,13 @@ final class SidebarCachePeriodTests: XCTestCase {
         let now = date("2026-09-30T09:30:00Z")
         let query = try UsagePeriodPreset.today.resolve(referenceDate: now, timeZoneIdentifier: zone.identifier)
         let interval = try DateInterval(start: XCTUnwrap(query.since), end: XCTUnwrap(query.until))
-        let report = CacheHitRateWidgetBuilder.build(observations: [
-            observation(date("2026-09-29T20:59:59Z"), rate: 0),
-            observation(date("2026-09-29T21:00:00Z"), rate: 80),
-            observation(date("2026-09-30T09:00:00Z"), rate: 100),
-            observation(interval.end, rate: 0)
-        ], period: .last24Hours, referenceDate: now, timeZone: zone, interval: interval)
+        // The two requests outside the day sit exactly on its bounds, so they stay single observations.
+        let report = CacheHitRateWidgetBuilder.build(observations:
+            [observation(date("2026-09-29T20:59:59Z"), rate: 0)]
+            + requests(date("2026-09-29T21:00:00Z"), rate: 80)
+            + requests(date("2026-09-30T09:00:00Z"), rate: 100)
+            + [observation(interval.end, rate: 0)],
+        period: .last24Hours, referenceDate: now, timeZone: zone, interval: interval)
         XCTAssertEqual(report.periodCacheHitRate, 90)
         XCTAssertEqual(report.periodStart, date("2026-09-29T21:00:00Z"))
         let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
@@ -126,8 +127,8 @@ final class SidebarCachePeriodTests: XCTestCase {
         let now = date("2026-09-30T09:30:00Z")
         let query = try UsagePeriodPreset.today.resolve(referenceDate: now, timeZoneIdentifier: zone.identifier)
         let interval = try DateInterval(start: XCTUnwrap(query.since), end: XCTUnwrap(query.until))
-        let observations = (0..<13).map {
-            observation(interval.start.addingTimeInterval(Double($0) * 3_600), rate: Int64(80 + $0))
+        let observations = (0..<13).flatMap {
+            requests(interval.start.addingTimeInterval(Double($0) * 3_600), rate: Int64(80 + $0))
         }
         let report = CacheHitRateWidgetBuilder.build(observations: observations, period: .last24Hours,
             referenceDate: now, timeZone: zone, interval: interval)
@@ -144,8 +145,13 @@ final class SidebarCachePeriodTests: XCTestCase {
         }
     }
 
-    private func observation(_ timestamp: Date, rate: Int64) -> CacheHitRateObservation {
-        .init(timestamp: timestamp, sessionID: timestamp.description,
+    /// Two requests of one session: a session with a single request is a cold start and is not plotted.
+    private func requests(_ timestamp: Date, rate: Int64) -> [CacheHitRateObservation] {
+        [0, 1].map { observation(timestamp.addingTimeInterval($0), rate: rate, session: timestamp.description) }
+    }
+
+    private func observation(_ timestamp: Date, rate: Int64, session: String? = nil) -> CacheHitRateObservation {
+        .init(timestamp: timestamp, sessionID: session ?? timestamp.description,
               cacheableInputTokens: 100, cachedInputTokens: rate)
     }
 

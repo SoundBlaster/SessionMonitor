@@ -93,12 +93,15 @@ public struct CacheHitRateWidgetReport: Equatable, Sendable {
     public let availability: CacheHitRateWidgetAvailability
     public let sessionCount: Int
     public let buckets: [CacheHitRateBucket]
+    /// Starts of the intervals that contain any request, including intervals with only single-request
+    /// sessions, which draw no range. Lets a presentation tell "no usage" from "no range to draw".
+    public let occupiedBucketStarts: Set<Date>
 
     public init(period: CacheHitRateWidgetPeriod, timeZoneIdentifier: String = "UTC",
                 periodStart: Date, periodEnd: Date,
                 periodCacheHitRate: Double?, comparisonDeltaPercentagePoints: Double?,
                 availability: CacheHitRateWidgetAvailability, sessionCount: Int,
-                buckets: [CacheHitRateBucket]) {
+                buckets: [CacheHitRateBucket], occupiedBucketStarts: Set<Date> = []) {
         self.period = period
         self.timeZoneIdentifier = timeZoneIdentifier
         self.periodStart = periodStart
@@ -108,6 +111,7 @@ public struct CacheHitRateWidgetReport: Equatable, Sendable {
         self.availability = availability
         self.sessionCount = sessionCount
         self.buckets = buckets
+        self.occupiedBucketStarts = occupiedBucketStarts.union(buckets.map(\.start))
     }
 }
 
@@ -141,8 +145,21 @@ public enum CacheHitRateWidgetBuilder {
             },
             availability: availability,
             sessionCount: sessionCount,
-            buckets: buckets
+            buckets: buckets,
+            occupiedBucketStarts: occupiedBucketStarts(for: current, period: period, periodStart: periodStart,
+                                                       periodEnd: periodEnd, timeZone: timeZone)
         )
+    }
+
+    private static func occupiedBucketStarts(
+        for observations: [CacheHitRateObservation], period: CacheHitRateWidgetPeriod,
+        periodStart: Date, periodEnd: Date, timeZone: TimeZone
+    ) -> Set<Date> {
+        let intervals = bucketIntervals(period: period, periodStart: periodStart, periodEnd: periodEnd,
+                                        calendar: calendar(for: timeZone))
+        return Set(intervals.filter { interval in
+            observations.contains { $0.timestamp >= interval.start && $0.timestamp < interval.end }
+        }.map(\.start))
     }
 
     private static func availability(for observations: [CacheHitRateObservation]) -> CacheHitRateWidgetAvailability {
@@ -169,9 +186,13 @@ public enum CacheHitRateWidgetBuilder {
         let calendar = calendar(for: timeZone)
         let intervals = bucketIntervals(period: period, periodStart: periodStart, periodEnd: periodEnd,
                                         calendar: calendar)
+        // A session with a single request is a cold start (nothing cached yet), not a cache behaviour: it
+        // stays in every total but is left out of the range, average and outliers drawn per bucket.
+        let requestCounts = Dictionary(grouping: observations, by: \.sessionID).mapValues(\.count)
+        let coldStarts = Set(requestCounts.filter { $0.value == 1 }.keys)
         return intervals.compactMap { interval in
             let values = sessionRates(in: observations.filter {
-                $0.timestamp >= interval.start && $0.timestamp < interval.end
+                $0.timestamp >= interval.start && $0.timestamp < interval.end && !coldStarts.contains($0.sessionID)
             })
             guard !values.isEmpty else { return nil }
             return makeBucket(start: interval.start, end: interval.end, values: values)

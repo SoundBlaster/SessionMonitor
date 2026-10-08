@@ -99,7 +99,7 @@ struct CacheHitRateWidgetChart: View {
                 ForEach(slots) { slot in
                     Text(CacheHitRateWidgetBucketDetail.accessibilityText(for: slot, report: report))
                         .accessibilityActions {
-                            if let onSelectSlot, slot.bucket != nil {
+                            if let onSelectSlot, slot.hasUsage {
                                 Button("Show only this interval") { onSelectSlot(slot.id) }
                             }
                         }

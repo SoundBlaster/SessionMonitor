@@ -19,6 +19,8 @@ final class CacheHitRateWidgetTests: XCTestCase {
     func testBucketsDoNotExposeSessionOrModelIdentity() {
         let report = makeReport([
             observation(hoursBeforeReference: 2, session: "sensitive-session-id", input: 100, cached: 90),
+            observation(hoursBeforeReference: 2, session: "sensitive-session-id", input: 100, cached: 90),
+            observation(hoursBeforeReference: 2, session: "another-id", input: 100, cached: 80),
             observation(hoursBeforeReference: 2, session: "another-id", input: 100, cached: 80)
         ])
 
@@ -51,6 +53,8 @@ final class CacheHitRateWidgetTests: XCTestCase {
     func testInsufficientSamplesUsesMinMaxAndNoOutliers() throws {
         let report = makeReport([
             observation(hoursBeforeReference: 1, session: "first", input: 100, cached: 80),
+            observation(hoursBeforeReference: 1, session: "first", input: 100, cached: 80),
+            observation(hoursBeforeReference: 1, session: "second", input: 100, cached: 95),
             observation(hoursBeforeReference: 1, session: "second", input: 100, cached: 95)
         ])
         let bucket = try XCTUnwrap(report.buckets.first)
@@ -75,6 +79,8 @@ final class CacheHitRateWidgetTests: XCTestCase {
         let report = CacheHitRateWidgetBuilder.build(
             observations: [
                 observation(hoursBeforeReference: 2, session: "one", input: 100, cached: 90),
+                observation(hoursBeforeReference: 2, session: "one", input: 100, cached: 90),
+                observation(hoursBeforeReference: 26, session: "two", input: 100, cached: 80),
                 observation(hoursBeforeReference: 26, session: "two", input: 100, cached: 80)
             ],
             period: .last7Days,
@@ -84,6 +90,39 @@ final class CacheHitRateWidgetTests: XCTestCase {
 
         XCTAssertEqual(report.buckets.count, 2)
         XCTAssertTrue(report.buckets.allSatisfy { $0.end.timeIntervalSince($0.start) <= 24 * 60 * 60 })
+    }
+
+    func testSingleRequestSessionsAreColdStartsLeftOutOfTheBucketShapeButKeptInTotals() throws {
+        let report = makeReport([
+            observation(hoursBeforeReference: 2, session: "warm-a", input: 100, cached: 90),
+            observation(hoursBeforeReference: 2, session: "warm-a", input: 100, cached: 90),
+            observation(hoursBeforeReference: 2, session: "warm-b", input: 100, cached: 80),
+            observation(hoursBeforeReference: 2, session: "warm-b", input: 100, cached: 80),
+            observation(hoursBeforeReference: 2, session: "cold", input: 100, cached: 0)
+        ])
+        let bucket = try XCTUnwrap(report.buckets.first)
+
+        XCTAssertEqual(bucket.sampleCount, 2)
+        XCTAssertEqual(bucket.lower, 80, accuracy: 0.0001)
+        XCTAssertEqual(bucket.upper, 90, accuracy: 0.0001)
+        XCTAssertTrue(bucket.outliers.isEmpty)
+        XCTAssertEqual(report.sessionCount, 3)
+        // The cold request still counts in the period rate: (90 + 90 + 80 + 80 + 0) / 500.
+        XCTAssertEqual(try XCTUnwrap(report.periodCacheHitRate), 68, accuracy: 0.0001)
+    }
+
+    func testABucketOfOnlySingleRequestSessionsHasNoRangeButTheAvailabilityStaysKnown() {
+        let report = makeReport([
+            observation(hoursBeforeReference: 2, session: "cold-a", input: 100, cached: 0),
+            observation(hoursBeforeReference: 2, session: "cold-b", input: 100, cached: 0)
+        ])
+
+        XCTAssertTrue(report.buckets.isEmpty)
+        // The interval still holds usage, so it stays selectable even though it draws no range.
+        XCTAssertEqual(report.occupiedBucketStarts.count, 1)
+        XCTAssertEqual(report.availability, .available)
+        XCTAssertEqual(report.periodCacheHitRate, 0)
+        XCTAssertEqual(report.sessionCount, 2)
     }
 
     private func makeReport(_ observations: [CacheHitRateObservation]) -> CacheHitRateWidgetReport {
