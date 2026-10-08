@@ -58,6 +58,16 @@ printf '%s\n' 'DEVELOPMENT_TEAM =' >"$work/Empty.xcconfig"
 sh "$script" hint "$work/Empty.xcconfig" >"$work/out"
 check contains 'sets no DEVELOPMENT_TEAM' "$work/out"
 
+description='a conditional team assignment counts as a team'
+printf '%s\n' 'DEVELOPMENT_TEAM[sdk=macosx*] = ABCDE12345' >"$work/Conditional.xcconfig"
+sh "$script" hint "$work/Conditional.xcconfig" >"$work/out"
+check is_empty "$work/out"
+
+description='a conditional assignment with an empty value does not'
+printf '%s\n' 'DEVELOPMENT_TEAM[sdk=macosx*] =' >"$work/EmptyConditional.xcconfig"
+sh "$script" hint "$work/EmptyConditional.xcconfig" >"$work/out"
+check contains 'sets no DEVELOPMENT_TEAM' "$work/out"
+
 description='a missing file gets the hint too'
 sh "$script" hint "$work/Missing.xcconfig" >"$work/out"
 check contains 'sets no DEVELOPMENT_TEAM' "$work/out"

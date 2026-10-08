@@ -27,7 +27,7 @@ TEMPLATE
     fi
     ;;
 hint)
-    if [ -f "$file" ] && grep -Eq '^[[:space:]]*DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*[^[:space:]/]' "$file"; then
+    if [ -f "$file" ] && grep -Eq '^[[:space:]]*DEVELOPMENT_TEAM(\[[^]]*\])*[[:space:]]*=[[:space:]]*[^[:space:]/]' "$file"; then
         exit 0
     fi
     printf '%s\n' "Signing: $file sets no DEVELOPMENT_TEAM, so the app builds with ad-hoc signing." \

@@ -1111,7 +1111,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   этом молчали. Сделано: `scripts/local-signing.sh` (`ensure` создаёт файл с ad-hoc подписью и закомментированными строками
   `DEVELOPMENT_TEAM`/`CODE_SIGN_IDENTITY`, существующий файл не трогает; `hint` печатает объяснение, пока нет активного
   `DEVELOPMENT_TEAM`), `make generate` вызывает оба режима (значит, и `make init`, и hooks), README и CONTRIBUTING. Evidence:
-  `make test-init` теперь запускает `scripts/tests/local-signing-test.sh` (12 проверок, мутационные проверки роняют тест; входит в job
+  `make test-init` теперь запускает `scripts/tests/local-signing-test.sh` (14 проверок, мутационные проверки роняют тест; входит в job
   `Workflow lint`), `make -n generate`. Остаток: GitHub `CI`; на Mac проверить подсказку после `make generate` и что заданный
   `DEVELOPMENT_TEAM` в `Local.xcconfig` переживает pull. Готово, когда новая и существующая конфигурация подписи ведут себя как
   описано, подсказка не появляется при заданном `DEVELOPMENT_TEAM`, а тест выполняется в GitHub CI.
