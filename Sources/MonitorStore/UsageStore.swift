@@ -351,7 +351,7 @@ public final class UsageStore: Sendable {
         let totalsRow = try Row.fetchOne(database, sql: """
             SELECT \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
             """, arguments: arguments)
-        let spans = try Self.sessionSpans(database)
+        let spans = try Self.sessionSpans(database, accountScope: accountScope)
         let sessions = try Row.fetchAll(database, sql: """
             SELECT session, CASE WHEN COUNT(DISTINCT model) = 1 THEN MIN(model) ELSE 'mixed' END AS model,
             \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
@@ -365,11 +365,18 @@ public final class UsageStore: Sendable {
                            sessions: sessions, diagnostics: try Self.diagnostics(database), accountScope: accountScope)
     }
 
-    /// First and last confirmed request of every session over all imported history.
-    private static func sessionSpans(_ database: Database) throws -> [String: (first: Date, last: Date)] {
+    /// First and last confirmed request of every session over all imported history of the account scope, so a
+    /// session id shared by several profiles never shows another account's dates.
+    private static func sessionSpans(
+        _ database: Database, accountScope: UsageAccountScope
+    ) throws -> [String: (first: Date, last: Date)] {
         let rows = try Row.fetchAll(database, sql: """
-            SELECT session, MIN(timestamp) AS first_at, MAX(timestamp) AS last_at FROM confirmed GROUP BY session
-            """)
+            SELECT session, MIN(timestamp) AS first_at, MAX(timestamp) AS last_at FROM confirmed
+            WHERE 1 = 1 \(Self.accountScopePredicate()) GROUP BY session
+            """, arguments: [
+                accountScope.kind.rawValue, accountScope.kind.rawValue, accountScope.profileID,
+                accountScope.kind.rawValue
+            ])
         return Dictionary(uniqueKeysWithValues: rows.map { row in
             (row["session"] as String,
              (Date(timeIntervalSince1970: row["first_at"]), Date(timeIntervalSince1970: row["last_at"])))

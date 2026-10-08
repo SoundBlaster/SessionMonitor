@@ -90,6 +90,36 @@ struct AccountProfileTests {
         #expect(Set(requestPointIDs).count == requestPointIDs.count)
     }
 
+    @Test func sessionDatesAreScopedToTheSelectedAccount() throws {
+        let fixture = try AccountProfileFixture()
+        defer { fixture.remove() }
+        let store = try UsageStore(url: fixture.database)
+        try store.replace(source: fixture.source("a/one.jsonl"), rollout: fixture.rollout(
+            identity: SourceAccountIdentity(accountID: "account-A", userID: "user-A")
+        ))
+        try store.replace(source: fixture.source("b/one.jsonl"), rollout: fixture.rollout(
+            identity: SourceAccountIdentity(accountID: "account-B", userID: "user-B"), requestOffset: 5_000
+        ))
+        _ = try store.assignAccountProfile(sourceRoot: fixture.directory.appending(path: "a"),
+                                           profileID: "personal", label: "Personal")
+        _ = try store.assignAccountProfile(sourceRoot: fixture.directory.appending(path: "b"),
+                                           profileID: "work", label: "Work")
+
+        let personal = try #require(try store.snapshot(
+            query: UsageQuery(accountScope: UsageAccountScope(profileID: "personal"))
+        )).report.sessions
+        let work = try #require(try store.snapshot(
+            query: UsageQuery(accountScope: UsageAccountScope(profileID: "work"))
+        )).report.sessions
+        let all = try #require(try store.snapshot(query: UsageQuery())).report.sessions
+
+        #expect(personal.first?.firstRequestAt == fixture.date)
+        #expect(personal.first?.lastRequestAt == fixture.date)
+        #expect(work.first?.firstRequestAt == fixture.date.addingTimeInterval(5_000))
+        #expect(all.first?.firstRequestAt == fixture.date)
+        #expect(all.first?.lastRequestAt == fixture.date.addingTimeInterval(5_000))
+    }
+
     @Test func existingDatabaseMigrationPreservesUsageAndAddsUnknownAccountScope() throws {
         let fixture = try AccountProfileFixture()
         defer { fixture.remove() }
@@ -276,13 +306,16 @@ private struct AccountProfileFixture {
         directory.appending(path: relative).standardizedFileURL.path
     }
 
-    func rollout(identity: SourceAccountIdentity?, quotaIdentities: [SourceAccountIdentity]? = nil) -> ParsedRollout {
+    func rollout(
+        identity: SourceAccountIdentity?, quotaIdentities: [SourceAccountIdentity]? = nil,
+        requestOffset: TimeInterval = 0
+    ) -> ParsedRollout {
         var rollout = ParsedRollout()
         rollout.accountIdentity = identity
         rollout.records = [UsageRecord(
             responseID: "response-collision", sessionID: "session-collision", turnID: "turn",
-            timestamp: date, model: "gpt-test", inputTokens: 100, cachedInputTokens: 80,
-            outputTokens: 10, sourceLine: 1
+            timestamp: date.addingTimeInterval(requestOffset), model: "gpt-test", inputTokens: 100,
+            cachedInputTokens: 80, outputTokens: 10, sourceLine: 1
         )]
         rollout.provenance = SessionProvenance(
             sessionID: "session-collision", displayName: identity?.accountID
