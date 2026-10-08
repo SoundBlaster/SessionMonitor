@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-07. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-08. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -20,7 +20,8 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 **ожидает живой проверки перезапуска на Mac пользователя.**
 **Порядок пользователя (2026-10-07):** SM-328 → SM-205 → SM-331 (совместимость CLI с Linux) — PR [#88](https://github.com/SoundBlaster/SessionMonitor/pull/88),
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
-**SM-327 — в работе** (ветка `feat/sm-327-live-rules`): live-правила burn rate, runaway loop, рост input и проекция квоты.
+SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
+**ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -752,7 +753,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `doctor --json` дают одинаковый набор findings, а in-app список алертов совпадает с
   `codex-monitor alerts --status all --json`.
 - [ ] **SM-327** — Live-правила для работающих сессий.
-  **Статус: реализовано, ожидает PR/CI (2026-10-07), ветка `feat/sm-327-live-rules`; выбрана пользователем.**
+  **Статус: доставлено в `main` (2026-10-08), [PR #90](https://github.com/SoundBlaster/SessionMonitor/pull/90),
+  merge `fee1de4`; `CI` прошёл на `207ae4e`; остаток — проверка на реальной сессии на Mac; выбрана пользователем.**
   Зависимость SM-325 выполнена. Сделано: каждое условие правила — отдельная Specification (SpecificationCore), порядок условий — `FirstMatchSpec`
   (первое невыполненное называет причину: `quiet` или `unknown`), итог — `DecisionSpec` с evidence
   (observed/inference/limitations), coverage и негативными случаями; пороги — кратные множители собственной истории пользователя
@@ -778,7 +780,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   burst против истории → raised/notify, виден в `agent status`, повтор молчит, завершение сессии → resolved;
   unknown сохраняет активный алерт; возобновлённая сессия выходит из своего baseline);
   мутационная проверка: снятие порогов и отключение интеграции роняет тесты; SwiftLint `--strict` — 0
-  violations. Остаток: зелёный GitHub `CI` в PR; пороги (3×, 2×, 1.5×) — стартовые, подстраиваются по
+  violations. Остаток: проверка на реальной сессии; пороги (3×, 2×, 1.5×) — стартовые, подстраиваются по
   опыту использования (`LiveRuleConfiguration`, настройки в UI не выведены).
 
 - [ ] **SM-330** — Открывать сессию с evidence по клику на уведомление алерта.
