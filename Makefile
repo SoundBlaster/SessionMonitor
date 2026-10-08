@@ -7,11 +7,13 @@ XCODEBUILD ?= xcodebuild
 # The pinned SpecificationCore/Kit macro implementations are trusted for these builds.
 # Matches XcodeBuildMCP's per-build behavior; does not alter global Xcode settings.
 XCODEBUILD_FLAGS ?= -skipMacroValidation
-XCODEGEN ?= xcodegen
+# Tools installed by make init (pinned releases) win over whatever is on PATH.
+PINNED_TOOLS := .build/ci-tools/bin
+XCODEGEN ?= $(if $(wildcard $(PINNED_TOOLS)/xcodegen),$(PINNED_TOOLS)/xcodegen,xcodegen)
 XCODEBUILDMCP ?= xcodebuildmcp
-SWIFTLINT ?= swiftlint
+SWIFTLINT ?= $(if $(wildcard $(PINNED_TOOLS)/swiftlint),$(PINNED_TOOLS)/swiftlint,swiftlint)
 SWIFTLINT_VERSION ?= 0.63.3
-FSD ?= fsd-ios
+FSD ?= $(if $(wildcard $(PINNED_TOOLS)/fsd-ios),$(PINNED_TOOLS)/fsd-ios,fsd-ios)
 ACTIONLINT ?= actionlint
 CLI_PRODUCT ?= codex-monitor
 BENCHMARK_SOURCE ?=
@@ -40,12 +42,16 @@ ifeq ($(ALLOW_PROVISIONING_UPDATES),YES)
 SIGNING_ARGS += -allowProvisioningUpdates
 endif
 
-.PHONY: help doctor generate install-hooks guard-package guard-app lint-version resolve build-cli test-core build-mcp
+.PHONY: help init test-init doctor generate install-hooks guard-package guard-app lint-version resolve build-cli test-core build-mcp
 .PHONY: lint-core lint lint-architecture build-macos test-macos test-widget check-core check archive
 .PHONY: ci ci-linux check-linux lint-ci test-architecture test-cli build-cli-release benchmark release-local
 
 help:
-	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate install-hooks build-macos build-mcp test-macos lint lint-architecture check archive' 'ci lint-ci test-architecture build-cli-release benchmark release-local'
+	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate install-hooks build-macos build-mcp test-macos lint lint-architecture check archive' 'init ci lint-ci test-init test-architecture build-cli-release benchmark release-local'
+
+# Idempotent setup and refresh: pinned tools, Git hooks, packages, Xcode project, toolchain check.
+init:
+	sh scripts/init.sh
 
 generate:
 	@test -f Apps/MonitorMac/Local.xcconfig || printf '%s\n' '// Local signing overrides (not committed).' 'CODE_SIGN_IDENTITY = -' > Apps/MonitorMac/Local.xcconfig
@@ -113,7 +119,11 @@ test-architecture:
 lint-ci:
 	$(ACTIONLINT) -color
 	bash -n scripts/ci/install-tools.sh scripts/ci/check-fsd-boundary.sh scripts/git-hooks/install.sh
-	sh -n .githooks/pre-commit
+	sh -n .githooks/pre-commit scripts/init.sh scripts/tests/init-test.sh
+
+# The init routine runs against stub targets in a throwaway repository; nothing is installed.
+test-init:
+	sh scripts/tests/init-test.sh
 
 build-macos: guard-app
 	$(XCODEBUILD) $(XCODEBUILD_FLAGS) -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIGURATION)" -destination "$(DESTINATION)" -derivedDataPath "$(DERIVED_DATA)" $(SIGNING_ARGS) build
