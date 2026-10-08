@@ -45,6 +45,11 @@ struct SessionExplorerToolbar: ToolbarContent {
                 : "Import new and changed JSONL files from the last folder")
             .disabled(model.isBusy)
             .accessibilityIdentifier("sessionExplorer.update")
+            Button("Findings", systemImage: "exclamationmark.bubble") {
+                model.navigation.showsFindings = true
+            }
+            .help("Show diagnostic findings and alerts for this report")
+            .accessibilityIdentifier("sessionExplorer.findings")
         }
     }
 
