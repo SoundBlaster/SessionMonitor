@@ -106,7 +106,8 @@ struct SessionExplorerPage: View {
                 palette: CacheHitRateWidgetAppearance.Palette(chart: chartPalette), copy: .default
             ),
             containerStyle: .embedded,
-            periodTitle: reportScope.preset == .all ? nil : reportScope.title
+            periodTitle: reportScope.preset == .all ? nil : reportScope.title,
+            inspectsBuckets: true
         )
         .padding(SessionExplorerSidebarLayout.sectionInset)
         .frame(height: SessionExplorerSidebarLayout.chartHeight, alignment: .topLeading)

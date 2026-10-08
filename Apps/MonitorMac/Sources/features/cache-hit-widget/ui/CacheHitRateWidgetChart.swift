@@ -8,12 +8,22 @@ struct CacheHitRateWidgetChart: View {
     let family: CacheHitRateWidgetAppearance.Family
     let appearance: CacheHitRateWidgetAppearance
     let preservesAspectRatio: Bool
+    /// The slot under the pointer, reported to the host that shows its details. Unused by default.
+    var inspectedSlotID: Binding<Int?> = .constant(nil)
+
+    @State private var pointerX: Double?
 
     private var slots: [CacheHitRateWidgetSlot] { CacheHitRateWidgetChartPresentation.slots(for: report) }
     private var domain: ClosedRange<Double> { CacheHitRateWidgetAxis.domain(for: report.buckets) }
 
     var body: some View {
         Chart {
+            if let inspected = inspectedSlotID.wrappedValue, slots.indices.contains(inspected) {
+                RuleMark(x: .value("Inspected", Double(inspected)))
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+                    .foregroundStyle(appearance.palette.neutral.opacity(0.6))
+                    .accessibilityHidden(true)
+            }
             if family != .small {
                 ForEach(labelSlots) { slot in
                     RuleMark(x: .value("Day", Double(slot.id)))
@@ -28,6 +38,12 @@ struct CacheHitRateWidgetChart: View {
         }
         .chartXScale(domain: -0.5...Double(max(slots.count, 1)) - 0.5, range: .plotDimension(padding: 0))
         .chartYScale(domain: domain, range: .plotDimension(padding: CacheHitRateWidgetLayout.plotVerticalInset))
+        .chartXSelection(value: $pointerX)
+        .onChange(of: pointerX) { _, position in
+            inspectedSlotID.wrappedValue = position.flatMap {
+                CacheHitRateWidgetBucketDetail.slotID(forX: $0, slotCount: slots.count)
+            }
+        }
         .chartXAxis(.hidden)
         .chartYAxis { yAxis }
         .chartLegend(.hidden)
