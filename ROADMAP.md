@@ -22,7 +22,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**Следующая задача — SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). SM-711 и SM-713 проверены на Mac; SM-326, SM-710, SM-712, SM-714, SM-715 доставлены в `main` и остаются `[ ]` до живой проверки на Mac.
+**Следующая задача — SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). SM-711, SM-712 и SM-713 проверены на Mac; SM-326, SM-710, SM-714, SM-715 доставлены в `main` и остаются `[ ]` до живой проверки на Mac.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -1071,8 +1071,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   toolchain), на Linux — только применимые шаги (hooks, resolve), не останавливается на первой ошибке, а
   в конце называет упавшие шаги и следующее действие; Makefile сам использует pinned tools из
   `.build/ci-tools/bin`, если они есть; поведение покрыто тестом, который выполняется в GitHub CI.
-- [ ] **SM-712** — Подсказка при наведении на график Cache Hit Rate в Sidebar.
-  **Статус: доставлено в `main` (PR #94, 946b1bc, `CI` зелёный, 2026-10-08); `[ ]` до визуальной проверки hover на Mac.**
+- [x] **SM-712** — Подсказка при наведении на график Cache Hit Rate в Sidebar.
+  **Статус: выполнено (2026-10-08). Доставлено в `main` (PR #94, 946b1bc, `CI` зелёный); пользователь проверил на Mac: при наведении на график над ним появляются дата и значения.**
   Добавлено по запросу пользователя. Сделано: `CacheHitRateWidgetBucketDetail` (чистая модель: слот по позиции
   на шкале, текст «дата · avg · диапазон · сессии», отдельный текст для VoiceOver с выбросами), `chartXSelection`
   и подсветка интервала в `CacheHitRateWidgetChart`, зарезервированная строка в `CacheHitRateWidget`
@@ -1080,7 +1080,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   проверены на Linux временным пакетом с теми же fixtures, что и `CacheHitRateWidgetBucketDetailTests`
   (8 проверок позиции, тексты дня, дня с одной сессией и пустого дня); SwiftLint `--strict` по Sources, Tests и
   Apps — 0 violations. Остаток: SwiftUI-часть и XCTest прошли в GitHub `CI` (PR #94);
-  визуальная проверка hover на Mac (подсветка, строка, отсутствие сдвига layout) — за пользователем.
+  живая проверка на Mac пройдена.
   Причина: SM-311 заменил per-session chart (с кликом по столбцу, SM-307) обезличенным графиком по дням и часам,
   и интерактивность пропала (`CacheHitRateWidget` не получает `onOpenAnalytics`, hover нет). Идентификаторы
   сессий возвращать нельзя (privacy contract SM-311). Готово, когда при наведении на день или час в Sidebar
