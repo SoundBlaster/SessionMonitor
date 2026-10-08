@@ -54,10 +54,11 @@ init:
 	sh scripts/init.sh
 
 generate:
-	@test -f Apps/MonitorMac/Local.xcconfig || printf '%s\n' '// Local signing overrides (not committed).' 'CODE_SIGN_IDENTITY = -' > Apps/MonitorMac/Local.xcconfig
+	@sh scripts/local-signing.sh ensure Apps/MonitorMac/Local.xcconfig
 	$(XCODEGEN) generate --spec Apps/MonitorMac/project.yml
 	@mkdir -p "$(PROJECT)/project.xcworkspace/xcshareddata/swiftpm"
 	cp Apps/MonitorMac/Package.resolved "$(PROJECT)/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+	@sh scripts/local-signing.sh hint Apps/MonitorMac/Local.xcconfig
 
 install-hooks:
 	sh scripts/git-hooks/install.sh
@@ -120,7 +121,8 @@ lint-ci:
 	$(ACTIONLINT) -color
 	bash -n scripts/ci/install-tools.sh scripts/ci/check-fsd-boundary.sh scripts/git-hooks/install.sh
 	sh -n scripts/git-hooks/generate-project.sh scripts/tests/git-hooks-test.sh .githooks/pre-commit \
-		.githooks/post-merge .githooks/post-checkout .githooks/post-rewrite scripts/init.sh scripts/tests/init-test.sh
+		.githooks/post-merge .githooks/post-checkout .githooks/post-rewrite scripts/init.sh scripts/tests/init-test.sh \
+		scripts/local-signing.sh scripts/tests/local-signing-test.sh
 
 # Hooks run in a throwaway repository with a fake XcodeGen; no Xcode or network needed.
 test-hooks:
@@ -129,6 +131,7 @@ test-hooks:
 # The init routine runs against stub targets in a throwaway repository; nothing is installed.
 test-init:
 	sh scripts/tests/init-test.sh
+	sh scripts/tests/local-signing-test.sh
 
 build-macos: guard-app
 	$(XCODEBUILD) $(XCODEBUILD_FLAGS) -project "$(PROJECT)" -scheme "$(SCHEME)" -configuration "$(CONFIGURATION)" -destination "$(DESTINATION)" -derivedDataPath "$(DERIVED_DATA)" $(SIGNING_ARGS) build

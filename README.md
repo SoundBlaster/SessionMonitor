@@ -156,6 +156,11 @@ DEVELOPMENT_TEAM = YOUR_TEAM_ID
 CODE_SIGN_IDENTITY = Apple Development
 ```
 
+Подпись, выбранная в самом Xcode (Signing & Capabilities), хранится в сгенерированном `.xcodeproj` и теряется при каждом
+`make generate`, в том числе после `git pull` (hooks пересоздают проект). Постоянно хранится только `Local.xcconfig`:
+`make generate` создаёт его с ad-hoc подписью и закомментированными строками `DEVELOPMENT_TEAM` и `CODE_SIGN_IDENTITY`,
+никогда не переписывает существующий файл и напоминает о нём, пока в файле нет `DEVELOPMENT_TEAM`.
+
 На текущем Mac Team получена из существующего valid certificate. На новом checkout
 создаётся конфигурация для ad-hoc development build. Makefile использует
 `-skipMacroValidation` для известных pinned macros SpecificationCore/Kit, как
