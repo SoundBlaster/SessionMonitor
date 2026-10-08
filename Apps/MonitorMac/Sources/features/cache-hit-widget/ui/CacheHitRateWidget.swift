@@ -14,6 +14,8 @@ struct CacheHitRateWidget: View {
     let onOpenAnalytics: (() -> Void)?
     /// Hovering a bar shows that slot's details in a reserved line below the header.
     let inspectsBuckets: Bool
+    /// Clicking an inspected bar narrows the report to that interval. Needs `inspectsBuckets`.
+    let onSelectInterval: ((DateInterval) -> Void)?
 
     @State private var inspectedSlotID: Int?
 
@@ -24,7 +26,8 @@ struct CacheHitRateWidget: View {
         containerStyle: CacheHitRateWidgetAppearance.ContainerStyle = .card,
         periodTitle: String? = nil,
         onOpenAnalytics: (() -> Void)? = nil,
-        inspectsBuckets: Bool = false
+        inspectsBuckets: Bool = false,
+        onSelectInterval: ((DateInterval) -> Void)? = nil
     ) {
         self.report = report
         self.family = family
@@ -33,6 +36,7 @@ struct CacheHitRateWidget: View {
         self.periodTitle = periodTitle
         self.onOpenAnalytics = onOpenAnalytics
         self.inspectsBuckets = inspectsBuckets
+        self.onSelectInterval = onSelectInterval
     }
 
     var body: some View {
@@ -86,7 +90,8 @@ struct CacheHitRateWidget: View {
                             family: family,
                             appearance: appearance,
                             preservesAspectRatio: containerStyle == .card,
-                            inspectedSlotID: inspectsBuckets ? $inspectedSlotID : .constant(nil)
+                            inspectedSlotID: inspectsBuckets ? $inspectedSlotID : .constant(nil),
+                            onSelectSlot: selectionHandler(for: report)
                         )
                         if family == .large { footer(report) }
                     case .partialCoverage:
@@ -107,12 +112,23 @@ struct CacheHitRateWidget: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private func selectionHandler(for report: CacheHitRateWidgetReport) -> ((Int) -> Void)? {
+        guard inspectsBuckets, let onSelectInterval else { return nil }
+        let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
+        return { id in
+            if let interval = CacheHitRateWidgetBucketDetail.interval(ofSlot: id, in: slots, report: report) {
+                onSelectInterval(interval)
+            }
+        }
+    }
+
     /// Always present while inspection is on, so the chart below never moves when the pointer does.
     private func inspectionLine(_ report: CacheHitRateWidgetReport) -> some View {
         let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
         let text = inspectedSlotID.flatMap { id in slots.first { $0.id == id } }
             .map { CacheHitRateWidgetBucketDetail.text(for: $0, report: report) }
-        return Text(text ?? CacheHitRateWidgetBucketDetail.hint)
+        return Text(text ?? (onSelectInterval == nil ? CacheHitRateWidgetBucketDetail.hint
+                         : CacheHitRateWidgetBucketDetail.selectableHint))
             .font(.caption2).monospacedDigit()
             .foregroundStyle(.secondary)
             .lineLimit(2)

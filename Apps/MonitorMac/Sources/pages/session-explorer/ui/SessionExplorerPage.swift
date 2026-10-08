@@ -61,6 +61,10 @@ struct SessionExplorerPage: View {
                 .frame(height: SessionExplorerSidebarLayout.headerHeight, alignment: .topLeading)
             Divider()
             sidebarChart
+            if let interval = reportScope.focusedInterval {
+                SessionExplorerFocusChip(interval: interval, timeZoneIdentifier: reportScope.query.timeZoneIdentifier,
+                                         clear: { reportScope.clearFocus() })
+            }
             Divider()
             sidebarSessionList
                 .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
@@ -107,7 +111,8 @@ struct SessionExplorerPage: View {
             ),
             containerStyle: .embedded,
             periodTitle: reportScope.preset == .all ? nil : reportScope.title,
-            inspectsBuckets: true
+            inspectsBuckets: true,
+            onSelectInterval: { reportScope.focus(on: $0) }
         )
         .padding(SessionExplorerSidebarLayout.sectionInset)
         .frame(height: SessionExplorerSidebarLayout.chartHeight, alignment: .topLeading)
@@ -115,7 +120,8 @@ struct SessionExplorerPage: View {
         .task(id: CacheHitRateWidgetLoadID(
             period: sidebarChartPeriod,
             revision: model.snapshot?.watermark.revision,
-            query: model.query
+            query: model.query,
+            scopeQuery: reportScope.query
         )) {
             guard model.snapshot != nil else { return }
             while !Task.isCancelled {
@@ -123,7 +129,8 @@ struct SessionExplorerPage: View {
                 await model.loadCacheHitRateWidget(
                     period: sidebarChartPeriod,
                     timeZone: timeZone,
-                    followsReportScope: reportScope.preset != .all
+                    followsReportScope: reportScope.preset != .all,
+                    scopeQuery: reportScope.query
                 )
                 let nextRefresh = CacheHitRateWidgetRefreshSchedule.nextRefresh(after: Date(), timeZone: timeZone)
                 do {
@@ -136,12 +143,7 @@ struct SessionExplorerPage: View {
     }
 
     private var sidebarChartPeriod: CacheHitRateWidgetPeriod {
-        switch reportScope.preset {
-        case .all: cacheHitRateWidgetSettings.period
-        case .today: .last24Hours
-        case .lastSevenDays: .last7Days
-        case .lastThirtyDays: .last30Days
-        }
+        .sidebar(for: reportScope.preset, fallback: cacheHitRateWidgetSettings.period)
     }
 
     private var chartPalette: UsageChartPalette {
@@ -259,6 +261,18 @@ struct SessionExplorerPage: View {
     }
 }
 
+extension CacheHitRateWidgetPeriod {
+    /// The chart follows the report period; "All Time" uses the period chosen in Settings.
+    static func sidebar(for preset: ReportScopeModel.PeriodPreset, fallback: Self) -> Self {
+        switch preset {
+        case .all: fallback
+        case .today: .last24Hours
+        case .lastSevenDays: .last7Days
+        case .lastThirtyDays: .last30Days
+        }
+    }
+}
+
 enum SessionExplorerSidebarLayout {
     // The sidebar has two fixed sections followed by the only flexible region.
     static let headerHeight: CGFloat = 176
@@ -270,6 +284,7 @@ private struct CacheHitRateWidgetLoadID: Hashable {
     let period: CacheHitRateWidgetPeriod
     let revision: Int64?
     let query: UsageQuery
+    let scopeQuery: UsageQuery
 }
 
 private struct QuotaPresentationLoadID: Hashable {
