@@ -1065,8 +1065,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `make test-init` (18 проверок: macOS первый и повторный запуск, смена pin в installer и установка без
   отпечатка pins, сбой шага, Linux; мутационные проверки роняют тест), реальный `make init` на Linux (hooks, `swift package resolve`), `make -n generate` с pinned tool и с
   override, shellcheck, `sh -n`. Остаток: нет (живая проверка на Mac пройдена).
-  Сейчас после clone и после pull нужно помнить несколько команд (`install-tools.sh native`, `install-hooks`,
-  `resolve`, `generate`, `doctor`). Готово, когда одна идемпотентная команда `make init` выполняет их по порядку
+  Проблема (до SM-711): после clone и после pull приходилось помнить несколько команд (`install-tools.sh native`,
+  `install-hooks`, `resolve`, `generate`, `doctor`); теперь достаточно `make init`. Готово, когда одна идемпотентная команда `make init` выполняет их по порядку
   на macOS (pinned tools без повторной загрузки, hooks, SwiftPM resolve, генерация проекта, проверка
   toolchain), на Linux — только применимые шаги (hooks, resolve), не останавливается на первой ошибке, а
   в конце называет упавшие шаги и следующее действие; Makefile сам использует pinned tools из
