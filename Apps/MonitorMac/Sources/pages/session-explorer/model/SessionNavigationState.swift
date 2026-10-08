@@ -8,6 +8,7 @@ struct SessionNavigationState {
     private(set) var selectedSessionID: String?
     var columnVisibility: NavigationSplitViewVisibility = .all
     var showsInspector = false
+    var showsFindings = false
 
     mutating func select(_ id: String?, among sessions: [SessionSummary]) {
         selectedSessionID = id.flatMap { candidate in

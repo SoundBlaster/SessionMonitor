@@ -60,6 +60,14 @@ actor SharedReportRuntime: SessionExplorerRuntime {
         try await runtime.accountProfiles()
     }
 
+    func diagnosticReport(query: UsageQuery) async throws -> DiagnosticReport {
+        try await runtime.diagnosticReport(query: query)
+    }
+
+    func alertRecords(status: AlertStatus?) async throws -> [AlertRecord] {
+        try await runtime.alertRecords(status: status)
+    }
+
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error> {
         let id = UUID()
         let (stream, continuation) = AsyncThrowingStream<UsageSnapshot, Error>.makeStream(

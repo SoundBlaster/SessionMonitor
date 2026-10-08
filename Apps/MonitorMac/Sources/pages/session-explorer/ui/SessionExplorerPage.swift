@@ -53,6 +53,7 @@ struct SessionExplorerPage: View {
         }
         .safeAreaPadding(.top)
         .modifier(QuotaPresentationLoader(model: model))
+        .findingsAlertsSheet(model: model)
     }
 
     private var sidebar: some View {

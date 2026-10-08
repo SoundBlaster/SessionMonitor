@@ -3,7 +3,7 @@ import MonitorCore
 import MonitorRuntime
 import Observation
 
-protocol SessionExplorerRuntime: RequestTimelineSource, Sendable {
+protocol SessionExplorerRuntime: RequestTimelineSource, FindingsAlertsSource, Sendable {
     func importDirectory(_ directory: URL) async throws -> ImportSummary
     func snapshot(query: UsageQuery) async throws -> UsageSnapshot
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error>
@@ -22,7 +22,31 @@ extension SessionExplorerRuntime {
     }
 }
 
-extension MonitorRuntime.SessionMonitor: SessionExplorerRuntime {}
+extension SessionExplorerRuntime {
+    func diagnosticReport(query: UsageQuery) async throws -> DiagnosticReport {
+        throw FindingsAlertsError.unsupportedRuntime
+    }
+
+    func alertRecords(status: AlertStatus?) async throws -> [AlertRecord] {
+        throw FindingsAlertsError.unsupportedRuntime
+    }
+}
+
+enum FindingsAlertsError: Error, LocalizedError {
+    case unsupportedRuntime
+
+    var errorDescription: String? { "This runtime does not provide findings or alerts." }
+}
+
+extension MonitorRuntime.SessionMonitor: SessionExplorerRuntime {
+    func diagnosticReport(query: UsageQuery) async throws -> DiagnosticReport {
+        try doctor(query: query)
+    }
+
+    func alertRecords(status: AlertStatus?) async throws -> [AlertRecord] {
+        try alerts(status: status)
+    }
+}
 
 struct SessionTimelineLoadID: Hashable {
     let sessionID: String
@@ -248,6 +272,11 @@ final class SessionExplorerModel {
 
     func dismissError() {
         errorMessage = nil
+    }
+
+    /// The runtime the findings panel reads from, opened on first use like every other load.
+    func findingsSource() async throws -> any FindingsAlertsSource {
+        try await resolvedRuntime()
     }
 
     private func resolvedRuntime() async throws -> any SessionExplorerRuntime {
