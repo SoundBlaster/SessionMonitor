@@ -169,9 +169,13 @@ public enum CacheHitRateWidgetBuilder {
         let calendar = calendar(for: timeZone)
         let intervals = bucketIntervals(period: period, periodStart: periodStart, periodEnd: periodEnd,
                                         calendar: calendar)
+        // A session with a single request is a cold start (nothing cached yet), not a cache behaviour: it
+        // stays in every total but is left out of the range, average and outliers drawn per bucket.
+        let requestCounts = Dictionary(grouping: observations, by: \.sessionID).mapValues(\.count)
+        let coldStarts = Set(requestCounts.filter { $0.value == 1 }.keys)
         return intervals.compactMap { interval in
             let values = sessionRates(in: observations.filter {
-                $0.timestamp >= interval.start && $0.timestamp < interval.end
+                $0.timestamp >= interval.start && $0.timestamp < interval.end && !coldStarts.contains($0.sessionID)
             })
             guard !values.isEmpty else { return nil }
             return makeBucket(start: interval.start, end: interval.end, values: values)

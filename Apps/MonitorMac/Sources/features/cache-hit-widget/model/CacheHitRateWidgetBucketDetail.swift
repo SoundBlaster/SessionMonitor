@@ -22,7 +22,7 @@ enum CacheHitRateWidgetBucketDetail {
     ) -> String {
         let when = dateLabel(slot.start, period: report.period,
                              timeZoneIdentifier: report.timeZoneIdentifier, locale: locale)
-        guard let bucket = slot.bucket else { return "\(when) · no cache data" }
+        guard let bucket = slot.bucket else { return "\(when) · no cache range to show" }
         let range = bucket.usesMinMaxFallback ? "min–max" : "typical"
         return [
             when,
