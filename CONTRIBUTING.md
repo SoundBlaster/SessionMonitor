@@ -137,8 +137,9 @@ GUI tests включают SQLite writer в отдельном `/usr/bin/python3
 После clone и после каждого `git pull` выполните одну команду: `rtk proxy make init`
 (`scripts/init.sh`, повторный запуск безопасен). На macOS она по порядку:
 
-1. устанавливает pinned SwiftLint, XcodeGen и fsd-ios в `.build/ci-tools/bin` (повторно не скачивает,
-   если все три уже есть);
+1. устанавливает pinned SwiftLint, XcodeGen и fsd-ios в `.build/ci-tools/bin`; повторно не скачивает,
+   пока все три на месте и `scripts/ci/install-tools.sh` не менялся (отпечаток установки хранится в
+   `.build/ci-tools/installed-pins`), а при смене версий или digest ставит заново;
 2. ставит Git hooks (`make install-hooks`);
 3. разрешает Swift packages (`make resolve`);
 4. пересоздаёт `Apps/MonitorMac/MonitorMac.xcodeproj` (`make generate`);

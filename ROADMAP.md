@@ -1030,12 +1030,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 - [ ] **SM-711** — `make init`: рутина первоначальной настройки и обновления окружения.
   **Статус: реализовано, ожидает PR/CI (2026-10-08), ветка `feat/sm-711-make-init`.** Добавлено по запросу пользователя.
-  Сделано: `make init` → `scripts/init.sh`. macOS: pinned tools (без повторной загрузки), hooks, `resolve`,
+  Сделано: `make init` → `scripts/init.sh`. macOS: pinned tools (без повторной загрузки, пока не менялись pins в installer), hooks, `resolve`,
   `generate`, `doctor`; Linux: hooks и `resolve SWIFT=swift`, остальное явно пропускается. Упавший шаг не
   прерывает остальные, итог называет шаги и даёт ненулевой код. Makefile предпочитает pinned
   `swiftlint`/`xcodegen`/`fsd-ios` из `.build/ci-tools/bin`, явные переменные имеют приоритет. Evidence:
-  `make test-init` (12 проверок: macOS первый и повторный запуск, сбой шага, Linux; мутационная проверка роняет
-  5), реальный `make init` на Linux (hooks, `swift package resolve`), `make -n generate` с pinned tool и с
+  `make test-init` (18 проверок: macOS первый и повторный запуск, смена pin в installer и установка без
+  отпечатка pins, сбой шага, Linux; мутационные проверки роняют тест), реальный `make init` на Linux (hooks, `swift package resolve`), `make -n generate` с pinned tool и с
   override, shellcheck, `sh -n`. Остаток: зелёный GitHub `CI` и первый реальный запуск на Mac (загрузка
   pinned tools и `make generate` здесь не выполнялись).
   Сейчас после clone и после pull нужно помнить несколько команд (`install-tools.sh native`, `install-hooks`,
