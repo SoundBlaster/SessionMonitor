@@ -22,7 +22,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**SM-715 — в работе** (ветка `fix/sm-715-single-request-cache-hit`, замечание пользователя): холодный старт на графике cache hit. Дальше по плану: SM-330; SM-714 (PR #99) в ревью/CI; SM-329 заблокирована (ждёт spec Agent Surface Protocol). SM-326, SM-710…SM-713 доставлены в `main` и остаются `[ ]` до живой проверки на Mac.
+**SM-715 — в работе** (ветка `fix/sm-715-single-request-cache-hit`, замечание пользователя): холодный старт на графике cache hit (PR #100). Дальше по плану: SM-330; SM-329 заблокирована (ждёт spec Agent Surface Protocol). SM-326, SM-710…SM-714 доставлены в `main` и остаются `[ ]` до живой проверки на Mac.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -753,14 +753,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
   active/resolved записи `alert_records` с severity, coverage и evidence. Готово, когда GUI и
   `doctor --json` дают одинаковый набор findings, а in-app список алертов совпадает с
   `codex-monitor alerts --status all --json`.
-  **Статус: реализовано, ожидает PR/CI и проверки на Mac (2026-10-08), ветка `feat/sm-326-gui-findings-alerts`.**
+  **Статус: доставлено в `main` (PR #98, f730874, `CI` зелёный, 2026-10-08); `[ ]` до проверки на Mac.**
   Сделано: те же `doctor(query:)` и `alerts(status:)` через `SessionExplorerRuntime` (`FindingsAlertsSource`; вторая реализация
   правил не заводилась), `FindingsAlertsModel` (фильтры kind и статус алерта; без фильтров показывает ровно набор
   CLI), `FindingsAlertsPresentation`, `FindingsAlertsPanel`/`FindingRow` (evidence observed/inference/unknown/limitations,
   confidence, coverage, переход «Open …» выбирает сессию и показывает timeline), sheet из toolbar-кнопки «Findings».
   Evidence: модель и представление проверены на Linux временным пакетом с теми же fixtures, что `FindingsAlertsTests`
   (11 проверок: набор совпадает с источником, фильтры, сбой чтения сохраняет списки, устаревший фильтр сбрасывается).
-  Остаток: SwiftUI-часть и XCTest выполняются только в GitHub `CI`; визуальная проверка на Mac; сверка с реальными
+  Остаток: визуальная проверка на Mac; сверка с реальными
   `doctor --json` и `alerts --status all --json` на живой базе.
 - [ ] **SM-327** — Live-правила для работающих сессий.
   **Статус: доставлено в `main` (2026-10-08), [PR #90](https://github.com/SoundBlaster/SessionMonitor/pull/90),
@@ -1105,6 +1105,23 @@ deliverable — WidgetKit extension с App Group в SM-401.
   и `ReportScopeModel`; решение по конкретной реализации принять перед стартом. Готово, когда клик
   по интервалу меняет список и итоги, чип показывает и снимает фильтр, интервал вне периода отчёта
   недоступен, а состояние не сохраняется между запусками.
+- [ ] **SM-714** — Сортировка списка сессий в Sidebar выпадающим селектором.
+  **Статус: доставлено в `main` (PR #99, 4481432, `CI` зелёный, 2026-10-08); `[ ]` до проверки на Mac.** Добавлено по запросу пользователя.
+  Сделано: `SessionSummary.firstRequestAt`/`lastRequestAt` (необязательные, из `confirmed` по всей истории сессии, `UsageStore.sessionSpans`),
+  чистая модель `SessionSortOrder` (5 ключей × 2 направления, неизвестное в конец, ничья по id, рекурсивно по дереву),
+  `SessionSidebarList` с селектором (Picker menu с секциями по ключам, выбор в `@AppStorage`) и `SessionListRow` со значением сортировки.
+  Evidence: `swift test` — 200 тестов (+1 `sessionSummariesCarryTheirWholeHistoryFirstAndLastRequest`), `make test-cli` прошёл
+  (JSON-совместимость), логика `SessionSortOrder` и тексты проверены на Linux временным пакетом с теми же fixtures, что
+  `SessionSortOrderTests` (36 проверок). Остаток: визуальная проверка
+  селектора на Mac.
+  Под графиком в Sidebar селектор сортировки списком: дата первого запроса сессии, дата последнего запроса,
+  cache hit rate, число requests, число токенов (input + output), каждая в обе стороны. Даты — первый и
+  последний подтверждённый запрос сессии (`SessionSummary.firstRequestAt`/`lastRequestAt`, не зависят от периода
+  отчёта); неизвестные значения (cache hit без полного покрытия, нет даты) идут в конец при любом направлении,
+  а не считаются нулём. Сортируются корни дерева и дети внутри родителя; выбор сохраняется между запусками. Готово,
+  когда селектор меняет порядок списка в обе стороны по каждому ключу, неизвестные значения остаются в конце,
+  порядок стабилен (при равенстве — по id), фильтр поиска и выбранная сессия сохраняются, а JSON отчёта CLI
+  получает только необязательные поля дат.
 - [ ] **SM-715** — Холодный старт (сессия с 1 запросом) не должен искажать полосу графика cache hit.
   **Статус: реализовано, ожидает PR/CI и проверки на Mac (2026-10-08), ветка `fix/sm-715-single-request-cache-hit`.** Defect по замечанию пользователя.
   Причина: сессия с одним запросом и `cached_input_tokens = 0` — честные 0% (первый запрос холодный), но попадала в

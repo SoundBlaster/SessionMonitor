@@ -351,13 +351,12 @@ public final class UsageStore: Sendable {
         let totalsRow = try Row.fetchOne(database, sql: """
             SELECT \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
             """, arguments: arguments)
+        let spans = try Self.sessionSpans(database, accountScope: accountScope)
         let sessions = try Row.fetchAll(database, sql: """
             SELECT session, CASE WHEN COUNT(DISTINCT model) = 1 THEN MIN(model) ELSE 'mixed' END AS model,
             \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
             GROUP BY session ORDER BY inputs DESC, session ASC
-            """, arguments: arguments).map { row in
-                SessionSummary(id: row["session"], model: row["model"], totals: Self.totals(row))
-            }
+            """, arguments: arguments).map { Self.sessionSummary($0, spans: spans) }
         return UsageReport(totals: totalsRow.map(Self.totals) ?? UsageTotals(),
                            sessions: sessions, diagnostics: try Self.diagnostics(database), accountScope: accountScope)
     }
@@ -375,7 +374,7 @@ public final class UsageStore: Sendable {
         CASE WHEN COUNT(total) = COUNT(*) THEN SUM(total) END AS total
         """
 
-    private static func totals(_ row: Row) -> UsageTotals {
+    static func totals(_ row: Row) -> UsageTotals {
         UsageTotals(requests: row["requests"], inputTokens: row["inputs"], cachedInputTokens: row["cached"],
                     outputTokens: row["outputs"], unknownCacheRequests: row["unknown"],
                     cacheWriteInputTokens: row["cache_write"], reasoningOutputTokens: row["reasoning"],
