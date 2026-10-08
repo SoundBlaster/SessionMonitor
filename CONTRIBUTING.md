@@ -74,6 +74,9 @@ GitHub Actions закреплены по commit SHA. Permissions — `contents: 
 PR code не получает credentials для push или Apple Developer secrets.
 Dependencies загружаются из lock files; CI не переписывает pins.
 Ad-hoc signing не обращается к Developer account и не меняет локальный `Local.xcconfig`.
+Локальная подпись живёт только в `Apps/MonitorMac/Local.xcconfig`: настройки подписи из интерфейса Xcode принадлежат
+сгенерированному проекту и сбрасываются каждым `make generate` (в том числе hooks после pull). Файл создаёт
+`scripts/local-signing.sh`, не переписывает существующий и подсказывает, если `DEVELOPMENT_TEAM` не задан.
 Distribution signing/notarization проверяются отдельно на этапе SM-703.
 
 Локальное воспроизведение на macOS arm64:

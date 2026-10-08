@@ -22,7 +22,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**Следующая задача — SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). Проверены на Mac: SM-711…SM-715. Остаются `[ ]`: SM-710 (hooks после pull и смены ветки) и SM-326 (панель открывается и показывает находки; нужна сверка с `doctor --json` и `alerts --status all --json`).
+**SM-716 — в работе** (ветка `feat/sm-716-signing-hint`, запрос пользователя): подсказка про `Local.xcconfig` с подписью при регенерации проекта. Дальше по плану: SM-330; SM-329 заблокирована (ждёт spec Agent Surface Protocol). Остаются `[ ]`: SM-710 (hooks: смена ветки и rebase) и SM-326 (сверка с `doctor --json` и `alerts --status all --json`).
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -1104,6 +1104,17 @@ deliverable — WidgetKit extension с App Group в SM-401.
   и `ReportScopeModel`; решение по конкретной реализации принять перед стартом. Готово, когда клик
   по интервалу меняет список и итоги, чип показывает и снимает фильтр, интервал вне периода отчёта
   недоступен, а состояние не сохраняется между запусками.
+- [ ] **SM-716** — Подсказка про `Local.xcconfig` с подписью при регенерации проекта.
+  **Статус: реализовано, ожидает PR/CI и проверки на Mac (2026-10-08), ветка `feat/sm-716-signing-hint`.** Добавлено по запросу пользователя.
+  Проблема: после `git pull` hooks пересоздают `.xcodeproj`, и подпись, выбранная в интерфейсе Xcode, пропадает (она хранится в
+  сгенерированном проекте); постоянное место — игнорируемый `Apps/MonitorMac/Local.xcconfig`, но `make init` и `make generate` об
+  этом молчали. Сделано: `scripts/local-signing.sh` (`ensure` создаёт файл с ad-hoc подписью и закомментированными строками
+  `DEVELOPMENT_TEAM`/`CODE_SIGN_IDENTITY`, существующий файл не трогает; `hint` печатает объяснение, пока нет активного
+  `DEVELOPMENT_TEAM`), `make generate` вызывает оба режима (значит, и `make init`, и hooks), README и CONTRIBUTING. Evidence:
+  `make test-init` теперь запускает `scripts/tests/local-signing-test.sh` (12 проверок, мутационные проверки роняют тест; входит в job
+  `Workflow lint`), `make -n generate`. Остаток: GitHub `CI`; на Mac проверить подсказку после `make generate` и что заданный
+  `DEVELOPMENT_TEAM` в `Local.xcconfig` переживает pull. Готово, когда новая и существующая конфигурация подписи ведут себя как
+  описано, подсказка не появляется при заданном `DEVELOPMENT_TEAM`, а тест выполняется в GitHub CI.
 - [x] **SM-714** — Сортировка списка сессий в Sidebar выпадающим селектором.
   **Статус: выполнено (2026-10-08). Доставлено в `main` (PR #99, 4481432, `CI` зелёный); пользователь проверил на Mac: сортировки работают.** Добавлено по запросу пользователя.
   Сделано: `SessionSummary.firstRequestAt`/`lastRequestAt` (необязательные, из `confirmed` по всей истории сессии, `UsageStore.sessionSpans`),
