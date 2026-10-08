@@ -22,7 +22,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**SM-712 — в работе** (ветка `feat/sm-712-sidebar-chart-interaction`): подсказка при наведении на график Cache Hit Rate в Sidebar; затем SM-713 (клик по дню или часу сужает отчёт).
+**Проверки на Mac** (SM-710, SM-711, SM-712 доставлены в `main`, остаются `[ ]` до живой проверки: hooks с реальным XcodeGen, `make init`, hover на графике Sidebar). Следующая задача по плану — SM-713 (клик по дню или часу сужает отчёт), старт после подтверждения.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -1029,7 +1029,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   команды quick start соответствуют CLI, утверждения не обещают экономию по cache hit и ссылки целы.
 
 - [ ] **SM-710** — Автоматически пересоздавать локальный `.xcodeproj` после получения чужих изменений.
-  **Статус: реализовано, ожидает PR/CI (2026-10-08), ветка `feat/sm-710-regenerate-project-hooks`.** Добавлено по запросу пользователя.
+  **Статус: доставлено в `main` (PR #92, 6f129af, `CI` зелёный, 2026-10-08); `[ ]` до проверки на Mac.** Добавлено по запросу пользователя.
   Сделано: общий `scripts/git-hooks/generate-project.sh` (читает изменённые пути из stdin; `--soft` не роняет
   операцию Git), hooks `post-merge`, `post-checkout`, `post-rewrite`; `pre-commit` переведён на тот же скрипт;
   `install.sh` копирует все четыре и общий helper в hooks directory (копии работают на ветках без этих файлов; ссылки прежней версии заменяются; чужой hook не перезаписывается, остальные ставятся).
@@ -1042,20 +1042,20 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Проблема: `.xcodeproj` игнорируется Git, а pre-commit hook покрывает только собственные коммиты. После
   `git pull` с новыми файлами в `Apps/MonitorMac/Sources/` старый локальный проект не знает о них, и Xcode
   падает с вторичными ошибками (случай SM-205/SM-325: `WatchLaunchSettings.swift`, `AppAlertNotifications.swift`).
-  Остаток: зелёный GitHub `CI`; после merge пользователю нужно один раз выполнить `make install-hooks`
+  Остаток: проверка на Mac; пользователю нужно один раз выполнить `make install-hooks`
   (новые hooks не появляются сами). Готово, когда hooks `post-merge`, `post-checkout` (смена ветки) и `post-rewrite` (rebase) вызывают
   `make generate`, если изменились `Apps/MonitorMac/Sources/`, `project.yml` или `Package.resolved`; не ломают
   операцию Git при отсутствии XcodeGen; ставятся `make install-hooks`; покрыты тестом на временном
   репозитории, который выполняется в GitHub CI.
 - [ ] **SM-711** — `make init`: рутина первоначальной настройки и обновления окружения.
-  **Статус: реализовано, ожидает PR/CI (2026-10-08), ветка `feat/sm-711-make-init`.** Добавлено по запросу пользователя.
+  **Статус: доставлено в `main` (PR #93, 8c5b7b0, `CI` зелёный, 2026-10-08); `[ ]` до первого `make init` на Mac.** Добавлено по запросу пользователя.
   Сделано: `make init` → `scripts/init.sh`. macOS: pinned tools (без повторной загрузки, пока не менялись pins в installer), hooks, `resolve`,
   `generate`, `doctor`; Linux: hooks и `resolve SWIFT=swift`, остальное явно пропускается. Упавший шаг не
   прерывает остальные, итог называет шаги и даёт ненулевой код. Makefile предпочитает pinned
   `swiftlint`/`xcodegen`/`fsd-ios` из `.build/ci-tools/bin`, явные переменные имеют приоритет. Evidence:
   `make test-init` (18 проверок: macOS первый и повторный запуск, смена pin в installer и установка без
   отпечатка pins, сбой шага, Linux; мутационные проверки роняют тест), реальный `make init` на Linux (hooks, `swift package resolve`), `make -n generate` с pinned tool и с
-  override, shellcheck, `sh -n`. Остаток: зелёный GitHub `CI` и первый реальный запуск на Mac (загрузка
+  override, shellcheck, `sh -n`. Остаток: первый реальный запуск на Mac (загрузка
   pinned tools и `make generate` здесь не выполнялись).
   Сейчас после clone и после pull нужно помнить несколько команд (`install-tools.sh native`, `install-hooks`,
   `resolve`, `generate`, `doctor`). Готово, когда одна идемпотентная команда `make init` выполняет их по порядку
@@ -1064,14 +1064,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
   в конце называет упавшие шаги и следующее действие; Makefile сам использует pinned tools из
   `.build/ci-tools/bin`, если они есть; поведение покрыто тестом, который выполняется в GitHub CI.
 - [ ] **SM-712** — Подсказка при наведении на график Cache Hit Rate в Sidebar.
-  **Статус: реализовано, PR #94 с зелёным `CI` (2026-10-08), ветка `feat/sm-712-sidebar-chart-interaction`; ожидает проверки на Mac.**
+  **Статус: доставлено в `main` (PR #94, 946b1bc, `CI` зелёный, 2026-10-08); `[ ]` до визуальной проверки hover на Mac.**
   Добавлено по запросу пользователя. Сделано: `CacheHitRateWidgetBucketDetail` (чистая модель: слот по позиции
   на шкале, текст «дата · avg · диапазон · сессии», отдельный текст для VoiceOver с выбросами), `chartXSelection`
   и подсветка интервала в `CacheHitRateWidgetChart`, зарезервированная строка в `CacheHitRateWidget`
   (параметр `inspectsBuckets`, по умолчанию выключен; включён только в Sidebar). Evidence: логика и тексты
   проверены на Linux временным пакетом с теми же fixtures, что и `CacheHitRateWidgetBucketDetailTests`
   (8 проверок позиции, тексты дня, дня с одной сессией и пустого дня); SwiftLint `--strict` по Sources, Tests и
-  Apps — 0 violations. Остаток: SwiftUI-часть и XCTest компилируются и выполняются только в GitHub `CI`;
+  Apps — 0 violations. Остаток: SwiftUI-часть и XCTest прошли в GitHub `CI` (PR #94);
   визуальная проверка hover на Mac (подсветка, строка, отсутствие сдвига layout) — за пользователем.
   Причина: SM-311 заменил per-session chart (с кликом по столбцу, SM-307) обезличенным графиком по дням и часам,
   и интерактивность пропала (`CacheHitRateWidget` не получает `onOpenAnalytics`, hover нет). Идентификаторы
