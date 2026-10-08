@@ -6,6 +6,7 @@ struct FindingsAlertsPanel: View {
     @Bindable var model: FindingsAlertsModel
     let canOpenSession: (String) -> Bool
     let openSession: (String) -> Void
+    let refresh: () -> Void
     let close: () -> Void
 
     var body: some View {
@@ -36,6 +37,9 @@ struct FindingsAlertsPanel: View {
                 .frame(maxWidth: 220)
                 Spacer()
                 if model.isLoading { ProgressView().controlSize(.small) }
+                Button("Refresh", systemImage: "arrow.clockwise", action: refresh)
+                    .disabled(model.isLoading)
+                    .help("Reload findings and alerts")
                 Button("Done", action: close).keyboardShortcut(.defaultAction)
             }
             HStack {

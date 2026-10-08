@@ -10,18 +10,31 @@ struct FindingsAlertsSheet: ViewModifier {
         content.sheet(isPresented: $model.navigation.showsFindings) {
             FindingsAlertsPanel(
                 model: findings,
-                canOpenSession: { id in model.visibleSessions.contains { $0.id == id } },
+                canOpenSession: { id in model.report.sessions.contains { $0.id == id } },
                 openSession: { id in
+                    // A search filter must not hide the session that was just chosen.
+                    if !model.visibleSessions.contains(where: { $0.id == id }) { model.setFilter("") }
                     model.selectSession(id)
                     model.navigation.showsFindings = false
                 },
+                refresh: { Task { await reload() } },
                 close: { model.navigation.showsFindings = false }
             )
             .task(id: FindingsLoadID(query: model.query, revision: model.snapshot?.watermark.revision)) {
-                guard let source = try? await model.findingsSource() else { return }
-                await findings.load(query: model.query, source: source)
+                // Alert transitions do not move the usage watermark, so the open panel also polls.
+                while !Task.isCancelled {
+                    await reload()
+                    try? await Task.sleep(for: .seconds(Self.pollInterval))
+                }
             }
         }
+    }
+
+    private static let pollInterval = 15.0
+
+    private func reload() async {
+        guard let source = try? await model.findingsSource() else { return }
+        await findings.load(query: model.query, source: source)
     }
 }
 
