@@ -61,7 +61,10 @@ struct SessionExplorerPage: View {
                 .frame(height: SessionExplorerSidebarLayout.headerHeight, alignment: .topLeading)
             Divider()
             sidebarChart
-            focusChip
+            if let interval = reportScope.focusedInterval {
+                SessionExplorerFocusChip(interval: interval, timeZoneIdentifier: reportScope.query.timeZoneIdentifier,
+                                         clear: { reportScope.clearFocus() })
+            }
             Divider()
             sidebarSessionList
                 .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
@@ -139,35 +142,8 @@ struct SessionExplorerPage: View {
         }
     }
 
-    /// Shows the interval the report is narrowed to and removes it.
-    @ViewBuilder
-    private var focusChip: some View {
-        if let interval = reportScope.focusedInterval {
-            let label = CacheHitRateWidgetBucketDetail.focusLabel(
-                interval, timeZoneIdentifier: reportScope.query.timeZoneIdentifier)
-            Button {
-                reportScope.clearFocus()
-            } label: {
-                Label(label, systemImage: "xmark.circle.fill")
-                .labelStyle(.titleAndIcon)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .padding(.horizontal, SessionExplorerSidebarLayout.sectionInset)
-            .padding(.bottom, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityLabel("Showing only \(label)")
-            .accessibilityHint("Show the whole period again.")
-        }
-    }
-
     private var sidebarChartPeriod: CacheHitRateWidgetPeriod {
-        switch reportScope.preset {
-        case .all: cacheHitRateWidgetSettings.period
-        case .today: .last24Hours
-        case .lastSevenDays: .last7Days
-        case .lastThirtyDays: .last30Days
-        }
+        .sidebar(for: reportScope.preset, fallback: cacheHitRateWidgetSettings.period)
     }
 
     private var chartPalette: UsageChartPalette {
@@ -281,6 +257,18 @@ struct SessionExplorerPage: View {
         Task {
             await model.importDirectory(directory)
             await reportScope.refreshProfiles()
+        }
+    }
+}
+
+extension CacheHitRateWidgetPeriod {
+    /// The chart follows the report period; "All Time" uses the period chosen in Settings.
+    static func sidebar(for preset: ReportScopeModel.PeriodPreset, fallback: Self) -> Self {
+        switch preset {
+        case .all: fallback
+        case .today: .last24Hours
+        case .lastSevenDays: .last7Days
+        case .lastThirtyDays: .last30Days
         }
     }
 }
