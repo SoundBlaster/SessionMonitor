@@ -1042,7 +1042,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Проблема: `.xcodeproj` игнорируется Git, а pre-commit hook покрывает только собственные коммиты. После
   `git pull` с новыми файлами в `Apps/MonitorMac/Sources/` старый локальный проект не знает о них, и Xcode
   падает с вторичными ошибками (случай SM-205/SM-325: `WatchLaunchSettings.swift`, `AppAlertNotifications.swift`).
-  Остаток: зелёный GitHub `CI`; после merge пользователю нужно один раз выполнить `make install-hooks`
+  Остаток: проверка на Mac; пользователю нужно один раз выполнить `make install-hooks`
   (новые hooks не появляются сами). Готово, когда hooks `post-merge`, `post-checkout` (смена ветки) и `post-rewrite` (rebase) вызывают
   `make generate`, если изменились `Apps/MonitorMac/Sources/`, `project.yml` или `Package.resolved`; не ломают
   операцию Git при отсутствии XcodeGen; ставятся `make install-hooks`; покрыты тестом на временном
@@ -1055,7 +1055,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `swiftlint`/`xcodegen`/`fsd-ios` из `.build/ci-tools/bin`, явные переменные имеют приоритет. Evidence:
   `make test-init` (18 проверок: macOS первый и повторный запуск, смена pin в installer и установка без
   отпечатка pins, сбой шага, Linux; мутационные проверки роняют тест), реальный `make init` на Linux (hooks, `swift package resolve`), `make -n generate` с pinned tool и с
-  override, shellcheck, `sh -n`. Остаток: зелёный GitHub `CI` и первый реальный запуск на Mac (загрузка
+  override, shellcheck, `sh -n`. Остаток: первый реальный запуск на Mac (загрузка
   pinned tools и `make generate` здесь не выполнялись).
   Сейчас после clone и после pull нужно помнить несколько команд (`install-tools.sh native`, `install-hooks`,
   `resolve`, `generate`, `doctor`). Готово, когда одна идемпотентная команда `make init` выполняет их по порядку
@@ -1071,7 +1071,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   (параметр `inspectsBuckets`, по умолчанию выключен; включён только в Sidebar). Evidence: логика и тексты
   проверены на Linux временным пакетом с теми же fixtures, что и `CacheHitRateWidgetBucketDetailTests`
   (8 проверок позиции, тексты дня, дня с одной сессией и пустого дня); SwiftLint `--strict` по Sources, Tests и
-  Apps — 0 violations. Остаток: SwiftUI-часть и XCTest компилируются и выполняются только в GitHub `CI`;
+  Apps — 0 violations. Остаток: SwiftUI-часть и XCTest прошли в GitHub `CI` (PR #94);
   визуальная проверка hover на Mac (подсветка, строка, отсутствие сдвига layout) — за пользователем.
   Причина: SM-311 заменил per-session chart (с кликом по столбцу, SM-307) обезличенным графиком по дням и часам,
   и интерактивность пропала (`CacheHitRateWidget` не получает `onOpenAnalytics`, hover нет). Идентификаторы
