@@ -118,6 +118,8 @@ final class CacheHitRateWidgetTests: XCTestCase {
         ])
 
         XCTAssertTrue(report.buckets.isEmpty)
+        // The interval still holds usage, so it stays selectable even though it draws no range.
+        XCTAssertEqual(report.occupiedBucketStarts.count, 1)
         XCTAssertEqual(report.availability, .available)
         XCTAssertEqual(report.periodCacheHitRate, 0)
         XCTAssertEqual(report.sessionCount, 2)

@@ -38,7 +38,7 @@ final class CacheHitRateWidgetBucketDetailTests: XCTestCase {
         let empty = try XCTUnwrap(CacheHitRateWidgetChartPresentation.slots(for: report)
             .first { $0.bucket == nil })
         let text = CacheHitRateWidgetBucketDetail.text(for: empty, report: report, locale: english)
-        XCTAssertTrue(text.hasSuffix("no cache range to show"), text)
+        XCTAssertTrue(text.hasSuffix("no cache data"), text)
         XCTAssertFalse(text.contains("0%"), text)
     }
 
@@ -91,6 +91,26 @@ final class CacheHitRateWidgetBucketDetailTests: XCTestCase {
         XCTAssertNil(CacheHitRateWidgetBucketDetail.interval(ofSlot: 99, in: slots, report: report))
     }
 
+    func testAnIntervalOfOnlySingleRequestSessionsHasNoRangeButCanBeSelected() throws {
+        let now = date("2026-09-30T09:30:00Z")
+        let query = try UsagePeriodPreset.lastSevenDays.resolve(referenceDate: now, timeZoneIdentifier: "UTC")
+        let interval = try DateInterval(start: XCTUnwrap(query.since), end: XCTUnwrap(query.until))
+        let report = CacheHitRateWidgetBuilder.build(
+            observations: [observation(date("2026-09-28T10:00:00Z"), session: "only", rate: 0)],
+            period: .last7Days, referenceDate: now, timeZone: .gmt, interval: interval)
+        let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
+        let cold = try XCTUnwrap(slots.first { $0.start == date("2026-09-28T00:00:00Z") })
+
+        XCTAssertNil(cold.bucket)
+        XCTAssertTrue(cold.hasUsage)
+        XCTAssertTrue(CacheHitRateWidgetBucketDetail.text(for: cold, report: report, locale: english)
+            .hasSuffix("only single-request sessions, no range"))
+        XCTAssertEqual(CacheHitRateWidgetBucketDetail.interval(ofSlot: cold.id, in: slots, report: report)?.start,
+                       date("2026-09-28T00:00:00Z"))
+        let empty = try XCTUnwrap(slots.first { !$0.hasUsage })
+        XCTAssertNil(CacheHitRateWidgetBucketDetail.interval(ofSlot: empty.id, in: slots, report: report))
+    }
+
     func testTheLastSlotEndsAtThePeriodEnd() throws {
         let report = try weekReport()
         let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
@@ -120,6 +140,10 @@ final class CacheHitRateWidgetBucketDetailTests: XCTestCase {
             + requests(date("2026-09-28T11:00:00Z"), session: "session-b", rate: 90)
             + requests(date("2026-09-26T10:00:00Z"), session: "session-c", rate: 95),
         period: .last7Days, referenceDate: now, timeZone: .gmt, interval: interval)
+    }
+
+    private func observation(_ timestamp: Date, session: String, rate: Int64) -> CacheHitRateObservation {
+        .init(timestamp: timestamp, sessionID: session, cacheableInputTokens: 100, cachedInputTokens: rate)
     }
 
     /// Two requests: a session with a single request is a cold start and is not plotted.

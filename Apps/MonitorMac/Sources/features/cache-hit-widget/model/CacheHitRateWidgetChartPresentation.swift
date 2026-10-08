@@ -6,6 +6,16 @@ struct CacheHitRateWidgetSlot: Identifiable {
     let id: Int
     let start: Date
     let bucket: CacheHitRateBucket?
+    /// Whether the interval has any request. A slot can have usage but no bucket (single-request sessions
+    /// only), and is still selectable.
+    let hasUsage: Bool
+
+    init(id: Int, start: Date, bucket: CacheHitRateBucket?, hasUsage: Bool? = nil) {
+        self.id = id
+        self.start = start
+        self.bucket = bucket
+        self.hasUsage = hasUsage ?? (bucket != nil)
+    }
 }
 
 enum CacheHitRateWidgetChartPresentation {
@@ -22,7 +32,8 @@ enum CacheHitRateWidgetChartPresentation {
             let end = min(interval.end, report.periodEnd)
             guard end > cursor else { break }
             let bucket = report.buckets.first { $0.start >= cursor && $0.start < end }
-            slots.append(.init(id: slots.count, start: cursor, bucket: bucket))
+            let occupied = report.occupiedBucketStarts.contains { $0 >= cursor && $0 < end }
+            slots.append(.init(id: slots.count, start: cursor, bucket: bucket, hasUsage: bucket != nil || occupied))
             cursor = end
         }
         return slots
