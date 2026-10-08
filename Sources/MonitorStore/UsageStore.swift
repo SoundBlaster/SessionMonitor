@@ -351,15 +351,29 @@ public final class UsageStore: Sendable {
         let totalsRow = try Row.fetchOne(database, sql: """
             SELECT \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
             """, arguments: arguments)
+        let spans = try Self.sessionSpans(database)
         let sessions = try Row.fetchAll(database, sql: """
             SELECT session, CASE WHEN COUNT(DISTINCT model) = 1 THEN MIN(model) ELSE 'mixed' END AS model,
             \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
             GROUP BY session ORDER BY inputs DESC, session ASC
             """, arguments: arguments).map { row in
-                SessionSummary(id: row["session"], model: row["model"], totals: Self.totals(row))
+                let span = spans[row["session"] as String]
+                return SessionSummary(id: row["session"], model: row["model"], totals: Self.totals(row),
+                                      firstRequestAt: span?.first, lastRequestAt: span?.last)
             }
         return UsageReport(totals: totalsRow.map(Self.totals) ?? UsageTotals(),
                            sessions: sessions, diagnostics: try Self.diagnostics(database), accountScope: accountScope)
+    }
+
+    /// First and last confirmed request of every session over all imported history.
+    private static func sessionSpans(_ database: Database) throws -> [String: (first: Date, last: Date)] {
+        let rows = try Row.fetchAll(database, sql: """
+            SELECT session, MIN(timestamp) AS first_at, MAX(timestamp) AS last_at FROM confirmed GROUP BY session
+            """)
+        return Dictionary(uniqueKeysWithValues: rows.map { row in
+            (row["session"] as String,
+             (Date(timeIntervalSince1970: row["first_at"]), Date(timeIntervalSince1970: row["last_at"])))
+        })
     }
 
     private static func report(_ database: Database, query: UsageQuery) throws -> UsageReport {
