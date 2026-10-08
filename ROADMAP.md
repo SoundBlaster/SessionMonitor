@@ -22,7 +22,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**Проверки на Mac** (SM-710, SM-711, SM-712, SM-713 доставлены в `main`, остаются `[ ]` до живой проверки: hooks с реальным XcodeGen, `make init`, hover и клик по графику Sidebar). Свободной задачи по этому списку больше нет: следующий scope задаёт пользователь (кандидаты: SM-326, SM-330; SM-329 ждёт спецификацию).
+**Следующая задача — SM-326** (ретроспективные findings и алерты в GUI), затем SM-330; SM-329 заблокирована (ждёт spec Agent Surface Protocol). SM-710, SM-711, SM-712, SM-713 доставлены в `main` и остаются `[ ]` до живой проверки на Mac: hooks с реальным XcodeGen, `make init`, hover и клик по графику Sidebar.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
