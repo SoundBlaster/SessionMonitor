@@ -132,6 +132,26 @@ metrics, audit и append/full parity. Реальный архив не испо�
 в artifacts; методика — [docs/performance](docs/performance/README.md).
 GUI tests включают SQLite writer в отдельном `/usr/bin/python3` process; Python не входит в app runtime.
 
+## Первоначальная настройка: `make init`
+
+После clone и после каждого `git pull` выполните одну команду: `rtk proxy make init`
+(`scripts/init.sh`, повторный запуск безопасен). На macOS она по порядку:
+
+1. устанавливает pinned SwiftLint, XcodeGen и fsd-ios в `.build/ci-tools/bin`; повторно не скачивает,
+   пока все три на месте и `scripts/ci/install-tools.sh` не менялся (отпечаток установки хранится в
+   `.build/ci-tools/installed-pins`), а при смене версий или digest ставит заново;
+2. ставит Git hooks (`make install-hooks`);
+3. разрешает Swift packages (`make resolve`);
+4. пересоздаёт `Apps/MonitorMac/MonitorMac.xcodeproj` (`make generate`);
+5. показывает версии toolchain (`make doctor`).
+
+На Linux выполняются только применимые шаги (hooks и `make resolve SWIFT=swift`); pinned tools и
+приложение требуют macOS. Шаг, который упал, не прерывает остальные: в конце `make init` называет
+упавшие шаги и завершается с ненулевым кодом. Makefile сам использует pinned tools из
+`.build/ci-tools/bin`, если они есть; явные `SWIFTLINT=`, `XCODEGEN=`, `FSD=` по-прежнему имеют
+приоритет. Поведение routine проверяет `make test-init` (временный репозиторий с заглушками,
+без загрузок); тест входит в job `Workflow lint`.
+
 ## Локальные Git hooks
 
 После clone установите hooks командой `rtk proxy make install-hooks`; после обновления репозитория,

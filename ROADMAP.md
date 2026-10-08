@@ -22,7 +22,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**SM-710 — в работе** (ветка `feat/sm-710-regenerate-project-hooks`): Git hooks, которые сами пересоздают локальный `.xcodeproj` после pull, merge, rebase и смены ветки.
+**SM-711 — в работе** (ветка `feat/sm-711-make-init`): `make init` — одна команда первоначальной настройки и обновления окружения.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -1047,6 +1047,22 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `make generate`, если изменились `Apps/MonitorMac/Sources/`, `project.yml` или `Package.resolved`; не ломают
   операцию Git при отсутствии XcodeGen; ставятся `make install-hooks`; покрыты тестом на временном
   репозитории, который выполняется в GitHub CI.
+- [ ] **SM-711** — `make init`: рутина первоначальной настройки и обновления окружения.
+  **Статус: реализовано, ожидает PR/CI (2026-10-08), ветка `feat/sm-711-make-init`.** Добавлено по запросу пользователя.
+  Сделано: `make init` → `scripts/init.sh`. macOS: pinned tools (без повторной загрузки, пока не менялись pins в installer), hooks, `resolve`,
+  `generate`, `doctor`; Linux: hooks и `resolve SWIFT=swift`, остальное явно пропускается. Упавший шаг не
+  прерывает остальные, итог называет шаги и даёт ненулевой код. Makefile предпочитает pinned
+  `swiftlint`/`xcodegen`/`fsd-ios` из `.build/ci-tools/bin`, явные переменные имеют приоритет. Evidence:
+  `make test-init` (18 проверок: macOS первый и повторный запуск, смена pin в installer и установка без
+  отпечатка pins, сбой шага, Linux; мутационные проверки роняют тест), реальный `make init` на Linux (hooks, `swift package resolve`), `make -n generate` с pinned tool и с
+  override, shellcheck, `sh -n`. Остаток: зелёный GitHub `CI` и первый реальный запуск на Mac (загрузка
+  pinned tools и `make generate` здесь не выполнялись).
+  Сейчас после clone и после pull нужно помнить несколько команд (`install-tools.sh native`, `install-hooks`,
+  `resolve`, `generate`, `doctor`). Готово, когда одна идемпотентная команда `make init` выполняет их по порядку
+  на macOS (pinned tools без повторной загрузки, hooks, SwiftPM resolve, генерация проекта, проверка
+  toolchain), на Linux — только применимые шаги (hooks, resolve), не останавливается на первой ошибке, а
+  в конце называет упавшие шаги и следующее действие; Makefile сам использует pinned tools из
+  `.build/ci-tools/bin`, если они есть; поведение покрыто тестом, который выполняется в GitHub CI.
 
 ## Evidence и границы
 
