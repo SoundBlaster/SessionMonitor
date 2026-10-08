@@ -26,18 +26,37 @@ run() {
   - $name"
 }
 
-tools_present() {
+# Identifies the pins the tools were installed from: any change to the installer (a version or a
+# digest) makes the installed tools stale.
+pins_stamp() {
+    if command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 scripts/ci/install-tools.sh | cut -d ' ' -f 1
+    elif command -v sha256sum >/dev/null 2>&1; then
+        sha256sum scripts/ci/install-tools.sh | cut -d ' ' -f 1
+    else
+        cksum scripts/ci/install-tools.sh | cut -d ' ' -f 1,2
+    fi
+}
+
+stamp_file=.build/ci-tools/installed-pins
+
+tools_current() {
     for tool in swiftlint xcodegen fsd-ios; do
         [ -x "$pinned/$tool" ] || return 1
     done
+    [ -f "$stamp_file" ] && [ "$(cat "$stamp_file")" = "$(pins_stamp)" ]
+}
+
+install_tools() {
+    bash scripts/ci/install-tools.sh native && pins_stamp >"$stamp_file"
 }
 
 if [ "$os" = Darwin ]; then
-    if tools_present; then
+    if tools_current; then
         step 'Pinned tools'
-        printf '%s\n' "SwiftLint, XcodeGen and fsd-ios are already installed in $pinned."
+        printf '%s\n' "SwiftLint, XcodeGen and fsd-ios in $pinned match the pins in scripts/ci/install-tools.sh."
     else
-        run 'Pinned tools' bash scripts/ci/install-tools.sh native
+        run 'Pinned tools' install_tools
     fi
     run 'Git hooks' make install-hooks
     run 'Swift packages' make resolve

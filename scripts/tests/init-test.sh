@@ -75,7 +75,23 @@ check "macOS second run succeeds" run_init Darwin
 check "macOS second run skips the tool download" log_is \
     'install-hooks SWIFT=' 'resolve SWIFT=' 'generate SWIFT=' \
     'doctor SWIFT='
-check "macOS second run reports the tools as present" grep -q 'already installed' "$work/out.txt"
+check "macOS second run reports the tools as current" grep -q 'match the pins' "$work/out.txt"
+
+# A changed pin in the installer makes the installed tools stale, so they are installed again.
+printf '# new pin\n' >>"$repo/scripts/ci/install-tools.sh"
+: >"$log"
+check "macOS run after a pin change succeeds" run_init Darwin
+check "a changed pin reinstalls the tools" log_is \
+    'install-tools native' 'install-hooks SWIFT=' 'resolve SWIFT=' 'generate SWIFT=' 'doctor SWIFT='
+: >"$log"
+check "the run after the reinstall skips the download again" run_init Darwin
+check "the reinstall was recorded" sh -c "! grep -q install-tools '$log'"
+
+# Tools without a record of their pins (installed by hand or by an older init) are installed again.
+rm "$repo/.build/ci-tools/installed-pins"
+: >"$log"
+check "macOS run without a pin record succeeds" run_init Darwin
+check "tools without a pin record are installed again" grep -q 'install-tools native' "$log"
 
 # One broken tool does not hide the other results, and the exit code says so.
 : >"$log"
