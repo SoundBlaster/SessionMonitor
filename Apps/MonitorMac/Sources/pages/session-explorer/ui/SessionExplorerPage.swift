@@ -61,6 +61,7 @@ struct SessionExplorerPage: View {
                 .frame(height: SessionExplorerSidebarLayout.headerHeight, alignment: .topLeading)
             Divider()
             sidebarChart
+            focusChip
             Divider()
             sidebarSessionList
                 .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
@@ -107,7 +108,8 @@ struct SessionExplorerPage: View {
             ),
             containerStyle: .embedded,
             periodTitle: reportScope.preset == .all ? nil : reportScope.title,
-            inspectsBuckets: true
+            inspectsBuckets: true,
+            onSelectInterval: { reportScope.focus(on: $0) }
         )
         .padding(SessionExplorerSidebarLayout.sectionInset)
         .frame(height: SessionExplorerSidebarLayout.chartHeight, alignment: .topLeading)
@@ -115,7 +117,8 @@ struct SessionExplorerPage: View {
         .task(id: CacheHitRateWidgetLoadID(
             period: sidebarChartPeriod,
             revision: model.snapshot?.watermark.revision,
-            query: model.query
+            query: model.query,
+            scopeQuery: reportScope.query
         )) {
             guard model.snapshot != nil else { return }
             while !Task.isCancelled {
@@ -123,7 +126,8 @@ struct SessionExplorerPage: View {
                 await model.loadCacheHitRateWidget(
                     period: sidebarChartPeriod,
                     timeZone: timeZone,
-                    followsReportScope: reportScope.preset != .all
+                    followsReportScope: reportScope.preset != .all,
+                    scopeQuery: reportScope.query
                 )
                 let nextRefresh = CacheHitRateWidgetRefreshSchedule.nextRefresh(after: Date(), timeZone: timeZone)
                 do {
@@ -132,6 +136,30 @@ struct SessionExplorerPage: View {
                     return
                 }
             }
+        }
+    }
+
+    /// Shows the interval the report is narrowed to and removes it.
+    @ViewBuilder
+    private var focusChip: some View {
+        if let interval = reportScope.focusedInterval {
+            Button {
+                reportScope.clearFocus()
+            } label: {
+                Label(
+                    CacheHitRateWidgetBucketDetail.focusLabel(
+                        interval, timeZoneIdentifier: reportScope.query.timeZoneIdentifier),
+                    systemImage: "xmark.circle.fill"
+                )
+                .labelStyle(.titleAndIcon)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .padding(.horizontal, SessionExplorerSidebarLayout.sectionInset)
+            .padding(.bottom, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityLabel("Showing only one interval")
+            .accessibilityHint("Show the whole period again.")
         }
     }
 
@@ -270,6 +298,7 @@ private struct CacheHitRateWidgetLoadID: Hashable {
     let period: CacheHitRateWidgetPeriod
     let revision: Int64?
     let query: UsageQuery
+    let scopeQuery: UsageQuery
 }
 
 private struct QuotaPresentationLoadID: Hashable {

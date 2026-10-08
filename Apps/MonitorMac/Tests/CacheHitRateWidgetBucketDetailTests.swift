@@ -78,6 +78,39 @@ final class CacheHitRateWidgetBucketDetailTests: XCTestCase {
         add(attachment)
     }
 
+    func testClickingADaySelectsThatDayAndAnEmptyDaySelectsNothing() throws {
+        let report = try weekReport()
+        let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
+        let monday = try XCTUnwrap(slots.first { $0.bucket?.sampleCount == 2 })
+        let interval = try XCTUnwrap(
+            CacheHitRateWidgetBucketDetail.interval(ofSlot: monday.id, in: slots, report: report))
+        XCTAssertEqual(interval.start, date("2026-09-28T00:00:00Z"))
+        XCTAssertEqual(interval.end, date("2026-09-29T00:00:00Z"))
+        let empty = try XCTUnwrap(slots.first { $0.bucket == nil })
+        XCTAssertNil(CacheHitRateWidgetBucketDetail.interval(ofSlot: empty.id, in: slots, report: report))
+        XCTAssertNil(CacheHitRateWidgetBucketDetail.interval(ofSlot: 99, in: slots, report: report))
+    }
+
+    func testTheLastSlotEndsAtThePeriodEnd() throws {
+        let report = try weekReport()
+        let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
+        let last = try XCTUnwrap(slots.last)
+        let bucketed = CacheHitRateWidgetSlot(id: last.id, start: last.start, bucket: slots.compactMap(\.bucket).first)
+        let interval = try XCTUnwrap(CacheHitRateWidgetBucketDetail.interval(
+            ofSlot: last.id, in: Array(slots.dropLast()) + [bucketed], report: report))
+        XCTAssertEqual(interval.end, report.periodEnd)
+    }
+
+    func testFocusLabelNamesADayOrAnHour() {
+        let day = DateInterval(start: date("2026-09-28T00:00:00Z"), end: date("2026-09-29T00:00:00Z"))
+        XCTAssertEqual(CacheHitRateWidgetBucketDetail.focusLabel(day, timeZoneIdentifier: "UTC", locale: english),
+                       "Sep 28")
+        let hour = DateInterval(start: date("2026-09-30T06:00:00Z"), end: date("2026-09-30T07:00:00Z"))
+        let label = CacheHitRateWidgetBucketDetail.focusLabel(hour, timeZoneIdentifier: "Europe/Moscow",
+                                                              locale: english)
+        XCTAssertTrue(label.contains("9:00"), label)
+    }
+
     private func weekReport() throws -> CacheHitRateWidgetReport {
         let now = date("2026-09-30T09:30:00Z")
         let query = try UsagePeriodPreset.lastSevenDays.resolve(referenceDate: now, timeZoneIdentifier: "UTC")

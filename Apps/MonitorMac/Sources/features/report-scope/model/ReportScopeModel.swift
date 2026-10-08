@@ -46,6 +46,7 @@ final class ReportScopeModel {
         let since: Date?
         let until: Date?
         let accountScope: UsageAccountScope
+        let focusedInterval: DateInterval?
     }
 
     private enum StorageKey {
@@ -60,6 +61,9 @@ final class ReportScopeModel {
     private(set) var accountSelection: AccountSelection
     private(set) var profiles: [ProfileOption] = []
     private(set) var profileCatalogError: String?
+    /// A temporary interval inside the period, chosen on the Sidebar chart. It is never persisted
+    /// and any change of period, timezone or account drops it.
+    private(set) var focusedInterval: DateInterval?
 
     let timeZoneIdentifiers: [String]
 
@@ -111,8 +115,24 @@ final class ReportScopeModel {
             timeZoneIdentifier: timeZoneIdentifier,
             since: query.since,
             until: query.until,
-            accountScope: query.accountScope
+            accountScope: query.accountScope,
+            focusedInterval: focusedInterval
         )
+    }
+
+    /// The period query narrowed to the focused interval; equals `query` without a focus.
+    var focusedQuery: UsageQuery {
+        focusedInterval.map { ReportScopeFocus.narrowed(query, to: $0) } ?? query
+    }
+
+    /// Narrows the report to `interval` when it overlaps the period; otherwise the call is ignored.
+    func focus(on interval: DateInterval) {
+        guard let resolved = ReportScopeFocus.clipped(interval, to: query) else { return }
+        if focusedInterval != resolved { focusedInterval = resolved }
+    }
+
+    func clearFocus() {
+        if focusedInterval != nil { focusedInterval = nil }
     }
 
     var title: String { preset.title }
@@ -148,6 +168,7 @@ final class ReportScopeModel {
 
     func selectPreset(_ value: PeriodPreset) {
         guard value != preset else { return }
+        focusedInterval = nil
         preset = value
         if value == .today {
             // Today opens on the user's local day, rather than a previously selected UTC day.
@@ -160,6 +181,7 @@ final class ReportScopeModel {
 
     func selectTimeZone(_ identifier: String) {
         guard timeZoneIdentifiers.contains(identifier), identifier != timeZoneIdentifier else { return }
+        focusedInterval = nil
         timeZoneIdentifier = identifier
         defaults.set(identifier, forKey: StorageKey.timeZone)
         resolveQuery()
@@ -169,6 +191,7 @@ final class ReportScopeModel {
         guard value != accountSelection else { return }
         if case let .profile(id) = value,
            profiles.first(where: { $0.id == id })?.isSelectable != true { return }
+        focusedInterval = nil
         accountSelection = value
         defaults.set(value.id, forKey: StorageKey.account)
         resolveQuery()
@@ -213,6 +236,7 @@ final class ReportScopeModel {
         let resolved = Self.makeQuery(preset: preset, timeZoneIdentifier: timeZoneIdentifier,
                                       accountSelection: accountSelection, now: now())
         if resolved != query { query = resolved }
+        if let focusedInterval, !ReportScopeFocus.isInside(focusedInterval, of: query) { self.focusedInterval = nil }
         scheduleBoundaryRefresh()
     }
 

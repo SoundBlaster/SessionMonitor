@@ -10,6 +10,8 @@ struct CacheHitRateWidgetChart: View {
     let preservesAspectRatio: Bool
     /// The slot under the pointer, reported to the host that shows its details. Unused by default.
     var inspectedSlotID: Binding<Int?> = .constant(nil)
+    /// Called with the slot id on a click while a bar is inspected, and by the VoiceOver action.
+    var onSelectSlot: ((Int) -> Void)?
 
     @State private var pointerX: Double?
 
@@ -43,6 +45,9 @@ struct CacheHitRateWidgetChart: View {
             inspectedSlotID.wrappedValue = position.flatMap {
                 CacheHitRateWidgetBucketDetail.slotID(forX: $0, slotCount: slots.count)
             }
+        }
+        .onTapGesture {
+            if let id = inspectedSlotID.wrappedValue { onSelectSlot?(id) }
         }
         .chartXAxis(.hidden)
         .chartYAxis { yAxis }
@@ -93,6 +98,11 @@ struct CacheHitRateWidgetChart: View {
             VStack {
                 ForEach(slots) { slot in
                     Text(CacheHitRateWidgetBucketDetail.accessibilityText(for: slot, report: report))
+                        .accessibilityActions {
+                            if let onSelectSlot, slot.bucket != nil {
+                                Button("Show only this interval") { onSelectSlot(slot.id) }
+                            }
+                        }
                 }
             }
             .accessibilityElement(children: .contain)

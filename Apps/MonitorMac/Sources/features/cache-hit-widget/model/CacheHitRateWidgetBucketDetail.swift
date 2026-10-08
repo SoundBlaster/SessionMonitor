@@ -5,6 +5,7 @@ import MonitorCore
 /// or model identity (the SM-311 privacy contract).
 enum CacheHitRateWidgetBucketDetail {
     static let hint = "Hover a bar for details"
+    static let selectableHint = "Hover a bar for details, click to show only it"
 
     /// The slot nearest to a chart x position; `nil` outside the plotted slots.
     static func slotID(forX position: Double, slotCount: Int) -> Int? {
@@ -40,6 +41,28 @@ enum CacheHitRateWidgetBucketDetail {
         let summary = text(for: slot, report: report, locale: locale)
         guard let bucket = slot.bucket, !bucket.outliers.isEmpty else { return summary }
         return summary + ", " + count(bucket.outliers.count, "outlier", locale)
+    }
+
+    /// The time span a click on `slot` selects: up to the next slot, or the period end for the last one.
+    /// A slot without cache data selects nothing.
+    static func interval(
+        ofSlot id: Int, in slots: [CacheHitRateWidgetSlot], report: CacheHitRateWidgetReport
+    ) -> DateInterval? {
+        guard let slot = slots.first(where: { $0.id == id }), slot.bucket != nil else { return nil }
+        let end = slots.first(where: { $0.id == id + 1 })?.start ?? report.periodEnd
+        guard end > slot.start else { return nil }
+        return DateInterval(start: slot.start, end: end)
+    }
+
+    /// Chip text for a focused interval: an hour reads as a date with time, a day as a date.
+    static func focusLabel(
+        _ interval: DateInterval, timeZoneIdentifier: String, locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .gmt
+        formatter.setLocalizedDateFormatFromTemplate(interval.duration <= 3_600 ? "MMMdjmm" : "MMMd")
+        return formatter.string(from: interval.start)
     }
 
     private static func dateLabel(

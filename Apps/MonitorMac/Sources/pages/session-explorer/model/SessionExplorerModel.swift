@@ -124,14 +124,15 @@ final class SessionExplorerModel {
 
     func loadCacheHitRateWidget(
         period: CacheHitRateWidgetPeriod, referenceDate: Date = Date(), timeZone: TimeZone,
-        followsReportScope: Bool = false
+        followsReportScope: Bool = false, scopeQuery: UsageQuery? = nil
     ) async {
         let requestedQuery = query
         do {
             let runtime = try await resolvedRuntime()
             let report = try await runtime.cacheHitRateWidget(
                 period: period, referenceDate: referenceDate, timeZone: timeZone,
-                accountScope: requestedQuery.accountScope, query: followsReportScope ? requestedQuery : nil
+                accountScope: requestedQuery.accountScope,
+                query: followsReportScope ? scopeQuery ?? requestedQuery : nil
             )
             guard !Task.isCancelled, query == requestedQuery else { return }
             cacheHitRateWidgetReport = report
@@ -255,6 +256,10 @@ final class SessionExplorerModel {
 
     private func activate(_ requestedQuery: UsageQuery) {
         guard query != requestedQuery else { return }
+        // Narrowing the period to one chart interval keeps the chart on screen; another account
+        // or timezone must not show the previous chart while its own loads.
+        let keepsChart = query.accountScope == requestedQuery.accountScope
+            && query.timeZoneIdentifier == requestedQuery.timeZoneIdentifier
         query = requestedQuery
         timelineModel.reset()
         snapshot = nil
@@ -262,7 +267,7 @@ final class SessionExplorerModel {
         report = UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:])
         navigation.reconcile(with: [])
         lastUpdated = nil
-        cacheHitRateWidgetReport = nil
+        if !keepsChart { cacheHitRateWidgetReport = nil }
         quotaPresentationReport = nil
         publishSnapshot()
     }

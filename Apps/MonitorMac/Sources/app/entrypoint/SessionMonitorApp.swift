@@ -95,7 +95,7 @@ private struct SessionMonitorWindow: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .task(id: reportScope.observationID) {
                 await reportScope.refreshProfiles()
-                let query = reportScope.query
+                let query = reportScope.focusedQuery
                 await model.loadIfNeeded(query: query)
                 guard !Task.isCancelled else { return }
                 await model.observe(query: query)
