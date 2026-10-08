@@ -22,6 +22,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
+**SM-710 — в работе** (ветка `feat/sm-710-regenerate-project-hooks`): Git hooks, которые сами пересоздают локальный `.xcodeproj` после pull, merge, rebase и смены ветки.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -1026,6 +1027,24 @@ deliverable — WidgetKit extension с App Group в SM-401.
   постфактум) с реальными цифрами аудита, честными границами и quick start из существующих команд.
   Пример hook'а исправлен: явно указано, что монитор видит только сессии Codex. Готово, когда все
   команды quick start соответствуют CLI, утверждения не обещают экономию по cache hit и ссылки целы.
+
+- [ ] **SM-710** — Автоматически пересоздавать локальный `.xcodeproj` после получения чужих изменений.
+  **Статус: реализовано, ожидает PR/CI (2026-10-08), ветка `feat/sm-710-regenerate-project-hooks`.** Добавлено по запросу пользователя.
+  Сделано: общий `scripts/git-hooks/generate-project.sh` (читает изменённые пути из stdin; `--soft` не роняет
+  операцию Git), hooks `post-merge`, `post-checkout`, `post-rewrite`; `pre-commit` переведён на тот же скрипт;
+  `install.sh` ставит все четыре (существующий чужой hook не перезаписывается, остальные ставятся).
+  `make test-hooks` (`scripts/tests/git-hooks-test.sh`: временный репозиторий, фальшивый XcodeGen) проверяет
+  установку, branch switch, merge, rebase, docs-only и file checkout (без генерации), отсутствие XcodeGen;
+  входит в job `Workflow lint`. Evidence: тест и мутационная проверка (сломанные post-merge/post-checkout
+  роняют 5 проверок), `make lint-ci`, shellcheck по `scripts/ci`, `scripts/git-hooks`, тесту и `.githooks`.
+  Проблема: `.xcodeproj` игнорируется Git, а pre-commit hook покрывает только собственные коммиты. После
+  `git pull` с новыми файлами в `Apps/MonitorMac/Sources/` старый локальный проект не знает о них, и Xcode
+  падает с вторичными ошибками (случай SM-205/SM-325: `WatchLaunchSettings.swift`, `AppAlertNotifications.swift`).
+  Остаток: зелёный GitHub `CI`; после merge пользователю нужно один раз выполнить `make install-hooks`
+  (новые hooks не появляются сами). Готово, когда hooks `post-merge`, `post-checkout` (смена ветки) и `post-rewrite` (rebase) вызывают
+  `make generate`, если изменились `Apps/MonitorMac/Sources/`, `project.yml` или `Package.resolved`; не ломают
+  операцию Git при отсутствии XcodeGen; ставятся `make install-hooks`; покрыты тестом на временном
+  репозитории, который выполняется в GitHub CI.
 
 ## Evidence и границы
 

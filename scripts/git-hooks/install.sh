@@ -19,19 +19,26 @@ case "$hooks_directory" in
         ;;
 esac
 
-hook_source="$repository_root/.githooks/pre-commit"
-hook_destination="$hooks_directory/pre-commit"
 mkdir -p "$hooks_directory"
 
-if [ -L "$hook_destination" ] && [ "$(readlink "$hook_destination")" = "$hook_source" ]; then
-    printf '%s\n' 'SessionMonitor pre-commit hook is already installed.'
-    exit 0
-fi
+status=0
+for hook in pre-commit post-merge post-checkout post-rewrite; do
+    hook_source="$repository_root/.githooks/$hook"
+    hook_destination="$hooks_directory/$hook"
 
-if [ -e "$hook_destination" ] || [ -L "$hook_destination" ]; then
-    printf '%s\n' "An existing pre-commit hook was found at $hook_destination; leaving it unchanged. Integrate .githooks/pre-commit manually." >&2
-    exit 1
-fi
+    if [ -L "$hook_destination" ] && [ "$(readlink "$hook_destination")" = "$hook_source" ]; then
+        printf '%s\n' "SessionMonitor $hook hook is already installed."
+        continue
+    fi
 
-ln -s "$hook_source" "$hook_destination"
-printf '%s\n' "Installed SessionMonitor pre-commit hook at $hook_destination."
+    if [ -e "$hook_destination" ] || [ -L "$hook_destination" ]; then
+        printf '%s\n' "An existing $hook hook was found at $hook_destination; leaving it unchanged. Integrate .githooks/$hook manually." >&2
+        status=1
+        continue
+    fi
+
+    ln -s "$hook_source" "$hook_destination"
+    printf '%s\n' "Installed SessionMonitor $hook hook at $hook_destination."
+done
+
+exit "$status"
