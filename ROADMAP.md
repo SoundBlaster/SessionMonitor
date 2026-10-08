@@ -1097,7 +1097,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
   по интервалу меняет список и итоги, чип показывает и снимает фильтр, интервал вне периода отчёта
   недоступен, а состояние не сохраняется между запусками.
 - [ ] **SM-714** — Сортировка списка сессий в Sidebar выпадающим селектором.
-  **Статус: в работе (2026-10-08), ветка `feat/sm-714-sidebar-session-sort`.** Добавлено по запросу пользователя.
+  **Статус: реализовано, ожидает PR/CI и проверки на Mac (2026-10-08), ветка `feat/sm-714-sidebar-session-sort`.** Добавлено по запросу пользователя.
+  Сделано: `SessionSummary.firstRequestAt`/`lastRequestAt` (необязательные, из `confirmed` по всей истории сессии, `UsageStore.sessionSpans`),
+  чистая модель `SessionSortOrder` (5 ключей × 2 направления, неизвестное в конец, ничья по id, рекурсивно по дереву),
+  `SessionSidebarList` с селектором (Picker menu с секциями по ключам, выбор в `@AppStorage`) и `SessionListRow` со значением сортировки.
+  Evidence: `swift test` — 200 тестов (+1 `sessionSummariesCarryTheirWholeHistoryFirstAndLastRequest`), `make test-cli` прошёл
+  (JSON-совместимость), логика `SessionSortOrder` и тексты проверены на Linux временным пакетом с теми же fixtures, что
+  `SessionSortOrderTests` (36 проверок). Остаток: SwiftUI-часть и XCTest выполняются только в GitHub `CI`; визуальная проверка
+  селектора на Mac.
   Под графиком в Sidebar селектор сортировки списком: дата первого запроса сессии, дата последнего запроса,
   cache hit rate, число requests, число токенов (input + output), каждая в обе стороны. Даты — первый и
   последний подтверждённый запрос сессии (`SessionSummary.firstRequestAt`/`lastRequestAt`, не зависят от периода
