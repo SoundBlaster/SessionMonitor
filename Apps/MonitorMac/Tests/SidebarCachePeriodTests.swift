@@ -99,6 +99,28 @@ final class SidebarCachePeriodTests: XCTestCase {
     }
 
     @MainActor
+    func testChartSurvivesNarrowingInsideItsPeriodButNotAChangeOfPeriod() async throws {
+        let runtime = StubExplorerRuntime(report: UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:]))
+        let model = SessionExplorerModel(runtimeFactory: { runtime })
+        let now = date("2026-09-30T09:30:00Z")
+        let week = try UsagePeriodPreset.lastSevenDays.resolve(referenceDate: now, timeZoneIdentifier: "UTC")
+        let day = try UsageQuery(since: date("2026-09-28T00:00:00Z"), until: date("2026-09-29T00:00:00Z"),
+                                 timeZoneIdentifier: "UTC")
+        let month = try UsagePeriodPreset.lastThirtyDays.resolve(referenceDate: now, timeZoneIdentifier: "UTC")
+
+        await model.loadIfNeeded(query: week, chartScope: week)
+        await model.loadCacheHitRateWidget(period: .last7Days, timeZone: .gmt, followsReportScope: true,
+                                           scopeQuery: week)
+        XCTAssertNotNil(model.cacheHitRateWidgetReport)
+
+        await model.loadIfNeeded(query: day, chartScope: week)
+        XCTAssertNotNil(model.cacheHitRateWidgetReport, "narrowing inside the same period keeps the chart")
+
+        await model.loadIfNeeded(query: month, chartScope: month)
+        XCTAssertNil(model.cacheHitRateWidgetReport, "another period must not show the previous chart")
+    }
+
+    @MainActor
     func testTodayRendersAtSidebarWidthInBothThemes() throws {
         let zone = try XCTUnwrap(TimeZone(identifier: "Europe/Moscow"))
         let now = date("2026-09-30T09:30:00Z")

@@ -143,14 +143,12 @@ struct SessionExplorerPage: View {
     @ViewBuilder
     private var focusChip: some View {
         if let interval = reportScope.focusedInterval {
+            let label = CacheHitRateWidgetBucketDetail.focusLabel(
+                interval, timeZoneIdentifier: reportScope.query.timeZoneIdentifier)
             Button {
                 reportScope.clearFocus()
             } label: {
-                Label(
-                    CacheHitRateWidgetBucketDetail.focusLabel(
-                        interval, timeZoneIdentifier: reportScope.query.timeZoneIdentifier),
-                    systemImage: "xmark.circle.fill"
-                )
+                Label(label, systemImage: "xmark.circle.fill")
                 .labelStyle(.titleAndIcon)
             }
             .buttonStyle(.bordered)
@@ -158,7 +156,7 @@ struct SessionExplorerPage: View {
             .padding(.horizontal, SessionExplorerSidebarLayout.sectionInset)
             .padding(.bottom, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityLabel("Showing only one interval")
+            .accessibilityLabel("Showing only \(label)")
             .accessibilityHint("Show the whole period again.")
         }
     }

@@ -42,6 +42,7 @@ final class SessionExplorerModel {
     private(set) var provenance: [String: SessionProvenance] = [:]
     private(set) var report: UsageReport
     private(set) var query: UsageQuery
+    @ObservationIgnored private var chartScope: UsageQuery?
     private(set) var activity: Activity = .idle
     private(set) var errorMessage: String?
     private(set) var importSummary: ImportSummary?
@@ -168,18 +169,20 @@ final class SessionExplorerModel {
         return delay > 0 ? delay : nil
     }
 
-    func loadIfNeeded(query requestedQuery: UsageQuery? = nil) async {
+    /// `chartScope` is the period the Sidebar chart covers. While it stays the same, narrowing `query`
+    /// to an interval inside it keeps the chart; any other change of scope clears it.
+    func loadIfNeeded(query requestedQuery: UsageQuery? = nil, chartScope: UsageQuery? = nil) async {
         let requestedQuery = requestedQuery ?? query
-        activate(requestedQuery)
+        activate(requestedQuery, chartScope: chartScope)
         guard loadedQuery != requestedQuery else { return }
         loadedQuery = requestedQuery
         await refresh()
     }
 
     /// Owned by the window task; closing the window cancels the underlying observation.
-    func observe(query requestedQuery: UsageQuery? = nil) async {
+    func observe(query requestedQuery: UsageQuery? = nil, chartScope: UsageQuery? = nil) async {
         let requestedQuery = requestedQuery ?? query
-        activate(requestedQuery)
+        activate(requestedQuery, chartScope: chartScope)
         do {
             let runtime = try await resolvedRuntime()
             let stream = await runtime.snapshots(query: requestedQuery)
@@ -254,13 +257,15 @@ final class SessionExplorerModel {
         return runtime
     }
 
-    private func activate(_ requestedQuery: UsageQuery) {
+    private func activate(_ requestedQuery: UsageQuery, chartScope requestedScope: UsageQuery? = nil) {
         guard query != requestedQuery else { return }
-        // Narrowing the period to one chart interval keeps the chart on screen; another account
+        // Narrowing the period to one chart interval keeps the chart on screen; another period, account
         // or timezone must not show the previous chart while its own loads.
-        let keepsChart = query.accountScope == requestedQuery.accountScope
+        let keepsChart = requestedScope != nil && requestedScope == chartScope
+            && query.accountScope == requestedQuery.accountScope
             && query.timeZoneIdentifier == requestedQuery.timeZoneIdentifier
         query = requestedQuery
+        chartScope = requestedScope
         timelineModel.reset()
         snapshot = nil
         provenance = [:]

@@ -96,9 +96,9 @@ private struct SessionMonitorWindow: View {
             .task(id: reportScope.observationID) {
                 await reportScope.refreshProfiles()
                 let query = reportScope.focusedQuery
-                await model.loadIfNeeded(query: query)
+                await model.loadIfNeeded(query: query, chartScope: reportScope.query)
                 guard !Task.isCancelled else { return }
-                await model.observe(query: query)
+                await model.observe(query: query, chartScope: reportScope.query)
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { reportScope.refreshRelativePeriod() }
