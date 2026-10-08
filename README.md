@@ -147,6 +147,7 @@ job `Linux CLI checks`): `swift build --product codex-monitor`. Отличия �
 device+inode), App Group snapshot для виджета не пишется. GUI, виджет и уведомления — только macOS.
 
 `make generate` создаёт `Apps/MonitorMac/MonitorMac.xcodeproj` из versioned `project.yml`.
+После `git pull`, merge, rebase и смены ветки проект пересоздают Git hooks (`rtk proxy make install-hooks`, один раз после clone и после обновления самих hooks); без них запускайте `make generate` вручную, если Xcode не видит новые файлы.
 Оба SwiftPM graphs закреплены в root `Package.resolved` и `Apps/MonitorMac/Package.resolved`.
 Локальная подпись настраивается в игнорируемом `Apps/MonitorMac/Local.xcconfig`:
 

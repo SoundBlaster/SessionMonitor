@@ -132,19 +132,36 @@ metrics, audit и append/full parity. Реальный архив не испо�
 в artifacts; методика — [docs/performance](docs/performance/README.md).
 GUI tests включают SQLite writer в отдельном `/usr/bin/python3` process; Python не входит в app runtime.
 
-## Локальный pre-commit hook
+## Локальные Git hooks
 
-После clone установите hook командой `rtk proxy make install-hooks`. Он запускает
-`make generate`, когда среди staged changes есть файл в `Apps/MonitorMac/Sources/`,
-`Apps/MonitorMac/project.yml` или `Apps/MonitorMac/Package.resolved`. Это синхронизирует
-локальный генерируемый `.xcodeproj` с исходниками до следующей сборки; проект остаётся
-игнорируемым и не попадает в commit. Hook использует установленный XcodeGen (сначала
-`.build/ci-tools/bin/xcodegen`, затем `PATH`) и остановит commit с подсказкой, если
-XcodeGen отсутствует или генерация завершилась ошибкой. Установщик добавляет symlink в
-текущую Git hooks directory, не меняя `core.hooksPath`; существующий pre-commit hook
-не перезаписывается. Если `core.hooksPath` задан глобально без repository-local override
+После clone установите hooks командой `rtk proxy make install-hooks`; после обновления репозитория,
+в котором появились новые hooks, выполните её ещё раз. Hooks синхронизируют локальный генерируемый
+`.xcodeproj` с исходниками. Проект остаётся игнорируемым и не попадает в commit.
+
+| Hook | Когда срабатывает | Что делает |
+| --- | --- | --- |
+| `pre-commit` | перед commit | `make generate`, если среди staged changes есть файл в `Apps/MonitorMac/Sources/`, `Apps/MonitorMac/project.yml` или `Apps/MonitorMac/Package.resolved`; без XcodeGen останавливает commit с подсказкой |
+| `post-merge` | после `git merge` и `git pull` | `make generate`, если эти файлы изменились между прежним и новым HEAD |
+| `post-checkout` | после смены ветки | то же для разницы между ветками; checkout отдельных файлов не учитывается |
+| `post-rewrite` | после `git rebase` и `git pull --rebase` | то же для разницы между прежним и новым HEAD |
+
+Hooks работают только на macOS: на других системах (Linux, где XcodeGen и приложения нет) они ничего не делают,
+и коммиты файлов приложения не блокируются. Это закрывает случай, когда после pull в target не хватает новых файлов и Xcode показывает вторичные
+ошибки (SM-710). Hooks после получения изменений никогда не ломают операцию Git: без XcodeGen они
+печатают подсказку запустить `make generate`. Общая логика находится в
+`scripts/git-hooks/generate-project.sh`; он использует установленный XcodeGen (сначала
+`.build/ci-tools/bin/xcodegen`, затем `PATH`). Поведение hooks проверяет `make test-hooks`
+(временный репозиторий и фальшивый XcodeGen, без Xcode); тест входит в job `Workflow lint`.
+
+Установщик копирует каждый hook и общий `sessionmonitor-generate-project.sh` в текущую Git hooks
+directory, не меняя `core.hooksPath`. Это копии, а не ссылки в рабочее дерево: так hooks работают и на
+ветках, где этих файлов ещё нет (при переходе на старую ветку рабочее дерево уже без них). После изменения
+самих hooks повторите `rtk proxy make install-hooks` (или `make init`): копия обновляется, ссылки от
+прежней версии заменяются копиями. Чужой hook с тем же именем не перезаписывается (остальные
+устанавливаются, код выхода ненулевой). Ссылка прежней версии, пока её не заменили, продолжает работать через помощника из рабочего дерева.
+Если помощника нет нигде, hooks сообщают об этом и не ломают операцию Git. Если `core.hooksPath` задан глобально без repository-local override
 или разрешается за пределы репозитория, установка остановится, чтобы не добавить
-SessionMonitor hook в общую hooks directory.
+SessionMonitor hooks в общую hooks directory.
 
 ## Реализация и reuse
 
