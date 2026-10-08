@@ -753,7 +753,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   active/resolved записи `alert_records` с severity, coverage и evidence. Готово, когда GUI и
   `doctor --json` дают одинаковый набор findings, а in-app список алертов совпадает с
   `codex-monitor alerts --status all --json`.
-  **Статус: доставлено в `main` (PR #98, f730874, `CI` зелёный, 2026-10-08); `[ ]` до проверки на Mac.**
+  **Статус: доставлено в `main` (PR #98, f730874, `CI` зелёный, 2026-10-08); на Mac панель Findings открывается и показывает находки (проверил пользователь); `[ ]` до сверки с `doctor --json` и `alerts --status all --json` на живой базе.**
   Сделано: те же `doctor(query:)` и `alerts(status:)` через `SessionExplorerRuntime` (`FindingsAlertsSource`; вторая реализация
   правил не заводилась), `FindingsAlertsModel` (фильтры kind и статус алерта; без фильтров показывает ровно набор
   CLI), `FindingsAlertsPresentation`, `FindingsAlertsPanel`/`FindingRow` (evidence observed/inference/unknown/limitations,
