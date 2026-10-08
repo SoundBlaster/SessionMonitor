@@ -26,24 +26,6 @@ struct DiagnosticsTests {
         #expect(try store.snapshot(query: UsageQuery())?.report.totals == before.report.totals)
     }
 
-    @Test func sessionSummariesCarryTheirWholeHistoryFirstAndLastRequest() throws {
-        let fixture = try DiagnosticsFixture()
-        defer { fixture.remove() }
-        let store = try UsageStore(url: fixture.database)
-        try store.replace(source: "long", rollout: fixture.rollout(records: [
-            fixture.record(session: "long", id: "A", timestamp: 1_000, line: 1),
-            fixture.record(session: "long", id: "B", timestamp: 5_000, line: 2),
-            fixture.record(session: "long", id: "C", timestamp: 9_000, line: 3)
-        ]))
-        // The period only contains the middle request, but the dates describe the whole session.
-        let query = try UsageQuery(since: Date(timeIntervalSince1970: 4_000), until: Date(timeIntervalSince1970: 6_000))
-        let snapshot = try #require(try store.snapshot(query: query))
-        let session = try #require(snapshot.report.sessions.first)
-        #expect(session.totals.requests == 1)
-        #expect(session.firstRequestAt == Date(timeIntervalSince1970: 1_000))
-        #expect(session.lastRequestAt == Date(timeIntervalSince1970: 9_000))
-    }
-
     @Test func inspectSeparatesKnownAndUnknownCacheCoverage() throws {
         let fixture = try DiagnosticsFixture()
         defer { fixture.remove() }

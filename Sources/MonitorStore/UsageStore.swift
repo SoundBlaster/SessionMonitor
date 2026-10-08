@@ -356,31 +356,9 @@ public final class UsageStore: Sendable {
             SELECT session, CASE WHEN COUNT(DISTINCT model) = 1 THEN MIN(model) ELSE 'mixed' END AS model,
             \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
             GROUP BY session ORDER BY inputs DESC, session ASC
-            """, arguments: arguments).map { row in
-                let span = spans[row["session"] as String]
-                return SessionSummary(id: row["session"], model: row["model"], totals: Self.totals(row),
-                                      firstRequestAt: span?.first, lastRequestAt: span?.last)
-            }
+            """, arguments: arguments).map { Self.sessionSummary($0, spans: spans) }
         return UsageReport(totals: totalsRow.map(Self.totals) ?? UsageTotals(),
                            sessions: sessions, diagnostics: try Self.diagnostics(database), accountScope: accountScope)
-    }
-
-    /// First and last confirmed request of every session over all imported history of the account scope, so a
-    /// session id shared by several profiles never shows another account's dates.
-    private static func sessionSpans(
-        _ database: Database, accountScope: UsageAccountScope
-    ) throws -> [String: (first: Date, last: Date)] {
-        let rows = try Row.fetchAll(database, sql: """
-            SELECT session, MIN(timestamp) AS first_at, MAX(timestamp) AS last_at FROM confirmed
-            WHERE 1 = 1 \(Self.accountScopePredicate()) GROUP BY session
-            """, arguments: [
-                accountScope.kind.rawValue, accountScope.kind.rawValue, accountScope.profileID,
-                accountScope.kind.rawValue
-            ])
-        return Dictionary(uniqueKeysWithValues: rows.map { row in
-            (row["session"] as String,
-             (Date(timeIntervalSince1970: row["first_at"]), Date(timeIntervalSince1970: row["last_at"])))
-        })
     }
 
     private static func report(_ database: Database, query: UsageQuery) throws -> UsageReport {
@@ -396,7 +374,7 @@ public final class UsageStore: Sendable {
         CASE WHEN COUNT(total) = COUNT(*) THEN SUM(total) END AS total
         """
 
-    private static func totals(_ row: Row) -> UsageTotals {
+    static func totals(_ row: Row) -> UsageTotals {
         UsageTotals(requests: row["requests"], inputTokens: row["inputs"], cachedInputTokens: row["cached"],
                     outputTokens: row["outputs"], unknownCacheRequests: row["unknown"],
                     cacheWriteInputTokens: row["cache_write"], reasoningOutputTokens: row["reasoning"],
