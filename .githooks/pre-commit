@@ -1,8 +1,12 @@
 #!/bin/sh
+# SessionMonitor Git hook (installed by scripts/git-hooks/install.sh)
 set -eu
+
+# The helper is installed next to this hook, so the hook also works on branches without these files.
+helper="$(cd "$(dirname "$0")" && pwd)/sessionmonitor-generate-project.sh"
 
 repository_root=$(git rev-parse --show-toplevel)
 cd "$repository_root"
 
 git diff --cached --no-renames --name-only --diff-filter=ACMRD \
-    | sh scripts/git-hooks/generate-project.sh
+    | sh "$helper"

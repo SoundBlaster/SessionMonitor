@@ -152,9 +152,13 @@ GUI tests включают SQLite writer в отдельном `/usr/bin/python3
 `.build/ci-tools/bin/xcodegen`, затем `PATH`). Поведение hooks проверяет `make test-hooks`
 (временный репозиторий и фальшивый XcodeGen, без Xcode); тест входит в job `Workflow lint`.
 
-Установщик добавляет symlink для каждого hook в текущую Git hooks directory, не меняя
-`core.hooksPath`; существующий hook с тем же именем не перезаписывается (остальные устанавливаются,
-код выхода ненулевой). Если `core.hooksPath` задан глобально без repository-local override
+Установщик копирует каждый hook и общий `sessionmonitor-generate-project.sh` в текущую Git hooks
+directory, не меняя `core.hooksPath`. Это копии, а не ссылки в рабочее дерево: так hooks работают и на
+ветках, где этих файлов ещё нет (при переходе на старую ветку рабочее дерево уже без них). После изменения
+самих hooks повторите `rtk proxy make install-hooks` (или `make init`): копия обновляется, ссылки от
+прежней версии заменяются копиями. Чужой hook с тем же именем не перезаписывается (остальные
+устанавливаются, код выхода ненулевой). Если копия помощника удалена, post-hooks сообщают об этом и не
+ломают операцию Git. Если `core.hooksPath` задан глобально без repository-local override
 или разрешается за пределы репозитория, установка остановится, чтобы не добавить
 SessionMonitor hooks в общую hooks directory.
 

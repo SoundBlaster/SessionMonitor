@@ -76,20 +76,31 @@ git_in_repo add -A
 git_in_repo commit -q -m initial
 : >"$log"
 
-# Installation: every hook is linked, and a second run changes nothing.
+# Installation: every hook and the helper are copied, and a second run changes nothing.
 (cd "$repo" && sh scripts/git-hooks/install.sh >/dev/null)
 for hook in pre-commit post-merge post-checkout post-rewrite; do
-    check "$hook is installed" test -L "$repo/.git/hooks/$hook"
+    check "$hook is installed as a copy" sh -c "test -x '$repo/.git/hooks/$hook' && ! test -L '$repo/.git/hooks/$hook'"
 done
-check "reinstall is idempotent" sh -c "cd '$repo' && sh scripts/git-hooks/install.sh >/dev/null"
+check "the helper is installed" test -x "$repo/.git/hooks/sessionmonitor-generate-project.sh"
+check "reinstall is idempotent" sh -c "cd '$repo' && sh scripts/git-hooks/install.sh | grep -qv Installed"
 
-# An existing hook is left alone, the others are still installed.
+# A changed hook is refreshed by installing again; a link from an earlier version is replaced by a copy.
+printf '# changed\n' >>"$repo/.githooks/post-merge"
+rm "$repo/.git/hooks/post-checkout"
+ln -s "$repo/.githooks/post-checkout" "$repo/.git/hooks/post-checkout"
+(cd "$repo" && sh scripts/git-hooks/install.sh >/dev/null)
+check "a changed hook is refreshed" cmp -s "$repo/.githooks/post-merge" "$repo/.git/hooks/post-merge"
+check "an old link is replaced by a copy" sh -c "! test -L '$repo/.git/hooks/post-checkout' && cmp -s '$repo/.githooks/post-checkout' '$repo/.git/hooks/post-checkout'"
+git_in_repo checkout -q -- .githooks/post-merge
+(cd "$repo" && sh scripts/git-hooks/install.sh >/dev/null)
+
+# A foreign hook is left alone, the others are still installed.
 conflict="$work/conflict"
 cp -R "$repo" "$conflict"
 rm "$conflict/.git/hooks/post-merge"
-printf '#!/bin/sh\n' >"$conflict/.git/hooks/post-merge"
-check "an existing hook is not overwritten" \
-    sh -c "cd '$conflict' && ! sh scripts/git-hooks/install.sh >/dev/null 2>&1 && ! [ -L .git/hooks/post-merge ] && [ -L .git/hooks/post-rewrite ]"
+printf '#!/bin/sh\necho mine\n' >"$conflict/.git/hooks/post-merge"
+check "a foreign hook is not overwritten" \
+    sh -c "cd '$conflict' && ! sh scripts/git-hooks/install.sh >/dev/null 2>&1 && grep -q mine .git/hooks/post-merge && cmp -s .githooks/post-rewrite .git/hooks/post-rewrite"
 
 # Branch switch: relevant files differ between branches -> regenerate; unrelated ones do not.
 git_in_repo checkout -q -b feature
@@ -130,6 +141,19 @@ before=$(generations)
 git_in_repo rebase -q main
 check "rebase onto app changes regenerates" expect_more_generations_than "$before"
 
+# A branch without any of these files (older than the hooks) still regenerates when it is left or entered.
+git_in_repo checkout -q main
+git_in_repo checkout -q -b legacy
+git_in_repo rm -rq .githooks scripts Apps
+git_in_repo commit -q -m "legacy branch without hooks and app sources"
+git_in_repo checkout -q main
+before=$(generations)
+git_in_repo checkout -q legacy
+check "entering a branch without the hook files regenerates" expect_more_generations_than "$before"
+before=$(generations)
+git_in_repo checkout -q main
+check "leaving a branch without the hook files regenerates" expect_more_generations_than "$before"
+
 # Without XcodeGen: post hooks never fail Git, pre-commit stops the commit with a hint.
 git_in_repo checkout -q feature
 git_in_repo checkout -q -b nox
@@ -144,6 +168,12 @@ check "post-checkout does not fail without XcodeGen" \
     sh -c "PATH='$minimal_bin' git -C '$repo' checkout -q main 2>'$work/post.err'"
 check "post-checkout still tells the user to regenerate" grep -q 'XcodeGen is required' "$work/post.err"
 check "the checkout itself took effect" test "$(git_in_repo rev-parse --abbrev-ref HEAD)" = main
+
+# A damaged installation (helper deleted) never makes Git itself fail.
+rm "$repo/.git/hooks/sessionmonitor-generate-project.sh"
+git_in_repo checkout -q feature 2>"$work/damaged.err" || true
+check "a missing helper does not fail a checkout" sh -c "git -C '$repo' checkout -q main 2>/dev/null"
+check "a missing helper is reported" grep -q 'make install-hooks' "$work/damaged.err"
 
 if [ "$failures" -ne 0 ]; then
     printf '%s Git hook checks failed.\n' "$failures" >&2

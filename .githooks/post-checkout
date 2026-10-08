@@ -1,4 +1,5 @@
 #!/bin/sh
+# SessionMonitor Git hook (installed by scripts/git-hooks/install.sh)
 # After switching branches: $1 and $2 are the previous and new HEAD, $3 is 1 for a branch checkout.
 set -eu
 
@@ -6,8 +7,15 @@ if [ "${3:-0}" != 1 ] || [ "${1:-}" = "${2:-}" ]; then
     exit 0
 fi
 
+# The helper is installed next to this hook, so the hook also works on branches without these files.
+helper="$(cd "$(dirname "$0")" && pwd)/sessionmonitor-generate-project.sh"
+if [ ! -f "$helper" ]; then
+    printf '%s\n' 'SessionMonitor: the hook helper is missing; run make install-hooks to repair the hooks.' >&2
+    exit 0
+fi
+
 repository_root=$(git rev-parse --show-toplevel)
 cd "$repository_root"
 
 { git diff --no-renames --name-only "$1" "$2" 2>/dev/null || true; } \
-    | sh scripts/git-hooks/generate-project.sh --soft
+    | sh "$helper" --soft

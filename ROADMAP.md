@@ -1032,11 +1032,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
   **Статус: реализовано, ожидает PR/CI (2026-10-08), ветка `feat/sm-710-regenerate-project-hooks`.** Добавлено по запросу пользователя.
   Сделано: общий `scripts/git-hooks/generate-project.sh` (читает изменённые пути из stdin; `--soft` не роняет
   операцию Git), hooks `post-merge`, `post-checkout`, `post-rewrite`; `pre-commit` переведён на тот же скрипт;
-  `install.sh` ставит все четыре (существующий чужой hook не перезаписывается, остальные ставятся).
+  `install.sh` копирует все четыре и общий helper в hooks directory (копии работают на ветках без этих файлов; ссылки прежней версии заменяются; чужой hook не перезаписывается, остальные ставятся).
   `make test-hooks` (`scripts/tests/git-hooks-test.sh`: временный репозиторий, фальшивый XcodeGen) проверяет
-  установку, branch switch, merge, rebase, docs-only и file checkout (без генерации), отсутствие XcodeGen;
-  входит в job `Workflow lint`. Evidence: тест и мутационная проверка (сломанные post-merge/post-checkout
-  роняют 5 проверок), `make lint-ci`, shellcheck по `scripts/ci`, `scripts/git-hooks`, тесту и `.githooks`.
+  установку (копии, обновление изменённого hook, замена старой ссылки, чужой hook), branch switch, merge,
+  rebase, переход на ветку без файлов hooks и обратно, docs-only и file checkout (без генерации), отсутствие
+  XcodeGen и удалённый helper; входит в job `Workflow lint`. Замечание review #92 (symlink в рабочее дерево
+  пропадает на старых ветках) исправлено копиями. Evidence: тест (27 проверок) и мутационные проверки (сломанные post-merge/post-checkout
+  роняют 5 проверок; hook со ссылкой в рабочее дерево обрывает тест на старой ветке), `make lint-ci`, shellcheck по `scripts/ci`, `scripts/git-hooks`, тесту и `.githooks`.
   Проблема: `.xcodeproj` игнорируется Git, а pre-commit hook покрывает только собственные коммиты. После
   `git pull` с новыми файлами в `Apps/MonitorMac/Sources/` старый локальный проект не знает о них, и Xcode
   падает с вторичными ошибками (случай SM-205/SM-325: `WatchLaunchSettings.swift`, `AppAlertNotifications.swift`).
