@@ -9,6 +9,13 @@ if [ "${1:-}" = "--soft" ]; then
     soft=1
 fi
 
+# The Xcode project and XcodeGen exist only on macOS; elsewhere app files can be committed freely.
+# SESSIONMONITOR_OS overrides `uname -s` for the tests.
+os=${SESSIONMONITOR_OS:-$(uname -s)}
+if [ "$os" != Darwin ]; then
+    exit 0
+fi
+
 repository_root=$(git rev-parse --show-toplevel)
 cd "$repository_root"
 

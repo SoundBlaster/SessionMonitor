@@ -34,6 +34,10 @@ for tool in git sh make grep cat readlink mkdir ln sed awk dirname basename env 
     fi
 done
 
+# The hooks regenerate only on macOS; the tests pretend to be on a Mac unless a case says otherwise.
+SESSIONMONITOR_OS=Darwin
+export SESSIONMONITOR_OS
+
 failures=0
 check() {
     description=$1
@@ -187,6 +191,15 @@ check "the checkout itself took effect" test "$(git_in_repo rev-parse --abbrev-r
 rm "$repo/.git/hooks/sessionmonitor-generate-project.sh"
 check "a missing helper does not fail a checkout" sh -c "git -C '$repo' checkout -q legacy 2>'$work/damaged.err'"
 check "a missing helper is reported" grep -q 'make install-hooks' "$work/damaged.err"
+
+# Off macOS there is no XcodeGen to wait for: app files commit and branches switch without a word.
+git_in_repo checkout -q -b elsewhere main
+printf 'struct Elsewhere {}\n' >"$repo/Apps/MonitorMac/Sources/Elsewhere.swift"
+git_in_repo add -A
+before=$(generations)
+check "a commit of app files succeeds off macOS without XcodeGen" \
+    sh -c "SESSIONMONITOR_OS=Linux PATH='$minimal_bin' git -C '$repo' commit -q -m elsewhere 2>'$work/linux.err'"
+check "off macOS nothing is generated or printed" sh -c "[ \"\$(grep -c . '$log')\" -eq $before ] && ! [ -s '$work/linux.err' ]"
 
 if [ "$failures" -ne 0 ]; then
     printf '%s Git hook checks failed.\n' "$failures" >&2
