@@ -22,7 +22,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**Следующая задача — SM-326** (ретроспективные findings и алерты в GUI), затем SM-330; SM-329 заблокирована (ждёт spec Agent Surface Protocol). SM-710, SM-711, SM-712, SM-713 доставлены в `main` и остаются `[ ]` до живой проверки на Mac: hooks с реальным XcodeGen, `make init`, hover и клик по графику Sidebar.
+**SM-326 — в работе** (ветка `feat/sm-326-gui-findings-alerts`): панель findings и in-app список алертов в GUI; затем SM-330; SM-329 заблокирована (ждёт spec Agent Surface Protocol). SM-710…SM-713 доставлены в `main` и остаются `[ ]` до живой проверки на Mac.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -753,6 +753,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
   active/resolved записи `alert_records` с severity, coverage и evidence. Готово, когда GUI и
   `doctor --json` дают одинаковый набор findings, а in-app список алертов совпадает с
   `codex-monitor alerts --status all --json`.
+  **Статус: реализовано, ожидает PR/CI и проверки на Mac (2026-10-08), ветка `feat/sm-326-gui-findings-alerts`.**
+  Сделано: те же `doctor(query:)` и `alerts(status:)` через `SessionExplorerRuntime` (`FindingsAlertsSource`; вторая реализация
+  правил не заводилась), `FindingsAlertsModel` (фильтры kind и статус алерта; без фильтров показывает ровно набор
+  CLI), `FindingsAlertsPresentation`, `FindingsAlertsPanel`/`FindingRow` (evidence observed/inference/unknown/limitations,
+  confidence, coverage, переход «Open …» выбирает сессию и показывает timeline), sheet из toolbar-кнопки «Findings».
+  Evidence: модель и представление проверены на Linux временным пакетом с теми же fixtures, что `FindingsAlertsTests`
+  (11 проверок: набор совпадает с источником, фильтры, сбой чтения сохраняет списки, устаревший фильтр сбрасывается).
+  Остаток: SwiftUI-часть и XCTest выполняются только в GitHub `CI`; визуальная проверка на Mac; сверка с реальными
+  `doctor --json` и `alerts --status all --json` на живой базе.
 - [ ] **SM-327** — Live-правила для работающих сессий.
   **Статус: доставлено в `main` (2026-10-08), [PR #90](https://github.com/SoundBlaster/SessionMonitor/pull/90),
   merge `fee1de4`; `CI` прошёл на `207ae4e`; остаток — проверка на реальной сессии на Mac; выбрана пользователем.**
