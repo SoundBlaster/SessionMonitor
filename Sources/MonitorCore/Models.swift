@@ -35,11 +35,20 @@ public struct SessionSummary: Codable, Equatable, Identifiable, Sendable {
     public let id: String
     public let model: String
     public let totals: UsageTotals
+    /// First and last confirmed request of the whole session, independent of the report period.
+    /// `nil` when unknown; consumers must not treat a missing date as a real time.
+    public let firstRequestAt: Date?
+    public let lastRequestAt: Date?
 
-    public init(id: String, model: String, totals: UsageTotals) {
+    public init(
+        id: String, model: String, totals: UsageTotals,
+        firstRequestAt: Date? = nil, lastRequestAt: Date? = nil
+    ) {
         self.id = id
         self.model = model
         self.totals = totals
+        self.firstRequestAt = firstRequestAt
+        self.lastRequestAt = lastRequestAt
     }
 }
 

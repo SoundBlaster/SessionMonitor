@@ -67,7 +67,7 @@ struct SessionExplorerPage: View {
                                          clear: { reportScope.clearFocus() })
             }
             Divider()
-            sidebarSessionList
+            SessionSidebarList(model: model)
                 .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                 .layoutPriority(1)
         }
@@ -149,26 +149,6 @@ struct SessionExplorerPage: View {
 
     private var chartPalette: UsageChartPalette {
         UsageChartPaletteSelection(rawValue: chartPaletteRawValue)?.palette ?? .system
-    }
-
-    private var sidebarSessionList: some View {
-        List(selection: Binding(
-            get: { model.navigation.selectedSessionID },
-            set: { model.selectSession($0) }
-        )) {
-            OutlineGroup(model.visibleSessionTree, children: \.outlineChildren) { node in
-                SessionListRow(node: node, provenance: model.provenance[node.id])
-                    .tag(node.id)
-            }
-        }
-        .overlay {
-            if model.visibleSessions.isEmpty && !model.report.sessions.isEmpty {
-                ContentUnavailableView.search(text: model.filter)
-            }
-        }
-        .searchable(text: Binding(get: { model.filter }, set: { model.setFilter($0) }),
-                    prompt: "Session ID or model")
-        .accessibilityLabel("Sessions")
     }
 
     private var emptyDetail: some View {
@@ -312,68 +292,6 @@ private struct QuotaPresentationLoader: ViewModifier {
                 guard !Task.isCancelled else { return }
                 await model.loadQuotaPresentation()
             }
-        }
-    }
-}
-
-private struct SessionListRow: View {
-    let node: SessionTreeNode
-    let provenance: SessionProvenance?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(provenance?.displayName ?? (node.session.model.isEmpty ? "Unknown model" : node.session.model))
-                .font(.headline)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .layoutPriority(1)
-            Text(node.session.id)
-                .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .help(node.session.id)
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("Cache hit")
-                    .foregroundStyle(.secondary)
-                Text(cacheHit.value)
-                    .fontWeight(.semibold)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                    .help(cacheHit.explanation)
-                    .accessibilityValue(cacheHit.accessibilityValue)
-                Spacer(minLength: 0)
-                Text("\(node.session.totals.requests.formatted()) requests")
-                    .lineLimit(1)
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            HStack {
-                Label(
-                    stateLabel,
-                    systemImage: node.state == .attached ? "arrow.turn.down.right" : "questionmark.circle"
-                )
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 5)
-        .accessibilityElement(children: .combine)
-    }
-
-    private var cacheHit: SessionCacheHitPresentation {
-        SessionCacheHitPresentation(totals: node.session.totals)
-    }
-
-    private var stateLabel: String {
-        switch node.state {
-        case .knownRoot: "Root"
-        case .attached: provenance?.relationship?.kind == .subagent ? "Subagent" : "Child"
-        case .unknown: "Unknown"
-        case .orphan: "Orphan"
-        case .conflict: "Conflict"
-        case .cycle: "Cycle"
         }
     }
 }
