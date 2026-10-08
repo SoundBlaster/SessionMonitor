@@ -1028,6 +1028,25 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Пример hook'а исправлен: явно указано, что монитор видит только сессии Codex. Готово, когда все
   команды quick start соответствуют CLI, утверждения не обещают экономию по cache hit и ссылки целы.
 
+- [ ] **SM-710** — Автоматически пересоздавать локальный `.xcodeproj` после получения чужих изменений.
+  **Статус: реализовано, ожидает PR/CI (2026-10-08), ветка `feat/sm-710-regenerate-project-hooks`.** Добавлено по запросу пользователя.
+  Сделано: общий `scripts/git-hooks/generate-project.sh` (читает изменённые пути из stdin; `--soft` не роняет
+  операцию Git), hooks `post-merge`, `post-checkout`, `post-rewrite`; `pre-commit` переведён на тот же скрипт;
+  `install.sh` копирует все четыре и общий helper в hooks directory (копии работают на ветках без этих файлов; ссылки прежней версии заменяются; чужой hook не перезаписывается, остальные ставятся).
+  `make test-hooks` (`scripts/tests/git-hooks-test.sh`: временный репозиторий, фальшивый XcodeGen) проверяет
+  установку (копии, обновление изменённого hook, замена старой ссылки, чужой hook), branch switch, merge,
+  rebase, переход на ветку без файлов hooks и обратно, docs-only и file checkout (без генерации), отсутствие
+  XcodeGen и удалённый helper, ссылка прежней версии без helper, коммит и checkout вне macOS без XcodeGen; входит в job `Workflow lint`. Замечание review #92 (symlink в рабочее дерево
+  пропадает на старых ветках) исправлено копиями. Evidence: тест (30 проверок) и мутационные проверки (сломанные post-merge/post-checkout
+  роняют 5 проверок; hook со ссылкой в рабочее дерево обрывает тест на старой ветке), `make lint-ci`, shellcheck по `scripts/ci`, `scripts/git-hooks`, тесту и `.githooks`.
+  Проблема: `.xcodeproj` игнорируется Git, а pre-commit hook покрывает только собственные коммиты. После
+  `git pull` с новыми файлами в `Apps/MonitorMac/Sources/` старый локальный проект не знает о них, и Xcode
+  падает с вторичными ошибками (случай SM-205/SM-325: `WatchLaunchSettings.swift`, `AppAlertNotifications.swift`).
+  Остаток: зелёный GitHub `CI`; после merge пользователю нужно один раз выполнить `make install-hooks`
+  (новые hooks не появляются сами). Готово, когда hooks `post-merge`, `post-checkout` (смена ветки) и `post-rewrite` (rebase) вызывают
+  `make generate`, если изменились `Apps/MonitorMac/Sources/`, `project.yml` или `Package.resolved`; не ломают
+  операцию Git при отсутствии XcodeGen; ставятся `make install-hooks`; покрыты тестом на временном
+  репозитории, который выполняется в GitHub CI.
 - [ ] **SM-711** — `make init`: рутина первоначальной настройки и обновления окружения.
   **Статус: реализовано, ожидает PR/CI (2026-10-08), ветка `feat/sm-711-make-init`.** Добавлено по запросу пользователя.
   Сделано: `make init` → `scripts/init.sh`. macOS: pinned tools (без повторной загрузки, пока не менялись pins в installer), hooks, `resolve`,

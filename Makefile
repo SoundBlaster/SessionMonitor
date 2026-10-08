@@ -44,10 +44,10 @@ endif
 
 .PHONY: help init test-init doctor generate install-hooks guard-package guard-app lint-version resolve build-cli test-core build-mcp
 .PHONY: lint-core lint lint-architecture build-macos test-macos test-widget check-core check archive
-.PHONY: ci ci-linux check-linux lint-ci test-architecture test-cli build-cli-release benchmark release-local
+.PHONY: ci ci-linux check-linux lint-ci test-hooks test-architecture test-cli build-cli-release benchmark release-local
 
 help:
-	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate install-hooks build-macos build-mcp test-macos lint lint-architecture check archive' 'init ci lint-ci test-init test-architecture build-cli-release benchmark release-local'
+	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate install-hooks build-macos build-mcp test-macos lint lint-architecture check archive' 'init ci lint-ci test-init test-hooks test-architecture build-cli-release benchmark release-local'
 
 # Idempotent setup and refresh: pinned tools, Git hooks, packages, Xcode project, toolchain check.
 init:
@@ -119,7 +119,12 @@ test-architecture:
 lint-ci:
 	$(ACTIONLINT) -color
 	bash -n scripts/ci/install-tools.sh scripts/ci/check-fsd-boundary.sh scripts/git-hooks/install.sh
-	sh -n .githooks/pre-commit scripts/init.sh scripts/tests/init-test.sh
+	sh -n scripts/git-hooks/generate-project.sh scripts/tests/git-hooks-test.sh .githooks/pre-commit \
+		.githooks/post-merge .githooks/post-checkout .githooks/post-rewrite scripts/init.sh scripts/tests/init-test.sh
+
+# Hooks run in a throwaway repository with a fake XcodeGen; no Xcode or network needed.
+test-hooks:
+	sh scripts/tests/git-hooks-test.sh
 
 # The init routine runs against stub targets in a throwaway repository; nothing is installed.
 test-init:
