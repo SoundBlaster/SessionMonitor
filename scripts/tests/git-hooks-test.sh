@@ -141,6 +141,20 @@ before=$(generations)
 git_in_repo rebase -q main
 check "rebase onto app changes regenerates" expect_more_generations_than "$before"
 
+# Hooks linked into the working tree by the earlier version have no helper beside them: they must still work.
+linked="$work/linked"
+cp -R "$repo" "$linked"
+for hook in pre-commit post-merge post-checkout post-rewrite; do
+    rm "$linked/.git/hooks/$hook"
+    ln -s "$linked/.githooks/$hook" "$linked/.git/hooks/$hook"
+done
+rm "$linked/.git/hooks/sessionmonitor-generate-project.sh"
+printf 'struct Linked {}\n' >"$linked/Apps/MonitorMac/Sources/Linked.swift"
+git -C "$linked" add -A
+before=$(generations)
+check "a link from the earlier version still lets the commit through" git -C "$linked" commit -q -m linked
+check "a link from the earlier version still regenerates" expect_more_generations_than "$before"
+
 # A branch without any of these files (older than the hooks) still regenerates when it is left or entered.
 git_in_repo checkout -q main
 git_in_repo checkout -q -b legacy
@@ -169,10 +183,9 @@ check "post-checkout does not fail without XcodeGen" \
 check "post-checkout still tells the user to regenerate" grep -q 'XcodeGen is required' "$work/post.err"
 check "the checkout itself took effect" test "$(git_in_repo rev-parse --abbrev-ref HEAD)" = main
 
-# A damaged installation (helper deleted) never makes Git itself fail.
+# A damaged installation (helper deleted) on a branch without the in-tree helper never makes Git fail.
 rm "$repo/.git/hooks/sessionmonitor-generate-project.sh"
-git_in_repo checkout -q feature 2>"$work/damaged.err" || true
-check "a missing helper does not fail a checkout" sh -c "git -C '$repo' checkout -q main 2>/dev/null"
+check "a missing helper does not fail a checkout" sh -c "git -C '$repo' checkout -q legacy 2>'$work/damaged.err'"
 check "a missing helper is reported" grep -q 'make install-hooks' "$work/damaged.err"
 
 if [ "$failures" -ne 0 ]; then

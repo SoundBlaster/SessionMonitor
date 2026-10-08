@@ -1036,8 +1036,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `make test-hooks` (`scripts/tests/git-hooks-test.sh`: временный репозиторий, фальшивый XcodeGen) проверяет
   установку (копии, обновление изменённого hook, замена старой ссылки, чужой hook), branch switch, merge,
   rebase, переход на ветку без файлов hooks и обратно, docs-only и file checkout (без генерации), отсутствие
-  XcodeGen и удалённый helper; входит в job `Workflow lint`. Замечание review #92 (symlink в рабочее дерево
-  пропадает на старых ветках) исправлено копиями. Evidence: тест (27 проверок) и мутационные проверки (сломанные post-merge/post-checkout
+  XcodeGen и удалённый helper, ссылка прежней версии без helper; входит в job `Workflow lint`. Замечание review #92 (symlink в рабочее дерево
+  пропадает на старых ветках) исправлено копиями. Evidence: тест (28 проверок) и мутационные проверки (сломанные post-merge/post-checkout
   роняют 5 проверок; hook со ссылкой в рабочее дерево обрывает тест на старой ветке), `make lint-ci`, shellcheck по `scripts/ci`, `scripts/git-hooks`, тесту и `.githooks`.
   Проблема: `.xcodeproj` игнорируется Git, а pre-commit hook покрывает только собственные коммиты. После
   `git pull` с новыми файлами в `Apps/MonitorMac/Sources/` старый локальный проект не знает о них, и Xcode
