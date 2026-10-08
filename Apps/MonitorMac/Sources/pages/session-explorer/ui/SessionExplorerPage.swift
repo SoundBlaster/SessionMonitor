@@ -106,7 +106,8 @@ struct SessionExplorerPage: View {
                 palette: CacheHitRateWidgetAppearance.Palette(chart: chartPalette), copy: .default
             ),
             containerStyle: .embedded,
-            periodTitle: reportScope.preset == .all ? nil : reportScope.title
+            periodTitle: reportScope.preset == .all ? nil : reportScope.title,
+            inspectsBuckets: true
         )
         .padding(SessionExplorerSidebarLayout.sectionInset)
         .frame(height: SessionExplorerSidebarLayout.chartHeight, alignment: .topLeading)
@@ -261,7 +262,7 @@ struct SessionExplorerPage: View {
 enum SessionExplorerSidebarLayout {
     // The sidebar has two fixed sections followed by the only flexible region.
     static let headerHeight: CGFloat = 176
-    static let chartHeight: CGFloat = 240
+    static let chartHeight: CGFloat = 256
     static let sectionInset: CGFloat = 16
 }
 

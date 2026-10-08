@@ -8,12 +8,22 @@ struct CacheHitRateWidgetChart: View {
     let family: CacheHitRateWidgetAppearance.Family
     let appearance: CacheHitRateWidgetAppearance
     let preservesAspectRatio: Bool
+    /// The slot under the pointer, reported to the host that shows its details. Unused by default.
+    var inspectedSlotID: Binding<Int?> = .constant(nil)
+
+    @State private var pointerX: Double?
 
     private var slots: [CacheHitRateWidgetSlot] { CacheHitRateWidgetChartPresentation.slots(for: report) }
     private var domain: ClosedRange<Double> { CacheHitRateWidgetAxis.domain(for: report.buckets) }
 
     var body: some View {
         Chart {
+            if let inspected = inspectedSlotID.wrappedValue, slots.indices.contains(inspected) {
+                RuleMark(x: .value("Inspected", Double(inspected)))
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+                    .foregroundStyle(appearance.palette.neutral.opacity(0.6))
+                    .accessibilityHidden(true)
+            }
             if family != .small {
                 ForEach(labelSlots) { slot in
                     RuleMark(x: .value("Day", Double(slot.id)))
@@ -28,6 +38,12 @@ struct CacheHitRateWidgetChart: View {
         }
         .chartXScale(domain: -0.5...Double(max(slots.count, 1)) - 0.5, range: .plotDimension(padding: 0))
         .chartYScale(domain: domain, range: .plotDimension(padding: CacheHitRateWidgetLayout.plotVerticalInset))
+        .chartXSelection(value: $pointerX)
+        .onChange(of: pointerX) { _, position in
+            inspectedSlotID.wrappedValue = position.flatMap {
+                CacheHitRateWidgetBucketDetail.slotID(forX: $0, slotCount: slots.count)
+            }
+        }
         .chartXAxis(.hidden)
         .chartYAxis { yAxis }
         .chartLegend(.hidden)
@@ -76,7 +92,7 @@ struct CacheHitRateWidgetChart: View {
         .accessibilityRepresentation {
             VStack {
                 ForEach(slots) { slot in
-                    Text(slot.bucket.map(bucketDescription) ?? "\(dateLabel(slot.start)): no cache data")
+                    Text(CacheHitRateWidgetBucketDetail.accessibilityText(for: slot, report: report))
                 }
             }
             .accessibilityElement(children: .contain)
@@ -163,18 +179,8 @@ struct CacheHitRateWidgetChart: View {
         return maxY - inset - CGFloat(normalized) * (plotHeight - 2 * inset)
     }
 
-    private func dateLabel(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: report.timeZoneIdentifier) ?? .gmt
-        formatter.setLocalizedDateFormatFromTemplate("MMM d HHmm")
-        return formatter.string(from: date)
-    }
-
     private func bucketDescription(_ bucket: CacheHitRateBucket) -> String {
-        let date = dateLabel(bucket.start)
-        return "\(date), average \(bucket.average.formatted()) percent, "
-            + "typical range \(bucket.lower.formatted()) to \(bucket.upper.formatted()) percent, "
-            + "\(bucket.outliers.count) outliers: "
-            + bucket.outliers.map { "\($0.cacheHitRate.formatted()) percent" }.joined(separator: ", ")
+        guard let slot = slots.first(where: { $0.bucket?.start == bucket.start }) else { return "" }
+        return CacheHitRateWidgetBucketDetail.accessibilityText(for: slot, report: report)
     }
 }

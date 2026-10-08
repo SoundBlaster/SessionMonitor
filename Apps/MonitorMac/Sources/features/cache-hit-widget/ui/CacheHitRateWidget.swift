@@ -12,6 +12,10 @@ struct CacheHitRateWidget: View {
     let appearance: CacheHitRateWidgetAppearance
     let periodTitle: String?
     let onOpenAnalytics: (() -> Void)?
+    /// Hovering a bar shows that slot's details in a reserved line below the header.
+    let inspectsBuckets: Bool
+
+    @State private var inspectedSlotID: Int?
 
     init(
         report: CacheHitRateWidgetReport?,
@@ -19,7 +23,8 @@ struct CacheHitRateWidget: View {
         appearance: CacheHitRateWidgetAppearance = .default,
         containerStyle: CacheHitRateWidgetAppearance.ContainerStyle = .card,
         periodTitle: String? = nil,
-        onOpenAnalytics: (() -> Void)? = nil
+        onOpenAnalytics: (() -> Void)? = nil,
+        inspectsBuckets: Bool = false
     ) {
         self.report = report
         self.family = family
@@ -27,6 +32,7 @@ struct CacheHitRateWidget: View {
         self.containerStyle = containerStyle
         self.periodTitle = periodTitle
         self.onOpenAnalytics = onOpenAnalytics
+        self.inspectsBuckets = inspectsBuckets
     }
 
     var body: some View {
@@ -74,11 +80,13 @@ struct CacheHitRateWidget: View {
                                              periodTitle: periodTitle)
                     switch report.availability {
                     case .available:
+                        if inspectsBuckets && family != .small { inspectionLine(report) }
                         CacheHitRateWidgetChart(
                             report: report,
                             family: family,
                             appearance: appearance,
-                            preservesAspectRatio: containerStyle == .card
+                            preservesAspectRatio: containerStyle == .card,
+                            inspectedSlotID: inspectsBuckets ? $inspectedSlotID : .constant(nil)
                         )
                         if family == .large { footer(report) }
                     case .partialCoverage:
@@ -97,6 +105,19 @@ struct CacheHitRateWidget: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Always present while inspection is on, so the chart below never moves when the pointer does.
+    private func inspectionLine(_ report: CacheHitRateWidgetReport) -> some View {
+        let slots = CacheHitRateWidgetChartPresentation.slots(for: report)
+        let text = inspectedSlotID.flatMap { id in slots.first { $0.id == id } }
+            .map { CacheHitRateWidgetBucketDetail.text(for: $0, report: report) }
+        return Text(text ?? CacheHitRateWidgetBucketDetail.hint)
+            .font(.caption2).monospacedDigit()
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
+            .accessibilityHidden(true)
     }
 
     private func footer(_ report: CacheHitRateWidgetReport) -> some View {
