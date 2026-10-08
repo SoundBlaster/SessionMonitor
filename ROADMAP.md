@@ -22,7 +22,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**Следующая задача — SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). SM-711, SM-712 и SM-713 проверены на Mac; SM-326, SM-710, SM-714, SM-715 доставлены в `main` и остаются `[ ]` до живой проверки на Mac.
+**Следующая задача — SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). SM-711…SM-714 проверены на Mac (кроме SM-710); SM-326, SM-710, SM-715 доставлены в `main` и остаются `[ ]` до живой проверки на Mac.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -1104,15 +1104,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
   и `ReportScopeModel`; решение по конкретной реализации принять перед стартом. Готово, когда клик
   по интервалу меняет список и итоги, чип показывает и снимает фильтр, интервал вне периода отчёта
   недоступен, а состояние не сохраняется между запусками.
-- [ ] **SM-714** — Сортировка списка сессий в Sidebar выпадающим селектором.
-  **Статус: доставлено в `main` (PR #99, 4481432, `CI` зелёный, 2026-10-08); `[ ]` до проверки на Mac.** Добавлено по запросу пользователя.
+- [x] **SM-714** — Сортировка списка сессий в Sidebar выпадающим селектором.
+  **Статус: выполнено (2026-10-08). Доставлено в `main` (PR #99, 4481432, `CI` зелёный); пользователь проверил на Mac: сортировки работают.** Добавлено по запросу пользователя.
   Сделано: `SessionSummary.firstRequestAt`/`lastRequestAt` (необязательные, из `confirmed` по всей истории сессии, `UsageStore.sessionSpans`),
   чистая модель `SessionSortOrder` (5 ключей × 2 направления, неизвестное в конец, ничья по id, рекурсивно по дереву),
   `SessionSidebarList` с селектором (Picker menu с секциями по ключам, выбор в `@AppStorage`) и `SessionListRow` со значением сортировки.
   Evidence: `swift test` — 200 тестов (+1 `sessionSummariesCarryTheirWholeHistoryFirstAndLastRequest`), `make test-cli` прошёл
   (JSON-совместимость), логика `SessionSortOrder` и тексты проверены на Linux временным пакетом с теми же fixtures, что
-  `SessionSortOrderTests` (36 проверок). Остаток: визуальная проверка
-  селектора на Mac.
+  `SessionSortOrderTests` (36 проверок). Остаток: нет (живая проверка на Mac пройдена).
   Под графиком в Sidebar селектор сортировки списком: дата первого запроса сессии, дата последнего запроса,
   cache hit rate, число requests, число токенов (input + output), каждая в обе стороны. Даты — первый и
   последний подтверждённый запрос сессии (`SessionSummary.firstRequestAt`/`lastRequestAt`, не зависят от периода
