@@ -115,8 +115,8 @@ struct CacheHitRateWidget: View {
         return Text(text ?? CacheHitRateWidgetBucketDetail.hint)
             .font(.caption2).monospacedDigit()
             .foregroundStyle(.secondary)
-            .lineLimit(1).minimumScaleFactor(0.8)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .lineLimit(2)
+            .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
             .accessibilityHidden(true)
     }
 

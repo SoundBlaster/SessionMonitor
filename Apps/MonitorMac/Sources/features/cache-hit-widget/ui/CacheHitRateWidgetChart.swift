@@ -92,7 +92,7 @@ struct CacheHitRateWidgetChart: View {
         .accessibilityRepresentation {
             VStack {
                 ForEach(slots) { slot in
-                    Text(slot.bucket.map(bucketDescription) ?? "\(dateLabel(slot.start)): no cache data")
+                    Text(CacheHitRateWidgetBucketDetail.accessibilityText(for: slot, report: report))
                 }
             }
             .accessibilityElement(children: .contain)
@@ -179,18 +179,8 @@ struct CacheHitRateWidgetChart: View {
         return maxY - inset - CGFloat(normalized) * (plotHeight - 2 * inset)
     }
 
-    private func dateLabel(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: report.timeZoneIdentifier) ?? .gmt
-        formatter.setLocalizedDateFormatFromTemplate("MMM d HHmm")
-        return formatter.string(from: date)
-    }
-
     private func bucketDescription(_ bucket: CacheHitRateBucket) -> String {
-        let date = dateLabel(bucket.start)
-        return "\(date), average \(bucket.average.formatted()) percent, "
-            + "typical range \(bucket.lower.formatted()) to \(bucket.upper.formatted()) percent, "
-            + "\(bucket.outliers.count) outliers: "
-            + bucket.outliers.map { "\($0.cacheHitRate.formatted()) percent" }.joined(separator: ", ")
+        guard let slot = slots.first(where: { $0.bucket?.start == bucket.start }) else { return "" }
+        return CacheHitRateWidgetBucketDetail.accessibilityText(for: slot, report: report)
     }
 }
