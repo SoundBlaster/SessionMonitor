@@ -55,7 +55,7 @@ codex-monitor watch ~/.codex/sessions --alerts        # строки {"alert": .
 codex-monitor alerts                                  # активные алерты
 ```
 
-Приложение: `make generate`, затем соберите схему `MonitorMac` в Xcode. В menu bar выберите
+Приложение: `make init` (первый раз и после каждого `git pull`: pinned-инструменты, hooks, пакеты и проект Xcode), затем соберите схему `MonitorMac` в Xcode. В menu bar выберите
 **Watch → папку `~/.codex/sessions`** и разрешите уведомления. Приложение будет импортировать новые
 логи, проверять сигналы после каждого импорта и показывать уведомления. CLI и приложение работают
 с одной базой (`~/Library/Application Support/SessionMonitor/usage.sqlite`) и видят одни и те же данные;

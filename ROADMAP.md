@@ -1047,6 +1047,22 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `make generate`, если изменились `Apps/MonitorMac/Sources/`, `project.yml` или `Package.resolved`; не ломают
   операцию Git при отсутствии XcodeGen; ставятся `make install-hooks`; покрыты тестом на временном
   репозитории, который выполняется в GitHub CI.
+- [ ] **SM-711** — `make init`: рутина первоначальной настройки и обновления окружения.
+  **Статус: реализовано, ожидает PR/CI (2026-10-08), ветка `feat/sm-711-make-init`.** Добавлено по запросу пользователя.
+  Сделано: `make init` → `scripts/init.sh`. macOS: pinned tools (без повторной загрузки, пока не менялись pins в installer), hooks, `resolve`,
+  `generate`, `doctor`; Linux: hooks и `resolve SWIFT=swift`, остальное явно пропускается. Упавший шаг не
+  прерывает остальные, итог называет шаги и даёт ненулевой код. Makefile предпочитает pinned
+  `swiftlint`/`xcodegen`/`fsd-ios` из `.build/ci-tools/bin`, явные переменные имеют приоритет. Evidence:
+  `make test-init` (18 проверок: macOS первый и повторный запуск, смена pin в installer и установка без
+  отпечатка pins, сбой шага, Linux; мутационные проверки роняют тест), реальный `make init` на Linux (hooks, `swift package resolve`), `make -n generate` с pinned tool и с
+  override, shellcheck, `sh -n`. Остаток: зелёный GitHub `CI` и первый реальный запуск на Mac (загрузка
+  pinned tools и `make generate` здесь не выполнялись).
+  Сейчас после clone и после pull нужно помнить несколько команд (`install-tools.sh native`, `install-hooks`,
+  `resolve`, `generate`, `doctor`). Готово, когда одна идемпотентная команда `make init` выполняет их по порядку
+  на macOS (pinned tools без повторной загрузки, hooks, SwiftPM resolve, генерация проекта, проверка
+  toolchain), на Linux — только применимые шаги (hooks, resolve), не останавливается на первой ошибке, а
+  в конце называет упавшие шаги и следующее действие; Makefile сам использует pinned tools из
+  `.build/ci-tools/bin`, если они есть; поведение покрыто тестом, который выполняется в GitHub CI.
 - [ ] **SM-712** — Подсказка при наведении на график Cache Hit Rate в Sidebar.
   **Статус: реализовано, PR #94 с зелёным `CI` (2026-10-08), ветка `feat/sm-712-sidebar-chart-interaction`; ожидает проверки на Mac.**
   Добавлено по запросу пользователя. Сделано: `CacheHitRateWidgetBucketDetail` (чистая модель: слот по позиции

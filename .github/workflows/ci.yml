@@ -32,9 +32,11 @@ jobs:
       - name: Validate workflows and shell scripts
         run: |
           make lint-ci ACTIONLINT=.build/ci-tools/bin/actionlint
-          shellcheck scripts/ci/*.sh scripts/git-hooks/*.sh scripts/tests/git-hooks-test.sh .githooks/*
+          shellcheck scripts/ci/*.sh scripts/git-hooks/*.sh scripts/tests/git-hooks-test.sh .githooks/* scripts/init.sh scripts/tests/init-test.sh
       - name: Test Git hooks
         run: make test-hooks
+      - name: Test the make init routine
+        run: make test-init
 
   native:
     name: Native checks
