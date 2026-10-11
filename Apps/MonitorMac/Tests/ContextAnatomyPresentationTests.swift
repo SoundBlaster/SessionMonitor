@@ -173,6 +173,7 @@ final class ContextAnatomyPresentationTests: XCTestCase {
         XCTAssertEqual(lane.reasoningFraction, 0.1, accuracy: 1e-9)
         XCTAssertTrue(lane.inputKnown)
         XCTAssertTrue(lane.outputKnown)
+        XCTAssertTrue(lane.reasoningKnown)
         XCTAssertFalse(lane.hasToolsOrWaits)
     }
 
@@ -183,6 +184,22 @@ final class ContextAnatomyPresentationTests: XCTestCase {
         XCTAssertEqual(lane.inputFraction, 0.9, accuracy: 1e-9)
         XCTAssertEqual(lane.outputFraction, 0.1, accuracy: 1e-9)
         XCTAssertEqual(lane.reasoningFraction, 0)
+        XCTAssertFalse(lane.reasoningKnown)
+    }
+
+    func testLaneDistinguishesExplicitZeroReasoningFromUnknown() {
+        let explicitZero = anatomy([point("a", 0, input: 900, cached: 0, output: 100, reasoning: 0)])
+        let zeroLane = ContextLaneSegments(step: explicitZero.steps[0])
+        XCTAssertTrue(zeroLane.reasoningKnown)
+        XCTAssertEqual(zeroLane.reasoningFraction, 0)
+
+        let unknown = anatomy([point("b", 0, input: 900, cached: 0, output: 100)])
+        let unknownLane = ContextLaneSegments(step: unknown.steps[0])
+        XCTAssertFalse(unknownLane.reasoningKnown)
+        XCTAssertEqual(unknownLane.reasoningFraction, 0)
+
+        let noOutput = anatomy([point("c", 0, input: 900, cached: 0)])
+        XCTAssertTrue(ContextLaneSegments(step: noOutput.steps[0]).reasoningKnown)
     }
 
     func testLaneWithUnknownOutputAndZeroTokens() {

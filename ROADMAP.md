@@ -1150,8 +1150,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
   output, события между запросами, пропуск запросов с неизвестным input); app — срез `features/context-anatomy`
   (`ContextAnatomyPresentation`, `ContextLaneSegments`, график-ступеньки с зонами, лента, снимок при наведении), карточка
   в `SessionDetailView` над таймлайном запросов из уже загруженного `RequestTimelineModel`; цвета зон в `UsageChartPalette`.
-  Evidence: `swift test` — 210 тестов (+8 `ContextAnatomyTests`, +1 store-тест новых полей), мутация «неизвестный output = 0»
-  роняет тест; `ContextAnatomyPresentationTests` (18 XCTest) прогнаны на Linux временным пакетом; SwiftLint `--strict` по
+  По review Codex: события зеркальных копий лога считаются один раз (`SELECT DISTINCT`), события той же секунды после
+  usage-записи относятся к следующему запросу (сортировка по строке источника), неизвестный reasoning на ленте отмечен
+  отдельно, а не нулём. Evidence: `swift test` — 212 тестов (+8 `ContextAnatomyTests`, +3 store-теста: новые поля, зеркала,
+  порядок в одной секунде; оба последних падают без исправления), мутация «неизвестный output = 0»
+  роняет тест; `ContextAnatomyPresentationTests` (19 XCTest) прогнаны на Linux временным пакетом; SwiftLint `--strict` по
   Sources, Tests, Apps — 0. Остаток: SwiftUI-сборка и app-тесты — в GitHub `CI`; живая проверка на Mac. Ограничения:
   график строится по периоду отчёта (как таймлайн); лимит окна модели неизвестен — зоны относительно пика сессии.
   Что видно: в деталях сессии график по запросам 1…N (ось X — номер запроса; реальное время — SM-719): линия размера

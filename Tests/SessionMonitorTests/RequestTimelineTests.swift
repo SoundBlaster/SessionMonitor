@@ -78,6 +78,55 @@ struct RequestTimelineTests {
         #expect(try await runtime.timeline(sessionID: "child", query: try UsageQuery()).points.count == 1)
     }
 
+    @Test func sameSecondEventsAfterARequestBelongToTheNextStep() async throws {
+        let fixture = try TimelineFixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.sourceWithEvidence)
+        let runtime = try SessionMonitor(databaseURL: fixture.database)
+        _ = try await runtime.importDirectory(fixture.directory)
+
+        let timeline = try await runtime.timeline(sessionID: "S", query: try UsageQuery())
+        let requestIndexes = timeline.points.indices.filter { timeline.points[$0].kind == .usageRequest }
+        #expect(requestIndexes.count == 2)
+        #expect(timeline.points[requestIndexes[0]...requestIndexes[1]].map(\.kind).contains(.compaction))
+        #expect(timeline.points.filter { $0.kind == .usageRequest }.allSatisfy { $0.sourceLine == nil })
+
+        let anatomy = ContextAnatomyBuilder.build(timeline)
+        #expect(anatomy.steps.count == 2)
+        let first = anatomy.steps[0].activityBefore
+        #expect(first.humanTurns == 1 && first.goalTurns == 1)
+        #expect(first.compactions == 0 && first.tools == 0 && first.waits == 0 && first.other == 0)
+        let second = anatomy.steps[1].activityBefore
+        #expect(second.compactions == 1 && second.tools == 1 && second.waits == 1 && second.other == 1)
+        #expect(anatomy.trailingActivity == .none)
+    }
+
+    @Test func mirroredRolloutsDoNotDuplicateTimelineEvents() async throws {
+        let fixture = try TimelineFixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.sourceWithEvidence)
+        let single = try SessionMonitor(databaseURL: fixture.database)
+        _ = try await single.importDirectory(fixture.directory)
+        let expected = try await single.timeline(sessionID: "S", query: try UsageQuery())
+
+        let mirrored = try TimelineFixture()
+        defer { try? FileManager.default.removeItem(at: mirrored.directory) }
+        try mirrored.write(mirrored.sourceWithEvidence)
+        try mirrored.sourceWithEvidence.write(
+            to: mirrored.directory.appending(path: "rollout-copy.jsonl"), atomically: true, encoding: .utf8)
+        let runtime = try SessionMonitor(databaseURL: mirrored.database)
+        _ = try await runtime.importDirectory(mirrored.directory)
+
+        let timeline = try await runtime.timeline(sessionID: "S", query: try UsageQuery())
+        #expect(timeline.points.count == expected.points.count)
+        #expect(timeline.points.map(\.kind) == expected.points.map(\.kind))
+        #expect(timeline.points.filter { $0.kind == .compaction }.count == 1)
+        let anatomy = ContextAnatomyBuilder.build(timeline)
+        #expect(anatomy.steps.count == 2)
+        #expect(anatomy.steps[1].activityBefore == ContextAnatomyBuilder.build(expected).steps[1].activityBefore)
+        #expect(anatomy.steps[1].activityBefore.tools == 1)
+    }
+
     @Test func timezoneChangesPresentationMetadataButNotAbsoluteDates() async throws {
         let fixture = try TimelineFixture()
         defer { fixture.remove() }

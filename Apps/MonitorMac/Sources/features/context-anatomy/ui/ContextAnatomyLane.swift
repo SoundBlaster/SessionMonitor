@@ -48,6 +48,12 @@ struct ContextAnatomyLane: View {
             segment(from: inputEnd, to: inputEnd + width * lane.reasoningFraction)
                 .foregroundStyle(palette.improvement)
         }
+        if lane.outputFraction > 0, !lane.reasoningKnown {
+            // Thin neutral band at the bottom of the output segment: reasoning tokens are unknown.
+            RectangleMark(xStart: .value("From", inputEnd), xEnd: .value("To", outputEnd),
+                          yStart: .value("Low", 0.0), yEnd: .value("High", 0.25))
+                .foregroundStyle(palette.neutral.opacity(0.5))
+        }
         if lane.hasToolsOrWaits {
             segment(from: Double(step.index) - 0.5, to: start)
                 .foregroundStyle(palette.accent)

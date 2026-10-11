@@ -11,6 +11,9 @@ struct ContextLaneSegments: Equatable {
     /// False when the cache split is unknown, so the input segment is drawn gray rather than as zero.
     let inputKnown: Bool
     let outputKnown: Bool
+    /// False when output is known and positive but the source did not report reasoning tokens,
+    /// so reasoning is drawn as unknown rather than as an explicit zero.
+    let reasoningKnown: Bool
     /// Tools or waits happened between the previous request and this one.
     let hasToolsOrWaits: Bool
 
@@ -20,6 +23,7 @@ struct ContextLaneSegments: Equatable {
         let total = input + output
         inputKnown = step.newInputTokens != nil
         outputKnown = step.outputTokens != nil
+        reasoningKnown = !(step.reasoningOutputTokens == nil && output > 0)
         hasToolsOrWaits = step.activityBefore.tools + step.activityBefore.waits > 0
         guard total > 0 else {
             inputFraction = 0

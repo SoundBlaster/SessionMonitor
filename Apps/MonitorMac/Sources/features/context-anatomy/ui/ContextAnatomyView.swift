@@ -68,6 +68,7 @@ private struct ContextAnatomyLegend: View {
         [
             Item(title: "New input", color: palette.warning.opacity(0.75)),
             Item(title: "Output (reasoning darker)", color: palette.improvement),
+            Item(title: "Reasoning unknown", color: palette.neutral),
             Item(title: "Tools/waits", color: palette.accent),
             Item(title: "Compaction", color: palette.color(for: .compaction)),
             Item(title: "Human turn", color: palette.color(for: .humanTurn))
