@@ -47,7 +47,8 @@ extension UsageStore {
             ]
             let accountPredicate = Self.accountScopePredicate()
             var points: [RequestTimelinePoint] = try Row.fetchAll(database, sql: """
-                SELECT response, turn, timestamp, input, cached, model, account_scope_key
+                SELECT response, turn, timestamp, input, cached, output, reasoning, cache_write,
+                       model, account_scope_key
                 FROM confirmed
                 WHERE session = ? AND \(predicate) \(accountPredicate)
                 ORDER BY timestamp ASC, response ASC
@@ -61,7 +62,9 @@ extension UsageStore {
                         timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: .usageRequest,
                         turnID: row["turn"], responseID: row["response"],
                         inputTokens: input, cachedInputTokens: cached,
-                        uncachedInputTokens: cached.map { input - $0 }, evidence: "token_usage_record",
+                        uncachedInputTokens: cached.map { input - $0 },
+                        outputTokens: row["output"], reasoningOutputTokens: row["reasoning"],
+                        cacheWriteInputTokens: row["cache_write"], evidence: "token_usage_record",
                         model: row["model"]
                     )
                 }

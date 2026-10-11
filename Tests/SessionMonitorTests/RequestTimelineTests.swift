@@ -23,6 +23,23 @@ struct RequestTimelineTests {
         #expect(try await runtime.report().totals.inputTokens == 150)
     }
 
+    @Test func carriesOutputReasoningAndCacheWriteOnlyWhenSourceHasThem() async throws {
+        let fixture = try TimelineFixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.sourceWithEvidence)
+        let runtime = try SessionMonitor(databaseURL: fixture.database)
+        _ = try await runtime.importDirectory(fixture.directory)
+
+        let requests = try await runtime.timeline(sessionID: "S", query: try UsageQuery()).points
+            .filter { $0.kind == .usageRequest }
+        #expect(requests[0].outputTokens == 10)
+        #expect(requests[0].reasoningOutputTokens == 4)
+        #expect(requests[0].cacheWriteInputTokens == 30)
+        #expect(requests[1].outputTokens == 10)
+        #expect(requests[1].reasoningOutputTokens == nil)
+        #expect(requests[1].cacheWriteInputTokens == nil)
+    }
+
     @Test func readsExplicitTurnAndOperationalEvidence() async throws {
         let fixture = try TimelineFixture()
         defer { fixture.remove() }
@@ -106,7 +123,7 @@ private struct TimelineFixture {
         {"timestamp":"1970-01-01T00:01:41Z","type":"turn_context","payload":{"turn_id":"T","model":"fixture"}}
         {"timestamp":"1970-01-01T00:01:41Z","type":"response_item","payload":{"type":"message","role":"user","turn_id":"T"}}
         {"timestamp":"1970-01-01T00:01:41Z","type":"event_msg","payload":{"type":"goal_turn_started","turn_id":"T"}}
-        {"timestamp":"1970-01-01T00:01:42Z","type":"token_usage_record","payload":{"thread_id":"S","turn_id":"T","response_id":"R1","usage":{"input_tokens":100,"cached_input_tokens":80,"output_tokens":10}}}
+        {"timestamp":"1970-01-01T00:01:42Z","type":"token_usage_record","payload":{"thread_id":"S","turn_id":"T","response_id":"R1","usage":{"input_tokens":100,"cached_input_tokens":80,"output_tokens":10,"reasoning_output_tokens":4,"cache_write_input_tokens":30}}}
         {"timestamp":"1970-01-01T00:01:42Z","type":"compacted","payload":{}}
         {"timestamp":"1970-01-01T00:01:42Z","type":"response_item","payload":{"type":"function_call","turn_id":"T"}}
         {"timestamp":"1970-01-01T00:01:42Z","type":"event_msg","payload":{"type":"wait_started","turn_id":"T"}}
