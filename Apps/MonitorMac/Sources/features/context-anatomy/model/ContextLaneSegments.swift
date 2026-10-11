@@ -1,0 +1,52 @@
+import Foundation
+import MonitorCore
+
+/// Horizontal split of one lane-strip column. Fractions are shares of the column width.
+struct ContextLaneSegments: Equatable {
+    /// New input; when the cache split is unknown this is the whole request input.
+    let inputFraction: Double
+    let outputFraction: Double
+    /// Part of the output segment that is reasoning (never larger than `outputFraction`).
+    let reasoningFraction: Double
+    /// False when the cache split is unknown, so the input segment is drawn gray rather than as zero.
+    let inputKnown: Bool
+    let outputKnown: Bool
+    /// Tools or waits happened between the previous request and this one.
+    let hasToolsOrWaits: Bool
+
+    init(step: ContextAnatomyStep) {
+        let input = Double(max(0, step.newInputTokens ?? step.contextTokens))
+        let output = Double(max(0, step.outputTokens ?? 0))
+        let total = input + output
+        inputKnown = step.newInputTokens != nil
+        outputKnown = step.outputTokens != nil
+        hasToolsOrWaits = step.activityBefore.tools + step.activityBefore.waits > 0
+        guard total > 0 else {
+            inputFraction = 0
+            outputFraction = 0
+            reasoningFraction = 0
+            return
+        }
+        inputFraction = input / total
+        outputFraction = output / total
+        let reasoning = min(Double(max(0, step.reasoningOutputTokens ?? 0)), output)
+        reasoningFraction = reasoning / total
+    }
+}
+
+/// One background band of the context-size chart, in fractions of the session peak.
+struct ContextZoneBand: Equatable, Identifiable {
+    let zone: ContextFillZone
+    let lowerFraction: Double
+    let upperFraction: Double
+
+    var id: ContextFillZone { zone }
+
+    /// Mirrors `ContextAnatomyBuilder.zone(forFraction:)`: 0.5, 0.75 and 0.9 are the zone edges.
+    static let all: [Self] = [
+        Self(zone: .low, lowerFraction: 0, upperFraction: 0.5),
+        Self(zone: .moderate, lowerFraction: 0.5, upperFraction: 0.75),
+        Self(zone: .high, lowerFraction: 0.75, upperFraction: 0.9),
+        Self(zone: .critical, lowerFraction: 0.9, upperFraction: 1)
+    ]
+}
