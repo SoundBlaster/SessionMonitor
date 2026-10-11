@@ -1287,6 +1287,11 @@ visual smoke и точная parity семи usage totals. Локальные lo
   [Отчёт](reports/SM-410-legacy-component-deltas.md). [PR #75](https://github.com/SoundBlaster/SessionMonitor/pull/75)
   открыт как draft поверх #74; CI разрешён для всех PR bases, включая stack layers.
 - [ ] **SM-411** — Dedup mirrored timeline events и уникальные account-scoped IDs.
-  Статус: запланировано. Mirrors одного scope совпадают; разные accounts не сливаются.
+  Статус: реализована; targeted regression execution в процессе.
+  2026-10-02: DISTINCT full event key + account scope; stable hashed IDs без source path.
+  Assigned/unknown scopes, same-line different tools, reversed import order покрыты tests.
+  SwiftLint/diff passed; MCP build-for-testing passed. CI/merge pending.
+  [Отчёт](reports/SM-411-timeline-event-identities.md). [PR #77](https://github.com/SoundBlaster/SessionMonitor/pull/77)
+  открыт как draft поверх #75.
 - [ ] **SM-412** — Изолировать root activity membership по account scope.
   Статус: запланировано. Foreign provenance не добавляет usage/tool activity другого account.
