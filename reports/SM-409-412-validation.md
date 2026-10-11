@@ -59,5 +59,16 @@ exhaustion; resulting test/CLI binaries and dependency checkouts were retained.
 ## Delivery
 
 Native stack: #74 → #75 → #77 → #78. CI pull_request base filtering was removed
-in #75 so all layers run the existing gates. GitHub CI, review and merge remain
-separate gates; CI is not actively polled. All tasks remain unchecked until delivery.
+in #75 so all layers run the existing gates.
+
+Historical status at validation time (2026-10-02): GitHub CI, review and merge were
+separate pending gates, and the tasks stayed unchecked until delivery.
+
+Delivered 2026-10-11: the stack was rebased onto `main` `fc8a91e` with `gh stack rebase`
+and squash-merged atomically (`7c20a94`, `b028512`, `4b77d23`, `25e67c2`) after the
+required CI passed on all four heads. The `RequestTimelineStore` conflict with SM-717 was
+resolved by keeping the SM-411 scope `DISTINCT` and hashed event IDs together with the
+SM-717 same-second source-line ordering. The #75 review (P1) was fixed in `CONTRIBUTING.md`.
+Post-rebase checks: `swift test` 219 tests on the SM-411 layer and 220 on the top, MonitorMac
+191/192 (one UI test returned no result), SwiftLint and FSD clean. The 2026-10-02 counts above
+remain the pre-rebase baseline.
