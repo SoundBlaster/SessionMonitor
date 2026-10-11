@@ -1269,3 +1269,19 @@ visual smoke и точная parity семи usage totals. Локальные lo
   drag/scroll pan, pinch zoom, persistent selection и крупные bucket details над графиком: дата слева, метрики в одну строку при достаточной ширине и более высокий compact layout; прокрутка страницы над графиком работает, когда pan невозможен;
   без session/model identity, empty states и accessibility.
   Проверка: viewport regression tests, GUI build через xcode-tools, lint/FSD.
+
+## Core audit follow-up (2026-10-02)
+
+- [ ] **SM-409** — Не продвигать metadata checkpoint поверх новых usage records.
+  Статус: реализована, локальные tests ожидают завершения Xcode MCP.
+  2026-10-02: backfill требует совпадения file version/cursor; четыре regression cases
+  schema 2/4 × append/replacement. SwiftLint/diff check passed; MCP build succeeded,
+  test run пока не вернул результат (Mac locked, почти полный диск). Не считать tests passed.
+  [Отчёт](reports/SM-409-backfill-checkpoint.md). [PR #74](https://github.com/SoundBlaster/SessionMonitor/pull/74)
+  открыт как draft; CI/merge pending.
+- [ ] **SM-410** — Сохранять unknown для несопоставимых legacy component deltas.
+  Статус: запланировано. Invalid cache/reasoning deltas не должны прерывать импорт.
+- [ ] **SM-411** — Dedup mirrored timeline events и уникальные account-scoped IDs.
+  Статус: запланировано. Mirrors одного scope совпадают; разные accounts не сливаются.
+- [ ] **SM-412** — Изолировать root activity membership по account scope.
+  Статус: запланировано. Foreign provenance не добавляет usage/tool activity другого account.
