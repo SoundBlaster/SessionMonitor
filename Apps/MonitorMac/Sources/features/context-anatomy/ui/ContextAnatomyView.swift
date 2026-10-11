@@ -9,17 +9,17 @@ struct ContextAnatomyView: View {
     let timeZone: TimeZone
     var palette: UsageChartPalette = .system
 
-    @State private var selectedX: Double?
-
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("Context anatomy", systemImage: "square.stack.3d.up")
                 .font(.title2.bold())
-            Text(ContextAnatomyPresentation.caption)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            snapshot
-            ContextAnatomyChart(anatomy: anatomy, selectedX: $selectedX, palette: palette)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(ContextAnatomyPresentation.caption)
+                Text(ContextAnatomyPresentation.hint)
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            ContextAnatomyChart(anatomy: anatomy, timeZone: timeZone, palette: palette)
             ContextAnatomyLegend(palette: palette)
         }
         .padding(20)
@@ -30,29 +30,6 @@ struct ContextAnatomyView: View {
         .accessibilityIdentifier("contextAnatomy")
     }
 
-    private var selectedStep: ContextAnatomyStep? {
-        selectedX
-            .flatMap { ContextAnatomyPresentation.stepIndex(forX: $0, stepCount: anatomy.steps.count) }
-            .map { anatomy.steps[$0 - 1] }
-    }
-
-    /// Reserves room for the longest snapshot so hovering never moves the chart.
-    private var snapshot: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            if let step = selectedStep {
-                let lines = ContextAnatomyPresentation.snapshotLines(for: step, in: anatomy, timeZone: timeZone)
-                ForEach(Array(lines.enumerated()), id: \.offset) { offset, line in
-                    Text(line).fontWeight(offset == 0 ? .semibold : .regular)
-                }
-            } else {
-                Text(ContextAnatomyPresentation.hint).foregroundStyle(.secondary)
-            }
-        }
-        .font(.caption.monospacedDigit())
-        .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("contextAnatomy.snapshot")
-    }
 }
 
 private struct ContextAnatomyLegend: View {

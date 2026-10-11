@@ -3,7 +3,8 @@ import MonitorCore
 
 /// Pure presentation rules for the context-anatomy chart; the views only draw what this returns.
 enum ContextAnatomyPresentation {
-    static let hint = "Hover a request to see a snapshot of the context at that point"
+    static let hint = "Hover a request, or focus the chart and use the arrow keys, to see a snapshot of the context"
+    static let inspectionHint = "No request inspected. Use the arrow keys or adjust to step through requests."
     static let caption = "Context size per request, relative to this session's peak. "
         + "Logs show token volumes and events, not what the context contains."
     static let maxTickCount = 12
@@ -32,6 +33,57 @@ enum ContextAnatomyPresentation {
         var ticks = Array(Swift.stride(from: 1, through: stepCount, by: stride))
         if stride > 1, let last = ticks.last, stepCount - last >= stride / 2 + 1 { ticks.append(stepCount) }
         return ticks
+    }
+
+    // MARK: Snapshot card
+
+    /// Wide enough for the longest snapshot line (context share, zone and delta) on one line.
+    static let snapshotCardWidth = 340.0
+    static let snapshotCardMinWidth = 160.0
+    static let snapshotCardGap = 12.0
+
+    enum SnapshotCardSide: Equatable {
+        case right
+        case left
+    }
+
+    struct SnapshotCardPlacement: Equatable {
+        let side: SnapshotCardSide
+        let width: Double
+    }
+
+    /// Side of the inspected request's rule the floating card sits on, and the width it gets there.
+    /// Right is preferred; the card flips left when only the left side holds it, and in a narrow plot it
+    /// shrinks into the roomier side (never below `snapshotCardMinWidth`). `anchorX` is the rule's x
+    /// inside the plot area.
+    static func snapshotCardPlacement(anchorX: Double, plotWidth: Double) -> SnapshotCardPlacement {
+        guard anchorX.isFinite, plotWidth.isFinite, plotWidth > 0 else {
+            return SnapshotCardPlacement(side: .right, width: snapshotCardMinWidth)
+        }
+        let rightRoom = plotWidth - anchorX - snapshotCardGap
+        let leftRoom = anchorX - snapshotCardGap
+        if rightRoom >= snapshotCardWidth { return SnapshotCardPlacement(side: .right, width: snapshotCardWidth) }
+        if leftRoom >= snapshotCardWidth { return SnapshotCardPlacement(side: .left, width: snapshotCardWidth) }
+        let side: SnapshotCardSide = rightRoom >= leftRoom ? .right : .left
+        let room = max(rightRoom, leftRoom)
+        return SnapshotCardPlacement(side: side, width: max(snapshotCardMinWidth, min(snapshotCardWidth, room)))
+    }
+
+    // MARK: Inspection without a pointer
+
+    /// Keyboard and VoiceOver stepping. The first step starts at an edge (forward from request 1, backward from the
+    /// last request); later steps clamp to the session's requests. Nil when there is nothing to inspect.
+    static func steppedIndex(from current: Int?, by delta: Int, stepCount: Int) -> Int? {
+        guard stepCount > 0 else { return nil }
+        guard let current else { return delta == 0 ? nil : (delta > 0 ? 1 : stepCount) }
+        return min(stepCount, max(1, current + delta))
+    }
+
+    /// What VoiceOver reads for the always-present snapshot element: the card's lines, or how to start inspecting.
+    static func snapshotAccessibilityValue(for step: ContextAnatomyStep?, in anatomy: ContextAnatomy,
+                                           timeZone: TimeZone) -> String {
+        guard let step else { return inspectionHint }
+        return snapshotLines(for: step, in: anatomy, timeZone: timeZone).joined(separator: ". ")
     }
 
     // MARK: Text

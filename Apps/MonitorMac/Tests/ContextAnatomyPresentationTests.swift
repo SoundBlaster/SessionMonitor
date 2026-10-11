@@ -131,6 +131,19 @@ final class ContextAnatomyPresentationTests: XCTestCase {
         XCTAssertEqual(line, "Request 1 of 1 · 09:00:00")
     }
 
+    // MARK: Accessible snapshot (SM-720 review)
+
+    func testAccessibleSnapshotReadsTheCardLinesOrTheInspectionHint() {
+        let anatomy = anatomy([point("a", 0, input: 100, cached: 40, output: 10, reasoning: 2, model: "m")])
+        let step = anatomy.steps[0]
+        XCTAssertEqual(
+            ContextAnatomyPresentation.snapshotAccessibilityValue(for: step, in: anatomy, timeZone: utc),
+            ContextAnatomyPresentation.snapshotLines(for: step, in: anatomy, timeZone: utc).joined(separator: ". ")
+        )
+        XCTAssertEqual(ContextAnatomyPresentation.snapshotAccessibilityValue(for: nil, in: anatomy, timeZone: utc),
+                       ContextAnatomyPresentation.inspectionHint)
+    }
+
     // MARK: Formatting and accessibility
 
     func testCompactTokensFormatting() {
