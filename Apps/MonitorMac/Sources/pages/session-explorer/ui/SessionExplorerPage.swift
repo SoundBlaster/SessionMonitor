@@ -8,6 +8,7 @@ struct SessionExplorerPage: View {
     @Bindable var model: SessionExplorerModel
     @Bindable var reportScope: ReportScopeModel
     @Bindable var cacheHitRateWidgetSettings: CacheHitRateWidgetSettings
+    var cacheAnalytics: CacheAnalyticsPresentation?
 
     var body: some View {
         NavigationSplitView(columnVisibility: $model.navigation.columnVisibility) {
@@ -104,47 +105,9 @@ struct SessionExplorerPage: View {
     }
 
     private var sidebarChart: some View {
-        CacheHitRateWidget(
-            report: model.cacheHitRateWidgetReport,
-            family: .medium,
-            appearance: CacheHitRateWidgetAppearance(
-                palette: CacheHitRateWidgetAppearance.Palette(chart: chartPalette), copy: .default
-            ),
-            containerStyle: .embedded,
-            periodTitle: reportScope.preset == .all ? nil : reportScope.title,
-            inspectsBuckets: true,
-            onSelectInterval: { reportScope.focus(on: $0) }
-        )
-        .padding(SessionExplorerSidebarLayout.sectionInset)
-        .frame(height: SessionExplorerSidebarLayout.chartHeight, alignment: .topLeading)
-        .clipped()
-        .task(id: CacheHitRateWidgetLoadID(
-            period: sidebarChartPeriod,
-            revision: model.snapshot?.watermark.revision,
-            query: model.query,
-            scopeQuery: reportScope.query
-        )) {
-            guard model.snapshot != nil else { return }
-            while !Task.isCancelled {
-                let timeZone = TimeZone(identifier: model.query.timeZoneIdentifier) ?? .current
-                await model.loadCacheHitRateWidget(
-                    period: sidebarChartPeriod,
-                    timeZone: timeZone,
-                    followsReportScope: reportScope.preset != .all,
-                    scopeQuery: reportScope.query
-                )
-                let nextRefresh = CacheHitRateWidgetRefreshSchedule.nextRefresh(after: Date(), timeZone: timeZone)
-                do {
-                    try await Task.sleep(for: .seconds(nextRefresh.timeIntervalSinceNow))
-                } catch {
-                    return
-                }
-            }
-        }
-    }
-
-    private var sidebarChartPeriod: CacheHitRateWidgetPeriod {
-        .sidebar(for: reportScope.preset, fallback: cacheHitRateWidgetSettings.period)
+        SessionExplorerCacheChart(model: model, reportScope: reportScope,
+                                  settings: cacheHitRateWidgetSettings, chartPalette: chartPalette,
+                                  analytics: cacheAnalytics)
     }
 
     private var chartPalette: UsageChartPalette {
@@ -259,13 +222,6 @@ enum SessionExplorerSidebarLayout {
     static let headerHeight: CGFloat = 176
     static let chartHeight: CGFloat = 256
     static let sectionInset: CGFloat = 16
-}
-
-private struct CacheHitRateWidgetLoadID: Hashable {
-    let period: CacheHitRateWidgetPeriod
-    let revision: Int64?
-    let query: UsageQuery
-    let scopeQuery: UsageQuery
 }
 
 private struct QuotaPresentationLoadID: Hashable {

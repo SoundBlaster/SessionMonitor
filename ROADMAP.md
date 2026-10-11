@@ -23,6 +23,10 @@ merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Зат
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
 **В работе — SM-717** (анатомия контекста сессии: размер контекста по запросам, зоны, лента ввода/вывода, снимок при наведении; добавлено по запросу пользователя 2026-10-11), затем SM-718 (инсайты на этом графике). **Затем SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). Проверены на Mac: SM-711…SM-715. Остаются `[ ]`: SM-710 (hooks: смена ветки и rebase), SM-716 (подсказка про подпись после `make generate`) и SM-326 (панель открывается и что-то показывает; содержимое не сверено с `doctor --json` и `alerts --status all --json`).
+**SM-413 — PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79) перебазирован на `main` (2026-10-11), ждёт нового `CI`.**
+Окно Cache analytics: drag/scroll pan и pinch zoom, статистика выбранного интервала крупно над графиком. По решению
+пользователя (2026-10-11) окно открывается кнопкой «развернуть» в заголовке Sidebar Cache Hit Rate и командой меню,
+а клик по столбцу в Sidebar по-прежнему сужает отчёт (SM-713). Core audit stack #74/#75/#77/#78 остаётся отдельной работой на review.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -1203,3 +1207,9 @@ visual smoke и точная parity семи usage totals. Локальные lo
   `Workflow lint`, Xcode 26.0 compatibility build и required `CI` passed; review thread
   разрешён. Signed archive подтвердил работу system widget snapshot по пользовательской
   проверке; system widgets сохраняют собственный период.
+
+- [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79) открыт и готов к review; review fixes проверены локально, GitHub CI выполняется.
+  Повторное открытие фокусирует одно окно; общие данные, scope и палитра;
+  drag/scroll pan, pinch zoom, persistent selection и крупные bucket details над графиком: дата слева, метрики в одну строку при достаточной ширине и более высокий compact layout; прокрутка страницы над графиком работает, когда pan невозможен;
+  без session/model identity, empty states и accessibility.
+  Проверка: viewport regression tests, GUI build через xcode-tools, lint/FSD.
