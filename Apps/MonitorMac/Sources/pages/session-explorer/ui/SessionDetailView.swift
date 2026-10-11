@@ -77,12 +77,24 @@ struct SessionDetailView: View {
                 .background(.background, in: RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(.quaternary))
 
+                if let anatomy = contextAnatomy {
+                    ContextAnatomyView(anatomy: anatomy, timeZone: timelineModel.displayTimeZone,
+                                       palette: chartPalette)
+                }
+
                 RequestTimelineView(model: timelineModel, query: query, palette: chartPalette)
             }
             .padding(28)
             .frame(maxWidth: 960, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+    }
+
+    /// Reuses the already-loaded request timeline; loading, error and empty states stay with the timeline card.
+    private var contextAnatomy: ContextAnatomy? {
+        guard timelineModel.errorMessage == nil, let timeline = timelineModel.timeline else { return nil }
+        let anatomy = ContextAnatomyBuilder.build(timeline)
+        return anatomy.isEmpty ? nil : anatomy
     }
 
     private var cachePercentage: String {

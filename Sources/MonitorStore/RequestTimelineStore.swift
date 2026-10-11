@@ -46,8 +46,12 @@ extension UsageStore {
                 query.accountScope.profileID, query.accountScope.kind.rawValue
             ]
             let accountPredicate = Self.accountScopePredicate()
-            var points: [RequestTimelinePoint] = try Row.fetchAll(database, sql: """
-                SELECT response, turn, timestamp, input, cached, model, account_scope_key
+            // The source line is a private sort key only; request points never expose `sourceLine`.
+            var ordered: [(point: RequestTimelinePoint, line: Int)] = try Row.fetchAll(database, sql: """
+                SELECT response, turn, timestamp, input, cached, output, reasoning, cache_write,
+                       model, account_scope_key,
+                       (SELECT MIN(line) FROM source_records AS records
+                        WHERE records.response = confirmed.response) AS line
                 FROM confirmed
                 WHERE session = ? AND \(predicate) \(accountPredicate)
                 ORDER BY timestamp ASC, response ASC
@@ -55,42 +59,52 @@ extension UsageStore {
                     let input: Int64 = row["input"]
                     let cached: Int64? = row["cached"]
                     let scopeKey: String = row["account_scope_key"]
-                    return RequestTimelinePoint(
+                    let point = RequestTimelinePoint(
                         id: Self.requestPointID(scopeKey: scopeKey, responseID: row["response"]),
                         sessionID: sessionID,
                         timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: .usageRequest,
                         turnID: row["turn"], responseID: row["response"],
                         inputTokens: input, cachedInputTokens: cached,
-                        uncachedInputTokens: cached.map { input - $0 }, evidence: "token_usage_record",
+                        uncachedInputTokens: cached.map { input - $0 },
+                        outputTokens: row["output"], reasoningOutputTokens: row["reasoning"],
+                        cacheWriteInputTokens: row["cache_write"], evidence: "token_usage_record",
                         model: row["model"]
                     )
+                    return (point, row["line"] ?? 0)
                 }
             let eventRows = try Row.fetchAll(database, sql: """
                 SELECT events.line, events.turn, events.timestamp, events.kind, events.evidence,
                        events.tool_name, events.model, events.activity_class
                 FROM (
-                    SELECT events.*, scope.profile_id AS account_profile_id
+                    SELECT DISTINCT events.session, events.line, events.turn, events.timestamp,
+                                    events.kind, events.evidence, events.tool_name, events.model,
+                                    events.activity_class, scope.profile_id AS account_profile_id,
+                                    scope.scope_key
                     FROM source_timeline_events AS events
                     JOIN source_account_scope AS scope ON scope.source = events.source
                 ) AS events
                 WHERE events.session = ? AND \(predicate) \(accountPredicate)
                 ORDER BY events.timestamp ASC, events.line ASC
                 """, arguments: arguments)
-            points.append(contentsOf: eventRows.map { row in
+            ordered.append(contentsOf: eventRows.map { row in
                 let kind = TimelineEventKind(rawValue: row["kind"] as String) ?? .unknown
                 let line: Int = row["line"]
-                return RequestTimelinePoint(
+                let point = RequestTimelinePoint(
                     id: "event:\(line):\(kind.rawValue)", sessionID: sessionID,
                     timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: kind,
                     turnID: row["turn"], sourceLine: line, evidence: row["evidence"],
                     toolName: row["tool_name"], model: row["model"],
                     activityClass: (row["activity_class"] as String?).flatMap(ActivityToolClass.init(rawValue:))
                 )
+                return (point, line)
             })
-            points.sort {
-                if $0.timestamp != $1.timestamp { return $0.timestamp < $1.timestamp }
-                return $0.id < $1.id
+            // Same-second records keep source order, so events after a usage record follow that request.
+            ordered.sort {
+                if $0.point.timestamp != $1.point.timestamp { return $0.point.timestamp < $1.point.timestamp }
+                if $0.line != $1.line { return $0.line < $1.line }
+                return $0.point.id < $1.point.id
             }
+            let points = ordered.map(\.point)
             return RequestTimeline(sessionID: sessionID, query: query, points: points)
         }
     }

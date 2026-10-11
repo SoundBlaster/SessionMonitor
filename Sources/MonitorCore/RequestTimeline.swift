@@ -74,6 +74,12 @@ public struct RequestTimelinePoint: Codable, Equatable, Identifiable, Sendable {
     public let inputTokens: Int64?
     public let cachedInputTokens: Int64?
     public let uncachedInputTokens: Int64?
+    /// Request output including reasoning; nil for non-request events.
+    public let outputTokens: Int64?
+    /// Subset of output; nil when the source does not report it.
+    public let reasoningOutputTokens: Int64?
+    /// Input written to the provider cache; nil when the source does not report it.
+    public let cacheWriteInputTokens: Int64?
     public let evidence: String?
     public let toolName: String?
     public let model: String?
@@ -82,6 +88,8 @@ public struct RequestTimelinePoint: Codable, Equatable, Identifiable, Sendable {
     public init(id: String, sessionID: String, timestamp: Date, kind: TimelineEventKind,
                 turnID: String? = nil, sourceLine: Int? = nil, responseID: String? = nil,
                 inputTokens: Int64? = nil, cachedInputTokens: Int64? = nil, uncachedInputTokens: Int64? = nil,
+                outputTokens: Int64? = nil, reasoningOutputTokens: Int64? = nil,
+                cacheWriteInputTokens: Int64? = nil,
                 evidence: String? = nil, toolName: String? = nil, model: String? = nil,
                 activityClass: ActivityToolClass? = nil) {
         self.id = id
@@ -94,6 +102,9 @@ public struct RequestTimelinePoint: Codable, Equatable, Identifiable, Sendable {
         self.inputTokens = inputTokens
         self.cachedInputTokens = cachedInputTokens
         self.uncachedInputTokens = uncachedInputTokens
+        self.outputTokens = outputTokens
+        self.reasoningOutputTokens = reasoningOutputTokens
+        self.cacheWriteInputTokens = cacheWriteInputTokens
         self.evidence = evidence
         self.toolName = toolName
         self.model = model
