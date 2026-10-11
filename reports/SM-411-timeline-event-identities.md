@@ -17,4 +17,5 @@ counts are checked against activity rollups, and canonical totals stay unchanged
 Validation: final cumulative stack MCP builds succeeded; 155 core tests and all
 four CLI process smoke suites passed, along with core SwiftLint/FSD/architecture
 regression, actionlint/shell syntax and diff checks. [Commands, execution boundaries and initial MCP/disk
-failures](SM-409-412-validation.md). GitHub CI/review/merge remain pending.
+failures](SM-409-412-validation.md). Delivered 2026-10-11 through PR #77 (merge `4b77d23`) after the stack was rebased onto `main` and its
+required CI passed; see [Delivery](SM-409-412-validation.md#delivery).
