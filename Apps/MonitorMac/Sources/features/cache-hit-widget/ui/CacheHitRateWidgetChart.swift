@@ -102,6 +102,9 @@ struct CacheHitRateWidgetChart: View {
                     }
                 }
             }
+            // Only the analytics window's selection surface takes the pointer. In the Sidebar the overlay
+            // must let clicks through to the chart's tap gesture, which narrows the report (SM-713).
+            .allowsHitTesting(selection != nil)
             .accessibilityHidden(true)
         }
         .chartPlotStyle { plot in

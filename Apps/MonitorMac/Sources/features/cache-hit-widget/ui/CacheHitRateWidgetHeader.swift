@@ -6,6 +6,8 @@ struct CacheHitRateWidgetHeader: View {
     let family: CacheHitRateWidgetAppearance.Family
     let appearance: CacheHitRateWidgetAppearance
     var periodTitle: String?
+    /// Shows an expand button next to the title. Bar clicks stay with the chart (SM-713).
+    var onOpenAnalytics: (() -> Void)?
 
     var body: some View {
         if family == .small {
@@ -35,13 +37,29 @@ struct CacheHitRateWidgetHeader: View {
 
     private var title: some View {
         VStack(alignment: .leading, spacing: CacheHitRateWidgetLayout.textSpacing) {
-            Text(appearance.copy.title)
-                .font(family == .large ? .title.weight(.semibold) : .headline)
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(appearance.copy.title)
+                    .font(family == .large ? .title.weight(.semibold) : .headline)
+                    .fixedSize(horizontal: false, vertical: true)
+                openAnalyticsButton
+            }
             if family != .small {
                 Text(periodTitle ?? CacheHitRateWidgetText.period(report.period))
                     .font(.subheadline).foregroundStyle(.secondary)
             }
+        }
+    }
+
+    @ViewBuilder private var openAnalyticsButton: some View {
+        if let onOpenAnalytics {
+            Button(action: onOpenAnalytics) {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.caption.weight(.semibold))
+            }
+            .buttonStyle(.borderless)
+            .help("Open cache analytics")
+            .accessibilityLabel("Open cache analytics")
+            .accessibilityIdentifier("cacheHitRate.widget.openAnalytics")
         }
     }
 

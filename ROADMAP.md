@@ -1208,7 +1208,16 @@ visual smoke и точная parity семи usage totals. Локальные lo
   разрешён. Signed archive подтвердил работу system widget snapshot по пользовательской
   проверке; system widgets сохраняют собственный период.
 
-- [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79) открыт и готов к review; review fixes проверены локально, GitHub CI выполняется.
+- [ ] **SM-413 — интерактивное окно Cache Hit Rate.** Статус: PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79) перебазирован на `main` (2026-10-11, семь коммитов собраны в один перед rebase), ждёт нового `CI`.
+  **Решение пользователя (2026-10-11) при совмещении с SM-712/SM-713:** клик по столбцу Sidebar Cache Hit Rate по-прежнему
+  сужает отчёт до интервала, наведение показывает подсказку; окно открывается кнопкой «развернуть» в заголовке виджета
+  (`cacheHitRate.widget.openAnalytics`) и командой View ▸ Show Cache Analytics для окна в фокусе. Виджет больше не кнопка
+  целиком; оверлей графика принимает мышь только в окне аналитики (в Sidebar клики проходят к жесту SM-713).
+  Проверено 2026-10-11 на Mac (сборка из Xcode): кнопка открывает окно с тем же report; клик по столбцу в окне выбирает
+  интервал; команда есть в меню View; наведение в Sidebar показывает подсказку. Сужение кликом в Sidebar синтетическим
+  кликом computer use не срабатывает ни здесь, ни на чистом `main` `0bd808b` — нужна проверка реальной мышью.
+  `CacheAnalyticsTests`, `CacheHitRateWidget*Tests`, `ReportScopeFocusTests` — 41/41; SwiftLint `--strict` по
+  `Apps/MonitorMac` и FSD — 0.
   Повторное открытие фокусирует одно окно; общие данные, scope и палитра;
   drag/scroll pan, pinch zoom, persistent selection и крупные bucket details над графиком: дата слева, метрики в одну строку при достаточной ширине и более высокий compact layout; прокрутка страницы над графиком работает, когда pan невозможен;
   без session/model identity, empty states и accessibility.

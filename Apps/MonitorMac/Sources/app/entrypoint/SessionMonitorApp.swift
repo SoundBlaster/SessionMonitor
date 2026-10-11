@@ -48,6 +48,7 @@ struct SessionMonitorApp: App {
             )
         }
         .defaultSize(width: 1120, height: 760)
+        .commands { CacheAnalyticsCommands() }
         Window("Cache Hit Rate", id: CacheAnalyticsPresentation.windowID) {
             CacheAnalyticsPage(presentation: cacheAnalytics)
         }

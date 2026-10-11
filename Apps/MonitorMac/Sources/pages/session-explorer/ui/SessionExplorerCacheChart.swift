@@ -20,15 +20,11 @@ struct SessionExplorerCacheChart: View {
             ),
             containerStyle: .embedded,
             periodTitle: reportScope.preset == .all ? nil : reportScope.title,
-            onOpenAnalytics: {
-                analytics?.open(sourceID: analyticsSourceID, report: currentReport,
-                                     periodTitle: reportScope.preset == .all ? nil : reportScope.title,
-                                     accountLabel: reportScope.accountLabel)
-                openWindow(id: CacheAnalyticsPresentation.windowID)
-            },
+            onOpenAnalytics: openAnalytics,
             inspectsBuckets: true,
             onSelectInterval: { reportScope.focus(on: $0) }
         )
+        .focusedSceneValue(\.openCacheAnalytics, openAnalytics)
         .padding(SessionExplorerSidebarLayout.sectionInset)
         .frame(height: SessionExplorerSidebarLayout.chartHeight, alignment: .topLeading)
         .clipped()
@@ -70,6 +66,13 @@ struct SessionExplorerCacheChart: View {
         guard model.cacheHitRateWidgetQuery == model.query,
               model.cacheHitRateWidgetReport?.period == sidebarChartPeriod else { return nil }
         return model.cacheHitRateWidgetReport
+    }
+
+    private func openAnalytics() {
+        analytics?.open(sourceID: analyticsSourceID, report: currentReport,
+                        periodTitle: reportScope.preset == .all ? nil : reportScope.title,
+                        accountLabel: reportScope.accountLabel)
+        openWindow(id: CacheAnalyticsPresentation.windowID)
     }
 
     private func updateAnalytics() {

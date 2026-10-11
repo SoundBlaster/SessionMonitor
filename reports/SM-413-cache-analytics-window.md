@@ -5,7 +5,7 @@ Independent of the pending core audit stack.
 
 ## Behavior
 
-- Sidebar click focuses/reuses a singleton analytics scene with the same report, scope and palette.
+- The widget's expand button (and View ▸ Show Cache Analytics) focuses/reuses a singleton analytics scene with the same report, scope and palette. Since the 2026-10-11 rebase onto main, a click on a Sidebar bar keeps narrowing the report (SM-713) instead of opening the window.
 - Sliders and bucket dropdown replaced by plot drag/scroll panning and pointer-anchored pinch zoom.
 - Click pins a bucket; hover and pointer exit do not change selection. Pan, zoom and reset retain it.
 - Selected interval/date stays on the left of the fixed-height detail card; the four selected metrics share one horizontal row to its right when the window is wide enough, with a compact adaptive fallback for narrow widths. The card contains: weighted average, P10–P90 or min–max fallback, outliers and samples. The card does not resize across populated, empty or unselected states.
