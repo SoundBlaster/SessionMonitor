@@ -11,6 +11,7 @@ struct CacheHitRateWidget: View {
     let containerStyle: CacheHitRateWidgetAppearance.ContainerStyle
     let appearance: CacheHitRateWidgetAppearance
     let periodTitle: String?
+    /// Shown as an expand button in the header; the card itself is not a button, so bar clicks reach the chart.
     let onOpenAnalytics: (() -> Void)?
     /// Hovering a bar shows that slot's details in a reserved line below the header.
     let inspectsBuckets: Bool
@@ -44,16 +45,15 @@ struct CacheHitRateWidget: View {
         .a11yRoot("cacheHitRate.widget")
         .accessibilityLabel(appearance.copy.title)
         .accessibilityValue(accessibilityValue)
-        .accessibilityHint(onOpenAnalytics == nil ? "" : "Open cache analytics.")
     }
 
     @ViewBuilder
     private var container: some View {
         switch containerStyle {
         case .embedded:
-            interactiveContent
+            content
         case .card:
-            interactiveContent
+            content
                 .padding(cardPadding)
                 .background(
                     colorScheme == .dark ? appearance.palette.darkSurface : appearance.palette.lightSurface,
@@ -67,21 +67,12 @@ struct CacheHitRateWidget: View {
     }
 
     @ViewBuilder
-    private var interactiveContent: some View {
-        if let onOpenAnalytics {
-            Button(action: onOpenAnalytics) { content }.buttonStyle(.plain)
-        } else {
-            content
-        }
-    }
-
-    @ViewBuilder
     private var content: some View {
         Group {
             if let report {
                 VStack(alignment: .leading, spacing: 10) {
                     CacheHitRateWidgetHeader(report: report, family: family, appearance: appearance,
-                                             periodTitle: periodTitle)
+                                             periodTitle: periodTitle, onOpenAnalytics: onOpenAnalytics)
                     switch report.availability {
                     case .available:
                         if inspectsBuckets && family != .small { inspectionLine(report) }
