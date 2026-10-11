@@ -18,7 +18,7 @@ struct ContextAnatomySnapshotCard: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
         .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("contextAnatomy.snapshot")
+        // VoiceOver reads the same lines from the chart's always-present `contextAnatomy.snapshot` element.
+        .accessibilityHidden(true)
     }
 }

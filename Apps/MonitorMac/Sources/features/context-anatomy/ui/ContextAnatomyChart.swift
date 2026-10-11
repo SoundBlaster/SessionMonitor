@@ -17,6 +17,9 @@ struct ContextAnatomyChart: View {
     private var selectedIndex: Int? {
         selectedX.flatMap { ContextAnatomyPresentation.stepIndex(forX: $0, stepCount: stepCount) }
     }
+    private var selectedStep: ContextAnatomyStep? {
+        selectedIndex.flatMap { anatomy.steps.indices.contains($0 - 1) ? anatomy.steps[$0 - 1] : nil }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -25,10 +28,41 @@ struct ContextAnatomyChart: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .trailing)
             sizeChart
+                .focusable()
+                .onKeyPress(.leftArrow) { step(by: -1) }
+                .onKeyPress(.rightArrow) { step(by: 1) }
+                .overlay(alignment: .topLeading) { accessibleSnapshot }
             ContextAnatomyLane(steps: anatomy.steps, selectedIndex: selectedIndex, palette: palette)
                 .padding(.leading, plotInsets.leading)
                 .padding(.trailing, plotInsets.trailing)
         }
+    }
+
+    /// Always mounted, unlike the hover card: VoiceOver reads the inspected request's snapshot here and adjusts
+    /// it to step through requests, so the details never depend on a pointer.
+    private var accessibleSnapshot: some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityElement()
+            .accessibilityLabel("Request snapshot")
+            .accessibilityValue(ContextAnatomyPresentation.snapshotAccessibilityValue(
+                for: selectedStep, in: anatomy, timeZone: timeZone))
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: _ = step(by: 1)
+                case .decrement: _ = step(by: -1)
+                @unknown default: break
+                }
+            }
+            .accessibilityIdentifier("contextAnatomy.snapshot")
+    }
+
+    @discardableResult
+    private func step(by delta: Int) -> KeyPress.Result {
+        guard let index = ContextAnatomyPresentation.steppedIndex(from: selectedIndex, by: delta,
+                                                                   stepCount: stepCount) else { return .ignored }
+        selectedX = Double(index)
+        return .handled
     }
 
     private var sizeChart: some View {
