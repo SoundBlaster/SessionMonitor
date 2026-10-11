@@ -35,6 +35,27 @@ enum ContextAnatomyPresentation {
         return ticks
     }
 
+    /// Ticks for a zoomed window (SM-722): multiples of one stride, so labels stay put while panning; the
+    /// first request stays labelled whenever the window starts at it.
+    static func xTicks(in window: ClosedRange<Double>, stepCount: Int) -> [Int] {
+        let first = max(1, Int(window.lowerBound.rounded(.up)))
+        let last = min(stepCount, Int(window.upperBound.rounded(.down)))
+        guard stepCount > 0, first <= last else { return [] }
+        let stride = max(1, Int((Double(last - first + 1) / Double(maxTickCount)).rounded(.up)))
+        let start = stride == 1 ? first : Int((Double(first) / Double(stride)).rounded(.up)) * stride
+        var ticks = Array(Swift.stride(from: start, through: last, by: stride))
+        if first == 1, ticks.first != 1, stride > 1 { ticks.insert(1, at: 0) }
+        return ticks
+    }
+
+    /// Names the visible requests when the window hides part of the session, with the navigation gestures.
+    static func windowLabel(for window: ClosedRange<Double>, stepCount: Int) -> String? {
+        let first = max(1, Int(window.lowerBound.rounded(.up)))
+        let last = min(stepCount, Int(window.upperBound.rounded(.down)))
+        guard stepCount > 0, first > 1 || last < stepCount else { return nil }
+        return "Requests \(first)–\(last) of \(stepCount) · pinch or ⌘-scroll to zoom, scroll sideways or drag to move"
+    }
+
     // MARK: Snapshot card
 
     /// Wide enough for the longest snapshot line (context share, zone and delta) on one line.

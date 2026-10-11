@@ -5,7 +5,9 @@ import SwiftUI
 /// Per-request lane strip: each column splits into new input and output, with reasoning as a darker part
 /// of the output segment and a left-edge tick when tools or waits happened before the request.
 struct ContextAnatomyLane: View {
+    /// Only the steps of the visible window (SM-722); the domain is the main chart's window.
     let steps: [ContextAnatomyStep]
+    let domain: ClosedRange<Double>
     let selectedIndex: Int?
     let palette: UsageChartPalette
 
@@ -22,10 +24,11 @@ struct ContextAnatomyLane: View {
                     .foregroundStyle(palette.average.opacity(0.12))
             }
         }
-        .chartXScale(domain: ContextAnatomyPresentation.xDomain(stepCount: steps.count))
+        .chartXScale(domain: domain)
         .chartYScale(domain: 0.0...1.0)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
+        .chartPlotStyle { $0.clipped() }
         .frame(height: 40)
         .accessibilityHidden(true)
     }
