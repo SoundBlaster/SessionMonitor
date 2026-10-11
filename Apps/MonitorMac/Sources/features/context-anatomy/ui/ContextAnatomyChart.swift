@@ -3,12 +3,14 @@ import MonitorCore
 import SwiftUI
 
 /// Main stair-step chart plus a lane strip below it. Both share one x domain; the lane is padded by the
-/// main chart's measured plot insets so every lane column sits directly under its request.
+/// main chart's measured plot insets so every lane column sits directly under its request. The hover
+/// snapshot floats over the plot as an overlay, so it never takes part in layout.
 struct ContextAnatomyChart: View {
     let anatomy: ContextAnatomy
-    @Binding var selectedX: Double?
+    let timeZone: TimeZone
     let palette: UsageChartPalette
 
+    @State private var selectedX: Double?
     @State private var plotInsets = ContextAnatomyPlotInsets.zero
 
     private var stepCount: Int { anatomy.steps.count }
@@ -79,8 +81,10 @@ struct ContextAnatomyChart: View {
         .chartYAxisLabel("tokens", position: .leading)
         .chartOverlay { proxy in
             GeometryReader { geometry in
-                Color.clear.onChange(of: ContextAnatomyPlotInsets(proxy: proxy, geometry: geometry), initial: true) {
-                    plotInsets = $1
+                let insets = ContextAnatomyPlotInsets(proxy: proxy, geometry: geometry)
+                ZStack(alignment: .topLeading) {
+                    Color.clear.onChange(of: insets, initial: true) { plotInsets = $1 }
+                    snapshotCard(proxy: proxy, geometry: geometry)
                 }
                 .allowsHitTesting(false)
             }
@@ -88,6 +92,29 @@ struct ContextAnatomyChart: View {
         .frame(height: 220)
         .accessibilityLabel(ContextAnatomyPresentation.accessibilitySummary(anatomy))
         .accessibilityIdentifier("contextAnatomy.chart")
+    }
+
+    /// Floating card beside the inspected request's rule, near the top of the plot. Hit testing stays off
+    /// (set by the overlay) so the card never steals the pointer that drives the selection.
+    @ViewBuilder
+    private func snapshotCard(proxy: ChartProxy, geometry: GeometryProxy) -> some View {
+        if let index = selectedIndex, anatomy.steps.indices.contains(index - 1),
+           let plotAnchor = proxy.plotFrame, let position = proxy.position(forX: Double(index)) {
+            let plot = geometry[plotAnchor]
+            let placement = ContextAnatomyPresentation.snapshotCardPlacement(
+                anchorX: Double(position), plotWidth: Double(plot.width))
+            let gap = CGFloat(ContextAnatomyPresentation.snapshotCardGap)
+            let ruleX = plot.minX + position
+            let lines = ContextAnatomyPresentation.snapshotLines(
+                for: anatomy.steps[index - 1], in: anatomy, timeZone: timeZone)
+            ContextAnatomySnapshotCard(lines: lines)
+                .frame(width: CGFloat(placement.width))
+                .fixedSize(horizontal: false, vertical: true)
+                .alignmentGuide(.leading) { dimensions in
+                    placement.side == .right ? -(ruleX + gap) : dimensions.width - (ruleX - gap)
+                }
+                .alignmentGuide(.top) { _ in -(plot.minY + gap) }
+        }
     }
 
     @ChartContentBuilder

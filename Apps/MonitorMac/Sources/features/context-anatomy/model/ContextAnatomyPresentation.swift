@@ -34,6 +34,40 @@ enum ContextAnatomyPresentation {
         return ticks
     }
 
+    // MARK: Snapshot card
+
+    /// Wide enough for the longest snapshot line (context share, zone and delta) on one line.
+    static let snapshotCardWidth = 340.0
+    static let snapshotCardMinWidth = 160.0
+    static let snapshotCardGap = 12.0
+
+    enum SnapshotCardSide: Equatable {
+        case right
+        case left
+    }
+
+    struct SnapshotCardPlacement: Equatable {
+        let side: SnapshotCardSide
+        let width: Double
+    }
+
+    /// Side of the inspected request's rule the floating card sits on, and the width it gets there.
+    /// Right is preferred; the card flips left when only the left side holds it, and in a narrow plot it
+    /// shrinks into the roomier side (never below `snapshotCardMinWidth`). `anchorX` is the rule's x
+    /// inside the plot area.
+    static func snapshotCardPlacement(anchorX: Double, plotWidth: Double) -> SnapshotCardPlacement {
+        guard anchorX.isFinite, plotWidth.isFinite, plotWidth > 0 else {
+            return SnapshotCardPlacement(side: .right, width: snapshotCardMinWidth)
+        }
+        let rightRoom = plotWidth - anchorX - snapshotCardGap
+        let leftRoom = anchorX - snapshotCardGap
+        if rightRoom >= snapshotCardWidth { return SnapshotCardPlacement(side: .right, width: snapshotCardWidth) }
+        if leftRoom >= snapshotCardWidth { return SnapshotCardPlacement(side: .left, width: snapshotCardWidth) }
+        let side: SnapshotCardSide = rightRoom >= leftRoom ? .right : .left
+        let room = max(rightRoom, leftRoom)
+        return SnapshotCardPlacement(side: side, width: max(snapshotCardMinWidth, min(snapshotCardWidth, room)))
+    }
+
     // MARK: Text
 
     static func snapshotLines(for step: ContextAnatomyStep, in anatomy: ContextAnatomy,

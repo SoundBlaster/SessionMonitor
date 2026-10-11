@@ -131,6 +131,45 @@ final class ContextAnatomyPresentationTests: XCTestCase {
         XCTAssertEqual(line, "Request 1 of 1 · 09:00:00")
     }
 
+    // MARK: Snapshot card placement (SM-720)
+
+    func testSnapshotCardGoesRightOfTheRuleWhenItFits() {
+        let placement = ContextAnatomyPresentation.snapshotCardPlacement(anchorX: 100, plotWidth: 650)
+        XCTAssertEqual(placement.side, .right)
+        XCTAssertEqual(placement.width, ContextAnatomyPresentation.snapshotCardWidth)
+    }
+
+    func testSnapshotCardStaysRightAtTheMiddleOfAWidePlot() {
+        // 360 pt of plot on each side minus the gap still holds the 340 pt card.
+        let placement = ContextAnatomyPresentation.snapshotCardPlacement(anchorX: 360, plotWidth: 720)
+        XCTAssertEqual(placement.side, .right)
+        XCTAssertEqual(placement.width, ContextAnatomyPresentation.snapshotCardWidth)
+    }
+
+    func testSnapshotCardFlipsLeftNearTheRightEdge() {
+        let placement = ContextAnatomyPresentation.snapshotCardPlacement(anchorX: 600, plotWidth: 650)
+        XCTAssertEqual(placement.side, .left)
+        XCTAssertEqual(placement.width, ContextAnatomyPresentation.snapshotCardWidth)
+    }
+
+    func testSnapshotCardShrinksIntoTheRoomierSideOfANarrowPlot() {
+        let tie = ContextAnatomyPresentation.snapshotCardPlacement(anchorX: 200, plotWidth: 400)
+        XCTAssertEqual(tie.side, .right, "a tie reads left to right")
+        XCTAssertEqual(tie.width, 200 - ContextAnatomyPresentation.snapshotCardGap, accuracy: 1e-9)
+
+        let nearRight = ContextAnatomyPresentation.snapshotCardPlacement(anchorX: 250, plotWidth: 400)
+        XCTAssertEqual(nearRight.side, .left)
+        XCTAssertEqual(nearRight.width, 250 - ContextAnatomyPresentation.snapshotCardGap, accuracy: 1e-9)
+    }
+
+    func testSnapshotCardNeverShrinksBelowItsMinimumWidth() {
+        let placement = ContextAnatomyPresentation.snapshotCardPlacement(anchorX: 100, plotWidth: 200)
+        XCTAssertEqual(placement.width, ContextAnatomyPresentation.snapshotCardMinWidth)
+        let degenerate = ContextAnatomyPresentation.snapshotCardPlacement(anchorX: .nan, plotWidth: 0)
+        XCTAssertEqual(degenerate.side, .right)
+        XCTAssertEqual(degenerate.width, ContextAnatomyPresentation.snapshotCardMinWidth)
+    }
+
     // MARK: Formatting and accessibility
 
     func testCompactTokensFormatting() {
