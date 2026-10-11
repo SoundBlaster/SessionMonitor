@@ -26,7 +26,9 @@ SM-327 (live-правила: burn rate, runaway loop, рост input, проек
 **SM-413 доставлена** через PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79), merge `ce3600b` (2026-10-11):
 окно Cache analytics (drag/scroll pan, pinch zoom, статистика выбранного интервала крупно над графиком); по решению
 пользователя окно открывается кнопкой «развернуть» в заголовке Sidebar Cache Hit Rate и командой View ▸ Show Cache Analytics,
-а клик по столбцу в Sidebar по-прежнему сужает отчёт (SM-713). Core audit stack #74/#75/#77/#78 остаётся отдельной работой на review.
+а клик по столбцу в Sidebar по-прежнему сужает отчёт (SM-713).
+**Core audit SM-409…SM-412 доставлены** нативным стеком #74 → #75 → #77 → #78 (2026-10-11, атомарный squash-merge,
+`7c20a94`, `b028512`, `4b77d23`, `25e67c2`) после rebase на `main` и зелёного `CI` на всех слоях.
 SM-403 и SM-402 остаются открытыми пользовательскими проверками.
 
 **SM-408 доставлена через PR [#72](https://github.com/SoundBlaster/SessionMonitor/pull/72),**
@@ -1275,25 +1277,26 @@ visual smoke и точная parity семи usage totals. Локальные lo
 Все четыре слоя реализованы и проверены на cumulative stack `a18d414`: MCP builds,
 155 core tests (148 Swift Testing + 7 XCTest), четыре CLI process smoke suites,
 SwiftLint, FSD lint и architecture regression passed. [Validation](reports/SM-409-412-validation.md).
-PRs открыты; `[ ]` сохраняется до GitHub CI/review/merge, доставка в main не заявляется.
+**Доставлено 2026-10-11** нативным стеком PR (#74 → #75 → #77 → #78) атомарным squash-merge в `main` по указанию
+пользователя. Перед merge стек перебазирован на `main` `fc8a91e`: конфликт в `RequestTimelineStore` (SM-411 против
+SM-717) решён объединением — `DISTINCT` по scope и hashed IDs из SM-411, порядок событий одной секунды по строке
+источника из SM-717; review P1 к #75 исправлен в `CONTRIBUTING.md` (CI идёт на PR в любую базу). Проверки после rebase:
+`swift test` 219 (слой SM-411) и 220 (вершина), MonitorMac 191/192 (UI-тест без результата), SwiftLint/FSD — 0,
+обязательный `CI` зелёный на всех четырёх ревизиях.
 
-- [ ] **SM-409** — Не продвигать metadata checkpoint поверх новых usage records.
-  Статус: реализована, regression passed; [PR #74](https://github.com/SoundBlaster/SessionMonitor/pull/74),
-  CI/review/merge pending. 2026-10-02: backfill требует совпадения file version/cursor;
+- [x] **SM-409** — Не продвигать metadata checkpoint поверх новых usage records.
+  Доставлено: [PR #74](https://github.com/SoundBlaster/SessionMonitor/pull/74), merge `7c20a94` (2026-10-11). 2026-10-02: backfill требует совпадения file version/cursor;
   schema 2/4 × append/replacement и unchanged backfill прошли.
   [Отчёт](reports/SM-409-backfill-checkpoint.md).
-- [ ] **SM-410** — Сохранять unknown для несопоставимых legacy component deltas.
-  Статус: реализована, regression passed; [PR #75](https://github.com/SoundBlaster/SessionMonitor/pull/75)
-  поверх #74, CI/review/merge pending. 2026-10-02: invalid cached/reasoning deltas — nil
+- [x] **SM-410** — Сохранять unknown для несопоставимых legacy component deltas.
+  Доставлено: [PR #75](https://github.com/SoundBlaster/SessionMonitor/pull/75), merge `b028512` (2026-10-11). 2026-10-02: invalid cached/reasoning deltas — nil
   + diagnostic; canonical import/restart проходят. CI запускается для всех PR bases.
   [Отчёт](reports/SM-410-legacy-component-deltas.md).
-- [ ] **SM-411** — Dedup mirrored timeline events и уникальные account-scoped IDs.
-  Статус: реализована, regression passed; [PR #77](https://github.com/SoundBlaster/SessionMonitor/pull/77)
-  поверх #75, CI/review/merge pending. 2026-10-02: DISTINCT full event key + scope и hashed IDs;
+- [x] **SM-411** — Dedup mirrored timeline events и уникальные account-scoped IDs.
+  Доставлено: [PR #77](https://github.com/SoundBlaster/SessionMonitor/pull/77), merge `4b77d23` (2026-10-11). 2026-10-02: DISTINCT full event key + scope и hashed IDs;
   assigned/unknown, mirrors, same-line different tools и reverse import order прошли.
   [Отчёт](reports/SM-411-timeline-event-identities.md).
-- [ ] **SM-412** — Изолировать root activity membership по account scope.
-  Статус: реализована, regression passed; [PR #78](https://github.com/SoundBlaster/SessionMonitor/pull/78)
-  поверх #77, CI/review/merge pending. 2026-10-02: usage/event membership коррелирован с scope;
+- [x] **SM-412** — Изолировать root activity membership по account scope.
+  Доставлено: [PR #78](https://github.com/SoundBlaster/SessionMonitor/pull/78), merge `25e67c2` (2026-10-11). 2026-10-02: usage/event membership коррелирован с scope;
   assigned/unknown и foreign provenance removal прошли. Production SQL probe passed.
   [Отчёт](reports/SM-412-root-activity-account-scope.md).
