@@ -41,6 +41,13 @@ struct ContextAnatomyOverviewSlider: View {
         .accessibilityLabel("Session overview")
         .accessibilityValue(ContextAnatomyPresentation.windowLabel(for: domain, stepCount: anatomy.steps.count)
             ?? "All requests are visible")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: onCenter(ContextAnatomyOverview.pagedCenter(for: domain, by: 1))
+            case .decrement: onCenter(ContextAnatomyOverview.pagedCenter(for: domain, by: -1))
+            @unknown default: break
+            }
+        }
         .accessibilityIdentifier("contextAnatomy.overview")
     }
 

@@ -36,6 +36,13 @@ enum ContextAnatomyOverview {
         return start...end
     }
 
+    /// VoiceOver adjust on the overview: the window centre one window width earlier (-1) or later (+1).
+    /// The viewport clamps the result to the session.
+    static func pagedCenter(for domain: ClosedRange<Double>, by pages: Int) -> Double {
+        let span = domain.upperBound - domain.lowerBound
+        return (domain.lowerBound + domain.upperBound) / 2 + Double(pages) * span
+    }
+
     /// The request-axis position under an overview x coordinate, clamped to the session.
     static func axisPosition(atX pointX: Double, stepCount: Int, width: Double) -> Double {
         guard stepCount > 0, width > 0, pointX.isFinite else { return 0.5 }

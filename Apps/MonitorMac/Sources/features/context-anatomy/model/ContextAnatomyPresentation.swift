@@ -41,7 +41,10 @@ enum ContextAnatomyPresentation {
         let first = max(1, Int(window.lowerBound.rounded(.up)))
         let last = min(stepCount, Int(window.upperBound.rounded(.down)))
         guard stepCount > 0, first <= last else { return [] }
-        let stride = max(1, Int((Double(last - first + 1) / Double(maxTickCount)).rounded(.up)))
+        // The stride follows the window's span, not how many whole requests it encloses, so a pan never
+        // changes it.
+        let span = window.upperBound - window.lowerBound
+        let stride = max(1, Int((span / Double(maxTickCount)).rounded(.up)))
         let start = stride == 1 ? first : Int((Double(first) / Double(stride)).rounded(.up)) * stride
         var ticks = Array(Swift.stride(from: start, through: last, by: stride))
         if first == 1, ticks.first != 1, stride > 1 { ticks.insert(1, at: 0) }

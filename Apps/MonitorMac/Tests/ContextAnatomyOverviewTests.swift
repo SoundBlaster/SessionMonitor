@@ -70,6 +70,16 @@ final class ContextAnatomyOverviewTests: XCTestCase {
         XCTAssertEqual(viewport.centered(on: 9_999, stepCount: 7_196), viewport, "clamped at the end")
     }
 
+    // MARK: VoiceOver paging
+
+    func testAdjustingTheOverviewPagesTheWindowByItsOwnWidth() {
+        let domain = 6_846.5...7_196.5
+        XCTAssertEqual(Overview.pagedCenter(for: domain, by: -1), 6_671.5)
+        XCTAssertEqual(Overview.pagedCenter(for: domain, by: 1), 7_371.5,
+                       "the viewport clamps a page past the end")
+        XCTAssertEqual(Overview.pagedCenter(for: domain, by: 0), 7_021.5)
+    }
+
     // MARK: Fixtures
 
     private func anatomy(inputs: [Int64]) -> ContextAnatomy {

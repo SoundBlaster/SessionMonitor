@@ -134,6 +134,14 @@ final class ContextAnatomyViewportTests: XCTestCase {
                        "Requests 6847–7196 of 7196 · pinch or ⌘-scroll to zoom, scroll sideways or drag to move")
     }
 
+    func testTickStrideDependsOnTheWindowSpanNotOnHowManyRequestsItEncloses() {
+        // The same 240.2-request window encloses 240 or 241 whole requests depending on where it sits.
+        let encloses240 = ContextAnatomyPresentation.xTicks(in: 100.4...340.6, stepCount: 7_196)
+        let encloses241 = ContextAnatomyPresentation.xTicks(in: 100.9...341.1, stepCount: 7_196)
+        XCTAssertEqual(encloses240[1] - encloses240[0], encloses241[1] - encloses241[0],
+                       "panning must not change the tick stride")
+    }
+
     func testWindowTicksAreStableMultiplesInsideTheWindow() {
         let ticks = ContextAnatomyPresentation.xTicks(in: 6_846.5...7_196.5, stepCount: 7_196)
         XCTAssertLessThanOrEqual(ticks.count, ContextAnatomyPresentation.maxTickCount + 1)
