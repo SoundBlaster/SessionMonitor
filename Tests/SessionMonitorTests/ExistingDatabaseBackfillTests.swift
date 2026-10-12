@@ -48,10 +48,10 @@ struct ExistingDatabaseBackfillTests {
         #expect(quota.snapshots[0].windows[0].usedPercent == 82)
         let current = try #require(try store.checkpoint(source: fixture.source))
         let currentObject = try #require(JSONSerialization.jsonObject(with: current) as? [String: Any])
-        #expect(currentObject["schemaVersion"] as? Int == 4)
+        #expect(currentObject["schemaVersion"] as? Int == 5)
     }
 
-    @Test(arguments: [2, 4], [false, true])
+    @Test(arguments: [2, 4, 5], [false, true])
     func changedSourceBackfillNeverSkipsUsage(schema: Int, replacement: Bool) async throws {
         let fixture = try IncrementalFixture()
         defer { fixture.remove() }

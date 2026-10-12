@@ -51,7 +51,11 @@ extension UsageStore {
                 SELECT response, turn, timestamp, input, cached, output, reasoning, cache_write,
                        model, account_scope_key,
                        (SELECT MIN(line) FROM source_records AS records
-                        WHERE records.response = confirmed.response) AS line
+                        WHERE records.response = confirmed.response) AS line,
+                       -- Mirrored copies must agree; a conflicting window stays unknown.
+                       (SELECT CASE WHEN COUNT(DISTINCT windows.window) = 1 THEN MAX(windows.window) END
+                        FROM source_context_windows AS windows
+                        WHERE windows.response = confirmed.response) AS context_window
                 FROM confirmed
                 WHERE session = ? AND \(predicate) \(accountPredicate)
                 ORDER BY timestamp ASC, response ASC
@@ -68,7 +72,7 @@ extension UsageStore {
                         uncachedInputTokens: cached.map { input - $0 },
                         outputTokens: row["output"], reasoningOutputTokens: row["reasoning"],
                         cacheWriteInputTokens: row["cache_write"], evidence: "token_usage_record",
-                        model: row["model"]
+                        model: row["model"], contextWindowTokens: row["context_window"]
                     )
                     return (point, row["line"] ?? 0)
                 }

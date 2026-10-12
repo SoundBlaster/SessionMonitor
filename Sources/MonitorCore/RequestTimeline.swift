@@ -84,6 +84,8 @@ public struct RequestTimelinePoint: Codable, Equatable, Identifiable, Sendable {
     public let toolName: String?
     public let model: String?
     public let activityClass: ActivityToolClass?
+    /// Usable context window the source reported right after this request; nil when it was not reported.
+    public let contextWindowTokens: Int64?
 
     public init(id: String, sessionID: String, timestamp: Date, kind: TimelineEventKind,
                 turnID: String? = nil, sourceLine: Int? = nil, responseID: String? = nil,
@@ -91,7 +93,7 @@ public struct RequestTimelinePoint: Codable, Equatable, Identifiable, Sendable {
                 outputTokens: Int64? = nil, reasoningOutputTokens: Int64? = nil,
                 cacheWriteInputTokens: Int64? = nil,
                 evidence: String? = nil, toolName: String? = nil, model: String? = nil,
-                activityClass: ActivityToolClass? = nil) {
+                activityClass: ActivityToolClass? = nil, contextWindowTokens: Int64? = nil) {
         self.id = id
         self.sessionID = sessionID
         self.timestamp = timestamp
@@ -109,6 +111,7 @@ public struct RequestTimelinePoint: Codable, Equatable, Identifiable, Sendable {
         self.toolName = toolName
         self.model = model
         self.activityClass = activityClass
+        self.contextWindowTokens = contextWindowTokens
     }
 }
 
