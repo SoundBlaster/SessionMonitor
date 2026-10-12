@@ -2,9 +2,10 @@ import Charts
 import MonitorCore
 import SwiftUI
 
-/// Main stair-step chart plus a lane strip below it. Both share one x domain; the lane is padded by the
-/// main chart's measured plot insets so every lane column sits directly under its request. The hover
-/// snapshot floats over the plot as an overlay, so it never takes part in layout.
+/// Main stair-step chart plus a lane strip below it. Both share one x domain — the visible window (SM-722),
+/// capped by data density so long sessions are never drawn all at once — and the lane is padded by the main
+/// chart's measured plot insets so every lane column sits directly under its request. The hover snapshot
+/// floats over the plot as an overlay, so it never takes part in layout.
 struct ContextAnatomyChart: View {
     let anatomy: ContextAnatomy
     let timeZone: TimeZone
@@ -12,8 +13,18 @@ struct ContextAnatomyChart: View {
 
     @State private var selectedX: Double?
     @State private var plotInsets = ContextAnatomyPlotInsets.zero
+    @State private var plotWidth = 0.0
+    @State private var storedViewport: ContextAnatomyViewport?
 
     private var stepCount: Int { anatomy.steps.count }
+    private var viewport: ContextAnatomyViewport {
+        storedViewport ?? .initial(stepCount: stepCount, plotWidth: plotWidth)
+    }
+    private var domain: ClosedRange<Double> { viewport.domain }
+    private var visibleSteps: [ContextAnatomyStep] {
+        guard let range = viewport.visibleIndices(stepCount: stepCount) else { return [] }
+        return Array(anatomy.steps[(range.lowerBound - 1)...(range.upperBound - 1)])
+    }
     private var selectedIndex: Int? {
         selectedX.flatMap { ContextAnatomyPresentation.stepIndex(forX: $0, stepCount: stepCount) }
     }
@@ -22,20 +33,57 @@ struct ContextAnatomyChart: View {
     }
 
     var body: some View {
+        let steps = visibleSteps
         VStack(alignment: .leading, spacing: 4) {
-            Text("relative to session peak: bands at 50%, 75% and 90%")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-            sizeChart
+            HStack(alignment: .firstTextBaseline) {
+                Text(ContextAnatomyPresentation.windowLabel(for: domain, stepCount: stepCount) ?? " ")
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer(minLength: 8)
+                Text("relative to session peak: bands at 50%, 75% and 90%")
+                    .fixedSize()
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            sizeChart(steps)
                 .focusable()
                 .onKeyPress(.leftArrow) { step(by: -1) }
                 .onKeyPress(.rightArrow) { step(by: 1) }
                 .overlay(alignment: .topLeading) { accessibleSnapshot }
-            ContextAnatomyLane(steps: anatomy.steps, selectedIndex: selectedIndex, palette: palette)
+            ContextAnatomyLane(steps: steps, domain: domain, selectedIndex: selectedIndex, palette: palette)
                 .padding(.leading, plotInsets.leading)
                 .padding(.trailing, plotInsets.trailing)
+            if Double(stepCount) > ContextAnatomyViewport.minVisibleRequests {
+                ContextAnatomyOverviewSlider(anatomy: anatomy, domain: domain, palette: palette) { position in
+                    storedViewport = viewport.centered(on: position, stepCount: stepCount)
+                }
+                .padding(.leading, plotInsets.leading)
+                .padding(.trailing, plotInsets.trailing)
+                .padding(.top, 4)
+            }
         }
+        .onChange(of: stepCount) { oldCount, newCount in
+            storedViewport = storedViewport?.following(growthFrom: oldCount, to: newCount, plotWidth: plotWidth)
+        }
+    }
+
+    private func updatePlotWidth(_ width: Double) {
+        guard width.isFinite, width > 0, width != plotWidth else { return }
+        let previous = storedViewport ?? .initial(stepCount: stepCount, plotWidth: width)
+        plotWidth = width
+        storedViewport = previous.clamped(stepCount: stepCount, plotWidth: width)
+    }
+
+    private func zoom(by factor: Double, anchor: Double) {
+        storedViewport = viewport.magnified(by: factor, anchor: anchor, stepCount: stepCount, plotWidth: plotWidth)
+    }
+
+    /// Returns whether the window moved, so an edge hands the scroll back to the page.
+    private func pan(by translation: Double) -> Bool {
+        let moved = viewport.panned(byPoints: translation, stepCount: stepCount, plotWidth: plotWidth)
+        guard moved != viewport else { return false }
+        storedViewport = moved
+        return true
     }
 
     /// Always mounted, unlike the hover card: VoiceOver reads the inspected request's snapshot here and adjusts
@@ -62,13 +110,14 @@ struct ContextAnatomyChart: View {
         guard let index = ContextAnatomyPresentation.steppedIndex(from: selectedIndex, by: delta,
                                                                    stepCount: stepCount) else { return .ignored }
         selectedX = Double(index)
+        storedViewport = viewport.revealing(index, stepCount: stepCount, plotWidth: plotWidth)
         return .handled
     }
 
-    private var sizeChart: some View {
+    private func sizeChart(_ steps: [ContextAnatomyStep]) -> some View {
         Chart {
             zoneBands
-            ForEach(anatomy.steps) { step in
+            ForEach(steps) { step in
                 AreaMark(x: .value("Request", Double(step.index)),
                          y: .value("Context tokens", Double(step.contextTokens)))
                     .interpolationMethod(.stepEnd)
@@ -80,7 +129,7 @@ struct ContextAnatomyChart: View {
                     .accessibilityLabel("Request \(step.index)")
                     .accessibilityValue("Context \(ContextAnatomyPresentation.compactTokens(step.contextTokens))")
             }
-            ForEach(anatomy.steps) { step in
+            ForEach(steps) { step in
                 eventMarks(step)
             }
             if let index = selectedIndex {
@@ -88,44 +137,63 @@ struct ContextAnatomyChart: View {
                     .foregroundStyle(palette.average.opacity(0.5))
             }
         }
-        .chartXScale(domain: ContextAnatomyPresentation.xDomain(stepCount: stepCount))
+        .chartXScale(domain: domain)
         .chartYScale(domain: ContextAnatomyPresentation.yDomain(peak: anatomy.peakContextTokens))
-        .chartXSelection(value: $selectedX)
-        .chartXAxis {
-            AxisMarks(values: ContextAnatomyPresentation.xTicks(stepCount: stepCount).map(Double.init)) { value in
-                AxisGridLine().foregroundStyle(palette.grid)
-                AxisTick()
-                AxisValueLabel {
-                    if let position = value.as(Double.self) { Text("\(Int(position))") }
-                }
-            }
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading) { value in
-                AxisGridLine().foregroundStyle(palette.grid)
-                AxisTick()
-                AxisValueLabel {
-                    if let tokens = value.as(Double.self) {
-                        Text(ContextAnatomyPresentation.compactTokens(Int64(tokens)))
-                    }
-                }
-            }
-        }
+        .chartPlotStyle { $0.clipped() }
+        .chartXAxis { requestAxis }
+        .chartYAxis { tokenAxis }
         .chartXAxisLabel("request", alignment: .center)
         .chartYAxisLabel("tokens", position: .leading)
-        .chartOverlay { proxy in
-            GeometryReader { geometry in
-                let insets = ContextAnatomyPlotInsets(proxy: proxy, geometry: geometry)
-                ZStack(alignment: .topLeading) {
-                    Color.clear.onChange(of: insets, initial: true) { plotInsets = $1 }
-                    snapshotCard(proxy: proxy, geometry: geometry)
-                }
-                .allowsHitTesting(false)
-            }
-        }
+        .chartOverlay { proxy in plotOverlay(proxy: proxy) }
         .frame(height: 220)
         .accessibilityLabel(ContextAnatomyPresentation.accessibilitySummary(anatomy))
         .accessibilityIdentifier("contextAnatomy.chart")
+    }
+
+    @AxisContentBuilder private var requestAxis: some AxisContent {
+        let ticks = ContextAnatomyPresentation.xTicks(in: domain, stepCount: stepCount).map(Double.init)
+        AxisMarks(values: ticks) { value in
+            AxisGridLine().foregroundStyle(palette.grid)
+            AxisTick()
+            AxisValueLabel {
+                if let position = value.as(Double.self) { Text("\(Int(position))") }
+            }
+        }
+    }
+
+    @AxisContentBuilder private var tokenAxis: some AxisContent {
+        AxisMarks(position: .leading) { value in
+            AxisGridLine().foregroundStyle(palette.grid)
+            AxisTick()
+            AxisValueLabel {
+                if let tokens = value.as(Double.self) {
+                    Text(ContextAnatomyPresentation.compactTokens(Int64(tokens)))
+                }
+            }
+        }
+    }
+
+    /// Measures the plot, takes hover/zoom/pan over the plot area, and floats the snapshot card.
+    private func plotOverlay(proxy: ChartProxy) -> some View {
+        GeometryReader { geometry in
+            let insets = ContextAnatomyPlotInsets(proxy: proxy, geometry: geometry)
+            let plot = proxy.plotFrame.map { geometry[$0] } ?? .zero
+            ZStack(alignment: .topLeading) {
+                Color.clear
+                    .onChange(of: insets, initial: true) { plotInsets = $1 }
+                    .onChange(of: plot.width, initial: true) { updatePlotWidth(Double($1)) }
+                    .allowsHitTesting(false)
+                ContextAnatomyInteractionSurface(
+                    onHover: { pointX in selectedX = pointX.flatMap { proxy.value(atX: $0, as: Double.self) } },
+                    onZoom: { zoom(by: $0, anchor: $1) },
+                    onPan: { pan(by: $0) }
+                )
+                .frame(width: plot.width, height: plot.height)
+                .offset(x: plot.minX, y: plot.minY)
+                snapshotCard(proxy: proxy, geometry: geometry)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 
     /// Floating card beside the inspected request's rule, near the top of the plot. Hit testing stays off
@@ -153,7 +221,6 @@ struct ContextAnatomyChart: View {
 
     @ChartContentBuilder
     private var zoneBands: some ChartContent {
-        let domain = ContextAnatomyPresentation.xDomain(stepCount: stepCount)
         let peak = Double(max(1, anatomy.peakContextTokens))
         ForEach(ContextZoneBand.all) { band in
             RectangleMark(xStart: .value("From", domain.lowerBound), xEnd: .value("To", domain.upperBound),
