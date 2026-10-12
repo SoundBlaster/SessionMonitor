@@ -35,6 +35,63 @@ enum ContextAnatomyPresentation {
         return ticks
     }
 
+    // MARK: Zone columns (SM-725)
+
+    struct ZoneColumn: Equatable {
+        let xStart: Double
+        let xEnd: Double
+        let top: Double
+        let zone: ContextFillZone
+    }
+
+    /// One column per request under the context line: as wide as the request's lane slot, as tall as its
+    /// context, coloured by its zone relative to the session peak. The step line masks the columns from above.
+    static func zoneColumn(for step: ContextAnatomyStep) -> ZoneColumn {
+        ZoneColumn(xStart: Double(step.index) - 0.5, xEnd: Double(step.index) + 0.5,
+                   top: Double(step.contextTokens), zone: step.zone)
+    }
+
+    struct LinePoint: Equatable, Identifiable {
+        let x: Double // swiftlint:disable:this identifier_name
+        let y: Double // swiftlint:disable:this identifier_name
+        /// The request at this point; nil for the edge points that close the first and last columns.
+        let stepIndex: Int?
+        var id: Double { x }
+    }
+
+    /// Points of the centred step line. Requests sit at their index; when the drawn steps include the first or
+    /// last request of the session, an edge point at `0.5` / `N + 0.5` carries the line across the whole edge
+    /// column, so every column has its top edge (and a single request still gets a line).
+    static func linePoints(for steps: [ContextAnatomyStep], stepCount: Int) -> [LinePoint] {
+        var points = steps.map {
+            LinePoint(x: Double($0.index), y: Double($0.contextTokens), stepIndex: $0.index)
+        }
+        if let first = steps.first, first.index == 1 {
+            points.insert(LinePoint(x: 0.5, y: Double(first.contextTokens), stepIndex: nil), at: 0)
+        }
+        if let last = steps.last, last.index == stepCount {
+            points.append(LinePoint(x: Double(stepCount) + 0.5, y: Double(last.contextTokens), stepIndex: nil))
+        }
+        return points
+    }
+
+    struct ZoneLegendItem: Equatable {
+        let zone: ContextFillZone
+        let title: String
+    }
+
+    /// Legend for the column colours, derived from the zone edges.
+    static let zoneLegend: [ZoneLegendItem] = ContextZoneBand.all.map { band in
+        let lower = Int((band.lowerFraction * 100).rounded())
+        let upper = Int((band.upperFraction * 100).rounded())
+        let title = switch band.zone {
+        case .low: "< \(upper)% of peak"
+        case .critical: "≥ \(lower)%"
+        default: "\(lower)–\(upper)%"
+        }
+        return ZoneLegendItem(zone: band.zone, title: title)
+    }
+
     /// Ticks for a zoomed window (SM-722): multiples of one stride, so labels stay put while panning; the
     /// first request stays labelled whenever the window starts at it.
     static func xTicks(in window: ClosedRange<Double>, stepCount: Int) -> [Int] {
