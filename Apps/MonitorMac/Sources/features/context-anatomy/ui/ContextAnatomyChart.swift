@@ -117,14 +117,14 @@ struct ContextAnatomyChart: View {
     private func sizeChart(_ steps: [ContextAnatomyStep]) -> some View {
         Chart {
             zoneColumns(steps)
-            ForEach(steps) { step in
-                LineMark(x: .value("Request", Double(step.index)),
-                         y: .value("Context tokens", Double(step.contextTokens)))
+            ForEach(ContextAnatomyPresentation.linePoints(for: steps, stepCount: stepCount)) { point in
+                LineMark(x: .value("Request", point.x), y: .value("Context tokens", point.y))
                     // Centred steps span each request's column, so the line runs exactly along the column tops.
                     .interpolationMethod(.stepCenter)
                     .foregroundStyle(palette.accent)
-                    .accessibilityLabel("Request \(step.index)")
-                    .accessibilityValue("Context \(ContextAnatomyPresentation.compactTokens(step.contextTokens))")
+                    .accessibilityHidden(point.stepIndex == nil)
+                    .accessibilityLabel(point.stepIndex.map { "Request \($0)" } ?? "")
+                    .accessibilityValue("Context \(ContextAnatomyPresentation.compactTokens(Int64(point.y)))")
             }
             ForEach(steps) { step in
                 eventMarks(step)

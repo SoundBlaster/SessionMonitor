@@ -51,6 +51,30 @@ enum ContextAnatomyPresentation {
                    top: Double(step.contextTokens), zone: step.zone)
     }
 
+    struct LinePoint: Equatable, Identifiable {
+        let x: Double // swiftlint:disable:this identifier_name
+        let y: Double // swiftlint:disable:this identifier_name
+        /// The request at this point; nil for the edge points that close the first and last columns.
+        let stepIndex: Int?
+        var id: Double { x }
+    }
+
+    /// Points of the centred step line. Requests sit at their index; when the drawn steps include the first or
+    /// last request of the session, an edge point at `0.5` / `N + 0.5` carries the line across the whole edge
+    /// column, so every column has its top edge (and a single request still gets a line).
+    static func linePoints(for steps: [ContextAnatomyStep], stepCount: Int) -> [LinePoint] {
+        var points = steps.map {
+            LinePoint(x: Double($0.index), y: Double($0.contextTokens), stepIndex: $0.index)
+        }
+        if let first = steps.first, first.index == 1 {
+            points.insert(LinePoint(x: 0.5, y: Double(first.contextTokens), stepIndex: nil), at: 0)
+        }
+        if let last = steps.last, last.index == stepCount {
+            points.append(LinePoint(x: Double(stepCount) + 0.5, y: Double(last.contextTokens), stepIndex: nil))
+        }
+        return points
+    }
+
     struct ZoneLegendItem: Equatable {
         let zone: ContextFillZone
         let title: String

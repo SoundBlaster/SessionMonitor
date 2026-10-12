@@ -27,6 +27,26 @@ final class ContextAnatomyZoneColumnsTests: XCTestCase {
                        ["< 50% of peak", "50–75%", "75–90%", "≥ 90%"])
     }
 
+    func testTheLineCoversTheFirstAndLastColumnsCompletely() {
+        let anatomy = anatomy(inputs: [10, 20, 30])
+        let points = ContextAnatomyPresentation.linePoints(for: anatomy.steps, stepCount: 3)
+        XCTAssertEqual(points.map(\.x), [0.5, 1, 2, 3, 3.5])
+        XCTAssertEqual(points.map(\.y), [10, 10, 20, 30, 30])
+        XCTAssertEqual(points.map(\.stepIndex), [nil, 1, 2, 3, nil], "edge points are not requests")
+    }
+
+    func testASingleRequestStillGetsALineAcrossItsColumn() {
+        let points = ContextAnatomyPresentation.linePoints(for: anatomy(inputs: [42]).steps, stepCount: 1)
+        XCTAssertEqual(points.map(\.x), [0.5, 1, 1.5])
+        XCTAssertEqual(Set(points.map(\.y)), [42])
+    }
+
+    func testAZoomedWindowAddsNoEdgePointsInsideTheSession() {
+        let anatomy = anatomy(inputs: [10, 20, 30, 40, 50])
+        let middle = Array(anatomy.steps[1...3])
+        XCTAssertEqual(ContextAnatomyPresentation.linePoints(for: middle, stepCount: 5).map(\.x), [2, 3, 4])
+    }
+
     private func anatomy(inputs: [Int64]) -> ContextAnatomy {
         guard let query = try? UsageQuery(since: nil, until: nil) else {
             preconditionFailure("UsageQuery without bounds must be valid")
