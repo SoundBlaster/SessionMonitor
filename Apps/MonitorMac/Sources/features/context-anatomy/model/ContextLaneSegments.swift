@@ -56,7 +56,7 @@ struct ContextLaneSegments: Equatable {
     }
 }
 
-/// One background band of the context-size chart, in fractions of the session peak.
+/// One zone band of the context-size chart, in fractions of the anatomy's basis (window or session peak).
 struct ContextZoneBand: Equatable, Identifiable {
     let zone: ContextFillZone
     let lowerFraction: Double

@@ -5,8 +5,24 @@ import MonitorCore
 enum ContextAnatomyPresentation {
     static let hint = "Hover a request, or focus the chart and use the arrow keys, to see a snapshot of the context"
     static let inspectionHint = "No request inspected. Use the arrow keys or adjust to step through requests."
-    static let caption = "Context size per request, relative to this session's peak. "
-        + "Logs show token volumes and events, not what the context contains."
+    /// SM-727: the usable window is the model window minus the headroom Codex reserves; without any reported
+    /// window the colours fall back to the session's own peak, and every text says which one applies.
+    static func caption(for basis: ContextFillBasis) -> String {
+        let reference = switch basis {
+        case .modelWindow: "as a share of the usable context window Codex reports."
+        case .sessionPeak: "relative to this session's peak: the logs report no context window."
+        }
+        return "Context size per request, \(reference) "
+            + "Logs show token volumes and events, not what the context contains."
+    }
+
+    static func columnCaption(for basis: ContextFillBasis) -> String {
+        switch basis {
+        case .modelWindow: "column colour: share of the usable context window"
+        case .sessionPeak: "column colour: share of the session peak (no window reported)"
+        }
+    }
+
     static let maxTickCount = 12
 
     // MARK: Geometry
@@ -45,7 +61,7 @@ enum ContextAnatomyPresentation {
     }
 
     /// One column per request under the context line: as wide as the request's lane slot, as tall as its
-    /// context, coloured by its zone relative to the session peak. The step line masks the columns from above.
+    /// context, coloured by its zone against the anatomy's basis. The step line masks the columns from above.
     static func zoneColumn(for step: ContextAnatomyStep) -> ZoneColumn {
         ZoneColumn(xStart: Double(step.index) - 0.5, xEnd: Double(step.index) + 0.5,
                    top: Double(step.contextTokens), zone: step.zone)
@@ -81,15 +97,18 @@ enum ContextAnatomyPresentation {
     }
 
     /// Legend for the column colours, derived from the zone edges.
-    static let zoneLegend: [ZoneLegendItem] = ContextZoneBand.all.map { band in
-        let lower = Int((band.lowerFraction * 100).rounded())
-        let upper = Int((band.upperFraction * 100).rounded())
-        let title = switch band.zone {
-        case .low: "< \(upper)% of peak"
-        case .critical: "≥ \(lower)%"
-        default: "\(lower)–\(upper)%"
+    static func zoneLegend(for basis: ContextFillBasis) -> [ZoneLegendItem] {
+        let reference = basis == .modelWindow ? "window" : "peak"
+        return ContextZoneBand.all.map { band in
+            let lower = Int((band.lowerFraction * 100).rounded())
+            let upper = Int((band.upperFraction * 100).rounded())
+            let title = switch band.zone {
+            case .low: "< \(upper)% of \(reference)"
+            case .critical: "≥ \(lower)%"
+            default: "\(lower)–\(upper)%"
+            }
+            return ZoneLegendItem(zone: band.zone, title: title)
         }
-        return ZoneLegendItem(zone: band.zone, title: title)
     }
 
     /// Ticks for a zoomed window (SM-722): multiples of one stride, so labels stay put while panning; the
@@ -226,7 +245,12 @@ enum ContextAnatomyPresentation {
     private static func contextLine(_ step: ContextAnatomyStep) -> String {
         let percent = Int((step.fillFraction * 100).rounded())
         let change = step.deltaFromPrevious.map { "\(signedTokens($0)) vs previous" } ?? "first request"
-        return "Context \(compactTokens(step.contextTokens)) (\(percent)% of peak, \(step.zone.rawValue)) · \(change)"
+        // A window borrowed from a neighbouring request is marked approximate.
+        let reference = step.contextWindowTokens.map {
+            "\(step.contextWindowInferred ? "~" : "")\(compactTokens($0)) window"
+        } ?? "peak"
+        let share = "\(percent)% of \(reference), \(step.zone.rawValue)"
+        return "Context \(compactTokens(step.contextTokens)) (\(share)) · \(change)"
     }
 
     private static func cacheLine(_ step: ContextAnatomyStep) -> String {
