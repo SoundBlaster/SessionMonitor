@@ -3,6 +3,22 @@ import MonitorCore
 
 /// Horizontal split of one lane-strip column. Fractions are shares of the column width.
 struct ContextLaneSegments: Equatable {
+    /// The parts a column can show, each drawn in the colour of its token flow (SM-726).
+    enum Kind {
+        case newInput
+        case output
+        case reasoning
+        case toolsOrWaits
+
+        var flow: UsageChartPalette.Flow {
+            switch self {
+            case .newInput: .input
+            case .output, .reasoning: .output
+            case .toolsOrWaits: .other
+            }
+        }
+    }
+
     /// New input; when the cache split is unknown this is the whole request input.
     let inputFraction: Double
     let outputFraction: Double

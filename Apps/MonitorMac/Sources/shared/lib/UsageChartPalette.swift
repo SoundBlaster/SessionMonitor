@@ -17,6 +17,24 @@ struct UsageChartPalette {
     let zoneModerate: Color
     let zoneHigh: Color
     let zoneCritical: Color
+    /// SM-726: token flows — user input, model output, and everything else (tools, waits, other events).
+    let flowInput: Color
+    let flowOutput: Color
+    let flowOther: Color
+
+    enum Flow: CaseIterable {
+        case input
+        case output
+        case other
+    }
+
+    func color(for flow: Flow) -> Color {
+        switch flow {
+        case .input: flowInput
+        case .output: flowOutput
+        case .other: flowOther
+        }
+    }
 
     func color(for zone: ContextFillZone) -> Color {
         switch zone {
@@ -51,7 +69,10 @@ struct UsageChartPalette {
         zoneLow: .green.opacity(0.10),
         zoneModerate: .yellow.opacity(0.12),
         zoneHigh: .orange.opacity(0.14),
-        zoneCritical: .red.opacity(0.16)
+        zoneCritical: .red.opacity(0.16),
+        flowInput: .green,
+        flowOutput: .blue,
+        flowOther: .purple
     )
 
     static let monochrome = Self(
@@ -66,7 +87,10 @@ struct UsageChartPalette {
         zoneLow: .gray.opacity(0.04),
         zoneModerate: .gray.opacity(0.09),
         zoneHigh: .gray.opacity(0.16),
-        zoneCritical: .gray.opacity(0.26)
+        zoneCritical: .gray.opacity(0.26),
+        flowInput: .gray.opacity(0.45),
+        flowOutput: .primary.opacity(0.8),
+        flowOther: .gray
     )
 }
 
