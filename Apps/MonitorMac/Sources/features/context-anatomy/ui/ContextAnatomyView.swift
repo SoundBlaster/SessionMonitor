@@ -46,7 +46,7 @@ private struct ContextAnatomyLegend: View {
             Item(title: "New input", color: palette.color(for: ContextLaneSegments.Kind.newInput.flow)),
             Item(title: "Output (reasoning darker)", color: palette.color(for: ContextLaneSegments.Kind.output.flow)),
             Item(title: "Reasoning unknown", color: palette.neutral),
-            Item(title: "Tools/waits", color: palette.color(for: ContextLaneSegments.Kind.toolsOrWaits.flow)),
+            Item(title: "Tools, waits, other", color: palette.color(for: ContextLaneSegments.Kind.otherActivity.flow)),
             Item(title: "Compaction", color: palette.color(for: .compaction)),
             Item(title: "Human turn", color: palette.color(for: .humanTurn))
         ]
