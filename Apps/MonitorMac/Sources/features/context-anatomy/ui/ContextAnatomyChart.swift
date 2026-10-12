@@ -40,7 +40,7 @@ struct ContextAnatomyChart: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 8)
-                Text("relative to session peak: bands at 50%, 75% and 90%")
+                Text("column colour: context size relative to the session peak")
                     .fixedSize()
             }
             .font(.caption2)
@@ -116,15 +116,12 @@ struct ContextAnatomyChart: View {
 
     private func sizeChart(_ steps: [ContextAnatomyStep]) -> some View {
         Chart {
-            zoneBands
+            zoneColumns(steps)
             ForEach(steps) { step in
-                AreaMark(x: .value("Request", Double(step.index)),
-                         y: .value("Context tokens", Double(step.contextTokens)))
-                    .interpolationMethod(.stepEnd)
-                    .foregroundStyle(palette.accent.opacity(0.12))
                 LineMark(x: .value("Request", Double(step.index)),
                          y: .value("Context tokens", Double(step.contextTokens)))
-                    .interpolationMethod(.stepEnd)
+                    // Centred steps span each request's column, so the line runs exactly along the column tops.
+                    .interpolationMethod(.stepCenter)
                     .foregroundStyle(palette.accent)
                     .accessibilityLabel("Request \(step.index)")
                     .accessibilityValue("Context \(ContextAnatomyPresentation.compactTokens(step.contextTokens))")
@@ -219,14 +216,15 @@ struct ContextAnatomyChart: View {
         }
     }
 
+    /// SM-725: one column per request, coloured by its context zone; the step line masks them from above.
     @ChartContentBuilder
-    private var zoneBands: some ChartContent {
-        let peak = Double(max(1, anatomy.peakContextTokens))
-        ForEach(ContextZoneBand.all) { band in
-            RectangleMark(xStart: .value("From", domain.lowerBound), xEnd: .value("To", domain.upperBound),
-                          yStart: .value("Band start", band.lowerFraction * peak),
-                          yEnd: .value("Band end", band.upperFraction * peak))
-                .foregroundStyle(palette.color(for: band.zone))
+    private func zoneColumns(_ steps: [ContextAnatomyStep]) -> some ChartContent {
+        ForEach(steps) { step in
+            let column = ContextAnatomyPresentation.zoneColumn(for: step)
+            RectangleMark(xStart: .value("From", column.xStart), xEnd: .value("To", column.xEnd),
+                          yStart: .value("Base", 0.0), yEnd: .value("Context tokens", column.top))
+                .foregroundStyle(palette.color(for: column.zone))
+                .accessibilityHidden(true)
         }
     }
 

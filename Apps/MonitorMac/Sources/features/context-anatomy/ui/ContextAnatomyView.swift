@@ -53,11 +53,23 @@ private struct ContextAnatomyLegend: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            ForEach(items) { item in
-                HStack(spacing: 4) {
-                    Circle().fill(item.color).frame(width: 8, height: 8)
-                    Text(item.title)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
+                Text("Context size:")
+                ForEach(ContextAnatomyPresentation.zoneLegend, id: \.zone) { item in
+                    HStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 2).fill(palette.color(for: item.zone))
+                            .frame(width: 10, height: 10)
+                        Text(item.title)
+                    }
+                }
+            }
+            HStack(spacing: 12) {
+                ForEach(items) { item in
+                    HStack(spacing: 4) {
+                        Circle().fill(item.color).frame(width: 8, height: 8)
+                        Text(item.title)
+                    }
                 }
             }
         }

@@ -35,6 +35,39 @@ enum ContextAnatomyPresentation {
         return ticks
     }
 
+    // MARK: Zone columns (SM-725)
+
+    struct ZoneColumn: Equatable {
+        let xStart: Double
+        let xEnd: Double
+        let top: Double
+        let zone: ContextFillZone
+    }
+
+    /// One column per request under the context line: as wide as the request's lane slot, as tall as its
+    /// context, coloured by its zone relative to the session peak. The step line masks the columns from above.
+    static func zoneColumn(for step: ContextAnatomyStep) -> ZoneColumn {
+        ZoneColumn(xStart: Double(step.index) - 0.5, xEnd: Double(step.index) + 0.5,
+                   top: Double(step.contextTokens), zone: step.zone)
+    }
+
+    struct ZoneLegendItem: Equatable {
+        let zone: ContextFillZone
+        let title: String
+    }
+
+    /// Legend for the column colours, derived from the zone edges.
+    static let zoneLegend: [ZoneLegendItem] = ContextZoneBand.all.map { band in
+        let lower = Int((band.lowerFraction * 100).rounded())
+        let upper = Int((band.upperFraction * 100).rounded())
+        let title = switch band.zone {
+        case .low: "< \(upper)% of peak"
+        case .critical: "≥ \(lower)%"
+        default: "\(lower)–\(upper)%"
+        }
+        return ZoneLegendItem(zone: band.zone, title: title)
+    }
+
     /// Ticks for a zoomed window (SM-722): multiples of one stride, so labels stay put while panning; the
     /// first request stays labelled whenever the window starts at it.
     static func xTicks(in window: ClosedRange<Double>, stepCount: Int) -> [Int] {
