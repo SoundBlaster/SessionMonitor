@@ -3,7 +3,8 @@ import MonitorCore
 import SwiftUI
 
 /// Per-request lane strip: each column splits into new input and output, with reasoning as a darker part
-/// of the output segment and a left-edge tick when tools or waits happened before the request.
+/// of the output segment and a left-edge tick when other activity (tools, waits, goal turns, unknown events)
+/// happened before the request.
 struct ContextAnatomyLane: View {
     /// Only the steps of the visible window (SM-722); the domain is the main chart's window.
     let steps: [ContextAnatomyStep]
@@ -41,15 +42,15 @@ struct ContextAnatomyLane: View {
         let outputEnd = inputEnd + width * lane.outputFraction
         if lane.inputFraction > 0 {
             segment(from: start, to: inputEnd)
-                .foregroundStyle(lane.inputKnown ? palette.warning.opacity(0.75) : palette.neutral.opacity(0.4))
+                .foregroundStyle(lane.inputKnown ? color(.newInput).opacity(0.75) : palette.neutral.opacity(0.4))
         }
         if lane.outputFraction > 0 {
             segment(from: inputEnd, to: outputEnd)
-                .foregroundStyle(palette.improvement.opacity(0.5))
+                .foregroundStyle(color(.output).opacity(0.5))
         }
         if lane.reasoningFraction > 0 {
             segment(from: inputEnd, to: inputEnd + width * lane.reasoningFraction)
-                .foregroundStyle(palette.improvement)
+                .foregroundStyle(color(.reasoning))
         }
         if lane.outputFraction > 0, !lane.reasoningKnown {
             // Thin neutral band at the bottom of the output segment: reasoning tokens are unknown.
@@ -57,11 +58,13 @@ struct ContextAnatomyLane: View {
                           yStart: .value("Low", 0.0), yEnd: .value("High", 0.25))
                 .foregroundStyle(palette.neutral.opacity(0.5))
         }
-        if lane.hasToolsOrWaits {
+        if lane.hasOtherActivity {
             segment(from: Double(step.index) - 0.5, to: start)
-                .foregroundStyle(palette.accent)
+                .foregroundStyle(color(.otherActivity))
         }
     }
+
+    private func color(_ kind: ContextLaneSegments.Kind) -> Color { palette.color(for: kind.flow) }
 
     private func segment(from start: Double, to end: Double) -> some ChartContent {
         RectangleMark(xStart: .value("From", start), xEnd: .value("To", end),

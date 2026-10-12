@@ -3,6 +3,22 @@ import MonitorCore
 
 /// Horizontal split of one lane-strip column. Fractions are shares of the column width.
 struct ContextLaneSegments: Equatable {
+    /// The parts a column can show, each drawn in the colour of its token flow (SM-726).
+    enum Kind {
+        case newInput
+        case output
+        case reasoning
+        case otherActivity
+
+        var flow: UsageChartPalette.Flow {
+            switch self {
+            case .newInput: .input
+            case .output, .reasoning: .output
+            case .otherActivity: .other
+            }
+        }
+    }
+
     /// New input; when the cache split is unknown this is the whole request input.
     let inputFraction: Double
     let outputFraction: Double
@@ -14,8 +30,9 @@ struct ContextLaneSegments: Equatable {
     /// False when output is known and positive but the source did not report reasoning tokens,
     /// so reasoning is drawn as unknown rather than as an explicit zero.
     let reasoningKnown: Bool
-    /// Tools or waits happened between the previous request and this one.
-    let hasToolsOrWaits: Bool
+    /// Something without a marker of its own happened between the previous request and this one: tools, waits,
+    /// goal turns or unknown events. Human turns and compactions are marked on the main chart instead.
+    let hasOtherActivity: Bool
 
     init(step: ContextAnatomyStep) {
         let input = Double(max(0, step.newInputTokens ?? step.contextTokens))
@@ -24,7 +41,8 @@ struct ContextLaneSegments: Equatable {
         inputKnown = step.newInputTokens != nil
         outputKnown = step.outputTokens != nil
         reasoningKnown = !(step.reasoningOutputTokens == nil && output > 0)
-        hasToolsOrWaits = step.activityBefore.tools + step.activityBefore.waits > 0
+        let activity = step.activityBefore
+        hasOtherActivity = activity.tools + activity.waits + activity.goalTurns + activity.other > 0
         guard total > 0 else {
             inputFraction = 0
             outputFraction = 0

@@ -187,7 +187,7 @@ final class ContextAnatomyPresentationTests: XCTestCase {
         XCTAssertTrue(lane.inputKnown)
         XCTAssertTrue(lane.outputKnown)
         XCTAssertTrue(lane.reasoningKnown)
-        XCTAssertFalse(lane.hasToolsOrWaits)
+        XCTAssertFalse(lane.hasOtherActivity)
     }
 
     func testLaneTreatsUnknownCacheAsWholeInputNotZero() {
@@ -233,11 +233,11 @@ final class ContextAnatomyPresentationTests: XCTestCase {
         let timeline = [event("w", 0, .wait), point("a", 1, input: 100, cached: 0, output: 100, reasoning: 999)]
         let lane = ContextLaneSegments(step: anatomy(timeline).steps[0])
         XCTAssertEqual(lane.reasoningFraction, lane.outputFraction, accuracy: 1e-9)
-        XCTAssertTrue(lane.hasToolsOrWaits)
+        XCTAssertTrue(lane.hasOtherActivity)
 
         let humanOnly = ContextLaneSegments(step: anatomy([event("h", 0, .humanTurn),
                                                            point("b", 1, input: 1)]).steps[0])
-        XCTAssertFalse(humanOnly.hasToolsOrWaits)
+        XCTAssertFalse(humanOnly.hasOtherActivity)
     }
 
     // MARK: Fixtures
