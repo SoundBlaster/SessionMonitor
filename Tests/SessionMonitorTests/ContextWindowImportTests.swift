@@ -78,6 +78,61 @@ struct ContextWindowImportTests {
         #expect(repeated.ioMetrics.bytesRead == 0)
     }
 
+    /// An old checkpoint without provenance takes the metadata-only path first; that path must not promote the
+    /// checkpoint past the window-aware version, or the records would keep unknown windows.
+    @Test func metadataOnlyProvenanceBackfillStillBackfillsWindows() async throws {
+        let fixture = try IncrementalFixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.native + fixture.record(id: "R1", input: "100")
+            + tokenCount(window: 258_400, lastInput: 100))
+        let parsed = try RolloutDecoder().parseIncrementally(fixture.file)
+        var oldCheckpoint = try #require(JSONSerialization.jsonObject(with: parsed.checkpoint) as? [String: Any])
+        oldCheckpoint["schemaVersion"] = 2
+        var existing = parsed.rollout
+        existing.provenance = nil
+        existing.contextWindows = []
+        let store = try UsageStore(url: fixture.database)
+        try store.apply(source: fixture.source, update: SourceImport(
+            rollout: existing, checkpoint: try JSONSerialization.data(withJSONObject: oldCheckpoint),
+            mode: .replaced, bytesRead: parsed.bytesRead
+        ), expectedCheckpoint: nil)
+        let before = try store.report(since: nil, until: nil)
+
+        let runtime = try SessionMonitor(databaseURL: fixture.database)
+        _ = try await runtime.importDirectory(fixture.file)
+
+        #expect(try await runtime.report() == before)
+        #expect(try await runtime.snapshot(query: UsageQuery()).provenance["S"] != nil)
+        #expect(try await windows(runtime) == [258_400])
+    }
+
+    /// The same response ID in two account scopes keeps each scope's own window.
+    @Test func windowsStayWithinTheirAccountScope() throws {
+        let fixture = try AccountProfileFixture()
+        defer { fixture.remove() }
+        let store = try UsageStore(url: fixture.database)
+        for (path, account, window) in [("a/one.jsonl", "account-A", Int64(258_400)),
+                                        ("b/one.jsonl", "account-B", Int64(475_000))] {
+            var rollout = fixture.rollout(identity: SourceAccountIdentity(accountID: account, userID: "user"))
+            rollout.contextWindows = [ContextWindowObservation(
+                responseID: "response-collision", sessionID: "session-collision",
+                sourceLine: 4, contextWindowTokens: window
+            )]
+            try store.replace(source: fixture.source(path), rollout: rollout)
+        }
+        _ = try store.assignAccountProfile(sourceRoot: fixture.directory.appending(path: "a"),
+                                           profileID: "personal", label: "Personal")
+        _ = try store.assignAccountProfile(sourceRoot: fixture.directory.appending(path: "b"),
+                                           profileID: "work", label: "Work")
+
+        for (profile, window) in [("personal", Int64(258_400)), ("work", Int64(475_000))] {
+            let query = try UsageQuery(accountScope: UsageAccountScope(profileID: profile))
+            let points = try store.timeline(sessionID: "session-collision", query: query).points
+                .filter { $0.kind == .usageRequest }
+            #expect(points.map(\.contextWindowTokens) == [window], "\(profile)")
+        }
+    }
+
     private func windows(_ runtime: SessionMonitor) async throws -> [Int64?] {
         try await runtime.timeline(sessionID: "S", query: UsageQuery()).points
             .filter { $0.kind == .usageRequest }

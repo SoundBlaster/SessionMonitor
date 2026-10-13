@@ -31,7 +31,13 @@ public struct RolloutDecoder: Sendable {
         let next = try JSONDecoder().decode(DecoderCheckpoint.self, from: metadata.checkpoint)
         guard previous.cursor.offset == next.cursor.offset,
               previous.cursor.line == next.cursor.line else { return nil }
-        return metadata
+        // Metadata cannot backfill records or their context windows, so an older checkpoint keeps its version
+        // and the following incremental parse still rescans the file once.
+        guard previous.schemaVersion < next.schemaVersion else { return metadata }
+        var promoted = next
+        promoted.schemaVersion = previous.schemaVersion
+        return SourceImport(rollout: metadata.rollout, checkpoint: try JSONEncoder().encode(promoted),
+                            mode: metadata.mode, bytesRead: metadata.bytesRead)
     }
 
     private func parseMetadata(_ source: RolloutFile) throws -> SourceImport {

@@ -52,10 +52,12 @@ extension UsageStore {
                        model, account_scope_key,
                        (SELECT MIN(line) FROM source_records AS records
                         WHERE records.response = confirmed.response) AS line,
-                       -- Mirrored copies must agree; a conflicting window stays unknown.
+                       -- Mirrored copies within the account scope must agree; a conflict stays unknown.
                        (SELECT CASE WHEN COUNT(DISTINCT windows.window) = 1 THEN MAX(windows.window) END
                         FROM source_context_windows AS windows
-                        WHERE windows.response = confirmed.response) AS context_window
+                        JOIN source_account_scope AS window_scope ON window_scope.source = windows.source
+                        WHERE windows.response = confirmed.response
+                          AND window_scope.scope_key = confirmed.account_scope_key) AS context_window
                 FROM confirmed
                 WHERE session = ? AND \(predicate) \(accountPredicate)
                 ORDER BY timestamp ASC, response ASC

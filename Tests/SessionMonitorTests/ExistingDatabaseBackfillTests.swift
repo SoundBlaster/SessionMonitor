@@ -40,10 +40,11 @@ struct ExistingDatabaseBackfillTests {
 
         #expect(after == before)
         #expect(snapshot.provenance["S"]?.sessionID == "S")
-        #expect(backfilled.records == 0)
-        #expect(backfilled.ioMetrics.bytesRead == UInt64(source.utf8.count))
-        #expect(backfilled.ioMetrics.filesRescanned == 0)
-        #expect(backfilled.ioMetrics.filesSkipped == 1)
+        // The metadata pass restores provenance; the pre-window checkpoint then rescans once (SM-727).
+        #expect(backfilled.records == 1)
+        #expect(backfilled.ioMetrics.bytesRead == 2 * UInt64(source.utf8.count))
+        #expect(backfilled.ioMetrics.filesRescanned == 1)
+        #expect(backfilled.ioMetrics.filesSkipped == 0)
         #expect(quota.snapshots.count == 1)
         #expect(quota.snapshots[0].windows[0].usedPercent == 82)
         let current = try #require(try store.checkpoint(source: fixture.source))

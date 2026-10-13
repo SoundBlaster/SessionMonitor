@@ -1313,6 +1313,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `01a0ee91…` (gpt-6-luna, 17 запросов, пик ~58k) целиком зелёная — «< 50% of window» от 258.4k, подписи и легенда
   называют окно. Карточку при наведении визуально не проверяли (не было подтверждения полноэкранного режима);
   её текст покрыт тестами. Разовый переимпорт в Debug занял заметные минуты (в том числе лог 472 МБ).
+  **Ревью #111:** (1) путь backfill provenance без records больше не поднимает checkpoint до версии 5 — следующий
+  инкрементальный разбор один раз перечитывает файл, и окна появляются и у старых баз без provenance; (2) окно
+  ищется только в источниках того же account scope, что и подтверждённый запрос. Evidence: Red —
+  `metadataOnlyProvenanceBackfillStillBackfillsWindows` и `windowsStayWithinTheirAccountScope` падали; Green — core
+  230/230, `make check-core` (CLI smoke, паритет); ожидания `existingSchemaTwoCheckpointBackfillsProvenance…` обновлены
+  под однократный rescan (итоги не меняются).
   Попутно: «Update» переимпортирует последнюю выбранную папку (`~/.codex/sessions/2026/09`), поэтому октябрьские
   логи в базу приложения не попадают — это не связано с SM-727.
 - [ ] **SM-728** — Анонимный экспорт сессии в JSON для диагностики на стороне.
