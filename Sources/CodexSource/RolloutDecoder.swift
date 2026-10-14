@@ -31,7 +31,13 @@ public struct RolloutDecoder: Sendable {
         let next = try JSONDecoder().decode(DecoderCheckpoint.self, from: metadata.checkpoint)
         guard previous.cursor.offset == next.cursor.offset,
               previous.cursor.line == next.cursor.line else { return nil }
-        return metadata
+        // Metadata cannot backfill records or their context windows, so an older checkpoint keeps its version
+        // and the following incremental parse still rescans the file once.
+        guard previous.schemaVersion < next.schemaVersion else { return metadata }
+        var promoted = next
+        promoted.schemaVersion = previous.schemaVersion
+        return SourceImport(rollout: metadata.rollout, checkpoint: try JSONEncoder().encode(promoted),
+                            mode: metadata.mode, bytesRead: metadata.bytesRead)
     }
 
     private func parseMetadata(_ source: RolloutFile) throws -> SourceImport {
@@ -86,13 +92,14 @@ public struct RolloutDecoder: Sendable {
 }
 
 private struct DecoderCheckpoint: Codable {
-    var schemaVersion = 4
+    // 5: usage records carry the context window reported by the following `token_count` (SM-727).
+    var schemaVersion = 5
     let version: RolloutFileVersion
     let cursor: JSONLCursor
     let state: DecoderContext
 
     func isUsable(for current: RolloutFileVersion) -> Bool {
-        schemaVersion == 4 && version.identity == current.identity
+        schemaVersion == 5 && version.identity == current.identity
             && current.size >= version.size
             && cursor.offset <= version.size && cursor.line >= 0 && UInt64(cursor.line) <= cursor.offset
     }
@@ -117,6 +124,8 @@ private struct DecoderContext: Codable {
     var threadSource: String?
     var accountIdentity: SourceAccountIdentity?
     var legacyBaseline: LegacyUsage?
+    /// The last canonical record still waiting for its `token_count`; kept across appended imports.
+    var pendingContextWindow: PendingContextWindow?
 
     init() {}
 
@@ -139,13 +148,21 @@ private struct DecoderContext: Codable {
         threadSource = try values.decodeIfPresent(String.self, forKey: .threadSource)
         accountIdentity = try values.decodeIfPresent(SourceAccountIdentity.self, forKey: .accountIdentity)
         legacyBaseline = try values.decodeIfPresent(LegacyUsage.self, forKey: .legacyBaseline)
+        pendingContextWindow = try values.decodeIfPresent(PendingContextWindow.self, forKey: .pendingContextWindow)
     }
 
     private enum CodingKeys: String, CodingKey {
         case sessionID, created, nativeTurns, models, efforts, rootSessionID, parentSessionID,
              agentNickname, agentPath, originator, clientVersion, modelProvider, threadSource,
-             legacyBaseline, toolNamesByCallID, toolTurnIDsByCallID, accountIdentity
+             legacyBaseline, toolNamesByCallID, toolTurnIDsByCallID, accountIdentity, pendingContextWindow
     }
+}
+
+/// Identity and input of a canonical record, used to recognise the `token_count` that reports on it.
+private struct PendingContextWindow: Codable {
+    let responseID: String
+    let sessionID: String
+    let inputTokens: Int64
 }
 
 private struct Header: Decodable {
@@ -363,9 +380,14 @@ private struct RateLimitWindowPayload: Decodable {
 
 private struct LegacyTokenCountInfo: Decodable {
     let totalTokenUsage: LegacyUsage?
+    let lastTokenUsage: LegacyUsage?
+    /// Usable window: Codex reports the model window minus its reserved headroom.
+    let modelContextWindow: Int64?
 
     enum CodingKeys: String, CodingKey {
         case totalTokenUsage = "total_token_usage"
+        case lastTokenUsage = "last_token_usage"
+        case modelContextWindow = "model_context_window"
     }
 }
 
@@ -497,7 +519,9 @@ private struct DecodeState {
             }
         } else if event.type == "event_msg", payload.type == "token_count" {
             appendLegacyEstimate(payload.info?.totalTokenUsage, timestamp: event.timestamp, line: line)
+            pairContextWindow(payload.info, line: line)
         } else if event.type == "token_usage_record", includeRecords {
+            context.pendingContextWindow = nil
             try append(payload, timestamp: event.timestamp, line: line)
         } else if event.type == "compacted", includeRecords {
             appendEvent(sessionID: context.sessionID, turnID: payload.turnID, timestamp: event.timestamp,
@@ -643,30 +667,6 @@ private struct DecodeState {
                                                          activityClass: activityClass))
     }
 
-    mutating func append(_ payload: Payload, timestamp: String, line: Int) throws {
-        guard let sessionID = context.sessionID, let created = context.created, payload.threadID == sessionID,
-              let turn = payload.turnID, context.nativeTurns.contains(turn) else {
-            result.diagnostics["unownedOrUnprovenRecords", default: 0] += 1
-            return
-        }
-        let date = try parseDate(timestamp)
-        guard date >= created else {
-            result.diagnostics["replayedRecords", default: 0] += 1
-            return
-        }
-        guard let response = payload.responseID, !response.isEmpty,
-              let usage = payload.usage, usage.isValid else {
-            result.diagnostics["invalidUsageOrIdentity", default: 0] += 1
-            return
-        }
-        result.records.append(UsageRecord(
-            responseID: response, sessionID: sessionID, turnID: turn, timestamp: date,
-            model: context.models[turn] ?? "unknown", inputTokens: usage.input,
-            cachedInputTokens: usage.cached, outputTokens: usage.output, sourceLine: line,
-            cacheWriteInputTokens: usage.cacheWrite, reasoningOutputTokens: usage.reasoning, totalTokens: usage.total
-        ))
-    }
-
     func isSynthetic(_ turn: String) -> Bool {
         turn.hasPrefix("rollout-") && Int(turn.dropFirst("rollout-".count)) != nil
     }
@@ -721,6 +721,44 @@ private func explicitMessageKind(_ value: String?) -> TimelineEventKind? {
 }
 
 private extension DecodeState {
+    mutating func append(_ payload: Payload, timestamp: String, line: Int) throws {
+        guard let sessionID = context.sessionID, let created = context.created, payload.threadID == sessionID,
+              let turn = payload.turnID, context.nativeTurns.contains(turn) else {
+            result.diagnostics["unownedOrUnprovenRecords", default: 0] += 1
+            return
+        }
+        let date = try parseDate(timestamp)
+        guard date >= created else {
+            result.diagnostics["replayedRecords", default: 0] += 1
+            return
+        }
+        guard let response = payload.responseID, !response.isEmpty,
+              let usage = payload.usage, usage.isValid else {
+            result.diagnostics["invalidUsageOrIdentity", default: 0] += 1
+            return
+        }
+        result.records.append(UsageRecord(
+            responseID: response, sessionID: sessionID, turnID: turn, timestamp: date,
+            model: context.models[turn] ?? "unknown", inputTokens: usage.input,
+            cachedInputTokens: usage.cached, outputTokens: usage.output, sourceLine: line,
+            cacheWriteInputTokens: usage.cacheWrite, reasoningOutputTokens: usage.reasoning, totalTokens: usage.total
+        ))
+        context.pendingContextWindow = PendingContextWindow(responseID: response, sessionID: sessionID,
+                                                            inputTokens: usage.input)
+    }
+
+    /// Codex follows each response with a `token_count` whose last usage repeats that response's input.
+    /// Only such a report pairs; reset snapshots (last usage 0) and unrelated reports leave the record pending.
+    mutating func pairContextWindow(_ info: LegacyTokenCountInfo?, line: Int) {
+        guard let pending = context.pendingContextWindow, let window = info?.modelContextWindow, window > 0,
+              info?.lastTokenUsage?.input == pending.inputTokens else { return }
+        result.contextWindows.append(ContextWindowObservation(
+            responseID: pending.responseID, sessionID: pending.sessionID,
+            sourceLine: line, contextWindowTokens: window
+        ))
+        context.pendingContextWindow = nil
+    }
+
     var rateLimitsMarker: Data { Data("\"rate_limits\"".utf8) }
 
     mutating func appendUsageLimitSnapshot(_ data: Data, timestamp: String, line: Int) {

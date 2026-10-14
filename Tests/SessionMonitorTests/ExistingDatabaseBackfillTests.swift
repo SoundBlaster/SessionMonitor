@@ -40,18 +40,19 @@ struct ExistingDatabaseBackfillTests {
 
         #expect(after == before)
         #expect(snapshot.provenance["S"]?.sessionID == "S")
-        #expect(backfilled.records == 0)
-        #expect(backfilled.ioMetrics.bytesRead == UInt64(source.utf8.count))
-        #expect(backfilled.ioMetrics.filesRescanned == 0)
-        #expect(backfilled.ioMetrics.filesSkipped == 1)
+        // The metadata pass restores provenance; the pre-window checkpoint then rescans once (SM-727).
+        #expect(backfilled.records == 1)
+        #expect(backfilled.ioMetrics.bytesRead == 2 * UInt64(source.utf8.count))
+        #expect(backfilled.ioMetrics.filesRescanned == 1)
+        #expect(backfilled.ioMetrics.filesSkipped == 0)
         #expect(quota.snapshots.count == 1)
         #expect(quota.snapshots[0].windows[0].usedPercent == 82)
         let current = try #require(try store.checkpoint(source: fixture.source))
         let currentObject = try #require(JSONSerialization.jsonObject(with: current) as? [String: Any])
-        #expect(currentObject["schemaVersion"] as? Int == 4)
+        #expect(currentObject["schemaVersion"] as? Int == 5)
     }
 
-    @Test(arguments: [2, 4], [false, true])
+    @Test(arguments: [2, 4, 5], [false, true])
     func changedSourceBackfillNeverSkipsUsage(schema: Int, replacement: Bool) async throws {
         let fixture = try IncrementalFixture()
         defer { fixture.remove() }

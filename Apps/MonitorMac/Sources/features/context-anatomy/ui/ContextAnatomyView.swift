@@ -14,13 +14,13 @@ struct ContextAnatomyView: View {
             Label("Context anatomy", systemImage: "square.stack.3d.up")
                 .font(.title2.bold())
             VStack(alignment: .leading, spacing: 4) {
-                Text(ContextAnatomyPresentation.caption)
+                Text(ContextAnatomyPresentation.caption(for: anatomy.basis))
                 Text(ContextAnatomyPresentation.hint)
             }
             .font(.caption)
             .foregroundStyle(.secondary)
             ContextAnatomyChart(anatomy: anatomy, timeZone: timeZone, palette: palette)
-            ContextAnatomyLegend(palette: palette)
+            ContextAnatomyLegend(basis: anatomy.basis, palette: palette)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -33,6 +33,7 @@ struct ContextAnatomyView: View {
 }
 
 private struct ContextAnatomyLegend: View {
+    let basis: ContextFillBasis
     let palette: UsageChartPalette
 
     private struct Item: Identifiable {
@@ -56,7 +57,7 @@ private struct ContextAnatomyLegend: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 12) {
                 Text("Context size:")
-                ForEach(ContextAnatomyPresentation.zoneLegend, id: \.zone) { item in
+                ForEach(ContextAnatomyPresentation.zoneLegend(for: basis), id: \.zone) { item in
                     HStack(spacing: 4) {
                         RoundedRectangle(cornerRadius: 2).fill(palette.color(for: item.zone))
                             .frame(width: 10, height: 10)

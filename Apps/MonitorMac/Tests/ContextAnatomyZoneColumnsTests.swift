@@ -22,9 +22,9 @@ final class ContextAnatomyZoneColumnsTests: XCTestCase {
     }
 
     func testLegendNamesEveryZoneWithItsShareOfThePeak() {
-        XCTAssertEqual(ContextAnatomyPresentation.zoneLegend.map(\.zone), [.low, .moderate, .high, .critical])
-        XCTAssertEqual(ContextAnatomyPresentation.zoneLegend.map(\.title),
-                       ["< 50% of peak", "50–75%", "75–90%", "≥ 90%"])
+        let legend = ContextAnatomyPresentation.zoneLegend(for: .sessionPeak)
+        XCTAssertEqual(legend.map(\.zone), [.low, .moderate, .high, .critical])
+        XCTAssertEqual(legend.map(\.title), ["< 50% of peak", "50–75%", "75–90%", "≥ 90%"])
     }
 
     func testTheLineCoversTheFirstAndLastColumnsCompletely() {

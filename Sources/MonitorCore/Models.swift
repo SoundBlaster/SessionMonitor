@@ -228,8 +228,26 @@ public struct LegacyUsageEstimate: Codable, Equatable, Sendable {
     }
 }
 
+/// The usable context window a source reported for one canonical response. Presentation evidence only:
+/// it never contributes to accounting.
+public struct ContextWindowObservation: Codable, Equatable, Sendable {
+    public let responseID: String
+    public let sessionID: String
+    /// Line of the report that carried the window.
+    public let sourceLine: Int
+    public let contextWindowTokens: Int64
+
+    public init(responseID: String, sessionID: String, sourceLine: Int, contextWindowTokens: Int64) {
+        self.responseID = responseID
+        self.sessionID = sessionID
+        self.sourceLine = sourceLine
+        self.contextWindowTokens = contextWindowTokens
+    }
+}
+
 public struct ParsedRollout: Sendable {
     public var records: [UsageRecord] = []
+    public var contextWindows: [ContextWindowObservation] = []
     public var legacyEstimates: [LegacyUsageEstimate] = []
     public var timelineEvents: [TimelineSourceEvent] = []
     public var usageLimitSnapshots: [UsageLimitSnapshotObservation] = []

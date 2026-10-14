@@ -40,7 +40,7 @@ struct ContextAnatomyChart: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 8)
-                Text("column colour: context size relative to the session peak")
+                Text(ContextAnatomyPresentation.columnCaption(for: anatomy.basis))
                     .fixedSize()
             }
             .font(.caption2)

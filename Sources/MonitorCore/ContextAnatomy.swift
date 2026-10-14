@@ -1,6 +1,6 @@
 import Foundation
 
-/// Coarse fill band of a request relative to the session's own peak context. Presentation only.
+/// Coarse fill band of a request relative to its `ContextFillBasis`. Presentation only.
 public enum ContextFillZone: String, Codable, CaseIterable, Sendable {
     case low
     case moderate
@@ -8,9 +8,11 @@ public enum ContextFillZone: String, Codable, CaseIterable, Sendable {
     case critical
 }
 
-/// Reference for fill fractions. A model context-window table is future work, so fractions
-/// are relative to the session's own peak request input and are NOT a share of the model window.
+/// Reference for fill fractions (SM-727).
 public enum ContextFillBasis: String, Codable, CaseIterable, Sendable {
+    /// Share of the usable context window the source reported (model window minus its reserved headroom).
+    case modelWindow
+    /// Share of the session's own peak request input; used only when no request reported a window.
     case sessionPeak
 }
 
@@ -70,9 +72,13 @@ public struct ContextAnatomyStep: Codable, Equatable, Identifiable, Sendable {
     public let deltaFromPrevious: Int64?
     /// Running input plus output; nil from the first step with unknown output onward.
     public let cumulativeTokens: Int64?
-    /// Share of the session peak (0 when the peak is 0).
+    /// Share of the anatomy's basis: `contextWindowTokens`, or the session peak (0 when the peak is 0).
     public let fillFraction: Double
     public let zone: ContextFillZone
+    /// Usable window the fraction is taken of; nil under the session-peak basis.
+    public let contextWindowTokens: Int64?
+    /// True when this request reported no window and borrowed the nearest one of the session.
+    public let contextWindowInferred: Bool
     public let activityBefore: ContextActivitySummary
 }
 
@@ -120,10 +126,29 @@ public enum ContextAnatomyBuilder {
             pending = .none
         }
         let peak = requests.map(\.input).max() ?? 0
+        let windows = resolvedWindows(requests.map(\.point.contextWindowTokens))
+        let basis: ContextFillBasis = windows.contains { $0 != nil } ? .modelWindow : .sessionPeak
         return ContextAnatomy(
-            sessionID: timeline.sessionID, steps: makeSteps(requests, peak: peak),
-            peakContextTokens: peak, trailingActivity: pending, requestsWithUnknownInput: unknownInput
+            sessionID: timeline.sessionID, steps: makeSteps(requests, peak: peak, windows: windows),
+            peakContextTokens: peak, basis: basis, trailingActivity: pending, requestsWithUnknownInput: unknownInput
         )
+    }
+
+    /// Each request keeps its own reported window. A request without one borrows the nearest earlier window
+    /// of the session, or the nearest later one before any window is known; nil only when none is known.
+    static func resolvedWindows(_ reported: [Int64?]) -> [(tokens: Int64, inferred: Bool)?] {
+        var resolved: [(tokens: Int64, inferred: Bool)?] = []
+        var previous: Int64?
+        for window in reported {
+            if let window { previous = window }
+            resolved.append(window.map { ($0, false) } ?? previous.map { ($0, true) })
+        }
+        var next: Int64?
+        for offset in resolved.indices.reversed() {
+            if let window = reported[offset] { next = window }
+            if resolved[offset] == nil { resolved[offset] = next.map { ($0, true) } }
+        }
+        return resolved
     }
 
     /// low < 0.5, moderate < 0.75, high < 0.9, critical otherwise.
@@ -140,7 +165,8 @@ public enum ContextAnatomyBuilder {
         let activity: ContextActivitySummary
     }
 
-    private static func makeSteps(_ requests: [PendingRequest], peak: Int64) -> [ContextAnatomyStep] {
+    private static func makeSteps(_ requests: [PendingRequest], peak: Int64,
+                                  windows: [(tokens: Int64, inferred: Bool)?]) -> [ContextAnatomyStep] {
         var steps: [ContextAnatomyStep] = []
         var previousInput: Int64?
         var cumulative: Int64? = 0
@@ -148,7 +174,10 @@ public enum ContextAnatomyBuilder {
             let point = request.point
             let input = request.input
             cumulative = point.outputTokens.flatMap { output in cumulative.map { $0 + input + output } }
-            let fraction = peak > 0 ? Double(input) / Double(peak) : 0
+            // Under the window basis every step has a window; otherwise all share the session peak.
+            let window = windows[offset]
+            let reference = window?.tokens ?? peak
+            let fraction = reference > 0 ? Double(input) / Double(reference) : 0
             steps.append(ContextAnatomyStep(
                 id: point.id, index: offset + 1, timestamp: point.timestamp, model: point.model,
                 contextTokens: input, cachedInputTokens: point.cachedInputTokens,
@@ -156,7 +185,9 @@ public enum ContextAnatomyBuilder {
                 outputTokens: point.outputTokens, reasoningOutputTokens: point.reasoningOutputTokens,
                 cacheWriteInputTokens: point.cacheWriteInputTokens,
                 deltaFromPrevious: previousInput.map { input - $0 }, cumulativeTokens: cumulative,
-                fillFraction: fraction, zone: zone(forFraction: fraction), activityBefore: request.activity
+                fillFraction: fraction, zone: zone(forFraction: fraction),
+                contextWindowTokens: window?.tokens, contextWindowInferred: window?.inferred ?? false,
+                activityBefore: request.activity
             ))
             previousInput = input
         }

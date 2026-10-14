@@ -126,6 +126,7 @@ public final class UsageStore: Sendable {
         Self.registerUsageLimitSnapshotMigration(on: &migrator)
         Self.registerAccountProfileMigration(on: &migrator)
         Self.registerAlertMigration(on: &migrator)
+        Self.registerContextWindowMigration(on: &migrator)
         return migrator
     }
 
@@ -222,6 +223,7 @@ public final class UsageStore: Sendable {
     private static func clear(source: String, database: Database) throws {
         try database.execute(sql: "DELETE FROM source_records WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_legacy_estimates WHERE source = ?", arguments: [source])
+        try database.execute(sql: "DELETE FROM source_context_windows WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_timeline_events WHERE source = ?", arguments: [source])
         try Self.clearUsageLimitSnapshots(source: source, database: database)
         try database.execute(sql: "DELETE FROM source_diagnostics WHERE source = ?", arguments: [source])
@@ -249,6 +251,7 @@ public final class UsageStore: Sendable {
                                   estimate.cacheWriteInputTokens, estimate.reasoningOutputTokens,
                                   estimate.totalTokens])
         }
+        try Self.insertContextWindows(rollout.contextWindows, source: source, database: database)
         try Self.insertActivityEvents(rollout.timelineEvents, source: source, database: database)
         for snapshot in rollout.usageLimitSnapshots {
             try Self.insertUsageLimitSnapshot(snapshot, source: source, database: database)
