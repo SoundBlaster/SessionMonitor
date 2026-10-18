@@ -48,6 +48,7 @@ WEEK="$(date -u -v-7d +%Y-%m-%dT%H:%M:%SZ)"
 codex-monitor report --since "$WEEK"
 codex-monitor sessions --since "$WEEK" --sort input   # самые дорогие сессии сверху
 codex-monitor doctor --since "$WEEK"                  # аномалии с доказательствами
+codex-monitor export-session SESSION_ID > session-export.json # анонимная диагностическая фикстура
 codex-monitor quota                                   # остаток квоты и время reset
 
 # 4. Следить в реальном времени и получать алерты
@@ -176,6 +177,7 @@ swift run codex-monitor report --since 2026-09-11T21:00:00Z --until 2026-09-12T2
 swift run codex-monitor report --json
 swift run codex-monitor snapshot --follow --time-zone Europe/Moscow
 swift run codex-monitor quota --since 2026-09-13T00:00:00Z --json
+swift run codex-monitor export-session SESSION_ID --profile work > session-export.json
 swift run codex-monitor profiles map-root --root ~/.codex/account-work/sessions --id work --label Work
 swift run codex-monitor report --profile work
 swift run codex-monitor quota --profile work --json

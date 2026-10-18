@@ -152,6 +152,10 @@ public actor SessionMonitor {
         try store.inspect(sessionID: sessionID, query: query)
     }
 
+    public func anonymizedSessionExport(sessionID: String, query: UsageQuery) throws -> AnonymizedSessionExport? {
+        try store.anonymizedSessionExport(sessionID: sessionID, query: query)
+    }
+
     public func doctor(
         query: UsageQuery, configuration: AnomalyPolicyConfiguration = .init(),
         quotaConfiguration: QuotaAnomalyConfiguration = .init()

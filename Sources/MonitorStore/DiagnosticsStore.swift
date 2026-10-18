@@ -93,6 +93,28 @@ extension UsageStore {
         )
     }
 
+    /// Projects one session into the strict allowlist used by the anonymized export format.
+    public func anonymizedSessionExport(sessionID: String, query: UsageQuery) throws -> AnonymizedSessionExport? {
+        let accountPredicate = Self.accountScopePredicate()
+        let start = query.since?.timeIntervalSince1970
+        let end = query.until?.timeIntervalSince1970
+        let scopeCount = try database.read { database in
+            try Int.fetchOne(database, sql: """
+                SELECT COUNT(DISTINCT account_scope_key) FROM confirmed
+                WHERE session = ? AND (? IS NULL OR timestamp >= ?) AND (? IS NULL OR timestamp < ?)
+                      \(accountPredicate)
+                """, arguments: [
+                    sessionID, start, start, end, end,
+                    query.accountScope.kind.rawValue, query.accountScope.kind.rawValue,
+                    query.accountScope.profileID, query.accountScope.kind.rawValue
+                ]) ?? 0
+        }
+        guard scopeCount <= 1 else { throw AnonymizedSessionExportError.multipleAccountScopes }
+        guard let inspection = try inspect(sessionID: sessionID, query: query) else { return nil }
+        let timeline = try self.timeline(sessionID: sessionID, query: query)
+        return AnonymizedSessionExportBuilder.build(clientVersion: inspection.clientVersion, timeline: timeline)
+    }
+
     // swiftlint:disable:next function_body_length cyclomatic_complexity
     public func doctor(
         query: UsageQuery, configuration: AnomalyPolicyConfiguration = .init(),

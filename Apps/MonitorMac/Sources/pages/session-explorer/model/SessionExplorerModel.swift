@@ -6,6 +6,7 @@ import Observation
 protocol SessionExplorerRuntime: RequestTimelineSource, FindingsAlertsSource, Sendable {
     func importDirectory(_ directory: URL) async throws -> ImportSummary
     func snapshot(query: UsageQuery) async throws -> UsageSnapshot
+    func anonymizedSessionExport(sessionID: String, query: UsageQuery) async throws -> AnonymizedSessionExport?
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error>
     func cacheHitRateWidget(
         period: CacheHitRateWidgetPeriod, referenceDate: Date, timeZone: TimeZone,
@@ -17,6 +18,10 @@ protocol SessionExplorerRuntime: RequestTimelineSource, FindingsAlertsSource, Se
 }
 
 extension SessionExplorerRuntime {
+    func anonymizedSessionExport(sessionID: String, query: UsageQuery) async throws -> AnonymizedSessionExport? {
+        throw AnonymizedSessionExportError.unsupportedRuntime
+    }
+
     func widgetSharedSnapshot(generatedAt: Date, timeZone: TimeZone) async throws -> WidgetSharedSnapshot {
         throw WidgetSharedSnapshotBuildError.unsupportedRuntime
     }
@@ -146,6 +151,19 @@ final class SessionExplorerModel {
         } catch {
             timelineModel.fail(error)
         }
+    }
+
+    func anonymizedSessionExportData(sessionID: String) async throws -> Data? {
+        let requestedQuery = query
+        guard selectedSession?.id == sessionID else { return nil }
+        let runtime = try await resolvedRuntime()
+        guard let export = try await runtime.anonymizedSessionExport(sessionID: sessionID, query: requestedQuery),
+              !Task.isCancelled, query == requestedQuery, selectedSession?.id == sessionID else { return nil }
+        return try export.encodedJSON()
+    }
+
+    func reportError(_ message: String) {
+        errorMessage = message
     }
 
     func loadCacheHitRateWidget(

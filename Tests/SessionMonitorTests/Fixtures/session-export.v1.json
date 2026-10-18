@@ -1,0 +1,40 @@
+{
+  "client_version" : "codex-1.2.3",
+  "format" : "session-export.v1",
+  "requests" : [
+    {
+      "cache_write_input_tokens" : 5,
+      "cached_input_tokens" : 80,
+      "context_window_tokens" : 258400,
+      "events_until_next_request" : [
+        {
+          "count" : 2,
+          "tool_class" : "shell",
+          "type" : "tool"
+        },
+        {
+          "count" : 1,
+          "tool_class" : "wait_threads",
+          "type" : "wait"
+        }
+      ],
+      "input_tokens" : 100,
+      "model" : "gpt-6-luna",
+      "offset_seconds" : 0,
+      "ordinal" : 1,
+      "output_tokens" : 12,
+      "reasoning_output_tokens" : 3,
+      "uncached_input_tokens" : 20
+    },
+    {
+      "events_until_next_request" : [
+
+      ],
+      "input_tokens" : 40,
+      "model" : "gpt-6.1-sol",
+      "offset_seconds" : 1.25,
+      "ordinal" : 2,
+      "output_tokens" : 8
+    }
+  ]
+}
