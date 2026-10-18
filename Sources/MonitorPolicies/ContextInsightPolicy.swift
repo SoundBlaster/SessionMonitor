@@ -7,6 +7,7 @@ public enum ContextInsightPolicy {
                                 configuration: ContextInsightConfiguration = .init()) -> ContextInsightReport {
         let points = timeline.points.filter { $0.sessionID == timeline.sessionID }
         let scoped = RequestTimeline(sessionID: timeline.sessionID, query: timeline.query, points: points)
+        let provenance = ContextInsightProvenance.indexed(in: points)
         let anatomy = ContextAnatomyBuilder.build(scoped)
         let requests = points.filter { $0.kind == .usageRequest }
         var positions: [String: Int] = [:]
@@ -26,7 +27,8 @@ public enum ContextInsightPolicy {
             let adjacent = position.flatMap { current in previousPosition.map { current == $0 + 1 } } ?? false
             let candidate = ContextInsightCandidate(
                 step: step, previous: previous, adjacent: adjacent,
-                isFirstObservedRequest: position == 0, sessionID: timeline.sessionID
+                isFirstObservedRequest: position == 0, sessionID: timeline.sessionID,
+                source: provenance[step.id], previousSource: previous.flatMap { provenance[$0.id] }
             )
             // Evaluate every independent signal: recovery/compaction must never hide an earlier drop.
             insights.append(contentsOf: decisions.compactMap { $0.decide(candidate) })
@@ -98,5 +100,35 @@ public enum ContextInsightPolicy {
             let (sum, overflow) = total.addingReportingOverflow(value)
             return overflow ? nil : sum
         }
+    }
+}
+
+/// Retains source records before anatomy reduces requests and events to token/activity projections.
+struct ContextInsightProvenance {
+    let request: RequestTimelinePoint
+    let compactions: [RequestTimelinePoint]
+
+    static func indexed(in points: [RequestTimelinePoint]) -> [String: Self] {
+        var result: [String: Self] = [:]
+        var pending: [RequestTimelinePoint] = []
+        for point in points {
+            if point.kind == .compaction {
+                pending.append(point)
+            } else if point.kind == .usageRequest, point.inputTokens != nil {
+                // Match anatomy: unknown-input requests do not consume pending activity.
+                result[point.id] = Self(request: point, compactions: pending)
+                pending.removeAll(keepingCapacity: true)
+            }
+        }
+        return result
+    }
+
+    static func item(_ detail: String, points: [RequestTimelinePoint], source: String = "request_timeline",
+                     sessionID: String) -> DiagnosticEvidenceItem {
+        DiagnosticEvidenceItem(
+            source: source, detail: detail, sessionIDs: [sessionID],
+            responseIDs: Array(Set(points.compactMap(\.responseID).filter { !$0.isEmpty })).sorted(),
+            sourceLines: Array(Set(points.compactMap(\.sourceLine))).sorted()
+        )
     }
 }

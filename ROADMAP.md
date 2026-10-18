@@ -6,6 +6,13 @@
 
 ## Текущая точка
 
+**SM-718 — review P2 о provenance исправлен (2026-10-19), PR #116.**
+Evidence сохраняет response IDs запросов и source lines отдельных compaction events до projection в anatomy.
+Три regression tests проверяют пары/JSON, несколько событий через unknown-input gap, foreign/trailing events
+и отсутствие выдуманных IDs. Core bundle собран Xcode-tools; `xcrun xctest`: 252 Swift Testing + 9 XCTest,
+все 261 passed. MCP package runner по-прежнему не загрузил executable; это отдельно от успешного прямого runtime.
+Обновляется зависимый слой Design System #117; merge не запрошен.
+
 **SM-718 — карточки переработаны по замечанию пользователя (2026-10-19), в PR #116.**
 Плавающий snapshot: размер контекста, зона, компактная сетка cached/new/output. Под графиком —
 сигналы с конкретными значениями до/после, паузой и бейджем Observed/Hypothesis; объяснения,
