@@ -6,6 +6,14 @@
 
 ## Текущая точка
 
+**SM-718 — карточки переработаны по замечанию пользователя (2026-10-19), в PR #116.**
+Плавающий snapshot: размер контекста, зона, компактная сетка cached/new/output. Под графиком —
+сигналы с конкретными значениями до/после, паузой и бейджем Observed/Hypothesis; объяснения,
+source evidence и полный request snapshot раскрываются отдельно. Сводка зон — адаптивные плитки.
+Свежие Xcode-tools build-for-testing и 15 targeted GUI tests прошли; SwiftLint/FSD/diff checks — passed.
+Native light/dark/narrow captures проверены, включая несколько сигналов и длинное раскрытое evidence.
+Полный GUI/core run и real-app smoke ниже — baseline до визуальной доработки; merge ещё не выполнен.
+
 **SM-718 — реализована и локально проверена (2026-10-19), PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх docs PR [#115](https://github.com/SoundBlaster/SessionMonitor/pull/115); ожидает review/CI и merge.** SpecificationCore policies формируют независимые сигналы с evidence, UI показывает bounded markers и сводку по зонам/фазам. Xcode-tools build-for-testing прошёл; GUI unit suite: 243 passed + 1 opt-in skip. Core bundle собран через Xcode-tools; прямой `xcrun xctest` прошёл все 258 core tests (249 Swift Testing + 9 XCTest, включая 14 новых policy tests). MCP test runner отдельно не смог загрузить bundle, это не выдано за passed. Через Computer Use проверены реальная сессия с 7 196 requests, 178 signals, сводка и раскрытие evidence; исходный scope восстановлен. [Правила и evidence](docs/context-insights.md). После доставки — SM-330 (открытие сессии по уведомлению).
 
 **SM-723 доставлена через PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), squash-merge `d7d8c54` (2026-10-18); обязательный `CI` прошёл.** Hover обновляет отдельные overlays без пересборки marks и overview. На 7 196 synthetic requests p95 replay внутри запроса: 13,31 → 1,26 мс; между запросами: 25,60 → 16,52 мс. Методика и границы измерения — [SM-723](docs/performance/SM-723-context-hover.md). **Активная задача — SM-718: инсайты на графике анатомии контекста.** SM-724 снята с очереди SessionMonitor: по подтверждению пользователя (2026-10-18), работа уже завершена в проекте Screener; повторная реализация здесь не требуется.

@@ -107,6 +107,64 @@ final class ContextInsightPresentationTests: XCTestCase {
         attachment.lifetime = .keepAlways
         add(attachment)
     }
+    func testSignalCardsUseObservedValuesAndKeepUnknownCache() throws {
+        let value = try presentation(count: 12)
+        let cards = try XCTUnwrap(value.cardsByRequest[2])
+        let cache = try XCTUnwrap(cards.first { $0.insight.kind == .cacheDropAfterPause })
+        XCTAssertEqual(cache.metrics.first { $0.id == "before" }?.value,
+                       0.9.formatted(.percent.precision(.fractionLength(0...1))))
+        XCTAssertEqual(cache.metrics.first { $0.id == "after" }?.value,
+                       0.0.formatted(.percent.precision(.fractionLength(0...1))))
+        XCTAssertTrue(cache.insight.isHypothesis)
+        let growth = try XCTUnwrap(cards.first { $0.insight.kind == .contextGrowth })
+        XCTAssertEqual(growth.metrics.map(\.value), ["20.0k", "95.0k"])
+        XCTAssertFalse(growth.insight.isHypothesis)
+        let point = RequestTimelinePoint(id: "unknown", sessionID: "unknown", timestamp: Date(), kind: .usageRequest,
+                                         inputTokens: 10_000, cachedInputTokens: nil, model: "model")
+        let anatomy = ContextAnatomyBuilder.build(RequestTimeline(sessionID: "unknown",
+                                                                  query: try UsageQuery(), points: [point]))
+        let step = try XCTUnwrap(anatomy.steps.first)
+        let card = ContextInsightCardPresentation(insight: cache.insight, step: step, previous: nil)
+        XCTAssertTrue(card.metrics.allSatisfy { $0.value == "Unknown" })
+    }
+
+    func testStructuredCardsRenderMultipleSignalsAndExpandedEvidence() throws {
+        let value = try presentation(count: 12)
+        let step = value.report.anatomy.steps[1]
+        let insights = value.report.insightsByRequest[step.index] ?? []
+        XCTAssertGreaterThan(insights.count, 1)
+        for scheme in [ColorScheme.light, .dark] {
+            let content = HStack(alignment: .top, spacing: 20) {
+                ContextAnatomySnapshotCard(step: step, requestCount: 12, timeZone: .gmt,
+                                          palette: .system, insights: insights)
+                    .frame(width: 340)
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(value.cardsByRequest[step.index] ?? []) { card in
+                        ContextInsightSignalCard(presentation: card,
+                                                 isEvidenceExpanded: card.insight.kind == .cacheDropAfterPause)
+                    }
+                }.frame(width: 420)
+            }
+            .padding(20)
+            .background(Color(nsColor: .windowBackgroundColor))
+            .environment(\.colorScheme, scheme)
+            let image = try nativeImage(content, width: 820)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "SM-718-structured-cards-\(scheme)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let narrow = ContextAnatomySnapshotCard(step: step, requestCount: 12, timeZone: .gmt,
+                                               palette: .monochrome, insights: insights)
+            .frame(width: 188).padding(12)
+            .background(Color.white).environment(\.colorScheme, .light)
+            .environment(\.dynamicTypeSize, .accessibility2)
+        let attachment = XCTAttachment(image: try nativeImage(narrow, width: 212))
+        attachment.name = "SM-718-structured-preview-narrow"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     private func nativeImage(_ content: some View, width: CGFloat) throws -> NSImage {
         // Swift Charts has native drawing that ImageRenderer does not faithfully capture.
         let host = NSHostingView(rootView: content)

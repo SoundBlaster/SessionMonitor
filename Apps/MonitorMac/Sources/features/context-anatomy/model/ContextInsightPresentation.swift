@@ -22,10 +22,19 @@ struct ContextInsightPresentation: Sendable {
     let report: ContextInsightReport
     let markers: [Marker]
     let zones: [ZoneRow]
+    let cardsByRequest: [Int: [ContextInsightCardPresentation]]
     static let markerSpacing = 28.0
 
     init(report: ContextInsightReport) {
         self.report = report
+        cardsByRequest = report.insightsByRequest.mapValues { insights in
+            insights.compactMap { insight in
+                let offset = insight.requestIndex - 1
+                guard report.anatomy.steps.indices.contains(offset) else { return nil }
+                return ContextInsightCardPresentation(insight: insight, step: report.anatomy.steps[offset],
+                                                      previous: offset > 0 ? report.anatomy.steps[offset - 1] : nil)
+            }
+        }
         markers = report.insightsByRequest.keys.sorted().compactMap { index in
             guard let values = report.insightsByRequest[index],
                   let primary = values.min(by: { Self.priority($0.kind) < Self.priority($1.kind) }) else { return nil }

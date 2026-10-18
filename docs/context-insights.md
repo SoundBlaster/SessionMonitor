@@ -1,7 +1,12 @@
 # Context anatomy insights (SM-718)
 
 The Context anatomy card annotates the **observed request timeline**, not account quota or billing.
-Expand **Context insights** below the chart for zone totals and the last inspected request's evidence.
+The floating preview emphasizes context size, fill zone and cached/new/output tokens. Expand
+**Context insights** below the chart for the last inspected request's signal cards and session overview.
+Each signal shows actual observed values (previous/current input or cache share, pause, window occupancy)
+and an **Observed** or **Hypothesis** badge. Full explanations and raw evidence are under **Source evidence**;
+**Full request snapshot** retains model, reasoning, cumulative volume and activity details. No data is
+reconstructed by parsing diagnostic prose. Hypotheses keep a visible uncertainty note even when collapsed.
 Hover a request, or use the existing keyboard/VoiceOver stepping. The last inspected request remains
 available in the evidence panel after the pointer leaves the plot.
 
@@ -51,11 +56,20 @@ index signals by request for snapshot lookup.
 
 The chart keeps its existing viewport/keyboard/VoiceOver controls. Representative markers expose their
 request and signal titles; the adjustable Request snapshot exposes all selected signals and their
-explanations. The evidence panel uses standard disclosures and text selection. Zone summaries adapt
-from a grid to stacked rows when needed. Colors come from the existing shared chart palette. The plot
+explanations. The evidence panel uses standard disclosures and text selection. Zone summaries and signal metrics use adaptive grids; long signal headings stack their status badge
+when horizontal space is insufficient. Colors come from the existing shared chart palette. The plot
 has internal Y-range padding for marker clearance without changing its data domain.
 
 ## Validation and remaining evidence
+
+**Visual refinement, 2026-10-19:** Xcode-tools build-for-testing and 15 targeted tests passed after the
+card redesign. Two additional tests cover typed observed/unknown metric projection and native cards with
+multiple signals and expanded evidence. Light/dark, narrow preview (188 pt), narrow summary (360 pt),
+monochrome and a large-type environment were rendered with NSHostingView and visually inspected.
+The hover preview is passive; narrow/large-text overflow stays above chart lanes instead of interleaving
+with their marks. SwiftLint (243 files), FSD lint, negative architecture regression and diff checks passed.
+The prior full-suite and real-app checks below are baseline evidence, not repeated after this UI refinement.
+No new live VoiceOver or Release performance measurement is claimed.
 
 - Xcode-tools `BuildProject(buildForTesting: true)` succeeded.
 - Targeted GUI/model run: 41/41 passed; complete `MonitorMacTests` run: 243 passed,

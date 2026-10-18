@@ -51,6 +51,7 @@ struct ContextAnatomyChart: View {
             .font(.caption2)
             .foregroundStyle(.secondary)
             sizeChart(steps)
+                .zIndex(1) // A narrow/large-text preview must remain above the lane, never interleave with its marks.
                 .focusable()
                 .onKeyPress(.leftArrow) { step(by: -1) }
                 .onKeyPress(.rightArrow) { step(by: 1) }

@@ -29,7 +29,8 @@ struct ContextAnatomyView: View {
                 ContextAnatomyChart(anatomy: presentation.report.anatomy, timeZone: timeZone,
                                    palette: palette, inspection: inspection, insights: presentation)
                 ContextAnatomyLegend(basis: presentation.report.anatomy.basis, palette: palette)
-                ContextInsightsSummary(presentation: presentation, inspection: inspection)
+                ContextInsightsSummary(presentation: presentation, inspection: inspection,
+                                       palette: palette, timeZone: timeZone)
             } else if current == nil {
                 ProgressView("Preparing context insights…")
             } else {

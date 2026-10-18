@@ -17,10 +17,6 @@ struct ContextAnatomyInspectionOverlay: View {
     var body: some View {
         let index = inspection.index
         let step = index.flatMap { anatomy.steps.indices.contains($0 - 1) ? anatomy.steps[$0 - 1] : nil }
-        let lines = step.map { step in
-            ContextAnatomyPresentation.snapshotLines(for: step, in: anatomy, timeZone: timeZone)
-                + (insights?.report.insightsByRequest[step.index]?.map(\.title) ?? [])
-        }
         ZStack(alignment: .topLeading) {
             ContextAnatomyInteractionSurface(
                 onHover: { pointX in
@@ -31,7 +27,7 @@ struct ContextAnatomyInspectionOverlay: View {
             )
             .frame(width: plot.width, height: plot.height)
             .offset(x: plot.minX, y: plot.minY)
-            if let index, let lines, let position = proxy.position(forX: Double(index)),
+            if let index, let step, let position = proxy.position(forX: Double(index)),
                position >= 0, position <= plot.width {
                 Rectangle()
                     .fill(palette.average.opacity(0.5))
@@ -39,19 +35,21 @@ struct ContextAnatomyInspectionOverlay: View {
                     .offset(x: plot.minX + position - 0.5, y: plot.minY)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
-                snapshotCard(lines: lines, position: position)
+                snapshotCard(step: step, position: position)
                     .allowsHitTesting(false)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private func snapshotCard(lines: [String], position: CGFloat) -> some View {
+    private func snapshotCard(step: ContextAnatomyStep, position: CGFloat) -> some View {
         let placement = ContextAnatomyPresentation.snapshotCardPlacement(
             anchorX: Double(position), plotWidth: Double(plot.width))
         let gap = CGFloat(ContextAnatomyPresentation.snapshotCardGap)
         let ruleX = plot.minX + position
-        return ContextAnatomySnapshotCard(lines: lines)
+        return ContextAnatomySnapshotCard(step: step, requestCount: anatomy.steps.count,
+                                          timeZone: timeZone, palette: palette,
+                                          insights: insights?.report.insightsByRequest[step.index] ?? [])
             .frame(width: CGFloat(placement.width))
             .fixedSize(horizontal: false, vertical: true)
             .alignmentGuide(.leading) { dimensions in
