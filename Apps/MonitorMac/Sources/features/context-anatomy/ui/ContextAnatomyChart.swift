@@ -11,10 +11,18 @@ struct ContextAnatomyChart: View {
     let timeZone: TimeZone
     let palette: UsageChartPalette
 
-    @State private var selectedX: Double?
+    @State private var inspection: ContextAnatomyInspection
     @State private var plotInsets = ContextAnatomyPlotInsets.zero
     @State private var plotWidth = 0.0
     @State private var storedViewport: ContextAnatomyViewport?
+
+    init(anatomy: ContextAnatomy, timeZone: TimeZone, palette: UsageChartPalette,
+         inspection: ContextAnatomyInspection = ContextAnatomyInspection()) {
+        self.anatomy = anatomy
+        self.timeZone = timeZone
+        self.palette = palette
+        _inspection = State(initialValue: inspection)
+    }
 
     private var stepCount: Int { anatomy.steps.count }
     private var viewport: ContextAnatomyViewport {
@@ -24,12 +32,6 @@ struct ContextAnatomyChart: View {
     private var visibleSteps: [ContextAnatomyStep] {
         guard let range = viewport.visibleIndices(stepCount: stepCount) else { return [] }
         return Array(anatomy.steps[(range.lowerBound - 1)...(range.upperBound - 1)])
-    }
-    private var selectedIndex: Int? {
-        selectedX.flatMap { ContextAnatomyPresentation.stepIndex(forX: $0, stepCount: stepCount) }
-    }
-    private var selectedStep: ContextAnatomyStep? {
-        selectedIndex.flatMap { anatomy.steps.indices.contains($0 - 1) ? anatomy.steps[$0 - 1] : nil }
     }
 
     var body: some View {
@@ -49,8 +51,11 @@ struct ContextAnatomyChart: View {
                 .focusable()
                 .onKeyPress(.leftArrow) { step(by: -1) }
                 .onKeyPress(.rightArrow) { step(by: 1) }
-                .overlay(alignment: .topLeading) { accessibleSnapshot }
-            ContextAnatomyLane(steps: steps, domain: domain, selectedIndex: selectedIndex, palette: palette)
+                .overlay(alignment: .topLeading) {
+                    ContextAnatomyInspectionAccessibility(anatomy: anatomy, timeZone: timeZone,
+                                                         inspection: inspection, onStep: { step(by: $0) })
+                }
+            ContextAnatomyLane(steps: steps, domain: domain, inspection: inspection, palette: palette)
                 .padding(.leading, plotInsets.leading)
                 .padding(.trailing, plotInsets.trailing)
             if Double(stepCount) > ContextAnatomyViewport.minVisibleRequests {
@@ -64,6 +69,7 @@ struct ContextAnatomyChart: View {
         }
         .onChange(of: stepCount) { oldCount, newCount in
             storedViewport = storedViewport?.following(growthFrom: oldCount, to: newCount, plotWidth: plotWidth)
+            inspection.reconcile(stepCount: newCount)
         }
     }
 
@@ -86,31 +92,11 @@ struct ContextAnatomyChart: View {
         return true
     }
 
-    /// Always mounted, unlike the hover card: VoiceOver reads the inspected request's snapshot here and adjusts
-    /// it to step through requests, so the details never depend on a pointer.
-    private var accessibleSnapshot: some View {
-        Color.clear
-            .frame(width: 1, height: 1)
-            .accessibilityElement()
-            .accessibilityLabel("Request snapshot")
-            .accessibilityValue(ContextAnatomyPresentation.snapshotAccessibilityValue(
-                for: selectedStep, in: anatomy, timeZone: timeZone))
-            .accessibilityAdjustableAction { direction in
-                switch direction {
-                case .increment: _ = step(by: 1)
-                case .decrement: _ = step(by: -1)
-                @unknown default: break
-                }
-            }
-            .accessibilityIdentifier("contextAnatomy.snapshot")
-    }
-
     @discardableResult
     private func step(by delta: Int) -> KeyPress.Result {
-        guard let index = ContextAnatomyPresentation.steppedIndex(from: selectedIndex, by: delta,
-                                                                   stepCount: stepCount) else { return .ignored }
-        selectedX = Double(index)
-        storedViewport = viewport.revealing(index, stepCount: stepCount, plotWidth: plotWidth)
+        guard let index = inspection.move(by: delta, stepCount: stepCount) else { return .ignored }
+        let revealed = viewport.revealing(index, stepCount: stepCount, plotWidth: plotWidth)
+        if revealed != viewport { storedViewport = revealed }
         return .handled
     }
 
@@ -128,10 +114,6 @@ struct ContextAnatomyChart: View {
             }
             ForEach(steps) { step in
                 eventMarks(step)
-            }
-            if let index = selectedIndex {
-                RuleMark(x: .value("Inspected request", Double(index)))
-                    .foregroundStyle(palette.average.opacity(0.5))
             }
         }
         .chartXScale(domain: domain)
@@ -180,39 +162,13 @@ struct ContextAnatomyChart: View {
                     .onChange(of: insets, initial: true) { plotInsets = $1 }
                     .onChange(of: plot.width, initial: true) { updatePlotWidth(Double($1)) }
                     .allowsHitTesting(false)
-                ContextAnatomyInteractionSurface(
-                    onHover: { pointX in selectedX = pointX.flatMap { proxy.value(atX: $0, as: Double.self) } },
+                ContextAnatomyInspectionOverlay(
+                    anatomy: anatomy, timeZone: timeZone, palette: palette,
+                    inspection: inspection, proxy: proxy, plot: plot,
                     onZoom: { zoom(by: $0, anchor: $1) },
                     onPan: { pan(by: $0) }
                 )
-                .frame(width: plot.width, height: plot.height)
-                .offset(x: plot.minX, y: plot.minY)
-                snapshotCard(proxy: proxy, geometry: geometry)
-                    .allowsHitTesting(false)
             }
-        }
-    }
-
-    /// Floating card beside the inspected request's rule, near the top of the plot. Hit testing stays off
-    /// (set by the overlay) so the card never steals the pointer that drives the selection.
-    @ViewBuilder
-    private func snapshotCard(proxy: ChartProxy, geometry: GeometryProxy) -> some View {
-        if let index = selectedIndex, anatomy.steps.indices.contains(index - 1),
-           let plotAnchor = proxy.plotFrame, let position = proxy.position(forX: Double(index)) {
-            let plot = geometry[plotAnchor]
-            let placement = ContextAnatomyPresentation.snapshotCardPlacement(
-                anchorX: Double(position), plotWidth: Double(plot.width))
-            let gap = CGFloat(ContextAnatomyPresentation.snapshotCardGap)
-            let ruleX = plot.minX + position
-            let lines = ContextAnatomyPresentation.snapshotLines(
-                for: anatomy.steps[index - 1], in: anatomy, timeZone: timeZone)
-            ContextAnatomySnapshotCard(lines: lines)
-                .frame(width: CGFloat(placement.width))
-                .fixedSize(horizontal: false, vertical: true)
-                .alignmentGuide(.leading) { dimensions in
-                    placement.side == .right ? -(ruleX + gap) : dimensions.width - (ruleX - gap)
-                }
-                .alignmentGuide(.top) { _ in -(plot.minY + gap) }
         }
     }
 

@@ -9,7 +9,7 @@ struct ContextAnatomyLane: View {
     /// Only the steps of the visible window (SM-722); the domain is the main chart's window.
     let steps: [ContextAnatomyStep]
     let domain: ClosedRange<Double>
-    let selectedIndex: Int?
+    let inspection: ContextAnatomyInspection
     let palette: UsageChartPalette
 
     private let columnInset = 0.1
@@ -19,17 +19,15 @@ struct ContextAnatomyLane: View {
             ForEach(steps) { step in
                 columnMarks(step, lane: ContextLaneSegments(step: step))
             }
-            if let index = selectedIndex {
-                RectangleMark(xStart: .value("From", Double(index) - 0.5), xEnd: .value("To", Double(index) + 0.5),
-                              yStart: .value("Low", 0.0), yEnd: .value("High", 1.0))
-                    .foregroundStyle(palette.average.opacity(0.12))
-            }
         }
         .chartXScale(domain: domain)
         .chartYScale(domain: 0.0...1.0)
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .chartPlotStyle { $0.clipped() }
+        .chartOverlay { proxy in
+            ContextAnatomyLaneInspection(inspection: inspection, proxy: proxy, palette: palette)
+        }
         .frame(height: 40)
         .accessibilityHidden(true)
     }
@@ -69,5 +67,30 @@ struct ContextAnatomyLane: View {
     private func segment(from start: Double, to end: Double) -> some ChartContent {
         RectangleMark(xStart: .value("From", start), xEnd: .value("To", end),
                       yStart: .value("Low", 0.0), yEnd: .value("High", 1.0))
+    }
+}
+
+/// Selection is an overlay, so moving it never rebuilds the lane's token-flow marks.
+private struct ContextAnatomyLaneInspection: View {
+    let inspection: ContextAnatomyInspection
+    let proxy: ChartProxy
+    let palette: UsageChartPalette
+
+    var body: some View {
+        GeometryReader { geometry in
+            if let index = inspection.index, let anchor = proxy.plotFrame,
+               let start = proxy.position(forX: Double(index) - 0.5),
+               let end = proxy.position(forX: Double(index) + 0.5) {
+                let plot = geometry[anchor]
+                Rectangle()
+                    .fill(palette.average.opacity(0.12))
+                    .frame(width: max(0, end - start), height: plot.height)
+                    .offset(x: start)
+                    .frame(width: plot.width, height: plot.height, alignment: .leading)
+                    .clipped()
+                    .offset(x: plot.minX, y: plot.minY)
+            }
+        }
+        .allowsHitTesting(false)
     }
 }

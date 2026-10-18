@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-723 — следующая задача (2026-10-18).** Исследовать и устранить задержку наведения на графике анатомии контекста на большой сессии; измерить поведение до и после оптимизации и подтвердить результат.
+**SM-723 — реализована и локально проверена (2026-10-18), PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), ветка `fix/sm-723-context-hover-performance`; ожидает review/CI и merge.** Hover обновляет отдельные overlays без пересборки marks и overview. На 7 196 synthetic requests p95 replay внутри запроса: 13,31 → 1,26 мс; между запросами: 25,60 → 16,52 мс. Методика и границы измерения — [SM-723](docs/performance/SM-723-context-hover.md). Следующая после доставки — SM-724.
 
 **Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
 TUI/UI-полировка отложены.** SM-325 доставлена через PR [#82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
@@ -1331,10 +1331,17 @@ deliverable — WidgetKit extension с App Group в SM-401.
   process smokes), `make lint`, FSD lint, архитектурный regression gate и Xcode-tools build-for-testing (233 GUI tests);
   обязательный `CI` на PR прошёл, `git diff --check` чистый.
 - [ ] **SM-723** — Исследовать лаги наведения на графике анатомии контекста.
-  **Статус: следующая задача после SM-728 (2026-10-18).** На большой сессии (например,
-  `01a0ce3d-0bbd-76d2-9109-3d2fec0b3e45`, 7 196 запросов) измерить задержку обновления плавающей карточки при наведении,
-  профилировать путь выбора и построения presentation, выявить узкое место и устранить его без изменения accounting.
-  Зафиксировать воспроизводимый сценарий и сравнимые evidence до/после; добавить regression coverage для найденной причины.
+  **Статус: реализована, локально проверена (2026-10-18), ветка `fix/sm-723-context-hover-performance`;
+  PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), ожидает review/CI и merge.** Time Profiler подтвердил пересборку chart/lane marks и overview при записи каждого
+  дробного `selectedX`. Наблюдаемое состояние `ContextAnatomyInspection` хранит индекс и меняется только при переходе
+  к другому запросу; его читают overlays карточки/указателя/lane и отдельный accessibility snapshot. Измерение Release
+  на 7 196 synthetic requests: median round p95 внутри запроса 13,31 → 1,26 мс, между запросами 25,60 → 16,52 мс;
+  это event-to-layout replay, не physical display latency/FPS. В sampled hover stacks больше нет подготовки marks/overview.
+  Проверки: Release replay + 5 regression tests — 6/6; обычная Debug GUI-схема — 237 passed и 1 штатный opt-in skip;
+  единственный XCUITest не стартовал (`Timed out while enabling automation mode`). `make lint`, FSD lint и negative
+  architecture gate прошли. Через Computer Use проверена реальная сессия `01a0ce3d-0bbd-76d2-9109-3d2fec0b3e45`
+  (7 196 requests, 86 compactions): карточка/график и accessibility increment 1 → 2. Accounting не менялся.
+  [Методика, результаты и воспроизведение](docs/performance/SM-723-context-hover.md). Следом — SM-724.
 - [ ] **SM-724** — Скриншоты Screener с эффектами и без.
   **Статус: запланировано (2026-10-11), после SM-723.** Debug-сборка с включённым Screener, в которой по желанию
   отключаются материалы, эффекты, blur и стекло; сравнить кадры Screener с эффектами и без (выделенная строка
