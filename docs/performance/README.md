@@ -1,5 +1,8 @@
 # Performance baseline
 
+For the macOS context-anatomy chart's hover replay, measurement method and
+before/after results, see [SM-723: context-anatomy hover](SM-723-context-hover.md).
+
 SM-105 measures the production Swift CLI on an independent copy of a real archive.
 The harness uses Python 3.9+ standard library, Apple's `/usr/bin/time -lp` and `/bin/ps`;
 no additional benchmark framework or runtime dependency is required.
