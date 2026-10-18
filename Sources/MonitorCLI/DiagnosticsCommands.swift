@@ -187,6 +187,25 @@ extension MonitorCommand {
         }
     }
 
+    struct ExportSession: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "export-session",
+            abstract: "Export one session as identity-free JSON for diagnostics."
+        )
+        @OptionGroup var options: DatabaseOptions
+        @OptionGroup var queryOptions: UsageQueryOptions
+        @Argument(help: "Exact session ID to select; the ID is never included in the export.") var sessionID: String
+
+        mutating func run() async throws {
+            let query = try queryOptions.query()
+            let monitor = try options.runtime()
+            guard let export = try await monitor.anonymizedSessionExport(sessionID: sessionID, query: query) else {
+                throw ValidationError("Session not found in the selected query.")
+            }
+            FileHandle.standardOutput.write(try export.encodedJSON())
+        }
+    }
+
     struct Doctor: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Report read-only diagnostic findings for imported data."

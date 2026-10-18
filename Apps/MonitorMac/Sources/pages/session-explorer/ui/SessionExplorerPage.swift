@@ -1,6 +1,7 @@
 import AppKit
 import MonitorCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SessionExplorerPage: View {
     @AppStorage(UsageChartPaletteSelection.storageKey)
@@ -22,7 +23,8 @@ struct SessionExplorerPage: View {
                 if let session = model.selectedSession {
                     SessionDetailView(session: session, query: model.query,
                                       timelineModel: model.timelineModel, provider: model.contextProvider,
-                                      chartPalette: chartPalette)
+                                      chartPalette: chartPalette,
+                                      exportSession: { exportSession(sessionID: session.id) })
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .task(id: SessionTimelineLoadID(sessionID: session.id, query: model.query)) {
                             await model.loadTimeline(sessionID: session.id)
@@ -201,6 +203,23 @@ struct SessionExplorerPage: View {
         Task {
             await model.importDirectory(directory)
             await reportScope.refreshProfiles()
+        }
+    }
+
+    private func exportSession(sessionID: String) {
+        Task { @MainActor in
+            do {
+                guard let data = try await model.anonymizedSessionExportData(sessionID: sessionID) else { return }
+                let panel = NSSavePanel()
+                panel.title = "Export Anonymized Session"
+                panel.nameFieldStringValue = "session-export.json"
+                panel.allowedContentTypes = [.json]
+                panel.canCreateDirectories = true
+                guard panel.runModal() == .OK, let destination = panel.url else { return }
+                try data.write(to: destination, options: .atomic)
+            } catch {
+                model.reportError("Could not export anonymized session JSON. \(error.localizedDescription)")
+            }
         }
     }
 }

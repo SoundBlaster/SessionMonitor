@@ -38,6 +38,6 @@ let package = Package(
         .testTarget(name: "SessionMonitorTests", dependencies: [
             "MonitorCore", "MonitorPolicies", "CodexSource", "MonitorStore", "MonitorRuntime",
             .product(name: "SpecificationCore", package: "SpecificationCore")
-        ])
+        ], resources: [.process("Fixtures")])
     ]
 )

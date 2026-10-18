@@ -262,6 +262,50 @@ struct DiagnosticsTests {
     }
 }
 
+extension DiagnosticsTests {
+    @Test func exportRejectsCrossScopeTimelineEvidenceOutsideSelectedRequestInterval() throws {
+        let fixture = try DiagnosticsFixture()
+        defer { fixture.remove() }
+        let store = try UsageStore(url: fixture.database)
+        try store.replace(source: "/synthetic/accounts/a/session.jsonl", rollout: fixture.rollout(
+            records: [fixture.record(session: "S", id: "A1", timestamp: 1)],
+            provenance: fixture.provenance("S", clientVersion: "account-a")
+        ))
+        try store.replace(source: "/synthetic/accounts/b/session.jsonl", rollout: fixture.rollout(
+            records: [fixture.record(session: "S", id: "B1", timestamp: 100)],
+            events: [fixture.event(session: "S", line: 2, timestamp: 2, kind: .tool, evidence: "context")],
+            provenance: fixture.provenance("S", clientVersion: "account-b")
+        ))
+        let query = try UsageQuery(until: Date(timeIntervalSince1970: 10))
+
+        #expect(throws: AnonymizedSessionExportError.multipleAccountScopes) {
+            try store.anonymizedSessionExport(sessionID: "S", query: query)
+        }
+    }
+
+    @Test func exportRejectsSessionIDAcrossAccountScopes() throws {
+        let fixture = try DiagnosticsFixture()
+        defer { fixture.remove() }
+        let store = try UsageStore(url: fixture.database)
+        try store.replace(source: "/synthetic/accounts/a/session.jsonl", rollout: fixture.rollout(records: [
+            fixture.record(session: "S", id: "A1", input: 100, cached: 80)
+        ]))
+        try store.replace(source: "/synthetic/accounts/b/session.jsonl", rollout: fixture.rollout(records: [
+            fixture.record(session: "S", id: "B1", input: 200, cached: 190)
+        ]))
+
+        #expect(throws: AnonymizedSessionExportError.multipleAccountScopes) {
+            try store.anonymizedSessionExport(sessionID: "S", query: UsageQuery())
+        }
+        let unknownScope = try UsageQuery(accountScope: .unknownOrMixed)
+        #expect(throws: AnonymizedSessionExportError.multipleAccountScopes) {
+            try store.anonymizedSessionExport(sessionID: "S", query: unknownScope)
+        }
+        let missingProfile = try UsageQuery(accountScope: UsageAccountScope(profileID: "personal"))
+        #expect(try store.anonymizedSessionExport(sessionID: "S", query: missingProfile) == nil)
+    }
+}
+
 private struct DiagnosticsFixture {
     let directory: URL
     var database: URL { directory.appending(path: "usage.sqlite") }

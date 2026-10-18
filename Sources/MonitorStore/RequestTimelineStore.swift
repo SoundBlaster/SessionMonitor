@@ -37,79 +37,90 @@ extension UsageStore {
     /// Reads presentation evidence for one exact session. This query never contributes to accounting.
     public func timeline(sessionID: String, query: UsageQuery) throws -> RequestTimeline {
         try database.read { database in
-            let predicate = "(? IS NULL OR timestamp >= ?) AND (? IS NULL OR timestamp < ?)"
-            let start = query.since?.timeIntervalSince1970
-            let end = query.until?.timeIntervalSince1970
-            let arguments: StatementArguments = [
-                sessionID, start, start, end, end,
-                query.accountScope.kind.rawValue, query.accountScope.kind.rawValue,
-                query.accountScope.profileID, query.accountScope.kind.rawValue
-            ]
-            let accountPredicate = Self.accountScopePredicate()
-            // The source line is a private sort key only; request points never expose `sourceLine`.
-            var ordered: [(point: RequestTimelinePoint, line: Int)] = try Row.fetchAll(database, sql: """
-                SELECT response, turn, timestamp, input, cached, output, reasoning, cache_write,
-                       model, account_scope_key,
-                       (SELECT MIN(line) FROM source_records AS records
-                        WHERE records.response = confirmed.response) AS line,
-                       -- Mirrored copies within the account scope must agree; a conflict stays unknown.
-                       (SELECT CASE WHEN COUNT(DISTINCT windows.window) = 1 THEN MAX(windows.window) END
-                        FROM source_context_windows AS windows
-                        JOIN source_account_scope AS window_scope ON window_scope.source = windows.source
-                        WHERE windows.response = confirmed.response
-                          AND window_scope.scope_key = confirmed.account_scope_key) AS context_window
-                FROM confirmed
-                WHERE session = ? AND \(predicate) \(accountPredicate)
-                ORDER BY timestamp ASC, response ASC
-                """, arguments: arguments).map { row in
-                    let input: Int64 = row["input"]
-                    let cached: Int64? = row["cached"]
-                    let scopeKey: String = row["account_scope_key"]
-                    let point = RequestTimelinePoint(
-                        id: Self.requestPointID(scopeKey: scopeKey, responseID: row["response"]),
-                        sessionID: sessionID,
-                        timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: .usageRequest,
-                        turnID: row["turn"], responseID: row["response"],
-                        inputTokens: input, cachedInputTokens: cached,
-                        uncachedInputTokens: cached.map { input - $0 },
-                        outputTokens: row["output"], reasoningOutputTokens: row["reasoning"],
-                        cacheWriteInputTokens: row["cache_write"], evidence: "token_usage_record",
-                        model: row["model"], contextWindowTokens: row["context_window"]
-                    )
-                    return (point, row["line"] ?? 0)
-                }
-            let eventRows = try Row.fetchAll(database, sql: """
-                SELECT DISTINCT events.line, events.turn, events.timestamp, events.kind, events.evidence,
-                       events.tool_name, events.model, events.activity_class, events.account_scope_key
-                FROM (
-                    SELECT events.*, scope.profile_id AS account_profile_id, scope.scope_key AS account_scope_key
-                    FROM source_timeline_events AS events
-                    JOIN source_account_scope AS scope ON scope.source = events.source
-                ) AS events
-                WHERE events.session = ? AND \(predicate) \(accountPredicate)
-                ORDER BY events.timestamp ASC, events.line ASC
-                """, arguments: arguments)
-            ordered.append(contentsOf: try eventRows.map { row in
-                let kind = TimelineEventKind(rawValue: row["kind"] as String) ?? .unknown
-                let line: Int = row["line"]
-                let point = RequestTimelinePoint(
-                    id: try Self.eventPointID(row, sessionID: sessionID), sessionID: sessionID,
-                    timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: kind,
-                    turnID: row["turn"], sourceLine: line, evidence: row["evidence"],
-                    toolName: row["tool_name"], model: row["model"],
-                    activityClass: (row["activity_class"] as String?).flatMap(ActivityToolClass.init(rawValue:))
-                )
-                return (point, line)
-            })
-            // Same-second records keep source order, so events after a usage record follow that request.
-            ordered.sort {
-                if $0.point.timestamp != $1.point.timestamp { return $0.point.timestamp < $1.point.timestamp }
-                if $0.line != $1.line { return $0.line < $1.line }
-                return $0.point.id < $1.point.id
-            }
-            let points = ordered.map(\.point)
-            return RequestTimeline(sessionID: sessionID, query: query, points: points)
+            try Self.timeline(database, sessionID: sessionID, query: query, exactAccountScopeKey: nil)
         }
+    }
+
+    static func timeline(
+        _ database: Database, sessionID: String, query: UsageQuery, exactAccountScopeKey: String?
+    ) throws -> RequestTimeline {
+        let predicate = "(? IS NULL OR timestamp >= ?) AND (? IS NULL OR timestamp < ?)"
+        let start = query.since?.timeIntervalSince1970
+        let end = query.until?.timeIntervalSince1970
+        let arguments: StatementArguments = [
+            sessionID, start, start, end, end,
+            query.accountScope.kind.rawValue, query.accountScope.kind.rawValue,
+            query.accountScope.profileID, query.accountScope.kind.rawValue,
+            exactAccountScopeKey, exactAccountScopeKey
+        ]
+        let accountPredicate = Self.accountScopePredicate()
+        // The source line is a private sort key only; request points never expose `sourceLine`.
+        var ordered: [(point: RequestTimelinePoint, line: Int)] = try Row.fetchAll(database, sql: """
+            SELECT response, turn, timestamp, input, cached, output, reasoning, cache_write,
+                   model, account_scope_key,
+                (SELECT MIN(records.line) FROM source_records AS records
+                 JOIN source_account_scope AS record_scope ON record_scope.source = records.source
+                 WHERE records.response = confirmed.response
+                   AND record_scope.scope_key = confirmed.account_scope_key) AS line,
+                   -- Mirrored copies within the account scope must agree; a conflict stays unknown.
+                   (SELECT CASE WHEN COUNT(DISTINCT windows.window) = 1 THEN MAX(windows.window) END
+                    FROM source_context_windows AS windows
+                    JOIN source_account_scope AS window_scope ON window_scope.source = windows.source
+                    WHERE windows.response = confirmed.response
+                      AND window_scope.scope_key = confirmed.account_scope_key) AS context_window
+            FROM confirmed
+            WHERE session = ? AND \(predicate) \(accountPredicate)
+              AND (? IS NULL OR account_scope_key = ?)
+            ORDER BY timestamp ASC, response ASC
+            """, arguments: arguments).map { row in
+                let input: Int64 = row["input"]
+                let cached: Int64? = row["cached"]
+                let scopeKey: String = row["account_scope_key"]
+                let point = RequestTimelinePoint(
+                    id: Self.requestPointID(scopeKey: scopeKey, responseID: row["response"]),
+                    sessionID: sessionID,
+                    timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: .usageRequest,
+                    turnID: row["turn"], responseID: row["response"],
+                    inputTokens: input, cachedInputTokens: cached,
+                    uncachedInputTokens: cached.map { input - $0 },
+                    outputTokens: row["output"], reasoningOutputTokens: row["reasoning"],
+                    cacheWriteInputTokens: row["cache_write"], evidence: "token_usage_record",
+                    model: row["model"], contextWindowTokens: row["context_window"]
+                )
+                return (point, row["line"] ?? 0)
+            }
+        let eventRows = try Row.fetchAll(database, sql: """
+            SELECT DISTINCT events.line, events.turn, events.timestamp, events.kind, events.evidence,
+                   events.tool_name, events.model, events.activity_class, events.account_scope_key
+            FROM (
+                SELECT events.*, scope.profile_id AS account_profile_id, scope.scope_key AS account_scope_key
+                FROM source_timeline_events AS events
+                JOIN source_account_scope AS scope ON scope.source = events.source
+            ) AS events
+            WHERE events.session = ? AND \(predicate) \(accountPredicate)
+              AND (? IS NULL OR events.account_scope_key = ?)
+            ORDER BY events.timestamp ASC, events.line ASC
+            """, arguments: arguments)
+        ordered.append(contentsOf: try eventRows.map { row in
+            let kind = TimelineEventKind(rawValue: row["kind"] as String) ?? .unknown
+            let line: Int = row["line"]
+            let point = RequestTimelinePoint(
+                id: try Self.eventPointID(row, sessionID: sessionID), sessionID: sessionID,
+                timestamp: Date(timeIntervalSince1970: row["timestamp"]), kind: kind,
+                turnID: row["turn"], sourceLine: line, evidence: row["evidence"],
+                toolName: row["tool_name"], model: row["model"],
+                activityClass: (row["activity_class"] as String?).flatMap(ActivityToolClass.init(rawValue:))
+            )
+            return (point, line)
+        })
+        // Same-second records keep source order, so events after a usage record follow that request.
+        ordered.sort {
+            if $0.point.timestamp != $1.point.timestamp { return $0.point.timestamp < $1.point.timestamp }
+            if $0.line != $1.line { return $0.line < $1.line }
+            return $0.point.id < $1.point.id
+        }
+        let points = ordered.map(\.point)
+        return RequestTimeline(sessionID: sessionID, query: query, points: points)
     }
     // swiftlint:enable function_body_length
 

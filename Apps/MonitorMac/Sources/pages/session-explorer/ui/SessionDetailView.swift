@@ -7,14 +7,17 @@ struct SessionDetailView: View {
     let query: UsageQuery
     let timelineModel: RequestTimelineModel
     let chartPalette: UsageChartPalette
+    let exportSession: () -> Void
     @ObservedSatisfies<SessionReportSnapshot> private var hasCompleteCacheCoverage: Bool
 
     init(session: SessionSummary, query: UsageQuery, timelineModel: RequestTimelineModel,
-         provider: SessionReportContextProvider, chartPalette: UsageChartPalette = .system) {
+         provider: SessionReportContextProvider, chartPalette: UsageChartPalette = .system,
+         exportSession: @escaping () -> Void) {
         self.session = session
         self.query = query
         self.timelineModel = timelineModel
         self.chartPalette = chartPalette
+        self.exportSession = exportSession
         _hasCompleteCacheCoverage = ObservedSatisfies(provider: provider, using: DisplayedCacheCoverageSpec())
     }
 
@@ -29,6 +32,8 @@ struct SessionDetailView: View {
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
+                    Button("Export anonymized JSON…", systemImage: "square.and.arrow.up", action: exportSession)
+                        .help("Save an identity-free session fixture for diagnostics")
                 }
 
                 Label {

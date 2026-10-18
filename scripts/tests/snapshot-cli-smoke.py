@@ -108,6 +108,19 @@ def run(binary):
                 assert first["schemaVersion"] == 2
                 assert first["query"]["timeZoneIdentifier"] == "UTC"
                 assert first["watermark"]["revision"] > empty["watermark"]["revision"]
+                exported = command(binary, database, "export-session", "S")
+                assert exported["format"] == "session-export.v1"
+                assert len(exported["requests"]) == 1
+                assert exported["requests"][0]["ordinal"] == 1
+                export_text = json.dumps(exported, sort_keys=True)
+                for private_value in ["S", "T", "R1", "1970-01-01", str(root), "session_id", "turn_id"]:
+                    assert private_value not in export_text, f"Private value leaked into export: {private_value}"
+                missing_export = subprocess.run(
+                    [str(binary), "export-session", "missing", "--database", str(database)],
+                    capture_output=True, timeout=10,
+                )
+                assert missing_export.returncode != 0
+                assert b"Session not found in the selected query" in missing_export.stderr
                 query = ("--since", "1970-01-01T00:01:42Z",
                          "--until", "1970-01-01T00:01:43Z",
                          "--time-zone", "Europe/Moscow")

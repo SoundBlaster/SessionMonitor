@@ -93,6 +93,72 @@ extension UsageStore {
         )
     }
 
+    /// Projects one session into the strict allowlist used by the anonymized export format.
+    public func anonymizedSessionExport(sessionID: String, query: UsageQuery) throws -> AnonymizedSessionExport? {
+        try database.read { database in
+            let scopeKeys = try Self.exportScopeKeys(
+                database, sessionID: sessionID, accountScope: query.accountScope
+            )
+            guard scopeKeys.count <= 1 else {
+                throw AnonymizedSessionExportError.multipleAccountScopes
+            }
+            guard let scopeKey = scopeKeys.first else { return nil }
+
+            let start = query.since?.timeIntervalSince1970
+            let end = query.until?.timeIntervalSince1970
+            let hasRequests = try Bool.fetchOne(database, sql: """
+                SELECT EXISTS(
+                    SELECT 1 FROM confirmed
+                    WHERE session = ? AND account_scope_key = ?
+                      AND (? IS NULL OR timestamp >= ?) AND (? IS NULL OR timestamp < ?)
+                )
+                """, arguments: [sessionID, scopeKey, start, start, end, end]) ?? false
+            guard hasRequests else { return nil }
+
+            let timeline = try Self.timeline(
+                database, sessionID: sessionID, query: query, exactAccountScopeKey: scopeKey
+            )
+            let clientVersion = try Row.fetchAll(database, sql: """
+                SELECT provenance.client_version FROM source_provenance AS provenance
+                JOIN source_account_scope AS scope ON scope.source = provenance.source
+                WHERE provenance.session = ? AND scope.scope_key = ?
+                ORDER BY provenance.source
+                """, arguments: [sessionID, scopeKey])
+                .compactMap { $0["client_version"] as String? }.first
+            return AnonymizedSessionExportBuilder.build(clientVersion: clientVersion, timeline: timeline)
+        }
+    }
+
+    private static func exportScopeKeys(
+        _ database: Database, sessionID: String, accountScope: UsageAccountScope
+    ) throws -> [String] {
+        let scopePredicate = accountScopePredicate()
+        let arguments: StatementArguments = [
+            sessionID, accountScope.kind.rawValue, accountScope.kind.rawValue,
+            accountScope.profileID, accountScope.kind.rawValue,
+            sessionID, accountScope.kind.rawValue, accountScope.kind.rawValue,
+            accountScope.profileID, accountScope.kind.rawValue,
+            sessionID, accountScope.kind.rawValue, accountScope.kind.rawValue,
+            accountScope.profileID, accountScope.kind.rawValue
+        ]
+        return try String.fetchAll(database, sql: """
+            SELECT account_scope_key FROM confirmed WHERE session = ? \(scopePredicate)
+            UNION SELECT scoped_events.account_scope_key FROM (
+                SELECT events.session, scope.profile_id AS account_profile_id,
+                       scope.scope_key AS account_scope_key
+                FROM source_timeline_events AS events
+                JOIN source_account_scope AS scope ON scope.source = events.source
+            ) AS scoped_events WHERE scoped_events.session = ? \(scopePredicate)
+            UNION SELECT scoped_provenance.account_scope_key FROM (
+                SELECT provenance.session, scope.profile_id AS account_profile_id,
+                       scope.scope_key AS account_scope_key
+                FROM source_provenance AS provenance
+                JOIN source_account_scope AS scope ON scope.source = provenance.source
+            ) AS scoped_provenance WHERE scoped_provenance.session = ? \(scopePredicate)
+            ORDER BY 1
+            """, arguments: arguments)
+    }
+
     // swiftlint:disable:next function_body_length cyclomatic_complexity
     public func doctor(
         query: UsageQuery, configuration: AnomalyPolicyConfiguration = .init(),
