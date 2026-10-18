@@ -5,6 +5,8 @@ import Observation
 @Observable
 final class ContextAnatomyInspection {
     private(set) var index: Int?
+    /// Evidence remains readable after the pointer leaves the plot.
+    private(set) var lastInspectedIndex: Int?
 
     /// Several mouse positions can describe the same request; none of them should redraw the snapshot.
     @discardableResult
@@ -22,12 +24,16 @@ final class ContextAnatomyInspection {
     /// Follow live data shrinkage without inventing a selection when nothing was inspected.
     func reconcile(stepCount: Int) {
         if let index { update(stepCount > 0 ? min(index, stepCount) : nil) }
+        if let lastInspectedIndex {
+            self.lastInspectedIndex = stepCount > 0 ? min(lastInspectedIndex, stepCount) : nil
+        }
     }
 
     @discardableResult
     private func update(_ next: Int?) -> Bool {
         guard next != index else { return false }
         index = next
+        if let next { lastInspectedIndex = next }
         return true
     }
 }

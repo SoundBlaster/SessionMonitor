@@ -1,31 +1,63 @@
 import MonitorCore
+import MonitorPolicies
 import NestedA11yIDs
 import SwiftUI
 
 /// Context size per request, with a hover snapshot and an events/tokens lane strip.
 /// Pure rules live in `ContextAnatomyPresentation`; this view only lays them out.
 struct ContextAnatomyView: View {
-    let anatomy: ContextAnatomy
+    let timeline: RequestTimeline
+    @State private var presentation: ContextInsightPresentation?
+    @State private var inspection = ContextAnatomyInspection()
     let timeZone: TimeZone
     var palette: UsageChartPalette = .system
 
     var body: some View {
+        let current = presentation.flatMap {
+            $0.report.query == timeline.query && $0.report.anatomy.sessionID == timeline.sessionID ? $0 : nil
+        }
         VStack(alignment: .leading, spacing: 14) {
             Label("Context anatomy", systemImage: "square.stack.3d.up")
                 .font(.title2.bold())
             VStack(alignment: .leading, spacing: 4) {
-                Text(ContextAnatomyPresentation.caption(for: anatomy.basis))
+                Text(ContextAnatomyPresentation.caption(for: current?.report.anatomy.basis ?? .sessionPeak))
                 Text(ContextAnatomyPresentation.hint)
             }
             .font(.caption)
             .foregroundStyle(.secondary)
-            ContextAnatomyChart(anatomy: anatomy, timeZone: timeZone, palette: palette)
-            ContextAnatomyLegend(basis: anatomy.basis, palette: palette)
+            if let presentation = current, !presentation.report.anatomy.isEmpty {
+                ContextAnatomyChart(anatomy: presentation.report.anatomy, timeZone: timeZone,
+                                   palette: palette, inspection: inspection, insights: presentation)
+                ContextAnatomyLegend(basis: presentation.report.anatomy.basis, palette: palette)
+                ContextInsightsSummary(presentation: presentation, inspection: inspection)
+            } else if current == nil {
+                ProgressView("Preparing context insights…")
+            } else {
+                Text("No requests with known input in this range.").foregroundStyle(.secondary)
+            }
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.background, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.quaternary))
+        .task(id: timeline) {
+            // One projection per source snapshot. Never rerun policies from pointer/viewport updates.
+            let snapshot = timeline
+            if presentation?.report.query != snapshot.query {
+                inspection.reconcile(stepCount: 0)
+            }
+            let task = Task.detached(priority: .userInitiated) {
+                ContextInsightPresentation(report: ContextInsightPolicy.evaluate(snapshot))
+            }
+            let value = await withTaskCancellationHandler {
+                await task.value
+            } onCancel: {
+                task.cancel()
+            }
+            guard !Task.isCancelled else { return }
+            presentation = value
+            inspection.reconcile(stepCount: value.report.anatomy.steps.count)
+        }
         .a11yRoot("contextAnatomy")
         .accessibilityIdentifier("contextAnatomy")
     }
