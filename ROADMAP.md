@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-728 — в работе (2026-10-18), ветка `feat/sm-728-anonymized-session-export`.** Реализовать versioned anonymized JSON export в CLI и Session Explorer; fixture и tests должны подтверждать, что идентификаторы, абсолютные даты, account/profile, пути, MCP tool names и evidence не попадают в payload.
+**SM-728 — в работе (2026-10-18), PR [#112](https://github.com/SoundBlaster/SessionMonitor/pull/112), ветка `feat/sm-728-anonymized-session-export`.** Реализовать versioned anonymized JSON export в CLI и Session Explorer; fixture и tests должны подтверждать, что идентификаторы, абсолютные даты, account/profile, пути, MCP tool names и evidence не попадают в payload.
 
 **Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
 TUI/UI-полировка отложены.** SM-325 доставлена через PR [#82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
@@ -1329,7 +1329,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   порядковые номера запросов, смещение по времени от начала, модель, версия клиента, все счётчики токенов и окно,
   типы и количество событий между запросами, класс инструмента. Без ID сессий/turn/response, абсолютного времени,
   путей и cwd, аккаунта и профиля, имён MCP-инструментов, текстов evidence и номеров строк. Файл загружается
-в тесты как фикстура для воспроизведения графика. **Локальная проверка (2026-10-18):** `make check-core` — build,
+в тесты как фикстура для воспроизведения графика. **PR #112 открыт; GitHub CI выполняется. Локальная проверка (2026-10-18):** `make check-core` — build,
 234 tests / 40 suites и четыре CLI process smokes пройдены; `make lint` — 0 нарушений; FSD lint — 0 ошибок/предупреждений;
 архитектурный regression gate пройден. `git diff --check` чистый. Локальная GUI-сборка через Xcode-tools ещё не запускалась:
 MCP ждёт разрешения доступа к checkout; app build/tests остаются на обязательном GitHub CI.
