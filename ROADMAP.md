@@ -7,7 +7,7 @@
 ## Текущая точка
 
 **SM-729 — реализована и локально проверена (2026-10-19): Design System карточек SM-718.**
-Отдельный слой поверх PR #116: `shared/ui` содержит card surfaces, badge, metric, adaptive header и
+PR [#117](https://github.com/SoundBlaster/SessionMonitor/pull/117) поверх #116: `shared/ui` содержит card surfaces, badge, metric, adaptive header и
 binding-driven evidence disclosure; `shared/lib` — общие tokens. Domain/formatting/inspection остаются в feature.
 Xcode-tools build-for-testing и 15 targeted tests прошли; SwiftLint (249 файлов), FSD/negative gate и diff — passed.
 Все 6 native fixture-снимков до/после совпали попиксельно. [Контракты](docs/design-system.md).
@@ -1219,7 +1219,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   восстановлен, task-created app остановлен. Full `make check` не запускался; `[ ]` — до доставки через PR.
   [Правила и evidence](docs/context-insights.md).
 - [ ] **SM-729** — Выделить компоненты Design System из карточек context insights.
-  **Статус: реализована и локально проверена (2026-10-19), ожидает PR/review/доставки.** Зависимость: SM-718 / PR #116.
+  **Статус: реализована и локально проверена (2026-10-19), PR [#117](https://github.com/SoundBlaster/SessionMonitor/pull/117); ожидает review/CI/merge.** Зависимость: SM-718 / PR #116.
   `shared/ui`: DesignCard, DesignBadge, DesignMetric, DesignCardHeader, DesignEvidenceDisclosure;
   `shared/lib`: DesignTokens. Shared импортирует только SwiftUI; domain mapping/formatting и inspection остаются
   в feature. Сохранены binding/state ownership, unknown, palette, идентификаторы и hover boundaries.
