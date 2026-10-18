@@ -153,6 +153,63 @@ struct ContextInsightPolicyTests {
         #expect(first.anatomy.steps.map(\.outputTokens) == [100, 100])
     }
 
+    @Test func pairEvidenceRetainsBothResponseIDsAndRequestLines() throws {
+        let points = [
+            RequestTimelinePoint(id: "a", sessionID: "S", timestamp: Date(timeIntervalSince1970: 0),
+                                 kind: .usageRequest, sourceLine: 4, responseID: "response-a", inputTokens: 20_000,
+                                 cachedInputTokens: 18_000, model: "m", contextWindowTokens: 100_000),
+            RequestTimelinePoint(id: "b", sessionID: "S", timestamp: Date(timeIntervalSince1970: 600),
+                                 kind: .usageRequest, sourceLine: 10, responseID: "response-b", inputTokens: 95_000,
+                                 cachedInputTokens: 0, model: "m", contextWindowTokens: 100_000)
+        ]
+        let value = try report(points)
+        for kind in [ContextInsightKind.contextGrowth, .cacheDropAfterPause, .criticalEntry] {
+            let finding = try #require(value.insights.first { $0.kind == kind })
+            let current = try #require(finding.evidence.observed.first)
+            #expect(current.responseIDs == ["response-b"])
+            #expect(current.sourceLines == [10])
+            let comparison = try #require(finding.evidence.observed.first { $0.detail.contains("Previous input") })
+            #expect(comparison.responseIDs == ["response-a", "response-b"])
+            #expect(comparison.sourceLines == [4, 10])
+            #expect(finding.evidence.observed.allSatisfy { $0.sessionIDs == ["S"] })
+            if finding.isHypothesis {
+                #expect(finding.evidence.inference.first?.responseIDs == ["response-a", "response-b"])
+            }
+            let decoded = try JSONDecoder().decode(ContextInsight.self, from: JSONEncoder().encode(finding))
+            #expect(decoded == finding)
+        }
+    }
+
+    @Test func compactionEvidenceRetainsEachSourceLineAcrossUnknownInputWithoutForeignOrTrailingEvents() throws {
+        func compaction(_ id: String, line: Int, session: String = "S") -> RequestTimelinePoint {
+            RequestTimelinePoint(id: id, sessionID: session, timestamp: Date(timeIntervalSince1970: Double(line)),
+                                 kind: .compaction, sourceLine: line)
+        }
+        let value = try report([
+            request("a", input: 90_000), compaction("one", line: 10), request("unknown", input: nil, at: 20),
+            compaction("foreign", line: 99, session: "other"), compaction("two", line: 30),
+            request("b", input: 20_000, at: 40), compaction("trailing", line: 50)
+        ])
+        let finding = try #require(value.insights.first { $0.kind == .compaction })
+        let events = finding.evidence.observed.filter { $0.detail.hasPrefix("Explicit compaction ") }
+        #expect(events.count == 2)
+        #expect(events.map(\.sourceLines) == [[10], [30]])
+        #expect(Set(events.map(\.detail)).count == events.count)
+        #expect(events.allSatisfy { $0.responseIDs.isEmpty && $0.sessionIDs == ["S"] })
+        #expect(!finding.evidence.observed.flatMap(\.sourceLines).contains(99))
+        #expect(!finding.evidence.observed.flatMap(\.sourceLines).contains(50))
+        #expect(finding.requestID == "b")
+        #expect(value.anatomy.steps.last?.activityBefore.compactions == 2)
+    }
+
+    @Test func missingProvenanceDoesNotInventResponseIDsOrSourceLines() throws {
+        let value = try report([request("a", cached: 0), request("b", input: 90_000, at: 1)])
+        #expect(!value.insights.isEmpty)
+        #expect(value.insights.flatMap { $0.evidence.observed + $0.evidence.inference }.allSatisfy {
+            $0.responseIDs.isEmpty && $0.sourceLines.isEmpty
+        })
+    }
+
     @Test func configurationSanitizesNonfiniteAndOutOfRangeValues() {
         let value = ContextInsightConfiguration(minimumChangeTokens: -1, minimumChangeFraction: .nan,
                                                minimumCacheInput: 0, cacheDropFraction: -1,

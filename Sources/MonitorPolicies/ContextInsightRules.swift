@@ -33,6 +33,8 @@ struct ContextInsightCandidate {
     let adjacent: Bool
     let isFirstObservedRequest: Bool
     let sessionID: String
+    let source: ContextInsightProvenance?
+    let previousSource: ContextInsightProvenance?
 
     var comparable: Bool {
         guard adjacent, let previous, let model = step.model, !model.isEmpty,
@@ -52,25 +54,35 @@ struct ContextInsightCandidate {
 
     func insight(_ kind: ContextInsightKind, title: String, reason: String,
                  hypothesis: Bool = false) -> ContextInsight {
-        var observed = ["Request \(step.index): input \(step.contextTokens), cached "
-            + "\(step.cachedInputTokens.map(String.init) ?? "unknown"), "
-            + "explicit compactions before request \(step.activityBefore.compactions)."]
+        let currentPoints = source.map { [$0.request] } ?? []
+        let pairPoints = (previousSource.map { [$0.request] } ?? []) + currentPoints
+        var observed = [ContextInsightProvenance.item(
+            "Request \(step.index): input \(step.contextTokens), cached "
+                + "\(step.cachedInputTokens.map(String.init) ?? "unknown").",
+            points: currentPoints, sessionID: sessionID)]
         if let previous {
-            observed.append("Previous input \(previous.contextTokens), cached "
+            observed.append(ContextInsightProvenance.item("Previous input \(previous.contextTokens), cached "
                 + "\(previous.cachedInputTokens.map(String.init) ?? "unknown"); "
-                + "gap \(step.timestamp.timeIntervalSince(previous.timestamp)) seconds.")
+                + "gap \(step.timestamp.timeIntervalSince(previous.timestamp)) seconds.",
+                points: pairPoints, sessionID: sessionID))
+        }
+        for (offset, event) in (source?.compactions ?? []).enumerated() {
+            observed.append(ContextInsightProvenance.item(
+                "Explicit compaction \(offset + 1) before request \(step.index).",
+                points: [event], sessionID: sessionID))
         }
         if let window = step.contextWindowTokens {
-            observed.append("Context window \(window), inferred: \(step.contextWindowInferred).")
+            observed.append(ContextInsightProvenance.item(
+                "Context window \(window), inferred: \(step.contextWindowInferred).", points: currentPoints,
+                source: step.contextWindowInferred ? "context_anatomy_projection" : "request_timeline",
+                sessionID: sessionID))
         }
         return ContextInsight(
             kind: kind, step: step, title: title, explanation: reason,
             evidence: DiagnosticEvidence(
-                observed: observed.map {
-                    DiagnosticEvidenceItem(source: "request_timeline", detail: $0, sessionIDs: [sessionID])
-                },
-                inference: hypothesis ? [DiagnosticEvidenceItem(
-                    source: "context_insight_policy", detail: reason, sessionIDs: [sessionID])] : [],
+                observed: observed,
+                inference: hypothesis ? [ContextInsightProvenance.item(
+                    reason, points: pairPoints, source: "context_insight_policy", sessionID: sessionID)] : [],
                 limitations: ["Observed query range only; request volumes do not reveal context contents."]
             ), isHypothesis: hypothesis
         )

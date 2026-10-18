@@ -15,6 +15,15 @@ absolute request bin, preferring critical entry, compaction, cache drop, context
 start. Every signal remains available in the request snapshot/evidence, including signals omitted from
 the density-limited markers. Marker IDs identify the source request, never its viewport slot.
 
+## Source provenance
+
+Before anatomy reduces source records to token and activity summaries, the policy retains the current
+and previous request's response IDs/source lines and the individual explicit compaction events. Each
+observed evidence item links to the records it describes; pair/gap evidence references both requests.
+Compactions remain individually traceable across unknown-input requests, matching the anatomy's
+pending-activity behavior. Foreign-session and trailing events are never attached to another request.
+Missing response IDs/lines stay empty. Inferred windows are identified as anatomy projection evidence.
+
 ## Rules
 
 `ContextInsightPolicy` in `MonitorPolicies` evaluates typed `DecisionSpec` rules from SpecificationCore
@@ -67,6 +76,14 @@ when horizontal space is insufficient. Colors come from the existing shared char
 has internal Y-range padding for marker clearance without changing its data domain.
 
 ## Validation and remaining evidence
+
+**Provenance review fix, 2026-10-19:** three additional regression tests cover request pairs, JSON
+round-trip, distinct compaction evidence across unknown input, foreign/trailing exclusion and missing IDs.
+Xcode-tools built the core bundle; direct `xcrun xctest` passed **252 Swift Testing + 9 XCTest (261 total)**.
+The MCP package runner still reported executable-not-found and is not claimed as passing. SwiftLint/FSD,
+the negative architecture gate and diff checks passed. Policies, thresholds and canonical accounting are
+unchanged; only the evidence now retains source references.
+
 
 **Visual refinement, 2026-10-19:** Xcode-tools build-for-testing and 15 targeted tests passed after the
 card redesign. Two additional tests cover typed observed/unknown metric projection and native cards with

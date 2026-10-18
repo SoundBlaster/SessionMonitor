@@ -12,6 +12,13 @@ binding-driven evidence disclosure; `shared/lib` — общие tokens. Domain/f
 Xcode-tools build-for-testing и 15 targeted tests прошли; SwiftLint (249 файлов), FSD/negative gate и diff — passed.
 Все 6 native fixture-снимков до/после совпали попиксельно. [Контракты](docs/design-system.md).
 Следующий шаг — review и доставка слоя после #116; затем SM-330.
+**SM-718 — review P2 о provenance исправлен (2026-10-19), PR #116.**
+Evidence сохраняет response IDs запросов и source lines отдельных compaction events до projection в anatomy.
+Три regression tests проверяют пары/JSON, несколько событий через unknown-input gap, foreign/trailing events
+и отсутствие выдуманных IDs. Core bundle собран Xcode-tools; `xcrun xctest`: 252 Swift Testing + 9 XCTest,
+все 261 passed. MCP package runner по-прежнему не загрузил executable; это отдельно от успешного прямого runtime.
+Зависимый слой Design System #117 обновлён: Xcode-tools app build и 15 GUI tests прошли повторно;
+merge не запрошен.
 
 **SM-718 — карточки переработаны по замечанию пользователя (2026-10-19), в PR #116.**
 Плавающий snapshot: размер контекста, зона, компактная сетка cached/new/output. Под графиком —
