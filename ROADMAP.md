@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-723 — реализована и локально проверена (2026-10-18), ветка `fix/sm-723-context-hover-performance`; ожидает PR review/CI и merge.** Hover обновляет отдельные overlays без пересборки marks и overview. На 7 196 synthetic requests p95 replay внутри запроса: 13,31 → 1,26 мс; между запросами: 25,60 → 16,52 мс. Методика и границы измерения — [SM-723](docs/performance/SM-723-context-hover.md). Следующая после доставки — SM-724.
+**SM-723 — реализована и локально проверена (2026-10-18), PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), ветка `fix/sm-723-context-hover-performance`; ожидает review/CI и merge.** Hover обновляет отдельные overlays без пересборки marks и overview. На 7 196 synthetic requests p95 replay внутри запроса: 13,31 → 1,26 мс; между запросами: 25,60 → 16,52 мс. Методика и границы измерения — [SM-723](docs/performance/SM-723-context-hover.md). Следующая после доставки — SM-724.
 
 **Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
 TUI/UI-полировка отложены.** SM-325 доставлена через PR [#82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
@@ -1332,7 +1332,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   обязательный `CI` на PR прошёл, `git diff --check` чистый.
 - [ ] **SM-723** — Исследовать лаги наведения на графике анатомии контекста.
   **Статус: реализована, локально проверена (2026-10-18), ветка `fix/sm-723-context-hover-performance`;
-  ожидает PR review/CI и merge.** Time Profiler подтвердил пересборку chart/lane marks и overview при записи каждого
+  PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), ожидает review/CI и merge.** Time Profiler подтвердил пересборку chart/lane marks и overview при записи каждого
   дробного `selectedX`. Наблюдаемое состояние `ContextAnatomyInspection` хранит индекс и меняется только при переходе
   к другому запросу; его читают overlays карточки/указателя/lane и отдельный accessibility snapshot. Измерение Release
   на 7 196 synthetic requests: median round p95 внутри запроса 13,31 → 1,26 мс, между запросами 25,60 → 16,52 мс;
