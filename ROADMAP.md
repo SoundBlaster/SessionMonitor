@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-11. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-18. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -22,7 +22,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**SM-717 доставлена** (анатомия контекста сессии) через PR [#105](https://github.com/SoundBlaster/SessionMonitor/pull/105), merge `0bd808b` (2026-10-11), проверена на Mac. SM-720 (снимок — плавающая карточка) доставлена через PR [#106](https://github.com/SoundBlaster/SessionMonitor/pull/106), merge `fc8a91e`. **Порядок пользователя (2026-10-11): SM-722** (зум графика анатомии контекста с ограничением плотности и слайдером-обзором) **→ SM-725** (цвет зон контекста столбцами под линией; SM-722 доставлена в #108) **→ SM-726** (цвета ввода/вывода/прочего; SM-725 и SM-726 доставлены в #109 и #110) **→ SM-727** (зоны от окна модели) **→ SM-728** (анонимный экспорт сессии) **→ SM-723** (исследование лагов) **→ SM-724** (скриншоты Screener с эффектами и без); затем SM-718 (инсайты на этом графике); SM-721 закрыта: обрыв наведения давали перекрывающие окна других приложений. **Затем SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). Проверены на Mac: SM-711…SM-715. Остаются `[ ]`: SM-710 (hooks: смена ветки и rebase), SM-716 (подсказка про подпись после `make generate`) и SM-326 (панель открывается и что-то показывает; содержимое не сверено с `doctor --json` и `alerts --status all --json`).
+**SM-717 доставлена** (анатомия контекста сессии) через PR [#105](https://github.com/SoundBlaster/SessionMonitor/pull/105), merge `0bd808b` (2026-10-11), проверена на Mac. SM-720 (снимок — плавающая карточка) доставлена через PR [#106](https://github.com/SoundBlaster/SessionMonitor/pull/106), merge `fc8a91e`. **Порядок пользователя (2026-10-11): SM-722** (зум графика анатомии контекста с ограничением плотности и слайдером-обзором) **→ SM-725** (цвет зон контекста столбцами под линией; SM-722 доставлена в #108) **→ SM-726** (цвета ввода/вывода/прочего; SM-725 и SM-726 доставлены в #109 и #110) **→ SM-727** (зоны от окна модели; доставлена через PR [#111](https://github.com/SoundBlaster/SessionMonitor/pull/111), squash-merge `6eeba3d`, 2026-10-14) **→ SM-728** (анонимный экспорт сессии) **→ SM-723** (исследование лагов) **→ SM-724** (скриншоты Screener с эффектами и без); затем SM-718 (инсайты на этом графике); SM-721 закрыта: обрыв наведения давали перекрывающие окна других приложений. **Затем SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). Проверены на Mac: SM-711…SM-715. Остаются `[ ]`: SM-710 (hooks: смена ветки и rebase), SM-716 (подсказка про подпись после `make generate`) и SM-326 (панель открывается и что-то показывает; содержимое не сверено с `doctor --json` и `alerts --status all --json`).
 **SM-413 доставлена** через PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79), merge `ce3600b` (2026-10-11):
 окно Cache analytics (drag/scroll pan, pinch zoom, статистика выбранного интервала крупно над графиком); по решению
 пользователя окно открывается кнопкой «развернуть» в заголовке Sidebar Cache Hit Rate и командой View ▸ Show Cache Analytics,
@@ -1280,8 +1280,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   графике. Легенда — «Tools, waits, other». Evidence: Red — `testOtherActivityTickCoversEveryUnmarkedEventKind` падал
   на `goalTurn` и `unknown` (переименование `hasToolsOrWaits` → `hasOtherActivity` перед этим прошло 23/23); Green —
   37/37 в наборах анатомии контекста; SwiftLint/FSD — 0. Новую подпись легенды на Mac визуально не перепроверяли.
-- [ ] **SM-727** — Зоны размера контекста от окна модели, а не от пика сессии.
-  **Статус: в работе (2026-10-12), замечание пользователя по реальным сессиям.** Сейчас зоны (SM-717/SM-725) считаются
+- [x] **SM-727** — Зоны размера контекста от окна модели, а не от пика сессии.
+  **Доставлена через PR [#111](https://github.com/SoundBlaster/SessionMonitor/pull/111), squash-merge `6eeba3d` (2026-10-14).** Замечание пользователя по реальным сессиям: зоны (SM-717/SM-725) считались
   от пика самой сессии, поэтому запрос на 30k в короткой сессии красный («critical»), а одиночный запрос — всегда 100%.
   Источник: каждое `event_msg/token_count` в логах Codex несёт `info.model_context_window` и идёт сразу за
   `token_usage_record` того же ответа (`last_token_usage.input_tokens` совпадает). По коду Codex (`openai/codex`
@@ -1313,7 +1313,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   `01a0ee91…` (gpt-6-luna, 17 запросов, пик ~58k) целиком зелёная — «< 50% of window» от 258.4k, подписи и легенда
   называют окно. Карточку при наведении визуально не проверяли (не было подтверждения полноэкранного режима);
   её текст покрыт тестами. Разовый переимпорт в Debug занял заметные минуты (в том числе лог 472 МБ).
-  **Ревью #111:** (1) путь backfill provenance без records больше не поднимает checkpoint до версии 5 — следующий
+  **Ревью перед merge #111:** (1) путь backfill provenance без records больше не поднимает checkpoint до версии 5 — следующий
   инкрементальный разбор один раз перечитывает файл, и окна появляются и у старых баз без provenance; (2) окно
   ищется только в источниках того же account scope, что и подтверждённый запрос. Evidence: Red —
   `metadataOnlyProvenanceBackfillStillBackfillsWindows` и `windowsStayWithinTheirAccountScope` падали; Green — core
