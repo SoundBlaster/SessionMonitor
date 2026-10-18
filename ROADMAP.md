@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-723 — реализована и локально проверена (2026-10-18), PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), ветка `fix/sm-723-context-hover-performance`; ожидает review/CI и merge.** Hover обновляет отдельные overlays без пересборки marks и overview. На 7 196 synthetic requests p95 replay внутри запроса: 13,31 → 1,26 мс; между запросами: 25,60 → 16,52 мс. Методика и границы измерения — [SM-723](docs/performance/SM-723-context-hover.md). Следующая после доставки — SM-724.
+**SM-723 доставлена через PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), squash-merge `d7d8c54` (2026-10-18); обязательный `CI` прошёл.** Hover обновляет отдельные overlays без пересборки marks и overview. На 7 196 synthetic requests p95 replay внутри запроса: 13,31 → 1,26 мс; между запросами: 25,60 → 16,52 мс. Методика и границы измерения — [SM-723](docs/performance/SM-723-context-hover.md). **Следующая задача — SM-718: инсайты на графике анатомии контекста.** SM-724 снята с очереди SessionMonitor: по подтверждению пользователя (2026-10-18), работа уже завершена в проекте Screener; повторная реализация здесь не требуется.
 
 **Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
 TUI/UI-полировка отложены.** SM-325 доставлена через PR [#82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
@@ -24,7 +24,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**SM-717 доставлена** (анатомия контекста сессии) через PR [#105](https://github.com/SoundBlaster/SessionMonitor/pull/105), merge `0bd808b` (2026-10-11), проверена на Mac. SM-720 (снимок — плавающая карточка) доставлена через PR [#106](https://github.com/SoundBlaster/SessionMonitor/pull/106), merge `fc8a91e`. **Порядок пользователя (2026-10-11): SM-722** (зум графика анатомии контекста с ограничением плотности и слайдером-обзором) **→ SM-725** (цвет зон контекста столбцами под линией; SM-722 доставлена в #108) **→ SM-726** (цвета ввода/вывода/прочего; SM-725 и SM-726 доставлены в #109 и #110) **→ SM-727** (зоны от окна модели; доставлена через PR [#111](https://github.com/SoundBlaster/SessionMonitor/pull/111), squash-merge `6eeba3d`, 2026-10-14) **→ SM-728** (анонимный экспорт сессии; доставлена через PR [#112](https://github.com/SoundBlaster/SessionMonitor/pull/112), squash-merge `465cf1a`, 2026-10-18) **→ SM-723** (исследование лагов) **→ SM-724** (скриншоты Screener с эффектами и без); затем SM-718 (инсайты на этом графике); SM-721 закрыта: обрыв наведения давали перекрывающие окна других приложений. **Затем SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). Проверены на Mac: SM-711…SM-715. Остаются `[ ]`: SM-710 (hooks: смена ветки и rebase), SM-716 (подсказка про подпись после `make generate`) и SM-326 (панель открывается и что-то показывает; содержимое не сверено с `doctor --json` и `alerts --status all --json`).
+**SM-717 доставлена** (анатомия контекста сессии) через PR [#105](https://github.com/SoundBlaster/SessionMonitor/pull/105), merge `0bd808b` (2026-10-11), проверена на Mac. SM-720 (снимок — плавающая карточка) доставлена через PR [#106](https://github.com/SoundBlaster/SessionMonitor/pull/106), merge `fc8a91e`. **Порядок пользователя (2026-10-11): SM-722** (зум графика анатомии контекста с ограничением плотности и слайдером-обзором) **→ SM-725** (цвет зон контекста столбцами под линией; SM-722 доставлена в #108) **→ SM-726** (цвета ввода/вывода/прочего; SM-725 и SM-726 доставлены в #109 и #110) **→ SM-727** (зоны от окна модели; доставлена через PR [#111](https://github.com/SoundBlaster/SessionMonitor/pull/111), squash-merge `6eeba3d`, 2026-10-14) **→ SM-728** (анонимный экспорт сессии; доставлена через PR [#112](https://github.com/SoundBlaster/SessionMonitor/pull/112), squash-merge `465cf1a`, 2026-10-18) **→ SM-723** (исследование лагов; доставлена в #114, squash-merge `d7d8c54`, 2026-10-18) **→ SM-718** (следующая задача: инсайты на этом графике); SM-724 снята с очереди по уточнению пользователя (2026-10-18): работа завершена в Screener; SM-721 закрыта: обрыв наведения давали перекрывающие окна других приложений. **Затем SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). Проверены на Mac: SM-711…SM-715. Остаются `[ ]`: SM-710 (hooks: смена ветки и rebase), SM-716 (подсказка про подпись после `make generate`) и SM-326 (панель открывается и что-то показывает; содержимое не сверено с `doctor --json` и `alerts --status all --json`).
 **SM-413 доставлена** через PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79), merge `ce3600b` (2026-10-11):
 окно Cache analytics (drag/scroll pan, pinch zoom, статистика выбранного интервала крупно над графиком); по решению
 пользователя окно открывается кнопкой «развернуть» в заголовке Sidebar Cache Hit Rate и командой View ▸ Show Cache Analytics,
@@ -1183,7 +1183,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   прямо это говорит. Готово, когда core-тесты покрывают шаги, зоны, дельты, события между запросами и неизвестные значения,
   график встроен в детали сессии с hover-снимком и VoiceOver-описанием, а `CI` зелёный; `[x]` — после проверки на Mac.
 - [ ] **SM-718** — Инсайты на графике анатомии контекста.
-  **Статус: запланировано (2026-10-11), зависит от SM-717.** Маркеры: скачок контекста (запрос добавил много токенов),
+  **Статус: следующая задача (приоритет подтверждён пользователем 2026-10-18), зависит от доставленной SM-717; следует после SM-723.** Маркеры: скачок контекста (запрос добавил много токенов),
   падение (compaction или сброс), провал кэша после паузы (гипотеза, не вывод), холодный старт, выход в красную зону;
   сводка по фазам (токены и запросы в каждой зоне). Пороги — в core-политике, не в UI.
 - [ ] **SM-719** — Ось реального времени для графика анатомии контекста.
@@ -1330,9 +1330,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   текстов evidence и номеров строк. Перед merge локально прошли `make check-core` (234 tests / 40 suites и четыре CLI
   process smokes), `make lint`, FSD lint, архитектурный regression gate и Xcode-tools build-for-testing (233 GUI tests);
   обязательный `CI` на PR прошёл, `git diff --check` чистый.
-- [ ] **SM-723** — Исследовать лаги наведения на графике анатомии контекста.
-  **Статус: реализована, локально проверена (2026-10-18), ветка `fix/sm-723-context-hover-performance`;
-  PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), ожидает review/CI и merge.** Time Profiler подтвердил пересборку chart/lane marks и overview при записи каждого
+- [x] **SM-723** — Исследовать лаги наведения на графике анатомии контекста.
+  **Доставлена через PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), squash-merge `d7d8c54` (2026-10-18);
+  обязательный `CI`, Native checks, Workflow lint, Linux CLI checks и Xcode 26.0 compatibility build прошли.** Time Profiler подтвердил пересборку chart/lane marks и overview при записи каждого
   дробного `selectedX`. Наблюдаемое состояние `ContextAnatomyInspection` хранит индекс и меняется только при переходе
   к другому запросу; его читают overlays карточки/указателя/lane и отдельный accessibility snapshot. Измерение Release
   на 7 196 synthetic requests: median round p95 внутри запроса 13,31 → 1,26 мс, между запросами 25,60 → 16,52 мс;
@@ -1341,11 +1341,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
   единственный XCUITest не стартовал (`Timed out while enabling automation mode`). `make lint`, FSD lint и negative
   architecture gate прошли. Через Computer Use проверена реальная сессия `01a0ce3d-0bbd-76d2-9109-3d2fec0b3e45`
   (7 196 requests, 86 compactions): карточка/график и accessibility increment 1 → 2. Accounting не менялся.
-  [Методика, результаты и воспроизведение](docs/performance/SM-723-context-hover.md). Следом — SM-724.
-- [ ] **SM-724** — Скриншоты Screener с эффектами и без.
-  **Статус: запланировано (2026-10-11), после SM-723.** Debug-сборка с включённым Screener, в которой по желанию
-  отключаются материалы, эффекты, blur и стекло; сравнить кадры Screener с эффектами и без (выделенная строка
-  Sidebar в кадрах `AppKitCaptureSource` сейчас чёрная).
+  [Методика, результаты и воспроизведение](docs/performance/SM-723-context-hover.md). Следом — SM-718.
+- [x] **SM-724** — Скриншоты Screener с эффектами и без.
+  **Снята с очереди SessionMonitor (2026-10-18): по подтверждению пользователя, работа уже завершена в проекте Screener.**
+  Повторная реализация в SessionMonitor не требуется. ID сохранён для истории; новая проверка Screener в рамках
+  этой синхронизации не выполнялась.
 
 ## Evidence и границы
 
