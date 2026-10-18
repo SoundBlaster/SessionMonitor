@@ -68,10 +68,21 @@ has internal Y-range padding for marker clearance without changing its data doma
 - `make lint`, `make lint-architecture`, `make test-architecture` and `git diff --check` passed.
 - Fourteen new `ContextInsightPolicyTests` cover positive/negative rules, threshold boundaries,
   missing input/cache/model, model/window changes, chronology, zero input, overflow, foreign sessions,
-  trailing compaction, source preservation and deterministic IDs. **Not yet run locally:** Xcode MCP
-  requested user approval to open the package workspace. No command-line build was substituted.
-- Real-app Computer Use verification is pending: the Mac was locked. The task-created app process was
-  stopped through Xcode-tools; no extra app instance is left running.
+  trailing compaction, source preservation and deterministic IDs. On **2026-10-19**, after MCP approval,
+  Xcode-tools built the core test bundle. MCP test actions then reported no results because their runner
+  could not locate the bundle executable. Running that same built bundle directly with `xcrun xctest`
+  succeeded: **249 Swift Testing tests in 41 suites plus 9 XCTest tests, all 258 passed**, including the
+  14 new policy tests. This is successful test-runtime evidence, not a successful MCP test-action result;
+  no command-line compilation or replacement build was used.
+- Real-app Computer Use verification passed on **2026-10-19** in the Debug app launched through
+  Xcode-tools: session `01a0ce3d-0bbd-76d2-9109-3d2fec0b3e45` with **7,196 requests, 86 compactions,
+  178 insight signals**. Verified chart markers, the expanded four-zone summary, the adjustable request
+  snapshot, and expanded cold-start evidence for request 1 (34,257 input, 0 cached, explicit window
+  258,400). The explanation states that session start/cache expiry are not established. Evidence remained
+  accessible outside the plot. This real-data smoke used dark appearance; light/dark/narrow rendering is
+  covered separately by native deterministic fixtures.
+- Restored the original report scope **Unknown/Mixed · Today · Local Europe/Moscow**, stopped the
+  task-created app through Xcode-tools and restored the GUI scheme to **MonitorMac / My Mac**.
 - No new Release latency/FPS measurement is claimed. The SM-723 selection-invalidation regressions pass.
 - Full `make check`/`make check-core` were not run locally; builds/tests used Xcode-tools as requested.
   Required GitHub CI must run on this PR's current revision before merge.

@@ -1,12 +1,12 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-18. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-19. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
 
-**SM-718 — реализована, частично проверена локально (2026-10-18), ветка `feat/sm-718-context-insights`; draft PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх docs PR [#115](https://github.com/SoundBlaster/SessionMonitor/pull/115).** SpecificationCore policies формируют независимые сигналы с evidence, UI показывает bounded markers и сводку по зонам/фазам. Xcode-tools build-for-testing прошёл; GUI unit suite: 243 passed + 1 opt-in skip. Core tests пока не запущены: Xcode MCP ожидает одобрения package workspace. Реальный UI smoke заблокирован lock screen. [Правила и evidence](docs/context-insights.md). После доставки — SM-330 (открытие сессии по уведомлению).
+**SM-718 — реализована и локально проверена (2026-10-19), PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх docs PR [#115](https://github.com/SoundBlaster/SessionMonitor/pull/115); ожидает review/CI и merge.** SpecificationCore policies формируют независимые сигналы с evidence, UI показывает bounded markers и сводку по зонам/фазам. Xcode-tools build-for-testing прошёл; GUI unit suite: 243 passed + 1 opt-in skip. Core bundle собран через Xcode-tools; прямой `xcrun xctest` прошёл все 258 core tests (249 Swift Testing + 9 XCTest, включая 14 новых policy tests). MCP test runner отдельно не смог загрузить bundle, это не выдано за passed. Через Computer Use проверены реальная сессия с 7 196 requests, 178 signals, сводка и раскрытие evidence; исходный scope восстановлен. [Правила и evidence](docs/context-insights.md). После доставки — SM-330 (открытие сессии по уведомлению).
 
 **SM-723 доставлена через PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), squash-merge `d7d8c54` (2026-10-18); обязательный `CI` прошёл.** Hover обновляет отдельные overlays без пересборки marks и overview. На 7 196 synthetic requests p95 replay внутри запроса: 13,31 → 1,26 мс; между запросами: 25,60 → 16,52 мс. Методика и границы измерения — [SM-723](docs/performance/SM-723-context-hover.md). **Активная задача — SM-718: инсайты на графике анатомии контекста.** SM-724 снята с очереди SessionMonitor: по подтверждению пользователя (2026-10-18), работа уже завершена в проекте Screener; повторная реализация здесь не требуется.
 
@@ -1185,7 +1185,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   прямо это говорит. Готово, когда core-тесты покрывают шаги, зоны, дельты, события между запросами и неизвестные значения,
   график встроен в детали сессии с hover-снимком и VoiceOver-описанием, а `CI` зелёный; `[x]` — после проверки на Mac.
 - [ ] **SM-718** — Инсайты на графике анатомии контекста.
-  **Статус: реализована, частично проверена локально (2026-10-18), ветка `feat/sm-718-context-insights`; draft PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх #115.**
+  **Статус: реализована и локально проверена (2026-10-19), PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх #115; ожидает review/CI и merge.**
   `MonitorPolicies` использует SpecificationCore `DecisionSpec` и `.and` для сопоставимости/порогов. Сигналы:
   скачок/падение input, явная compaction, cold-start candidate, cache drop после паузы (оба — гипотезы),
   вход в critical zone только при двух явных одинаковых окнах модели. Неизвестный input разрывает сравнение;
@@ -1197,9 +1197,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
   ограничивают публикацию результата. Canonical accounting, quota и store не менялись.
   Проверки: Xcode-tools build-for-testing; 243 GUI unit tests passed, 1 штатный opt-in skip; SwiftLint/FSD и
   negative architecture gate — passed. Native light/dark/narrow fixture captures в xcresult; regression
-  плотности на 7 196 requests. Добавлено 14 core policy tests; локальный запуск ожидает одобрения Xcode MCP
-  для package workspace. Реальный UI smoke ожидает разблокировки Mac; full `make check` не запускался.
-  `[ ]` сохраняется до оставшихся проверок и доставки. [Правила и evidence](docs/context-insights.md).
+  плотности на 7 196 requests. Core bundle собран Xcode-tools; прямой `xcrun xctest` прошёл 249 Swift Testing
+  tests + 9 XCTest (все 258, включая 14 новых policy tests). MCP test-action не загрузил executable bundle;
+  это ограничение runner, а не passed MCP run. Real-data dark UI smoke через Computer Use: 7 196 requests,
+  178 signals, сводка по зонам, accessibility snapshot и раскрытие cold-start evidence. Scope Today/Unknown/Mixed/Local
+  восстановлен, task-created app остановлен. Full `make check` не запускался; `[ ]` — до доставки через PR.
+  [Правила и evidence](docs/context-insights.md).
 - [ ] **SM-719** — Ось реального времени для графика анатомии контекста.
   **Статус: отложено (2026-10-11), по решению пользователя — после SM-717/SM-718.** Переключатель «по запросам / по времени»;
   паузы между запросами становятся видны на оси.
