@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-718 — реализована, частично проверена локально (2026-10-18), ветка `feat/sm-718-context-insights`; готовится draft PR поверх docs PR [#115](https://github.com/SoundBlaster/SessionMonitor/pull/115).** SpecificationCore policies формируют независимые сигналы с evidence, UI показывает bounded markers и сводку по зонам/фазам. Xcode-tools build-for-testing прошёл; GUI unit suite: 243 passed + 1 opt-in skip. Core tests пока не запущены: Xcode MCP ожидает одобрения package workspace. Реальный UI smoke заблокирован lock screen. [Правила и evidence](docs/context-insights.md). После доставки — SM-330 (открытие сессии по уведомлению).
+**SM-718 — реализована, частично проверена локально (2026-10-18), ветка `feat/sm-718-context-insights`; draft PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх docs PR [#115](https://github.com/SoundBlaster/SessionMonitor/pull/115).** SpecificationCore policies формируют независимые сигналы с evidence, UI показывает bounded markers и сводку по зонам/фазам. Xcode-tools build-for-testing прошёл; GUI unit suite: 243 passed + 1 opt-in skip. Core tests пока не запущены: Xcode MCP ожидает одобрения package workspace. Реальный UI smoke заблокирован lock screen. [Правила и evidence](docs/context-insights.md). После доставки — SM-330 (открытие сессии по уведомлению).
 
 **SM-723 доставлена через PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), squash-merge `d7d8c54` (2026-10-18); обязательный `CI` прошёл.** Hover обновляет отдельные overlays без пересборки marks и overview. На 7 196 synthetic requests p95 replay внутри запроса: 13,31 → 1,26 мс; между запросами: 25,60 → 16,52 мс. Методика и границы измерения — [SM-723](docs/performance/SM-723-context-hover.md). **Активная задача — SM-718: инсайты на графике анатомии контекста.** SM-724 снята с очереди SessionMonitor: по подтверждению пользователя (2026-10-18), работа уже завершена в проекте Screener; повторная реализация здесь не требуется.
 
@@ -1185,7 +1185,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   прямо это говорит. Готово, когда core-тесты покрывают шаги, зоны, дельты, события между запросами и неизвестные значения,
   график встроен в детали сессии с hover-снимком и VoiceOver-описанием, а `CI` зелёный; `[x]` — после проверки на Mac.
 - [ ] **SM-718** — Инсайты на графике анатомии контекста.
-  **Статус: реализована, частично проверена локально (2026-10-18), ветка `feat/sm-718-context-insights`; draft PR готовится поверх #115.**
+  **Статус: реализована, частично проверена локально (2026-10-18), ветка `feat/sm-718-context-insights`; draft PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх #115.**
   `MonitorPolicies` использует SpecificationCore `DecisionSpec` и `.and` для сопоставимости/порогов. Сигналы:
   скачок/падение input, явная compaction, cold-start candidate, cache drop после паузы (оба — гипотезы),
   вход в critical zone только при двух явных одинаковых окнах модели. Неизвестный input разрывает сравнение;

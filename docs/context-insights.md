@@ -58,8 +58,9 @@ has internal Y-range padding for marker clearance without changing its data doma
 ## Validation and remaining evidence
 
 - Xcode-tools `BuildProject(buildForTesting: true)` succeeded.
-- Targeted GUI/model run: 41/41 passed; final complete `MonitorMacTests` run: 243 passed,
-  1 normal opt-in hover-benchmark skip, 0 failures. The UI-test target was not run.
+- Targeted GUI/model run: 41/41 passed; complete `MonitorMacTests` run: 243 passed,
+  1 normal opt-in hover-benchmark skip, 0 failures. After the final scope guard, the affected suites
+  passed 11/11. The UI-test target was not run.
 - Six new presentation tests cover 7,196-request marker density, stable IDs, signal priority,
   zone totals, retained evidence after pointer exit, and native light/dark/narrow rendering.
 - Native `NSHostingView` fixture captures are attached to the test result. Swift Charts did not render
