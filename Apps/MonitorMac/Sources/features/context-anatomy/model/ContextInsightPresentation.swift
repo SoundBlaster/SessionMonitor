@@ -1,4 +1,5 @@
 import MonitorCore
+import SwiftUI
 
 /// Cached UI projection, built with the policy report rather than on hover.
 struct ContextInsightPresentation: Sendable {
@@ -61,6 +62,15 @@ struct ContextInsightPresentation: Sendable {
             bins[bin] = marker
         }
         return bins.values.sorted { $0.index < $1.index }
+    }
+
+    static func zoneTitle(_ zone: ContextFillZone) -> LocalizedStringKey {
+        switch zone {
+        case .low: "Low"
+        case .moderate: "Moderate"
+        case .high: "High"
+        case .critical: "Critical"
+        }
     }
 
     static func symbol(_ kind: ContextInsightKind) -> String {

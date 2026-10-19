@@ -55,6 +55,12 @@ Input includes cached input; these sums are **request volume**, not unique conte
 money. Zone colors use the existing anatomy basis: usable model window when reported, otherwise the
 session's own peak. Peak-relative critical rows do not mean the model is near capacity.
 
+## Design System
+
+The visual primitives are shared app components: cards/surfaces, badges, metrics, adaptive headings and
+evidence disclosures. Domain formatting, labels, policy results and inspection observation remain in this
+feature. See [App Design System](design-system.md) for component contracts and the visual parity check.
+
 ## Update and accessibility contract
 
 The feature computes anatomy, policy report and UI projection once per timeline snapshot in a detached

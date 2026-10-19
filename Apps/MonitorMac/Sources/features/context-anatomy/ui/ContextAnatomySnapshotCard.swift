@@ -10,27 +10,24 @@ struct ContextAnatomySnapshotCard: View {
     var insights: [ContextInsight] = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: ContextInsightStyle.itemSpacing) {
-            ContextSnapshotHeading(step: step, requestCount: requestCount, timeZone: timeZone)
-            ContextSnapshotContext(step: step, palette: palette)
-            Divider()
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: ContextInsightStyle.snapshotMetricMinimumWidth),
-                                        alignment: .leading)],
-                      alignment: .leading, spacing: ContextInsightStyle.itemSpacing) {
-                ContextSnapshotMetric(title: "Cached", tokens: step.cachedInputTokens)
-                ContextSnapshotMetric(title: "New", tokens: step.newInputTokens)
-                ContextSnapshotMetric(title: "Output", tokens: step.outputTokens)
-            }
-            if !insights.isEmpty {
-                Text("\(insights.count) signals · details in Context insights")
-                    .font(.caption2).foregroundStyle(.secondary)
+        DesignCard(surface: .floating) {
+            VStack(alignment: .leading, spacing: DesignTokens.Spacing.item) {
+                ContextSnapshotHeading(step: step, requestCount: requestCount, timeZone: timeZone)
+                ContextSnapshotContext(step: step, palette: palette)
+                Divider()
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: DesignTokens.Layout.compactMetricMinimumWidth),
+                                            alignment: .leading)],
+                          alignment: .leading, spacing: DesignTokens.Spacing.item) {
+                    ContextSnapshotMetric(title: "Cached", tokens: step.cachedInputTokens)
+                    ContextSnapshotMetric(title: "New", tokens: step.newInputTokens)
+                    ContextSnapshotMetric(title: "Output", tokens: step.outputTokens)
+                }
+                if !insights.isEmpty {
+                    Text("\(insights.count) signals · details in Context insights")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
             }
         }
-        .padding(ContextInsightStyle.cardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: ContextInsightStyle.cornerRadius))
-        .overlay(RoundedRectangle(cornerRadius: ContextInsightStyle.cornerRadius).stroke(.quaternary))
-        .shadow(color: .black.opacity(0.15), radius: ContextInsightStyle.shadowRadius, y: 2)
         .accessibilityHidden(true)
     }
 }
@@ -41,11 +38,11 @@ private struct ContextSnapshotHeading: View {
     let timeZone: TimeZone
 
     var body: some View {
-        VStack(alignment: .leading, spacing: ContextInsightStyle.tightSpacing) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.inline) {
             ViewThatFits(in: .horizontal) {
                 HStack {
                     Text("Request \(step.index)").fontWeight(.semibold)
-                    Spacer(minLength: ContextInsightStyle.itemSpacing)
+                    Spacer(minLength: DesignTokens.Spacing.item)
                     Text("of \(requestCount)").foregroundStyle(.secondary)
                 }
                 Text("Request \(step.index) of \(requestCount)").fontWeight(.semibold)
@@ -62,22 +59,22 @@ private struct ContextSnapshotContext: View {
     let palette: UsageChartPalette
 
     var body: some View {
-        VStack(alignment: .leading, spacing: ContextInsightStyle.tightSpacing) {
+        VStack(alignment: .leading, spacing: DesignTokens.Spacing.inline) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(ContextAnatomyPresentation.compactTokens(step.contextTokens))
                         .font(.title2.weight(.semibold))
                         .accessibilityLabel("Context tokens")
-                    Spacer(minLength: ContextInsightStyle.itemSpacing)
-                    ContextInsightBadge(title: ContextInsightStyle.zoneTitle(step.zone),
-                                        fill: palette.color(for: step.zone))
+                    Spacer(minLength: DesignTokens.Spacing.item)
+                    DesignBadge(title: Text(ContextInsightPresentation.zoneTitle(step.zone)),
+                                fill: palette.color(for: step.zone))
                 }
-                VStack(alignment: .leading, spacing: ContextInsightStyle.tightSpacing) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.inline) {
                     Text(ContextAnatomyPresentation.compactTokens(step.contextTokens))
                         .font(.title2.weight(.semibold))
                         .accessibilityLabel("Context tokens")
-                    ContextInsightBadge(title: ContextInsightStyle.zoneTitle(step.zone),
-                                        fill: palette.color(for: step.zone))
+                    DesignBadge(title: Text(ContextInsightPresentation.zoneTitle(step.zone)),
+                                fill: palette.color(for: step.zone))
                 }
             }
             if let window = step.contextWindowTokens {
@@ -106,10 +103,7 @@ private struct ContextSnapshotMetric: View {
     let tokens: Int64?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title).foregroundStyle(.secondary)
-            Text(tokens.map(ContextAnatomyPresentation.compactTokens) ?? "Unknown").fontWeight(.semibold)
-        }
-        .font(.caption).monospacedDigit()
+        DesignMetric(title: Text(title),
+                     value: Text(tokens.map(ContextAnatomyPresentation.compactTokens) ?? "Unknown"), emphasis: .compact)
     }
 }

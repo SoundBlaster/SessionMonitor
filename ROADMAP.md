@@ -6,12 +6,19 @@
 
 ## Текущая точка
 
+**SM-729 — реализована и локально проверена (2026-10-19): Design System карточек SM-718.**
+PR [#117](https://github.com/SoundBlaster/SessionMonitor/pull/117) поверх #116: `shared/ui` содержит card surfaces, badge, metric, adaptive header и
+binding-driven evidence disclosure; `shared/lib` — общие tokens. Domain/formatting/inspection остаются в feature.
+Xcode-tools build-for-testing и 15 targeted tests прошли; SwiftLint (249 файлов), FSD/negative gate и diff — passed.
+Все 6 native fixture-снимков до/после совпали попиксельно. [Контракты](docs/design-system.md).
+Следующий шаг — review и доставка слоя после #116; затем SM-330.
 **SM-718 — review P2 о provenance исправлен (2026-10-19), PR #116.**
 Evidence сохраняет response IDs запросов и source lines отдельных compaction events до projection в anatomy.
 Три regression tests проверяют пары/JSON, несколько событий через unknown-input gap, foreign/trailing events
 и отсутствие выдуманных IDs. Core bundle собран Xcode-tools; `xcrun xctest`: 252 Swift Testing + 9 XCTest,
 все 261 passed. MCP package runner по-прежнему не загрузил executable; это отдельно от успешного прямого runtime.
-Обновляется зависимый слой Design System #117; merge не запрошен.
+Зависимый слой Design System #117 обновлён: Xcode-tools app build и 15 GUI tests прошли повторно;
+merge не запрошен.
 
 **SM-718 — карточки переработаны по замечанию пользователя (2026-10-19), в PR #116.**
 Плавающий snapshot: размер контекста, зона, компактная сетка cached/new/output. Под графиком —
@@ -1218,6 +1225,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
   178 signals, сводка по зонам, accessibility snapshot и раскрытие cold-start evidence. Scope Today/Unknown/Mixed/Local
   восстановлен, task-created app остановлен. Full `make check` не запускался; `[ ]` — до доставки через PR.
   [Правила и evidence](docs/context-insights.md).
+- [ ] **SM-729** — Выделить компоненты Design System из карточек context insights.
+  **Статус: реализована и локально проверена (2026-10-19), PR [#117](https://github.com/SoundBlaster/SessionMonitor/pull/117); ожидает review/CI/merge.** Зависимость: SM-718 / PR #116.
+  `shared/ui`: DesignCard, DesignBadge, DesignMetric, DesignCardHeader, DesignEvidenceDisclosure;
+  `shared/lib`: DesignTokens. Shared импортирует только SwiftUI; domain mapping/formatting и inspection остаются
+  в feature. Сохранены binding/state ownership, unknown, palette, идентификаторы и hover boundaries.
+  Xcode-tools build-for-testing и 15 targeted tests прошли; SwiftLint (249 файлов), FSD/negative gate,
+  diff checks — passed. Все 6 native light/dark/narrow fixtures попиксельно идентичны baseline `0cdec9d`.
+  [Контракты и воспроизведение](docs/design-system.md). `[ ]` — до доставки через PR.
+
 - [ ] **SM-719** — Ось реального времени для графика анатомии контекста.
   **Статус: отложено (2026-10-11), по решению пользователя — после SM-717/SM-718.** Переключатель «по запросам / по времени»;
   паузы между запросами становятся видны на оси.
