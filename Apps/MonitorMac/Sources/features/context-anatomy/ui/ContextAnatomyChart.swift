@@ -10,6 +10,7 @@ struct ContextAnatomyChart: View {
     let anatomy: ContextAnatomy
     let timeZone: TimeZone
     let palette: UsageChartPalette
+    let insights: ContextInsightPresentation?
 
     @State private var inspection: ContextAnatomyInspection
     @State private var plotInsets = ContextAnatomyPlotInsets.zero
@@ -17,10 +18,12 @@ struct ContextAnatomyChart: View {
     @State private var storedViewport: ContextAnatomyViewport?
 
     init(anatomy: ContextAnatomy, timeZone: TimeZone, palette: UsageChartPalette,
-         inspection: ContextAnatomyInspection = ContextAnatomyInspection()) {
+         inspection: ContextAnatomyInspection = ContextAnatomyInspection(),
+         insights: ContextInsightPresentation? = nil) {
         self.anatomy = anatomy
         self.timeZone = timeZone
         self.palette = palette
+        self.insights = insights
         _inspection = State(initialValue: inspection)
     }
 
@@ -48,13 +51,19 @@ struct ContextAnatomyChart: View {
             .font(.caption2)
             .foregroundStyle(.secondary)
             sizeChart(steps)
+                .zIndex(1) // A narrow/large-text preview must remain above the lane, never interleave with its marks.
                 .focusable()
                 .onKeyPress(.leftArrow) { step(by: -1) }
                 .onKeyPress(.rightArrow) { step(by: 1) }
                 .overlay(alignment: .topLeading) {
                     ContextAnatomyInspectionAccessibility(anatomy: anatomy, timeZone: timeZone,
-                                                         inspection: inspection, onStep: { step(by: $0) })
+                                                         inspection: inspection, insights: insights,
+                                                         onStep: { step(by: $0) })
                 }
+            if insights != nil {
+                Text("Triangles mark representative insights; inspect any request for all signals and evidence.")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
             ContextAnatomyLane(steps: steps, domain: domain, inspection: inspection, palette: palette)
                 .padding(.leading, plotInsets.leading)
                 .padding(.trailing, plotInsets.trailing)
@@ -115,9 +124,22 @@ struct ContextAnatomyChart: View {
             ForEach(steps) { step in
                 eventMarks(step)
             }
+            if let insights {
+                ForEach(insights.visibleMarkers(in: domain, width: plotWidth)) { marker in
+                    let step = anatomy.steps[marker.index - 1]
+                    PointMark(x: .value("Request", Double(marker.index)),
+                              y: .value("Context tokens", Double(step.contextTokens)))
+                        .symbol(.triangle)
+                        .symbolSize(60)
+                        .foregroundStyle(marker.kind == .criticalEntry ? palette.warning : palette.flowOther)
+                        .accessibilityLabel("Request \(marker.index) insights")
+                        .accessibilityValue(marker.titles)
+                }
+            }
         }
         .chartXScale(domain: domain)
         .chartYScale(domain: ContextAnatomyPresentation.yDomain(peak: anatomy.peakContextTokens))
+        .chartYScale(range: .plotDimension(startPadding: 6, endPadding: 6))
         .chartPlotStyle { $0.clipped() }
         .chartXAxis { requestAxis }
         .chartYAxis { tokenAxis }
@@ -164,7 +186,7 @@ struct ContextAnatomyChart: View {
                     .allowsHitTesting(false)
                 ContextAnatomyInspectionOverlay(
                     anatomy: anatomy, timeZone: timeZone, palette: palette,
-                    inspection: inspection, proxy: proxy, plot: plot,
+                    inspection: inspection, insights: insights, proxy: proxy, plot: plot,
                     onZoom: { zoom(by: $0, anchor: $1) },
                     onPan: { pan(by: $0) }
                 )
