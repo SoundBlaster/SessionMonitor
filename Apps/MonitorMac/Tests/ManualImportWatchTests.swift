@@ -274,8 +274,8 @@ private struct ManualImportFixture {
     let suite = "ManualImportWatchTests.\(UUID())"
     init() throws {
         root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        watched = root.appending(path: "watched")
-        selected = root.appending(path: "selected")
+        watched = root.appendingPathComponent("watched", isDirectory: true)
+        selected = root.appendingPathComponent("selected", isDirectory: true)
         database = root.appending(path: "usage.sqlite")
         defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         try FileManager.default.createDirectory(at: watched, withIntermediateDirectories: true)
