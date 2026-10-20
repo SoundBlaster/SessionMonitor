@@ -58,6 +58,8 @@ struct SessionTimelineLoadID: Hashable {
     let query: UsageQuery
 }
 
+typealias SessionImportOperation = @Sendable (URL, any SessionExplorerRuntime) async throws -> ImportSummary
+
 @MainActor
 @Observable
 final class SessionExplorerModel {
@@ -89,10 +91,12 @@ final class SessionExplorerModel {
     let timelineModel = RequestTimelineModel()
     @ObservationIgnored private let runtimeFactory: @Sendable () async throws -> any SessionExplorerRuntime
     @ObservationIgnored private let importedDirectorySettings: ImportedDirectorySettings
+    @ObservationIgnored private let importOperation: SessionImportOperation
     @ObservationIgnored private var runtime: (any SessionExplorerRuntime)?
     @ObservationIgnored private var loadedQuery: UsageQuery?
 
     init(
+        importOperation: @escaping SessionImportOperation = { try await $1.importDirectory($0) },
         runtimeFactory: @escaping @Sendable () async throws -> any SessionExplorerRuntime,
         importedDirectorySettings: ImportedDirectorySettings = ImportedDirectorySettings()
     ) {
@@ -105,6 +109,7 @@ final class SessionExplorerModel {
             snapshot: SessionReportSnapshot(report: empty, selectedSessionID: nil)
         )
         self.runtimeFactory = runtimeFactory
+        self.importOperation = importOperation
     }
 
     var visibleSessions: [SessionSummary] {
@@ -276,13 +281,15 @@ final class SessionExplorerModel {
         }
         do {
             let runtime = try await resolvedRuntime()
-            let summary = try await runtime.importDirectory(directory)
+            let summary = try await importOperation(directory, runtime)
             importedDirectory = directory
             importedDirectorySettings.save(directory)
             let requestedQuery = query
             let snapshot = try await runtime.snapshot(query: requestedQuery)
             importSummary = summary
             apply(snapshot, expectedQuery: requestedQuery)
+        } catch is CancellationError {
+            // Cancellation does not need an error banner.
         } catch MonitorError.importerBusy {
             failure = .importerBusy(directory)
         } catch {

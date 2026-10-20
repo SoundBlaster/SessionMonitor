@@ -1,4 +1,5 @@
 import Foundation
+import MonitorCore
 import MonitorRuntime
 import Observation
 
@@ -23,6 +24,7 @@ final class AppWatchController {
     private(set) var isBusy = false
     private(set) var isShuttingDown = false
     private(set) var isRunning = false
+    private(set) var isImporting = false
 
     @ObservationIgnored private let factory:
         @Sendable (URL) async throws -> any AppWatchHandle
@@ -36,6 +38,7 @@ final class AppWatchController {
     @ObservationIgnored private var stopTask: Task<Void, Never>?
     @ObservationIgnored private var stopTaskID: UUID?
     @ObservationIgnored private var shutdownTask: Task<Void, Never>?
+    @ObservationIgnored private var manualImportTask: Task<ImportSummary, Error>?
     @ObservationIgnored private var lifecycleGeneration = 0
     @ObservationIgnored private var activityGeneration = 0
     @ObservationIgnored private var observedImportCount = 0
@@ -50,7 +53,7 @@ final class AppWatchController {
 
     /// Starts exactly one watch for the selected directory.
     func start(_ directory: URL) async {
-        guard !isShuttingDown, !isBusy, handle == nil, startupTask == nil else { return }
+        guard !isShuttingDown, !isImporting, !isBusy, handle == nil, startupTask == nil else { return }
 
         lifecycleGeneration &+= 1
         let generation = lifecycleGeneration
@@ -162,6 +165,8 @@ final class AppWatchController {
         isShuttingDown = true
         let task: Task<Void, Never> = Task { [weak self] in
             guard let self else { return }
+            self.manualImportTask?.cancel()
+            _ = await self.manualImportTask?.result
             await self.stop()
         }
         shutdownTask = task
@@ -293,8 +298,42 @@ final class AppWatchController {
         startupTask?.cancel()
         stopTask?.cancel()
         shutdownTask?.cancel()
+        manualImportTask?.cancel()
         if let access = securityScopedAccess, access.acquired {
             access.directory.stopAccessingSecurityScopedResource()
+        }
+    }
+}
+
+extension AppWatchController {
+    /// All windows share this controller. A manual import joins Watch cleanup, then owns the
+    /// app's import slot until completion. Explicit Start Watch is rejected during that slot.
+    func importManually(
+        operation: @escaping @Sendable () async throws -> ImportSummary
+    ) async throws -> ImportSummary {
+        try Task.checkCancellation()
+        while let pending = manualImportTask {
+            _ = await pending.result
+            try Task.checkCancellation()
+        }
+        guard !isShuttingDown else { throw CancellationError() }
+        isImporting = true
+        let task = Task {
+            defer {
+                manualImportTask = nil
+                isImporting = false
+            }
+            try Task.checkCancellation()
+            await stop()
+            try Task.checkCancellation()
+            guard !isShuttingDown else { throw CancellationError() }
+            return try await operation()
+        }
+        manualImportTask = task
+        return try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
         }
     }
 }

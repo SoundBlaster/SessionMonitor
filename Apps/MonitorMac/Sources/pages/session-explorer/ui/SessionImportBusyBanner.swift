@@ -19,26 +19,26 @@ struct SessionImportBusyBanner: View {
             Text("Could not import “\(directory.lastPathComponent)”.")
                 .font(.callout).textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Watch in this app can hold the database, even while paused. "
-                 + "Another SessionMonitor instance, CLI Watch, or import can also hold it.")
+            Text("Manual import stops Watch in this app first. "
+                 + "Another SessionMonitor instance, CLI Watch, or import can still hold the database.")
                 .font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.inline) {
-                Text("1. Open the SessionMonitor menu bar menu and choose Stop Watch.")
-                Text("2. Wait for Watch to stop, then retry this folder.")
+                Text("1. Let another import finish, or choose Stop Watch in the other SessionMonitor instance.")
+                Text("2. Retry this folder after the other importer has stopped.")
             }
             .font(.callout).fixedSize(horizontal: false, vertical: true)
             HStack {
                 Button("Retry Import", action: retry)
                     .buttonStyle(.bordered).disabled(isBusy)
                     .accessibilityIdentifier("sessionExplorer.importBusy.retry")
-                Text("Pause Watch keeps the database reserved.")
+                Text("Pausing another Watch keeps the database reserved.")
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             DisclosureGroup("If the database is still busy") {
-                Text("Stop Watch in any other SessionMonitor instance or stop codex-monitor watch with Control-C. "
-                     + "If another import is running, let it finish. Retry uses this same folder; "
+                Text("Stop codex-monitor watch with Control-C. Watch in this app stays stopped after manual import. "
+                     + "Retry uses this same folder; "
                      + "your existing report is kept when an import cannot start.")
                     .font(.callout).foregroundStyle(.secondary)
                     .padding(.top, DesignTokens.Spacing.item)
