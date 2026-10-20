@@ -10,7 +10,8 @@
 По уточнению пользователя Import/Update/Retry сначала останавливают свой Watch и дожидаются cleanup.
 Watch не возобновляется автоматически. Общая для окон координация исключает новый Start во время
 ручного импорта и сериализует ручные импорты; чужой importer по-прежнему защищён flock.
-Отдельный слой поверх draft PR #118: 7 новых tests подготовлены для active/paused/pending Watch,
+Draft PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) поверх #118:
+7 новых tests подготовлены для active/paused/pending Watch,
 cleanup ordering, ошибки/отмены, двух окон, shutdown и сохранения external ownership.
 `make generate`, SwiftLint/FSD/negative gate и diff passed. Сборка, запуск tests и visual checks
 не выполнены: Xcode MCP всё ещё ожидает одобрения. Следующий шаг — завершить эти проверки и review.
@@ -1263,7 +1264,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Ownership/locking не менялись. `[ ]` — до доставки через PR.
 
 - [ ] **SM-731** — Координация ручного импорта с собственным Watch.
-  **Статус: реализована, ожидает Xcode verification (2026-10-20), отдельный слой поверх #118.** Import/Update/Retry
+  **Статус: реализована, draft PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) поверх #118,
+  ожидает Xcode verification (2026-10-20).** Import/Update/Retry
   останавливают свой active/paused/pending Watch и ждут cleanup перед импортом любой выбранной папки.
   После операции Watch остаётся остановленным. Запретить новый Start до завершения и сериализовать
   импорты разных окон сериализованы. Single-writer lease и защита от другого процесса сохранены,
