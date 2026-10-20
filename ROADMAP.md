@@ -7,6 +7,7 @@
 ## Текущая точка
 
 **SM-730 — реализована, проверка Xcode ожидает доступа (2026-10-20): справка при занятой базе.**
+Draft PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118), base `main`.
 Пользователь подтвердил: Stop Watch устраняет importerBusy при ручном импорте. UI объясняет собственный
 Watch (включая paused), Stop Watch и Retry Import той же папки. Typed error не подменяет последний
 успешный источник/отчёт; dismissal и другая ошибка очищают recovery. Ownership/locking не менялись.
@@ -1244,7 +1245,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   [Контракты и воспроизведение](docs/design-system.md). `[ ]` — до доставки через PR.
 
 - [ ] **SM-730** — Справка и повтор ручного импорта при importerBusy.
-  **Статус: реализована, ожидает Xcode verification (2026-10-20).** Отдельная справка объясняет
+  **Статус: реализована, draft PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118),
+  ожидает Xcode verification (2026-10-20).** Отдельная справка объясняет
   собственный Watch, Pause vs Stop и другие возможные importers; Retry Import использует ту же папку
   в памяти. Последний успешный источник/отчёт сохраняются; другая ошибка и dismissal очищают recovery.
   README дополнен troubleshooting. SwiftLint/FSD/negative gate и diff passed; 4 новых tests подготовлены,
