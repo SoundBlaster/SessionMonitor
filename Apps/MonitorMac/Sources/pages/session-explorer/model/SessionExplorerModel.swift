@@ -73,7 +73,9 @@ final class SessionExplorerModel {
     private(set) var query: UsageQuery
     @ObservationIgnored private var chartScope: UsageQuery?
     private(set) var activity: Activity = .idle
-    private(set) var errorMessage: String?
+    private var failure: SessionExplorerFailure?
+    var errorMessage: String? { failure?.message }
+    var importRecoveryDirectory: URL? { failure?.importRecoveryDirectory }
     private(set) var importSummary: ImportSummary?
     private(set) var importedDirectory: URL?
     private(set) var lastUpdated: Date?
@@ -162,10 +164,6 @@ final class SessionExplorerModel {
         return try export.encodedJSON()
     }
 
-    func reportError(_ message: String) {
-        errorMessage = message
-    }
-
     func loadCacheHitRateWidget(
         period: CacheHitRateWidgetPeriod, referenceDate: Date = Date(), timeZone: TimeZone,
         followsReportScope: Bool = false, scopeQuery: UsageQuery? = nil
@@ -183,7 +181,7 @@ final class SessionExplorerModel {
             cacheHitRateWidgetReport = report
         } catch {
             guard !Task.isCancelled, query == requestedQuery else { return }
-            errorMessage = "Could not load the cache hit widget. \(error.localizedDescription)"
+            failure = .message("Could not load the cache hit widget. \(error.localizedDescription)")
         }
     }
 
@@ -238,14 +236,14 @@ final class SessionExplorerModel {
             // Window lifetime ended.
         } catch {
             guard !Task.isCancelled else { return }
-            errorMessage = "Could not observe the report. \(error.localizedDescription)"
+            failure = .message("Could not observe the report. \(error.localizedDescription)")
         }
     }
 
     func refresh() async {
         guard !isBusy else { return }
         activity = .loading
-        errorMessage = nil
+        failure = nil
         defer { activity = .idle }
         do {
             let runtime = try await resolvedRuntime()
@@ -253,7 +251,7 @@ final class SessionExplorerModel {
             let snapshot = try await runtime.snapshot(query: requestedQuery)
             apply(snapshot, expectedQuery: requestedQuery)
         } catch {
-            errorMessage = "Could not load the report. \(error.localizedDescription)"
+            failure = .message("Could not load the report. \(error.localizedDescription)")
         }
     }
 
@@ -269,7 +267,7 @@ final class SessionExplorerModel {
     func importDirectory(_ directory: URL) async {
         guard !isBusy else { return }
         activity = .importing
-        errorMessage = nil
+        failure = nil
         importSummary = nil
         let scopedAccess = directory.startAccessingSecurityScopedResource()
         defer {
@@ -285,13 +283,11 @@ final class SessionExplorerModel {
             let snapshot = try await runtime.snapshot(query: requestedQuery)
             importSummary = summary
             apply(snapshot, expectedQuery: requestedQuery)
+        } catch MonitorError.importerBusy {
+            failure = .importerBusy(directory)
         } catch {
-            errorMessage = "Could not import \(directory.lastPathComponent). \(error.localizedDescription)"
+            failure = .message("Could not import \(directory.lastPathComponent). \(error.localizedDescription)")
         }
-    }
-
-    func dismissError() {
-        errorMessage = nil
     }
 
     /// The runtime the findings panel reads from, opened on first use like every other load.
@@ -344,6 +340,21 @@ final class SessionExplorerModel {
             report: report,
             selectedSessionID: navigation.selectedSessionID
         ))
+    }
+}
+
+extension SessionExplorerModel {
+    func reportError(_ message: String) {
+        failure = .message(message)
+    }
+
+    func retryImport() async {
+        guard let directory = importRecoveryDirectory else { return }
+        await importDirectory(directory)
+    }
+
+    func dismissError() {
+        failure = nil
     }
 }
 

@@ -17,7 +17,14 @@ struct SessionExplorerPage: View {
                 .navigationSplitViewColumnWidth(min: 240, ideal: 290, max: 420)
         } detail: {
             VStack(spacing: 0) {
-                if let error = model.errorMessage {
+                if let directory = model.importRecoveryDirectory {
+                    SessionImportBusyBanner(directory: directory, isBusy: model.isBusy, retry: {
+                        Task {
+                            await model.retryImport()
+                            await reportScope.refreshProfiles()
+                        }
+                    }, dismiss: model.dismissError)
+                } else if let error = model.errorMessage {
                     errorBanner(error)
                 }
                 if let session = model.selectedSession {

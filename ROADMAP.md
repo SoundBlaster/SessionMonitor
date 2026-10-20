@@ -1,10 +1,19 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-19. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-20. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
+
+**SM-730 — реализована, проверка Xcode ожидает доступа (2026-10-20): справка при занятой базе.**
+Пользователь подтвердил: Stop Watch устраняет importerBusy при ручном импорте. UI объясняет собственный
+Watch (включая paused), Stop Watch и Retry Import той же папки. Typed error не подменяет последний
+успешный источник/отчёт; dismissal и другая ошибка очищают recovery. Ownership/locking не менялись.
+SwiftLint (252 source files и отдельно 2 test files), FSD/negative gate и diff passed. Подготовлены
+4 targeted tests, включая native light/dark/narrow fixtures; сборка и запуск пока не выполнены:
+Xcode MCP ожидает нового одобрения агента. Следующий шаг — одобрить доступ, запустить GUI tests
+и проверить снимки; затем review/delivery. Сам конфликт Watch/manual import выделен в SM-731.
 
 **SM-729 — реализована и локально проверена (2026-10-19): Design System карточек SM-718.**
 PR [#117](https://github.com/SoundBlaster/SessionMonitor/pull/117) поверх #116: `shared/ui` содержит card surfaces, badge, metric, adaptive header и
@@ -1233,6 +1242,21 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Xcode-tools build-for-testing и 15 targeted tests прошли; SwiftLint (249 файлов), FSD/negative gate,
   diff checks — passed. Все 6 native light/dark/narrow fixtures попиксельно идентичны baseline `0cdec9d`.
   [Контракты и воспроизведение](docs/design-system.md). `[ ]` — до доставки через PR.
+
+- [ ] **SM-730** — Справка и повтор ручного импорта при importerBusy.
+  **Статус: реализована, ожидает Xcode verification (2026-10-20).** Отдельная справка объясняет
+  собственный Watch, Pause vs Stop и другие возможные importers; Retry Import использует ту же папку
+  в памяти. Последний успешный источник/отчёт сохраняются; другая ошибка и dismissal очищают recovery.
+  README дополнен troubleshooting. SwiftLint/FSD/negative gate и diff passed; 4 новых tests подготовлены,
+  но не запускались. Xcode MCP требует нового одобрения агента; после него выполнить app build,
+  targeted GUI/model tests и осмотреть native light/dark/narrow captures. Ownership/locking не менялись.
+
+- [ ] **SM-731** — Координация ручного импорта с собственным Watch.
+  **Статус: запланировано (2026-10-20), после SM-730.** Пользователь подтвердил, что Stop Watch
+  в том же приложении снимает отказ ручного импорта. Выбрать безопасное поведение для Import/Update
+  при собственном active/paused Watch, включая другую выбранную папку. Сохранить single-writer lease
+  и защиту от другого процесса; не обходить flock и не удалять lock file. Проверить active/paused,
+  concurrent Update, отмену/ошибку импорта и переходы Watch. В SM-730 координация не меняется.
 
 - [ ] **SM-719** — Ось реального времени для графика анатомии контекста.
   **Статус: отложено (2026-10-11), по решению пользователя — после SM-717/SM-718.** Переключатель «по запросам / по времени»;
