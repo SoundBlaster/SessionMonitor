@@ -6,15 +6,17 @@
 
 ## Текущая точка
 
-**SM-731 — реализована, ожидает Xcode verification (2026-10-20): ручной импорт останавливает свой Watch.**
+**SM-731 — реализована и локально проверена (2026-10-21): ручной импорт останавливает свой Watch.**
 По уточнению пользователя Import/Update/Retry сначала останавливают свой Watch и дожидаются cleanup.
 Watch не возобновляется автоматически. Общая для окон координация исключает новый Start во время
 ручного импорта и сериализует ручные импорты; чужой importer по-прежнему защищён flock.
-Draft PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) поверх #118:
-7 новых tests подготовлены для active/paused/pending Watch,
+PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) поверх #118, готова к review.
+Xcode-tools build-for-testing passed; 36/36 targeted tests прошли, включая 7 новых для active/paused/pending Watch,
 cleanup ordering, ошибки/отмены, двух окон, shutdown и сохранения external ownership.
-`make generate`, SwiftLint/FSD/negative gate и diff passed. Сборка, запуск tests и visual checks
-не выполнены: Xcode MCP всё ещё ожидает одобрения. Следующий шаг — завершить эти проверки и review.
+Native light/dark/narrow captures проверены, без clipping; артефакты на TB5 в `measurements/sm-731-native`,
+xcresult `Test-MonitorMac-2026.10.21_00-21-26-+0300`. Исправлен directory hint в test fixture.
+`make generate`, SwiftLint/FSD/negative gate и diff passed. После rebase с #118 код/tests идентичны
+проверенной версии (разница только в ROADMAP). Следующий шаг — review и доставка стопки #118 → #119.
 
 **SM-730 — реализована и локально проверена (2026-10-21): справка при занятой базе.**
 PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118), base `main`, готова к review.
@@ -1264,14 +1266,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Ownership/locking не менялись. `[ ]` — до доставки через PR.
 
 - [ ] **SM-731** — Координация ручного импорта с собственным Watch.
-  **Статус: реализована, draft PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) поверх #118,
-  ожидает Xcode verification (2026-10-20).** Import/Update/Retry
+  **Статус: реализована и локально проверена (2026-10-21), PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) поверх #118.** Import/Update/Retry
   останавливают свой active/paused/pending Watch и ждут cleanup перед импортом любой выбранной папки.
-  После операции Watch остаётся остановленным. Запретить новый Start до завершения и сериализовать
+  После операции Watch остаётся остановленным. Новый Start запрещён до завершения,
   импорты разных окон сериализованы. Single-writer lease и защита от другого процесса сохранены,
   без обхода flock и удаления lock file. Добавлены 7 tests: cleanup ordering, active/paused/pending,
-  два окна, ошибка/отмена, shutdown и external Watch. SwiftLint/FSD/negative gate и diff passed;
-  сборка и tests не запускались — Xcode MCP ожидает одобрения агента. Watch не возобновляется автоматически.
+  два окна, ошибка/отмена, shutdown и external Watch. Xcode-tools build-for-testing и 36/36 targeted tests
+  passed; native light/dark/narrow captures проверены. SwiftLint/FSD/negative gate и diff passed.
+  Watch не возобновляется автоматически. `[ ]` — до доставки через PR.
 
 - [ ] **SM-719** — Ось реального времени для графика анатомии контекста.
   **Статус: отложено (2026-10-11), по решению пользователя — после SM-717/SM-718.** Переключатель «по запросам / по времени»;
