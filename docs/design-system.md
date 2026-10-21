@@ -61,7 +61,8 @@ reason. UUID stays selectable. The summary resets its local presentation identit
 Canonical usage, legacy exclusion, the cache formula and detailed availability explanations live only in
 the info popover. There are no explanatory lines below the metric strip. Unavailable cache hit keeps a short
 inline state (Partial data, Zero input, No requests or Unavailable); accessibility retains the full reason.
-The detail toolbar owns Export before Inspector and preserves the existing selected-session/account checks.
+The detail toolbar owns icon-only Export before Inspector, retains its help/accessibility label and preserves
+the existing selected-session/account checks.
 
 The old 960 pt content cap is removed: summary and charts use the available detail width. No chart scale,
 gesture or accounting behavior changes. On narrow widths the header and metrics grow vertically rather

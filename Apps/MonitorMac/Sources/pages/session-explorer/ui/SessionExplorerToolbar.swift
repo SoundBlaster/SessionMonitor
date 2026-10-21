@@ -89,7 +89,7 @@ struct SessionExplorerDetailToolbar: ToolbarContent {
                     exportSession(sessionID)
                 }
             }
-            .labelStyle(.titleAndIcon)
+            .labelStyle(.iconOnly)
             .disabled(model.selectedSession == nil)
             .help("Save an identity-free session fixture for diagnostics")
             .accessibilityIdentifier("sessionExplorer.exportSession")

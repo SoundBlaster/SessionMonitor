@@ -32,6 +32,8 @@ canonical/cache пояснения перенести полностью в `(i)
 Свежие Xcode-tools build-for-testing, 7/7 summary/cache tests и SwiftLint/FSD/negative gate passed;
 семь обновлённых native fixtures проверены (`measurements/sm-732-help-only`, xcresult `09-52-01`).
 Computer Use подтвердил отсутствие notes под метриками и сохранённую справку в popover; Escape закрывает её.
+Уточнение toolbar (2026-10-21) выполнено: экспорт только иконкой, с tooltip и accessibility label.
+Свежие Xcode-tools BuildProject/RunProject и targeted SwiftLint passed; Computer Use подтвердил вид кнопки и AX label/help.
 Context anatomy расположен сразу после сводки, content cap 960 pt снят.
 DesignMetricStrip, DesignSummaryHeading и DesignInfoButton расширяют Design System;
 domain mapping и SpecificationKit остаются в page. Accounting и графики не менялись.
