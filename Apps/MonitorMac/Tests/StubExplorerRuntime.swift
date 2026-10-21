@@ -12,6 +12,7 @@ actor StubExplorerRuntime: SessionExplorerRuntime {
 
     private var storedReport: UsageReport
     private var importFailure = false
+    private var importBusy = false
     private var reportFailure = false
     private var reportAfterNextImport: UsageReport?
     private var importedDirectoryValues: [URL] = []
@@ -48,6 +49,7 @@ actor StubExplorerRuntime: SessionExplorerRuntime {
         for observer in observers.values { observer.continuation.yield(value) }
     }
     func failImports() { importFailure = true }
+    func setImportBusy(_ value: Bool) { importBusy = value }
     func failReports(_ value: Bool) { reportFailure = value }
     func replaceReportAfterNextImport(_ report: UsageReport) { reportAfterNextImport = report }
     func delayQuota(for query: UsageQuery) { delayedQuotaQuery = query }
@@ -62,6 +64,7 @@ actor StubExplorerRuntime: SessionExplorerRuntime {
     }
 
     func importDirectory(_ directory: URL) throws -> ImportSummary {
+        if importBusy { throw MonitorError.importerBusy }
         if importFailure { throw StubFailure.importFailed }
         importedDirectoryValues.append(directory)
         if let reportAfterNextImport {

@@ -1,10 +1,21 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-19. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-21. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
+
+**SM-730 — реализована и локально проверена (2026-10-21): справка при занятой базе.**
+PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118), base `main`, готова к review.
+Пользователь подтвердил: Stop Watch устраняет importerBusy при ручном импорте. UI объясняет собственный
+Watch (включая paused), Stop Watch и Retry Import той же папки. Typed error не подменяет последний
+успешный источник/отчёт; dismissal и другая ошибка очищают recovery. Ownership/locking не менялись.
+Xcode-tools test action собрал приложение/tests и прошёл 29 targeted tests (включая 4 новых).
+Native light/dark/narrow captures проверены, текст и кнопки не обрезаются. Артефакты на TB5:
+`measurements/sm-730-native`, xcresult `Test-MonitorMac-2026.10.21_00-22-40-+0300`.
+SwiftLint (252 source files и отдельно test files), FSD/negative gate и diff passed.
+Следующий шаг — review/delivery; собственный Watch/manual import координирует зависимый SM-731.
 
 **SM-729 — реализована и локально проверена (2026-10-19): Design System карточек SM-718.**
 PR [#117](https://github.com/SoundBlaster/SessionMonitor/pull/117) поверх #116: `shared/ui` содержит card surfaces, badge, metric, adaptive header и
@@ -1233,6 +1244,21 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Xcode-tools build-for-testing и 15 targeted tests прошли; SwiftLint (249 файлов), FSD/negative gate,
   diff checks — passed. Все 6 native light/dark/narrow fixtures попиксельно идентичны baseline `0cdec9d`.
   [Контракты и воспроизведение](docs/design-system.md). `[ ]` — до доставки через PR.
+
+- [ ] **SM-730** — Справка и повтор ручного импорта при importerBusy.
+  **Статус: реализована и локально проверена (2026-10-21), PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118).** Отдельная справка объясняет
+  собственный Watch, Pause vs Stop и другие возможные importers; Retry Import использует ту же папку
+  в памяти. Последний успешный источник/отчёт сохраняются; другая ошибка и dismissal очищают recovery.
+  README дополнен troubleshooting. Xcode-tools test action: 29/29 passed, включая 4 новых tests;
+  native light/dark/narrow captures проверены. SwiftLint/FSD/negative gate и diff passed.
+  Ownership/locking не менялись. `[ ]` — до доставки через PR.
+
+- [ ] **SM-731** — Координация ручного импорта с собственным Watch.
+  **Статус: запланировано (2026-10-20), после SM-730.** Пользователь подтвердил, что Stop Watch
+  в том же приложении снимает отказ ручного импорта. Выбрать безопасное поведение для Import/Update
+  при собственном active/paused Watch, включая другую выбранную папку. Сохранить single-writer lease
+  и защиту от другого процесса; не обходить flock и не удалять lock file. Проверить active/paused,
+  concurrent Update, отмену/ошибку импорта и переходы Watch. В SM-730 координация не меняется.
 
 - [ ] **SM-719** — Ось реального времени для графика анатомии контекста.
   **Статус: отложено (2026-10-11), по решению пользователя — после SM-717/SM-718.** Переключатель «по запросам / по времени»;
