@@ -49,16 +49,35 @@ if [[ -n "$(git status --porcelain)" ]]; then
     echo "Refusing a release build from a dirty working tree. Commit or preserve local changes first." >&2
     exit 2
 fi
+[[ "$(git branch --show-current)" == "main" ]] || {
+    echo "Refusing a release build: check out main after the release changes are merged." >&2
+    exit 2
+}
+git fetch --quiet origin
+[[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || {
+    echo "Refusing a release build: local main is not the current origin/main." >&2
+    exit 2
+}
+source_revision="$(git rev-parse HEAD)"
 
 make generate XCODEGEN="$xcodegen_bin" >/dev/null
 [[ -d "$project" ]] || { echo "Generated Xcode project not found: $project" >&2; exit 2; }
 
 xcodebuild_flags=()
-if [[ -n "${XCODEBUILD_FLAGS:-}" ]]; then
+has_xcodebuild_flags=0
+if [[ -n "${XCODEBUILD_FLAGS:-}" && -n "${XCODEBUILD_FLAGS//[[:space:]]/}" ]]; then
     read -r -a xcodebuild_flags <<< "$XCODEBUILD_FLAGS"
+    has_xcodebuild_flags=1
 fi
+run_xcodebuild() {
+    if (( has_xcodebuild_flags )); then
+        "$xcodebuild_bin" "${xcodebuild_flags[@]}" "$@"
+    else
+        "$xcodebuild_bin" "$@"
+    fi
+}
 
-settings_json="$("$xcodebuild_bin" "${xcodebuild_flags[@]}" -project "$project" -scheme "$scheme" \
+settings_json="$(run_xcodebuild -project "$project" -scheme "$scheme" \
     -configuration Release -showBuildSettings -json)"
 release_metadata="$(printf '%s' "$settings_json" | python3 -c '
 import json, sys
@@ -123,6 +142,7 @@ app_path="$archive_path/Products/Applications/SessionMonitor.app"
 
 for path in "$archive_path" "$dmg_path" "$checksum_path" "$cli_arm64_scratch" \
     "$cli_x86_64_scratch" "$cli_package_path" "$cli_archive_path" "$cli_checksum_path" \
+    "$release_root/source-revision.txt" \
     "$release_root/notary-app.json" "$release_root/notary-cli.json" "$release_root/notary-dmg.json"; do
     [[ ! -e "$path" ]] || {
         echo "Refusing to overwrite existing release artifact: $path" >&2
@@ -131,7 +151,6 @@ for path in "$archive_path" "$dmg_path" "$checksum_path" "$cli_arm64_scratch" \
 done
 
 archive_args=(
-    "${xcodebuild_flags[@]}"
     -project "$project"
     -scheme "$scheme"
     -configuration Release
@@ -163,7 +182,7 @@ fi
 archive_args+=(archive)
 
 echo "Archiving SessionMonitor $version for Developer ID ($team_id)..."
-"$xcodebuild_bin" "${archive_args[@]}"
+run_xcodebuild "${archive_args[@]}"
 [[ -d "$app_path" ]] || { echo "Archived app not found: $app_path" >&2; exit 1; }
 
 mkdir -p "$cli_package_path" "$cli_arm64_scratch" "$cli_x86_64_scratch" "$swiftpm_cache"
@@ -262,7 +281,7 @@ entitlements = profile.get("Entitlements", {})
 expected_app_id = f"{team_id}.{bundle_id}"
 if team_id not in profile.get("TeamIdentifier", []):
     raise SystemExit("Provisioning profile has the wrong Team ID")
-if not fnmatch.fnmatchcase(expected_app_id, entitlements.get("application-identifier", "")):
+if not fnmatch.fnmatchcase(expected_app_id, entitlements.get("com.apple.application-identifier", "")):
     raise SystemExit("Provisioning profile does not authorize this bundle ID")
 groups = entitlements.get("com.apple.security.application-groups", [])
 if not any(fnmatch.fnmatchcase(app_group, allowed) for allowed in groups):
@@ -323,8 +342,10 @@ if (( ! skip_notarization )); then
     app_submission_id="$(printf '%s' "$app_submission" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id", ""))')"
     app_status="$(printf '%s' "$app_submission" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status", ""))')"
     if [[ "$app_status" != "Accepted" ]]; then
-        [[ -n "$app_submission_id" ]] && xcrun notarytool log "$app_submission_id" \
-            --keychain-profile "$notary_profile" "$release_root/notary-app-log.json" || true
+        if [[ -n "$app_submission_id" ]]; then
+            xcrun notarytool log "$app_submission_id" --keychain-profile "$notary_profile" \
+                "$release_root/notary-app-log.json" || true
+        fi
         echo "Apple did not accept the app submission (status: $app_status)." >&2
         exit 1
     fi
@@ -341,8 +362,10 @@ if (( ! skip_notarization )); then
     cli_submission_id="$(printf '%s' "$cli_submission" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id", ""))')"
     cli_status="$(printf '%s' "$cli_submission" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status", ""))')"
     if [[ "$cli_status" != "Accepted" ]]; then
-        [[ -n "$cli_submission_id" ]] && xcrun notarytool log "$cli_submission_id" \
-            --keychain-profile "$notary_profile" "$release_root/notary-cli-log.json" || true
+        if [[ -n "$cli_submission_id" ]]; then
+            xcrun notarytool log "$cli_submission_id" --keychain-profile "$notary_profile" \
+                "$release_root/notary-cli-log.json" || true
+        fi
         echo "Apple did not accept the CLI archive (status: $cli_status)." >&2
         exit 1
     fi
@@ -381,8 +404,10 @@ if (( ! skip_notarization )); then
     dmg_submission_id="$(printf '%s' "$dmg_submission" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id", ""))')"
     dmg_status="$(printf '%s' "$dmg_submission" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status", ""))')"
     if [[ "$dmg_status" != "Accepted" ]]; then
-        [[ -n "$dmg_submission_id" ]] && xcrun notarytool log "$dmg_submission_id" \
-            --keychain-profile "$notary_profile" "$release_root/notary-dmg-log.json" || true
+        if [[ -n "$dmg_submission_id" ]]; then
+            xcrun notarytool log "$dmg_submission_id" --keychain-profile "$notary_profile" \
+                "$release_root/notary-dmg-log.json" || true
+        fi
         echo "Apple did not accept the DMG submission (status: $dmg_status)." >&2
         exit 1
     fi
@@ -393,6 +418,7 @@ fi
 
 (cd "$release_root" && shasum -a 256 "$(basename "$dmg_path")" > "$(basename "$checksum_path")")
 (cd "$release_root" && shasum -a 256 "$(basename "$cli_archive_path")" > "$(basename "$cli_checksum_path")")
+printf '%s\n' "$source_revision" > "$release_root/source-revision.txt"
 echo "Created: $dmg_path"
 echo "SHA-256: $(cut -d ' ' -f 1 "$checksum_path")"
 echo "Created: $cli_archive_path"

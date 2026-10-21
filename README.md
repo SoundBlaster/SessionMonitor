@@ -507,7 +507,9 @@ provisioning profiles для app `ru.egormerkushev.session-monitor` и extension
 При необходимости разрешить Xcode обновить профили из Developer Portal, задайте
 `ALLOW_PROVISIONING_UPDATES=YES`. Не добавляйте секреты, профили и подписи в репозиторий.
 
-Подготовьте и проверьте релиз локально:
+Подготовку выполняйте только из чистого локального `main`, синхронизированного с `origin/main`.
+Скрипт записывает исходный commit в `source-revision.txt`; публикация отклонит артефакты,
+подготовленные для другой ревизии. Поэтому сначала слейте изменения в `main`, затем соберите релиз:
 
 ```sh
 NOTARY_PROFILE=my-notary-profile make release-github
@@ -521,7 +523,8 @@ SwiftPM CLI builds и release artifacts лежат в `.build/release-github`. �
 но пропускает notarization; полученные файлы явно непригодны для публикации.
 
 Публикация — отдельный осознанный шаг, доступный только с чистого локального `main`,
-синхронизированного с `origin/main`, и после проверки stapled DMG и обоих checksums:
+синхронизированного с `origin/main` и совпадающего с commit сохранённых артефактов, после проверки
+stapled DMG и обоих checksums:
 
 ```sh
 NOTARY_PROFILE=my-notary-profile make github-release

@@ -10,11 +10,11 @@
 Подзадача по запросу пользователя: адаптировать проверенную схему Dreams к app bundle SessionMonitor
 с WidgetKit extension/App Group: Developer ID подпись, notarization/stapling, DMG и checksum;
 standalone notarized CLI ZIP; не смешивать с Mac App Store workflow SM-706. Release tooling и
-отдельные prepare/publish Make targets подготовлены для review. Скрипт проверяет bundle IDs,
-universal architectures, Developer ID signatures, hardened runtime, embedded profiles/App Group,
-notarization tickets, stapling, Gatekeeper и опубликованные SHA-256. Локальная lint-проверка пока
-ограничена: `bash -n` и `git diff --check` прошли, но actionlint/ShellCheck на этом Mac не установлены;
-GitHub Workflow lint остаётся необходимым. App/extension Developer ID profiles и реальный
+отдельные prepare/publish Make targets подготовлены для review. Подготовка требует чистый `main`,
+синхронизированный с `origin/main`; commit артефактов сохраняется и проверяется перед публикацией.
+Скрипт проверяет bundle IDs, universal architectures, Developer ID signatures, hardened runtime,
+embedded profiles/App Group, notarization tickets, stapling, Gatekeeper и опубликованные SHA-256.
+App/extension Developer ID profiles и реальный
 notarized artifact/clean-install пока не проверены. Публикация первого публичного релиза требует
 отдельного разрешения и проверки на чистой установке.
 

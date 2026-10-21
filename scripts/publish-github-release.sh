@@ -24,7 +24,7 @@ cli_checksum_path="$release_root/$cli_checksum_name"
 }
 [[ -f "$dmg_path" && -f "$checksum_path" && -f "$cli_archive_path" && -f "$cli_checksum_path" \
     && -f "$release_root/notary-app.json" && -f "$release_root/notary-cli.json" \
-    && -f "$release_root/notary-dmg.json" ]] || {
+    && -f "$release_root/notary-dmg.json" && -f "$release_root/source-revision.txt" ]] || {
     echo "Notarized app DMG, universal CLI archive, or checksum is missing. Run make release-github first." >&2
     exit 2
 }
@@ -63,6 +63,12 @@ done
 git fetch --quiet origin
 [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || {
     echo "Refusing publication: local main is not the current origin/main." >&2
+    exit 2
+}
+artifact_revision="$(cat "$release_root/source-revision.txt")"
+[[ "$artifact_revision" == "$(git rev-parse HEAD)" ]] || {
+    echo "Refusing publication: artifacts were prepared from $artifact_revision, not current main $(git rev-parse HEAD)." >&2
+    echo "Rebuild the release artifacts from this exact main commit." >&2
     exit 2
 }
 
