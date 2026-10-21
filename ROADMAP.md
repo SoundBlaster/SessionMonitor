@@ -26,7 +26,12 @@ clean-install всё ещё требуют проверки. GitHub Release не
 **SM-732 — реализована и локально проверена (2026-10-21): компактная сводка выбранной сессии.**
 PR [#122](https://github.com/SoundBlaster/SessionMonitor/pull/122), base `main`, готова к review; CI не ожидается активно.
 Title/cache hit/info в одной строке, UUID ниже; экспорт в detail toolbar перед Inspector.
-Четыре равные колонки в общей адаптивной полосе; компактные canonical/cache notes;
+Четыре равные колонки в общей адаптивной полосе. Уточнение пользователя (2026-10-21):
+canonical/cache пояснения перенести полностью в `(i)`, под полосой текст не показывать;
+**уточнение реализовано и локально проверено**. Краткая причина недоступности остаётся рядом с Cache hit.
+Свежие Xcode-tools build-for-testing, 7/7 summary/cache tests и SwiftLint/FSD/negative gate passed;
+семь обновлённых native fixtures проверены (`measurements/sm-732-help-only`, xcresult `09-52-01`).
+Computer Use подтвердил отсутствие notes под метриками и сохранённую справку в popover; Escape закрывает её.
 Context anatomy расположен сразу после сводки, content cap 960 pt снят.
 DesignMetricStrip, DesignSummaryHeading и DesignInfoButton расширяют Design System;
 domain mapping и SpecificationKit остаются в page. Accounting и графики не менялись.
@@ -1318,11 +1323,13 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 - [ ] **SM-732** — Компактная сводка сессии и переиспользуемые summary components.
   **Статус: реализована и локально проверена (2026-10-21), PR [#122](https://github.com/SoundBlaster/SessionMonitor/pull/122); ожидает review/CI/merge.**
-  Title/cache hit/info, selectable UUID, единая адаптивная полоса метрик и compact canonical/cache notes;
+  Title/cache hit/info, selectable UUID, единая адаптивная полоса метрик; canonical/cache пояснения только в `(i)`;
   экспорт перед Inspector в detail toolbar. Общие компоненты — [Design System](docs/design-system.md).
   Xcode-tools build-for-testing и 26/26 targeted tests, семь native fixtures, Computer Use по реальным данным,
   SwiftLint/FSD/negative gate и diff passed. Unknown/partial/zero и accounting сохранены.
   Полный `make check` и полный VoiceOver run не выполнялись. `[ ]` — до доставки через PR. Затем SM-330.
+  Уточнение 2026-10-21: подписи под метриками убраны; краткие unavailable states — inline.
+  Свежие Xcode-tools build + 7/7 tests, семь native fixtures, SwiftLint/FSD/negative gate passed.
 
 - [ ] **SM-719** — Ось реального времени для графика анатомии контекста.
   **Статус: отложено (2026-10-11), по решению пользователя — после SM-717/SM-718.** Переключатель «по запросам / по времени»;

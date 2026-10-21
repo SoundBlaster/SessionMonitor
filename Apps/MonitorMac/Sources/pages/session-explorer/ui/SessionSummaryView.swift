@@ -28,7 +28,6 @@ struct SessionSummaryView: View {
                 .init(id: "sessionDetail.cachedInputTokens", title: Text("Known cached input"),
                       value: Text(session.totals.cachedInputTokens, format: .number))
             ])
-            SessionSummaryNotes(cacheHit: cacheHit)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("sessionDetail.summary")
@@ -59,7 +58,7 @@ private struct SessionSummaryHeader: View {
                         .accessibilityLabel("Cache hit")
                         .accessibilityValue(cacheHit.accessibilityValue)
                         .accessibilityIdentifier("sessionDetail.cacheHit")
-                    Text("Cache hit").font(.callout).foregroundStyle(.secondary)
+                    cacheLabel.font(.callout).foregroundStyle(.secondary)
                         .accessibilityHidden(true)
                     DesignInfoButton(title: Text("About cache hit")) {
                         SessionCacheHitHelp(cacheHit: cacheHit)
@@ -77,26 +76,15 @@ private struct SessionSummaryHeader: View {
                 .accessibilityIdentifier("sessionDetail.sessionID")
         }
     }
-}
 
-private struct SessionSummaryNotes: View {
-    let cacheHit: SessionCacheHitPresentation
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.Spacing.inline) {
-            Label("Canonical usage only · Legacy token_count records excluded", systemImage: "info.circle")
-            if cacheHit.ratio != nil {
-                Text("""
-                     Cache hit = cached input ÷ input tokens. \
-                     Shown only with cache data for every request and nonzero input.
-                     """)
-            } else {
-                Text(cacheHit.explanation)
-            }
+    private var cacheLabel: Text {
+        switch cacheHit.state {
+        case .known: Text("Cache hit")
+        case .unavailable(reason: .noCanonicalRequests): Text("Cache hit · No requests")
+        case .unavailable(reason: .partialCoverage): Text("Cache hit · Partial data")
+        case .unavailable(reason: .zeroInput): Text("Cache hit · Zero input")
+        case .unavailable(reason: .invalidTotals): Text("Cache hit · Unavailable")
         }
-        .font(.caption).foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-        .accessibilityIdentifier("sessionDetail.notes")
     }
 }
 

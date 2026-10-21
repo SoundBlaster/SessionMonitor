@@ -58,7 +58,9 @@ The deterministic fixtures remain in `ContextInsightPresentationTests.swift` for
 `SessionCacheHitPresentation` and the reactive `DisplayedCacheCoverageSpec`/SpecificationKit gate in the page.
 Known zero cache remains 0%; partial coverage, zero input and no requests remain unavailable with an explicit
 reason. UUID stays selectable. The summary resets its local presentation identity when the session changes.
-The canonical/cache notes sit below the strip; the full explanation is available from the info button.
+Canonical usage, legacy exclusion, the cache formula and detailed availability explanations live only in
+the info popover. There are no explanatory lines below the metric strip. Unavailable cache hit keeps a short
+inline state (Partial data, Zero input, No requests or Unavailable); accessibility retains the full reason.
 The detail toolbar owns Export before Inspector and preserves the existing selected-session/account checks.
 
 The old 960 pt content cap is removed: summary and charts use the available detail width. No chart scale,
@@ -71,3 +73,9 @@ Xcode-tools build-for-testing and 26 targeted GUI tests passed. Computer Use con
 separate metric/UUID accessibility nodes, selection changes, cache help and Escape dismissal, Export before
 Inspector, a valid export opening the save panel (cancelled without writing), and the existing ambiguous-account
 export guard. The app was launched through Xcode-tools with a single window; the original scope was restored.
+
+The subsequent help-only refinement passed a fresh Xcode-tools build-for-testing, 7 targeted summary/cache
+tests, SwiftLint/FSD and the negative architecture gate. Seven updated native fixtures are under
+`measurements/sm-732-help-only` (xcresult `Test-MonitorMac-2026.10.21_09-52-01-+0300`).
+Computer Use confirmed that the inline notes are absent and the native info popover still contains
+canonical/legacy limitations, the formula and availability explanation; Escape dismisses it.
