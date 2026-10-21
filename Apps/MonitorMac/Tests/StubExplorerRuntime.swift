@@ -63,10 +63,15 @@ actor StubExplorerRuntime: SessionExplorerRuntime {
         continuation.resume(returning: quotaReport(query: query, generatedAt: Date(timeIntervalSince1970: 1)))
     }
 
-    func importDirectory(_ directory: URL) throws -> ImportSummary {
+    func importDirectory(
+        _ directory: URL, progress: (@Sendable (ImportProgress) -> Void)?
+    ) throws -> ImportSummary {
         if importBusy { throw MonitorError.importerBusy }
         if importFailure { throw StubFailure.importFailed }
         importedDirectoryValues.append(directory)
+        progress?(ImportProgress(completedFiles: 0, totalFiles: 1, currentFileName: "fixture.jsonl",
+                                 currentFileBytesProcessed: 4, currentFileSize: 8))
+        progress?(ImportProgress(completedFiles: 1, totalFiles: 1))
         if let reportAfterNextImport {
             storedReport = reportAfterNextImport
             self.reportAfterNextImport = nil

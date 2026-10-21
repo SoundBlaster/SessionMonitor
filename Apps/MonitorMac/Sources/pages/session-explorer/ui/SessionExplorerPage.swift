@@ -19,13 +19,18 @@ struct SessionExplorerPage: View {
             VStack(spacing: 0) {
                 if let directory = model.importRecoveryDirectory {
                     SessionImportBusyBanner(directory: directory, isBusy: model.isBusy, retry: {
-                        Task {
-                            await model.retryImport()
-                            await reportScope.refreshProfiles()
-                        }
+                        model.startRetryImport { await reportScope.refreshProfiles() }
+                    }, dismiss: model.dismissError)
+                } else if let directory = model.importSourceRecoveryDirectory {
+                    SessionImportChangedSourceBanner(directory: directory, message: model.errorMessage ?? "",
+                                                     isBusy: model.isBusy, retry: {
+                        model.startRetryImport { await reportScope.refreshProfiles() }
                     }, dismiss: model.dismissError)
                 } else if let error = model.errorMessage {
                     errorBanner(error)
+                }
+                if model.activity == .importing, let progress = model.importProgress {
+                    SessionImportProgressBanner(progress: progress, cancel: model.cancelImport)
                 }
                 if let session = model.selectedSession {
                     SessionDetailView(session: session, query: model.query,
@@ -207,10 +212,7 @@ struct SessionExplorerPage: View {
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
         guard panel.runModal() == .OK, let directory = panel.url else { return }
-        Task {
-            await model.importDirectory(directory)
-            await reportScope.refreshProfiles()
-        }
+        model.startImportDirectory(directory) { await reportScope.refreshProfiles() }
     }
 
     private func exportSession(sessionID: String) {

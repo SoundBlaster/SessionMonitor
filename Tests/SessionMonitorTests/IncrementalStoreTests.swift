@@ -6,6 +6,41 @@ import MonitorStore
 import Testing
 
 struct IncrementalStoreTests {
+    @Test func incrementalDecoderReportsBoundedByteProgress() throws {
+        let fixture = try IncrementalFixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.native + fixture.record())
+        let recorder = ByteProgressRecorder()
+
+        _ = try RolloutDecoder().parseIncrementally(fixture.file) { bytes, size in
+            recorder.append(bytes: bytes, size: size)
+        }
+
+        let updates = recorder.values
+        #expect(updates.count == 2)
+        #expect(updates.first?.bytes == 0)
+        #expect(updates.last?.bytes == updates.last?.size)
+        #expect(updates.allSatisfy { $0.size == updates.last?.size })
+    }
+
+    @Test func incrementalDecoderStopsWhenItsTaskIsCancelled() async throws {
+        let fixture = try IncrementalFixture()
+        defer { fixture.remove() }
+        try fixture.write(fixture.native + fixture.record())
+
+        let task = Task.detached {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try RolloutDecoder().parseIncrementally(fixture.file)
+        }
+
+        do {
+            _ = try await task.value
+            Issue.record("Expected the cancelled decoder task to stop before reading the file")
+        } catch is CancellationError {
+            // Expected: parsing observes cancellation before reading the next source chunk.
+        }
+    }
+
     @Test(arguments: [false, true])
     func mutationDuringReadRejectsSnapshotAndAllowsRecovery(truncate: Bool) throws {
         let fixture = try IncrementalFixture()
@@ -164,5 +199,22 @@ struct IncrementalStoreTests {
         let report = try await runtime.report()
         #expect(report.totals.requests == 1)
         #expect(report.diagnostics["duplicateRecords", default: 0] == 0)
+    }
+}
+
+private final class ByteProgressRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedValues: [(bytes: UInt64, size: UInt64)] = []
+
+    var values: [(bytes: UInt64, size: UInt64)] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedValues
+    }
+
+    func append(bytes: UInt64, size: UInt64) {
+        lock.lock()
+        defer { lock.unlock() }
+        storedValues.append((bytes, size))
     }
 }

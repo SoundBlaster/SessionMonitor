@@ -14,13 +14,17 @@ struct JSONLReader {
     let maximumLineBytes = 16 * 1_024 * 1_024
 
     func read(_ source: RolloutFile, from initial: JSONLCursor,
+              onProgress: (@Sendable (UInt64, UInt64) -> Void)? = nil,
               consume: (Data?, Int) throws -> Void) throws -> JSONLProgress {
         try source.handle.seek(toOffset: initial.offset)
         var cursor = initial
         var position = initial.offset
         var pending = Data()
         var oversized = false
+        var lastReportedPosition = position
+        onProgress?(position, source.version.size)
         while position < source.version.size {
+            try Task<Never, Never>.checkCancellation()
             let chunk = try source.read(upToCount: Int(min(source.version.size - position, 64 * 1_024)))
             var start = chunk.startIndex
             for end in chunk.indices where chunk[end] == 10 {
@@ -40,6 +44,10 @@ struct JSONLReader {
                 }
             }
             position += UInt64(chunk.count)
+            if position - lastReportedPosition >= 8 * 1_024 * 1_024 || position == source.version.size {
+                onProgress?(position, source.version.size)
+                lastReportedPosition = position
+            }
         }
         return JSONLProgress(cursor: cursor, partialTail: oversized || !pending.isEmpty)
     }

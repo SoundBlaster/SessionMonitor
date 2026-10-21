@@ -26,8 +26,10 @@ actor SharedReportRuntime: SessionExplorerRuntime {
         self.widgetSnapshotStore = widgetSnapshotStore
     }
 
-    func importDirectory(_ directory: URL) async throws -> ImportSummary {
-        let summary = try await runtime.importDirectory(directory)
+    func importDirectory(
+        _ directory: URL, progress: (@Sendable (ImportProgress) -> Void)?
+    ) async throws -> ImportSummary {
+        let summary = try await runtime.importDirectory(directory, progress: progress)
         await publishWidgetSnapshotNow()
         return summary
     }

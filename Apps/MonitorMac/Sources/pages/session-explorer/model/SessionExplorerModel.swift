@@ -4,7 +4,9 @@ import MonitorRuntime
 import Observation
 
 protocol SessionExplorerRuntime: RequestTimelineSource, FindingsAlertsSource, Sendable {
-    func importDirectory(_ directory: URL) async throws -> ImportSummary
+    func importDirectory(
+        _ directory: URL, progress: (@Sendable (ImportProgress) -> Void)?
+    ) async throws -> ImportSummary
     func snapshot(query: UsageQuery) async throws -> UsageSnapshot
     func anonymizedSessionExport(sessionID: String, query: UsageQuery) async throws -> AnonymizedSessionExport?
     func snapshots(query: UsageQuery) async -> AsyncThrowingStream<UsageSnapshot, Error>
@@ -15,6 +17,12 @@ protocol SessionExplorerRuntime: RequestTimelineSource, FindingsAlertsSource, Se
     func widgetSharedSnapshot(generatedAt: Date, timeZone: TimeZone) async throws -> WidgetSharedSnapshot
     func quotaPresentation(query: UsageQuery, generatedAt: Date) async throws -> QuotaPresentationReport
     func accountProfiles() async throws -> [AccountProfile]
+}
+
+extension SessionExplorerRuntime {
+    func importDirectory(_ directory: URL) async throws -> ImportSummary {
+        try await importDirectory(directory, progress: nil)
+    }
 }
 
 extension SessionExplorerRuntime {
@@ -58,7 +66,9 @@ struct SessionTimelineLoadID: Hashable {
     let query: UsageQuery
 }
 
-typealias SessionImportOperation = @Sendable (URL, any SessionExplorerRuntime) async throws -> ImportSummary
+typealias SessionImportOperation = @Sendable (
+    URL, any SessionExplorerRuntime, (@Sendable (ImportProgress) -> Void)?
+) async throws -> ImportSummary
 
 @MainActor
 @Observable
@@ -74,12 +84,14 @@ final class SessionExplorerModel {
     private(set) var report: UsageReport
     private(set) var query: UsageQuery
     @ObservationIgnored private var chartScope: UsageQuery?
-    private(set) var activity: Activity = .idle
-    private var failure: SessionExplorerFailure?
+    var activity: Activity = .idle
+    var failure: SessionExplorerFailure?
     var errorMessage: String? { failure?.message }
     var importRecoveryDirectory: URL? { failure?.importRecoveryDirectory }
-    private(set) var importSummary: ImportSummary?
-    private(set) var importedDirectory: URL?
+    var importSourceRecoveryDirectory: URL? { failure?.importSourceRecoveryDirectory }
+    var importSummary: ImportSummary?
+    var importProgress: ImportProgress?
+    var importedDirectory: URL?
     private(set) var lastUpdated: Date?
     private(set) var cacheHitRateWidgetQuery: UsageQuery?
     private(set) var cacheHitRateWidgetReport: CacheHitRateWidgetReport?
@@ -90,13 +102,15 @@ final class SessionExplorerModel {
     @ObservationIgnored let contextProvider: SessionReportContextProvider
     let timelineModel = RequestTimelineModel()
     @ObservationIgnored private let runtimeFactory: @Sendable () async throws -> any SessionExplorerRuntime
-    @ObservationIgnored private let importedDirectorySettings: ImportedDirectorySettings
-    @ObservationIgnored private let importOperation: SessionImportOperation
-    @ObservationIgnored private var runtime: (any SessionExplorerRuntime)?
+    @ObservationIgnored let importedDirectorySettings: ImportedDirectorySettings
+    @ObservationIgnored let importOperation: SessionImportOperation
+    @ObservationIgnored var runtime: (any SessionExplorerRuntime)?
     @ObservationIgnored private var loadedQuery: UsageQuery?
+    @ObservationIgnored var importTask: Task<Void, Never>?
+    @ObservationIgnored var importProgressGeneration: UUID?
 
     init(
-        importOperation: @escaping SessionImportOperation = { try await $1.importDirectory($0) },
+        importOperation: @escaping SessionImportOperation = { try await $1.importDirectory($0, progress: $2) },
         runtimeFactory: @escaping @Sendable () async throws -> any SessionExplorerRuntime,
         importedDirectorySettings: ImportedDirectorySettings = ImportedDirectorySettings()
     ) {
@@ -260,49 +274,12 @@ final class SessionExplorerModel {
         }
     }
 
-    /// Imports the last selected folder before loading the report; falls back to a read-only refresh.
-    func update() async {
-        guard let importedDirectory else {
-            await refresh()
-            return
-        }
-        await importDirectory(importedDirectory)
-    }
-
-    func importDirectory(_ directory: URL) async {
-        guard !isBusy else { return }
-        activity = .importing
-        failure = nil
-        importSummary = nil
-        let scopedAccess = directory.startAccessingSecurityScopedResource()
-        defer {
-            if scopedAccess { directory.stopAccessingSecurityScopedResource() }
-            activity = .idle
-        }
-        do {
-            let runtime = try await resolvedRuntime()
-            let summary = try await importOperation(directory, runtime)
-            importedDirectory = directory
-            importedDirectorySettings.save(directory)
-            let requestedQuery = query
-            let snapshot = try await runtime.snapshot(query: requestedQuery)
-            importSummary = summary
-            apply(snapshot, expectedQuery: requestedQuery)
-        } catch is CancellationError {
-            // Cancellation does not need an error banner.
-        } catch MonitorError.importerBusy {
-            failure = .importerBusy(directory)
-        } catch {
-            failure = .message("Could not import \(directory.lastPathComponent). \(error.localizedDescription)")
-        }
-    }
-
     /// The runtime the findings panel reads from, opened on first use like every other load.
     func findingsSource() async throws -> any FindingsAlertsSource {
         try await resolvedRuntime()
     }
 
-    private func resolvedRuntime() async throws -> any SessionExplorerRuntime {
+    func resolvedRuntime() async throws -> any SessionExplorerRuntime {
         if let runtime { return runtime }
         let runtime = try await runtimeFactory()
         self.runtime = runtime
@@ -329,7 +306,7 @@ final class SessionExplorerModel {
         publishSnapshot()
     }
 
-    private func apply(_ newSnapshot: UsageSnapshot, expectedQuery: UsageQuery) {
+    func apply(_ newSnapshot: UsageSnapshot, expectedQuery: UsageQuery) {
         guard query == expectedQuery, newSnapshot.query == expectedQuery else { return }
         if let snapshot, snapshot.query == newSnapshot.query,
            snapshot.watermark.databaseID == newSnapshot.watermark.databaseID,
@@ -353,11 +330,6 @@ final class SessionExplorerModel {
 extension SessionExplorerModel {
     func reportError(_ message: String) {
         failure = .message(message)
-    }
-
-    func retryImport() async {
-        guard let directory = importRecoveryDirectory else { return }
-        await importDirectory(directory)
     }
 
     func dismissError() {

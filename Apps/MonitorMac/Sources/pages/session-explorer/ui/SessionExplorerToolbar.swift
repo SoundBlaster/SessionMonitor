@@ -33,10 +33,7 @@ struct SessionExplorerToolbar: ToolbarContent {
                 if model.importedDirectory == nil {
                     chooseImportDirectory()
                 } else {
-                    Task {
-                        await model.update()
-                        await reportScope.refreshProfiles()
-                    }
+                    model.startUpdate { await reportScope.refreshProfiles() }
                 }
             }
             .keyboardShortcut("r")

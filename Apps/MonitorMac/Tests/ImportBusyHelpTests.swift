@@ -84,6 +84,52 @@ final class ImportBusyHelpTests: XCTestCase {
         XCTAssertEqual(model.activity, .idle)
     }
 
+    func testImportPublishesCurrentFileAndCompletionProgress() async throws {
+        let runtime = StubExplorerRuntime(report: UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:]))
+        let model = SessionExplorerModel(runtimeFactory: { runtime })
+
+        await model.importDirectory(URL(fileURLWithPath: "/tmp/2026", isDirectory: true))
+
+        XCTAssertEqual(model.importProgress?.completedFiles, 1)
+        XCTAssertEqual(model.importProgress?.totalFiles, 1)
+        XCTAssertNil(model.importProgress?.currentFileName)
+    }
+
+    func testCancelImportReportsSavedCheckpointProgress() async throws {
+        let runtime = StubExplorerRuntime(report: UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:]))
+        let model = SessionExplorerModel(importOperation: { _, _, progress in
+            progress?(ImportProgress(completedFiles: 2, totalFiles: 6, currentFileName: "active.jsonl",
+                                     currentFileBytesProcessed: 8_388_608, currentFileSize: 32_000_000))
+            try await Task.sleep(for: .seconds(30))
+            return ImportSummary(files: 6, records: 0, diagnostics: [:])
+        }, runtimeFactory: { runtime })
+
+        model.startImportDirectory(URL(fileURLWithPath: "/tmp/2026", isDirectory: true))
+        for _ in 0..<100 where model.activity != .importing { await Task.yield() }
+        for _ in 0..<100 where model.importProgress?.completedFiles != 2 { await Task.yield() }
+        XCTAssertEqual(model.importProgress?.currentFileName, "active.jsonl")
+        model.cancelImport()
+        for _ in 0..<100 where model.activity != .idle { await Task.yield() }
+
+        XCTAssertTrue(model.errorMessage?.contains("cancelled after 2 of 6 files") == true)
+        XCTAssertTrue(model.errorMessage?.contains("retrying the folder resumes from their checkpoints") == true)
+        XCTAssertEqual(model.activity, .idle)
+    }
+
+    func testChangedSourceOffersRetryForSameFolder() async throws {
+        let runtime = StubExplorerRuntime(report: UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:]))
+        let directory = URL(fileURLWithPath: "/tmp/2026", isDirectory: true)
+        let model = SessionExplorerModel(importOperation: { _, _, _ in
+            throw ImportSourceError.changedWhileReading(fileName: "active.jsonl", completedFiles: 2, totalFiles: 6)
+        }, runtimeFactory: { runtime })
+
+        await model.importDirectory(directory)
+
+        XCTAssertEqual(model.importSourceRecoveryDirectory, directory)
+        XCTAssertTrue(model.errorMessage?.contains("active.jsonl") == true)
+        XCTAssertTrue(model.errorMessage?.contains("2 of 6 files were already saved") == true)
+    }
+
     func testNativeHelpLightDarkAndNarrow() throws {
         for (name, scheme, width) in [
             ("light", ColorScheme.light, CGFloat(640)),
