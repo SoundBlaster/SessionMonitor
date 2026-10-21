@@ -1,5 +1,6 @@
 import Foundation
 import MonitorCore
+import MonitorRuntime
 
 @MainActor
 extension SessionExplorerModel {

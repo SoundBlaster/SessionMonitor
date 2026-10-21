@@ -12,11 +12,11 @@ enum SessionExplorerFailure {
         case let .importerBusy(directory):
             String(localized: "Could not import \(directory.lastPathComponent). The database is in use.")
         case let .sourceChanged(directory, fileName, completedFiles, totalFiles):
-            String(localized:
-                "Could not finish importing \(directory.lastPathComponent). “\(fileName)” changed while it was read. "
-                + "Its checkpoint was not advanced; \(completedFiles) of \(totalFiles) earlier files were saved. "
-                + "Retry when the source stops changing."
-            )
+            String(localized: """
+                Could not finish importing \(directory.lastPathComponent). “\(fileName)” changed while it was read. \\
+                Its checkpoint was not advanced; \(completedFiles) of \(totalFiles) earlier files were saved. \\
+                Retry when the source stops changing.
+                """)
         }
     }
 

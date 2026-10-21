@@ -112,7 +112,7 @@ final class ImportBusyHelpTests: XCTestCase {
         for _ in 0..<100 where model.activity != .idle { await Task.yield() }
 
         XCTAssertTrue(model.errorMessage?.contains("cancelled after 2 of 6 files") == true)
-        XCTAssertTrue(model.errorMessage?.contains("retrying the folder resumes from their checkpoints") == true)
+        XCTAssertTrue(model.errorMessage?.contains("retrying resumes from their checkpoints") == true)
         XCTAssertEqual(model.activity, .idle)
     }
 
@@ -127,7 +127,7 @@ final class ImportBusyHelpTests: XCTestCase {
 
         XCTAssertEqual(model.importSourceRecoveryDirectory, directory)
         XCTAssertTrue(model.errorMessage?.contains("active.jsonl") == true)
-        XCTAssertTrue(model.errorMessage?.contains("2 of 6 files were already saved") == true)
+        XCTAssertTrue(model.errorMessage?.contains("2 of 6 earlier files were saved") == true)
     }
 
     func testNativeHelpLightDarkAndNarrow() throws {
