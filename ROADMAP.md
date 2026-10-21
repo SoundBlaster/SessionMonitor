@@ -24,6 +24,7 @@ clean-install всё ещё требуют проверки. GitHub Release не
 публичного релиза требует отдельного разрешения и проверки на чистой установке.
 
 **SM-732 — реализована и локально проверена (2026-10-21): компактная сводка выбранной сессии.**
+PR [#122](https://github.com/SoundBlaster/SessionMonitor/pull/122), base `main`, готова к review; CI не ожидается активно.
 Title/cache hit/info в одной строке, UUID ниже; экспорт в detail toolbar перед Inspector.
 Четыре равные колонки в общей адаптивной полосе; компактные canonical/cache notes;
 Context anatomy расположен сразу после сводки, content cap 960 pt снят.
@@ -1316,7 +1317,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   Watch не возобновляется автоматически. `[ ]` — до доставки через PR.
 
 - [ ] **SM-732** — Компактная сводка сессии и переиспользуемые summary components.
-  **Статус: реализована и локально проверена (2026-10-21); ожидает доставки через PR.**
+  **Статус: реализована и локально проверена (2026-10-21), PR [#122](https://github.com/SoundBlaster/SessionMonitor/pull/122); ожидает review/CI/merge.**
   Title/cache hit/info, selectable UUID, единая адаптивная полоса метрик и compact canonical/cache notes;
   экспорт перед Inspector в detail toolbar. Общие компоненты — [Design System](docs/design-system.md).
   Xcode-tools build-for-testing и 26/26 targeted tests, семь native fixtures, Computer Use по реальным данным,
