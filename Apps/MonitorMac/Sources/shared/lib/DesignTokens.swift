@@ -7,6 +7,7 @@ enum DesignTokens {
         static let inline: CGFloat = 4
         static let item: CGFloat = 8
         static let section: CGFloat = 12
+        static let group: CGFloat = 24
     }
 
     enum Card {
@@ -16,6 +17,7 @@ enum DesignTokens {
         static let shadowOffset: CGFloat = 2
         static let shadowOpacity = 0.15
         static let subduedOpacity = 0.4
+        static let separatorWidth: CGFloat = 1
     }
 
     enum Badge {
@@ -25,5 +27,7 @@ enum DesignTokens {
     enum Layout {
         static let metricMinimumWidth: CGFloat = 150
         static let compactMetricMinimumWidth: CGFloat = 70
+        static let pageInset: CGFloat = 28
+        static let helpPopoverWidth: CGFloat = 360
     }
 }

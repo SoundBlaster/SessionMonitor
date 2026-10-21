@@ -30,8 +30,7 @@ struct SessionExplorerPage: View {
                 if let session = model.selectedSession {
                     SessionDetailView(session: session, query: model.query,
                                       timelineModel: model.timelineModel, provider: model.contextProvider,
-                                      chartPalette: chartPalette,
-                                      exportSession: { exportSession(sessionID: session.id) })
+                                      chartPalette: chartPalette)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .task(id: SessionTimelineLoadID(sessionID: session.id, query: model.query)) {
                             await model.loadTimeline(sessionID: session.id)
@@ -43,7 +42,9 @@ struct SessionExplorerPage: View {
             .navigationTitle("SessionMonitor")
             .navigationSubtitle("\(reportScope.accountLabel) · Canonical usage")
             .toolbar {
-                SessionExplorerInspectorToolbar(model: model)
+                SessionExplorerDetailToolbar(model: model) { sessionID in
+                    exportSession(sessionID: sessionID)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }

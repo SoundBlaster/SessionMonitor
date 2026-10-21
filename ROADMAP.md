@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-703 — в работе (2026-10-21): настроить прямую раздачу notarized macOS binary через GitHub Releases.**
+**SM-703 — в работе (2026-10-22): настроить прямую раздачу notarized macOS binary через GitHub Releases.**
 Подзадача по запросу пользователя: адаптировать проверенную схему Dreams к app bundle SessionMonitor
 с WidgetKit extension/App Group: Developer ID подпись, notarization/stapling, DMG и checksum;
 standalone notarized CLI ZIP; не смешивать с Mac App Store workflow SM-706. Release tooling и
@@ -22,6 +22,20 @@ Developer account команды `P8T2366K8X` и разрешить provisioning
 для app и widget. После этого profiles, полный export, notarization/stapling, Gatekeeper и
 clean-install всё ещё требуют проверки. GitHub Release не публиковался; публикация первого
 публичного релиза требует отдельного разрешения и проверки на чистой установке.
+
+**SM-732 — реализована и локально проверена (2026-10-21): компактная сводка выбранной сессии.**
+Title/cache hit/info в одной строке, UUID ниже; экспорт в detail toolbar перед Inspector.
+Четыре равные колонки в общей адаптивной полосе; компактные canonical/cache notes;
+Context anatomy расположен сразу после сводки, content cap 960 pt снят.
+DesignMetricStrip, DesignSummaryHeading и DesignInfoButton расширяют Design System;
+domain mapping и SpecificationKit остаются в page. Accounting и графики не менялись.
+Xcode-tools build-for-testing и 26/26 targeted tests passed; семь native light/dark/narrow/state fixtures
+проверены, включая длинное имя/ID, большие числа, partial/zero-input/no-requests/known-zero.
+Computer Use: реальная сводка, смена сессии/UUID/метрик, отдельные AX nodes, popover/Escape,
+export save panel (отменён без записи), existing ambiguous-account guard. Один app window.
+SwiftLint/FSD/negative gate и diff passed. [Контракты](docs/design-system.md), локальные screenshots на TB5:
+`measurements/sm-732-native-final`, xcresult `Test-MonitorMac-2026.10.21_08-58-55-+0300`.
+Следующий шаг — review/CI и доставка PR; затем SM-330. Статусы SM-730/SM-731 — отдельный PR #121.
 
 **SM-731 — реализована и локально проверена (2026-10-21): ручной импорт останавливает свой Watch.**
 По уточнению пользователя Import/Update/Retry сначала останавливают свой Watch и дожидаются cleanup.
@@ -1300,6 +1314,14 @@ deliverable — WidgetKit extension с App Group в SM-401.
   два окна, ошибка/отмена, shutdown и external Watch. Xcode-tools build-for-testing и 36/36 targeted tests
   passed; native light/dark/narrow captures проверены. SwiftLint/FSD/negative gate и diff passed.
   Watch не возобновляется автоматически. `[ ]` — до доставки через PR.
+
+- [ ] **SM-732** — Компактная сводка сессии и переиспользуемые summary components.
+  **Статус: реализована и локально проверена (2026-10-21); ожидает доставки через PR.**
+  Title/cache hit/info, selectable UUID, единая адаптивная полоса метрик и compact canonical/cache notes;
+  экспорт перед Inspector в detail toolbar. Общие компоненты — [Design System](docs/design-system.md).
+  Xcode-tools build-for-testing и 26/26 targeted tests, семь native fixtures, Computer Use по реальным данным,
+  SwiftLint/FSD/negative gate и diff passed. Unknown/partial/zero и accounting сохранены.
+  Полный `make check` и полный VoiceOver run не выполнялись. `[ ]` — до доставки через PR. Затем SM-330.
 
 - [ ] **SM-719** — Ось реального времени для графика анатомии контекста.
   **Статус: отложено (2026-10-11), по решению пользователя — после SM-717/SM-718.** Переключатель «по запросам / по времени»;
