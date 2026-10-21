@@ -490,6 +490,50 @@ Append 752 bytes читает ровно 752 bytes, median 0.02 s; примен�
 Audit parity: 6,340 requests и все шесть token totals. [Команда и методика](docs/performance/README.md).
 `make benchmark` использует отдельные копии/БД; в CI запускается только synthetic smoke.
 
+## GitHub Releases для прямой установки macOS-приложения
+
+Это отдельный канал доставки от App Store Connect. Он готовит universal `arm64` + `x86_64`
+DMG с `SessionMonitor.app`, WidgetKit extension и `codex-monitor`, а также standalone universal
+CLI ZIP; оба публикуемых файла сопровождаются SHA-256. App и виджет подписываются
+Developer ID Application с hardened runtime; release target проверяет их подписи, provisioning
+profiles и App Group, затем notarizes/staples приложение и итоговый DMG; отдельный CLI ZIP
+также отправляется на notarization (ZIP не stapled, Gatekeeper проверяет его ticket онлайн).
+App Store `.pkg` и его credentials этим workflow не затрагиваются.
+
+На Mac должны быть Developer ID Application certificate с private key и Developer ID
+provisioning profiles для app `ru.egormerkushev.session-monitor` и extension
+`ru.egormerkushev.session-monitor.widget`; оба профиля должны разрешать
+`group.ru.egormerkushev.session-monitor`. Нужен локальный Keychain profile для `notarytool`.
+При необходимости разрешить Xcode обновить профили из Developer Portal, задайте
+`ALLOW_PROVISIONING_UPDATES=YES`. Не добавляйте секреты, профили и подписи в репозиторий.
+
+Подготовьте и проверьте релиз локально:
+
+```sh
+NOTARY_PROFILE=my-notary-profile make release-github
+```
+
+Проверенная схема Dreams воссоздана в `scripts/release-github.sh`. По умолчанию Xcode archive,
+SwiftPM CLI builds и release artifacts лежат в `.build/release-github`. Перед локальным
+запуском на машине проекта направьте `RELEASE_ROOT`, `RELEASE_DERIVED_DATA`,
+`CLI_SCRATCH_ROOT` и `SWIFTPM_CACHE_PATH` в каталоги, выделенные локальной build-cache
+политикой. `make release-github-local` допускает проверить Developer ID подпись и упаковку,
+но пропускает notarization; полученные файлы явно непригодны для публикации.
+
+Публикация — отдельный осознанный шаг, доступный только с чистого локального `main`,
+синхронизированного с `origin/main`, и после проверки stapled DMG и обоих checksums:
+
+```sh
+NOTARY_PROFILE=my-notary-profile make github-release
+```
+
+Команда подтвердит публикацию интерактивно, создаст GitHub Release из текущей версии проекта,
+перед публикацией повторно сверит все три notarization status с Apple, загрузит DMG, CLI ZIP и
+checksums, а затем скачает оба бинарных файла и сравнит их SHA-256.
+Она не запускается автоматически после сборки. Перед первым публичным выпуском нужно отдельно
+проверить установку на чистой macOS-учётной записи, первый запуск, виджет и сохранность данных
+при обновлении. Автоматическое обновление приложения этим workflow не настраивается.
+
 ## Локальная загрузка в App Store Connect
 
 Публикация сборок пока выполняется только с локального Mac. GitHub Actions не получает

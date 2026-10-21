@@ -28,6 +28,10 @@ CONFIGURATION ?= Debug
 DESTINATION ?= platform=macOS
 BUILD_ROOT ?= .build/quality
 DERIVED_DATA ?= .build/xcode
+RELEASE_ROOT ?= .build/release-github
+RELEASE_DERIVED_DATA ?= $(RELEASE_ROOT)/DerivedData
+CLI_SCRATCH_ROOT ?= $(RELEASE_ROOT)/SwiftPM
+SWIFTPM_CACHE_PATH ?= $(RELEASE_ROOT)/SwiftPMCache
 RUN_ID := $(shell date -u +%Y%m%dT%H%M%S)-$(shell uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)
 RESULT_BUNDLE ?= $(BUILD_ROOT)/$(RUN_ID).xcresult
 ARCHIVE_PATH ?= $(BUILD_ROOT)/MonitorMac-$(RUN_ID).xcarchive
@@ -44,10 +48,10 @@ endif
 
 .PHONY: help init test-init doctor generate install-hooks guard-package guard-app lint-version resolve build-cli test-core build-mcp
 .PHONY: lint-core lint lint-architecture build-macos test-macos test-widget check-core check archive
-.PHONY: ci ci-linux check-linux lint-ci test-hooks test-architecture test-cli build-cli-release benchmark release-local
+.PHONY: ci ci-linux check-linux lint-ci test-hooks test-architecture test-cli build-cli-release benchmark release-local release-github release-github-local github-release
 
 help:
-	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate install-hooks build-macos build-mcp test-macos lint lint-architecture check archive' 'init ci lint-ci test-init test-hooks test-architecture build-cli-release benchmark release-local'
+	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate install-hooks build-macos build-mcp test-macos lint lint-architecture check archive' 'init ci lint-ci test-init test-hooks test-architecture build-cli-release benchmark release-local release-github release-github-local github-release'
 
 # Idempotent setup and refresh: pinned tools, Git hooks, packages, Xcode project, toolchain check.
 init:
@@ -119,7 +123,8 @@ test-architecture:
 
 lint-ci:
 	$(ACTIONLINT) -color
-	bash -n scripts/ci/install-tools.sh scripts/ci/check-fsd-boundary.sh scripts/git-hooks/install.sh
+	bash -n scripts/ci/install-tools.sh scripts/ci/check-fsd-boundary.sh scripts/git-hooks/install.sh \
+		scripts/release-github.sh scripts/publish-github-release.sh
 	sh -n scripts/git-hooks/generate-project.sh scripts/tests/git-hooks-test.sh .githooks/pre-commit \
 		.githooks/post-merge .githooks/post-checkout .githooks/post-rewrite scripts/init.sh scripts/tests/init-test.sh \
 		scripts/local-signing.sh scripts/tests/local-signing-test.sh
@@ -190,3 +195,23 @@ archive: guard-app
 # Local-only App Store Connect package upload. Credentials stay in the local asc keychain.
 release-local:
 	./scripts/release-local.sh
+
+# Direct-download Developer ID release; notarized artifacts and CLI archive stay local until publication.
+release-github: guard-app
+	PROJECT="$(PROJECT)" SCHEME="$(SCHEME)" XCODEBUILD="$(XCODEBUILD)" XCODEGEN="$(XCODEGEN)" \
+		XCODEBUILD_FLAGS="$(XCODEBUILD_FLAGS)" RELEASE_ROOT="$(RELEASE_ROOT)" DERIVED_DATA="$(RELEASE_DERIVED_DATA)" \
+		CLI_SCRATCH_ROOT="$(CLI_SCRATCH_ROOT)" SWIFTPM_CACHE_PATH="$(SWIFTPM_CACHE_PATH)" \
+		NOTARY_PROFILE="$(NOTARY_PROFILE)" ALLOW_PROVISIONING_UPDATES="$(ALLOW_PROVISIONING_UPDATES)" \
+		./scripts/release-github.sh
+
+# Developer ID signing/package smoke only. The output is explicitly not publishable.
+release-github-local: guard-app
+	PROJECT="$(PROJECT)" SCHEME="$(SCHEME)" XCODEBUILD="$(XCODEBUILD)" XCODEGEN="$(XCODEGEN)" \
+		XCODEBUILD_FLAGS="$(XCODEBUILD_FLAGS)" RELEASE_ROOT="$(RELEASE_ROOT)" DERIVED_DATA="$(RELEASE_DERIVED_DATA)" \
+		CLI_SCRATCH_ROOT="$(CLI_SCRATCH_ROOT)" SWIFTPM_CACHE_PATH="$(SWIFTPM_CACHE_PATH)" \
+		./scripts/release-github.sh --skip-notarize
+
+# Requires a prior notarized/stapled local artifact; validates and publishes it on the current main commit.
+github-release:
+	RELEASE_ROOT="$(RELEASE_ROOT)" RELEASE_VERSION="$(RELEASE_VERSION)" NOTARY_PROFILE="$(NOTARY_PROFILE)" \
+		GITHUB_RELEASE_CONFIRM="$(GITHUB_RELEASE_CONFIRM)" ./scripts/publish-github-release.sh

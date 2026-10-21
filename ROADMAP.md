@@ -6,6 +6,18 @@
 
 ## Текущая точка
 
+**SM-703 — в работе (2026-10-21): настроить прямую раздачу notarized macOS binary через GitHub Releases.**
+Подзадача по запросу пользователя: адаптировать проверенную схему Dreams к app bundle SessionMonitor
+с WidgetKit extension/App Group: Developer ID подпись, notarization/stapling, DMG и checksum;
+standalone notarized CLI ZIP; не смешивать с Mac App Store workflow SM-706. Release tooling и
+отдельные prepare/publish Make targets подготовлены для review. Скрипт проверяет bundle IDs,
+universal architectures, Developer ID signatures, hardened runtime, embedded profiles/App Group,
+notarization tickets, stapling, Gatekeeper и опубликованные SHA-256. Локальная lint-проверка пока
+ограничена: `bash -n` и `git diff --check` прошли, но actionlint/ShellCheck на этом Mac не установлены;
+GitHub Workflow lint остаётся необходимым. App/extension Developer ID profiles и реальный
+notarized artifact/clean-install пока не проверены. Публикация первого публичного релиза требует
+отдельного разрешения и проверки на чистой установке.
+
 **SM-731 — реализована и локально проверена (2026-10-21): ручной импорт останавливает свой Watch.**
 По уточнению пользователя Import/Update/Retry сначала останавливают свой Watch и дожидаются cleanup.
 Watch не возобновляется автоматически. Общая для окон координация исключает новый Start во время
@@ -1037,7 +1049,11 @@ deliverable — WidgetKit extension с App Group в SM-401.
   личных plot labels и signing overrides. Build/test evidence — baseline SM-008/SM-009.
 - [ ] **SM-703** — Distribution packaging CLI/app/widget, notices, signing, notarization и обновления.
   Готово, когда выбранный способ доставки проверен на чистой установке с сохранением данных;
-  Apple Development build сам по себе не подтверждает distribution readiness.
+  Apple Development build сам по себе не подтверждает distribution readiness. Статус: в работе;
+  текущий scope — GitHub direct-download universal DMG и standalone CLI ZIP по схеме Dreams,
+  адаптированные к основному app и embedded WidgetKit extension/App Group. Первый выпуск и
+  clean-install evidence остаются отдельным acceptance gate; Mac App Store signing/upload остаётся
+  в SM-706.
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
   Статус: в работе. Скрипт создаёт archive и `.pkg` только локально, проверяет app ID и bundle ID,
   запрашивает подтверждение перед upload и использует локальную аутентификацию `asc`; GitHub Actions
