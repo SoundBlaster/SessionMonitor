@@ -60,16 +60,17 @@ struct AppMenuHost: View {
         case nil: (title, symbol) = (watch.isRunning ? "Starting watch…" : "Watch not started", "folder")
         }
         return MenuWatchPresentation(
-            title: watch.isShuttingDown ? "Stopping before quit…" : title, symbol: symbol,
+            title: watch.isShuttingDown ? "Stopping before quit…"
+                : watch.isImporting ? "Manual import…" : title, symbol: symbol,
             directory: watch.directory?.path,
             error: watch.errorMessage ?? watch.status?.error,
             isRunning: watch.isRunning, isPaused: watch.status?.phase == .paused,
-            isBusy: watch.isBusy || watch.isShuttingDown
+            isBusy: watch.isBusy || watch.isImporting || watch.isShuttingDown
         )
     }
 
     private func chooseWatchFolder() {
-        guard !watch.isBusy, !watch.isRunning, !watch.isShuttingDown else { return }
+        guard !watch.isBusy, !watch.isImporting, !watch.isRunning, !watch.isShuttingDown else { return }
         let panel = NSOpenPanel()
         panel.title = "Watch JSONL Rollouts"
         panel.message = "The selected folder is imported, then monitored for changes until you stop watch or quit."

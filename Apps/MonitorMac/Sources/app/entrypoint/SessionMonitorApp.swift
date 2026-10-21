@@ -42,6 +42,7 @@ struct SessionMonitorApp: App {
         WindowGroup("SessionMonitor", id: "session-explorer") {
             SessionMonitorWindow(
                 runtimeLoader: runtimeLoader,
+                watch: watchController,
                 reportScope: reportScope,
                 cacheHitRateWidgetSettings: cacheHitRateWidgetSettings,
                 cacheAnalytics: cacheAnalytics
@@ -83,6 +84,7 @@ private struct SessionMonitorWindow: View {
 
     init(
         runtimeLoader: SessionMonitorRuntimeLoader,
+        watch: AppWatchController,
         reportScope: ReportScopeModel,
         cacheHitRateWidgetSettings: CacheHitRateWidgetSettings,
         cacheAnalytics: CacheAnalyticsPresentation
@@ -90,9 +92,12 @@ private struct SessionMonitorWindow: View {
         self.reportScope = reportScope
         self.cacheHitRateWidgetSettings = cacheHitRateWidgetSettings
         self.cacheAnalytics = cacheAnalytics
-        _model = State(initialValue: SessionExplorerModel {
-            try await runtimeLoader.load()
-        })
+        _model = State(initialValue: SessionExplorerModel(
+            importOperation: { directory, runtime in
+                try await watch.importManually { try await runtime.importDirectory(directory) }
+            },
+            runtimeFactory: { try await runtimeLoader.load() }
+        ))
     }
 
     var body: some View {
