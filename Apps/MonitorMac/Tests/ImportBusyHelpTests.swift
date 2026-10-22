@@ -86,10 +86,13 @@ final class ImportBusyHelpTests: XCTestCase {
 
     func testImportPublishesCurrentFileAndCompletionProgress() async throws {
         let runtime = StubExplorerRuntime(report: UsageReport(totals: UsageTotals(), sessions: [], diagnostics: [:]))
-        let model = SessionExplorerModel(runtimeFactory: { runtime })
+        let model = SessionExplorerModel(runtimeFactory: { runtime },
+                                         importedDirectorySettings: try isolatedDirectorySettings())
 
+        let savedDirectory = UserDefaults.standard.string(forKey: ImportedDirectorySettings.storageKey)
         await model.importDirectory(URL(fileURLWithPath: "/tmp/2026", isDirectory: true))
 
+        XCTAssertEqual(UserDefaults.standard.string(forKey: ImportedDirectorySettings.storageKey), savedDirectory)
         XCTAssertEqual(model.importProgress?.completedFiles, 1)
         XCTAssertEqual(model.importProgress?.totalFiles, 1)
         XCTAssertNil(model.importProgress?.currentFileName)
@@ -102,7 +105,7 @@ final class ImportBusyHelpTests: XCTestCase {
                                      currentFileBytesProcessed: 8_388_608, currentFileSize: 32_000_000))
             try await Task.sleep(for: .seconds(30))
             return ImportSummary(files: 6, records: 0, diagnostics: [:])
-        }, runtimeFactory: { runtime })
+        }, runtimeFactory: { runtime }, importedDirectorySettings: try isolatedDirectorySettings())
 
         model.startImportDirectory(URL(fileURLWithPath: "/tmp/2026", isDirectory: true))
         for _ in 0..<100 where model.activity != .importing { await Task.yield() }
@@ -121,13 +124,20 @@ final class ImportBusyHelpTests: XCTestCase {
         let directory = URL(fileURLWithPath: "/tmp/2026", isDirectory: true)
         let model = SessionExplorerModel(importOperation: { _, _, _ in
             throw ImportSourceError.changedWhileReading(fileName: "active.jsonl", completedFiles: 2, totalFiles: 6)
-        }, runtimeFactory: { runtime })
+        }, runtimeFactory: { runtime }, importedDirectorySettings: try isolatedDirectorySettings())
 
         await model.importDirectory(directory)
 
         XCTAssertEqual(model.importSourceRecoveryDirectory, directory)
         XCTAssertTrue(model.errorMessage?.contains("active.jsonl") == true)
         XCTAssertTrue(model.errorMessage?.contains("2 of 6 earlier files were saved") == true)
+    }
+
+    private func isolatedDirectorySettings() throws -> ImportedDirectorySettings {
+        let suite = "ImportBusyHelpTests.\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+        return ImportedDirectorySettings(defaults: defaults)
     }
 
     func testNativeHelpLightDarkAndNarrow() throws {
