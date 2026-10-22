@@ -14,9 +14,14 @@ standalone notarized CLI ZIP; не смешивать с Mac App Store workflow 
 синхронизированный с `origin/main`; commit артефактов сохраняется и проверяется перед публикацией.
 Скрипт проверяет bundle IDs, universal architectures, Developer ID signatures, hardened runtime,
 embedded profiles/App Group, notarization tickets, stapling, Gatekeeper и опубликованные SHA-256.
-App/extension Developer ID profiles и реальный
-notarized artifact/clean-install пока не проверены. Публикация первого публичного релиза требует
-отдельного разрешения и проверки на чистой установке.
+PR [#125](https://github.com/SoundBlaster/SessionMonitor/pull/125) добавляет Developer ID archive export.
+2026-10-21: Automatic-signing universal archive был создан локально, но export завершился ошибкой
+Xcode `No Accounts` и отсутствием подходящих Developer ID profiles. В Xcode требуется войти в Apple
+Developer account команды `P8T2366K8X` и разрешить provisioning updates; App Group должен быть
+назначен обоим bundle IDs. Владелец подтвердил, что `group.ru.egormerkushev.session-monitor` включён
+для app и widget. После этого profiles, полный export, notarization/stapling, Gatekeeper и
+clean-install всё ещё требуют проверки. GitHub Release не публиковался; публикация первого
+публичного релиза требует отдельного разрешения и проверки на чистой установке.
 
 **SM-731 — реализована и локально проверена (2026-10-21): ручной импорт останавливает свой Watch.**
 По уточнению пользователя Import/Update/Retry сначала останавливают свой Watch и дожидаются cleanup.
@@ -1049,7 +1054,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
   личных plot labels и signing overrides. Build/test evidence — baseline SM-008/SM-009.
 - [ ] **SM-703** — Distribution packaging CLI/app/widget, notices, signing, notarization и обновления.
   Готово, когда выбранный способ доставки проверен на чистой установке с сохранением данных;
-  Apple Development build сам по себе не подтверждает distribution readiness. Статус: в работе;
+  Apple Development build сам по себе не подтверждает distribution readiness. Статус: в работе,
+  PR [#125](https://github.com/SoundBlaster/SessionMonitor/pull/125); локальная попытка export
+  остановилась после успешного archive на Xcode `No Accounts`/missing Developer ID profiles.
+  Подтверждённая настройка App Group ещё не подтверждает наличие разрешающих profiles. Остаток —
+  проверить provisioning profiles, завершить Developer ID export и notarization, выполнить
+  clean-install acceptance; GitHub Release не публиковался.
   текущий scope — GitHub direct-download universal DMG и standalone CLI ZIP по схеме Dreams,
   адаптированные к основному app и embedded WidgetKit extension/App Group. Первый выпуск и
   clean-install evidence остаются отдельным acceptance gate; Mac App Store signing/upload остаётся
