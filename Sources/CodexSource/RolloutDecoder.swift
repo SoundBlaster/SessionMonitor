@@ -17,17 +17,22 @@ public struct RolloutDecoder: Sendable {
 
     /// Reads the source only to recover metadata for records already in the store.
     /// It deliberately does not decode or return usage records.
-    public func parseMetadata(_ url: URL) throws -> SourceImport {
-        try parseMetadata(RolloutFile(url: url))
+    public func parseMetadata(
+        _ url: URL, onProgress: (@Sendable (UInt64, UInt64) -> Void)? = nil
+    ) throws -> SourceImport {
+        try parseMetadata(RolloutFile(url: url), onProgress: onProgress)
     }
 
     /// Checkpoint promotion is safe only for metadata from the already imported snapshot.
     /// Changed sources must pass through the normal records/event import instead.
-    public func parseMetadata(_ url: URL, matching checkpoint: Data) throws -> SourceImport? {
+    public func parseMetadata(
+        _ url: URL, matching checkpoint: Data,
+        onProgress: (@Sendable (UInt64, UInt64) -> Void)? = nil
+    ) throws -> SourceImport? {
         let source = try RolloutFile(url: url)
         guard let previous = try? JSONDecoder().decode(DecoderCheckpoint.self, from: checkpoint),
               previous.version == source.version else { return nil }
-        let metadata = try parseMetadata(source)
+        let metadata = try parseMetadata(source, onProgress: onProgress)
         let next = try JSONDecoder().decode(DecoderCheckpoint.self, from: metadata.checkpoint)
         guard previous.cursor.offset == next.cursor.offset,
               previous.cursor.line == next.cursor.line else { return nil }
@@ -40,9 +45,11 @@ public struct RolloutDecoder: Sendable {
                             mode: metadata.mode, bytesRead: metadata.bytesRead)
     }
 
-    private func parseMetadata(_ source: RolloutFile) throws -> SourceImport {
+    private func parseMetadata(
+        _ source: RolloutFile, onProgress: (@Sendable (UInt64, UInt64) -> Void)? = nil
+    ) throws -> SourceImport {
         var state = DecodeState()
-        let progress = try JSONLReader().read(source, from: JSONLCursor()) { data, line in
+        let progress = try JSONLReader().read(source, from: JSONLCursor(), onProgress: onProgress) { data, line in
             guard let data else { return }
             state.consume(data, line: line, includeRecords: false)
         }
@@ -55,7 +62,10 @@ public struct RolloutDecoder: Sendable {
                             mode: .replaced, bytesRead: source.bytesRead)
     }
 
-    public func parseIncrementally(_ url: URL, checkpoint: Data? = nil) throws -> SourceImport {
+    public func parseIncrementally(
+        _ url: URL, checkpoint: Data? = nil,
+        onProgress: (@Sendable (UInt64, UInt64) -> Void)? = nil
+    ) throws -> SourceImport {
         let source = try RolloutFile(url: url)
         let previous = checkpoint.flatMap { try? JSONDecoder().decode(DecoderCheckpoint.self, from: $0) }
         var cursor = JSONLCursor()
@@ -73,7 +83,7 @@ public struct RolloutDecoder: Sendable {
                 mode = .appended
             }
         }
-        let progress = try JSONLReader().read(source, from: cursor) { data, line in
+        let progress = try JSONLReader().read(source, from: cursor, onProgress: onProgress) { data, line in
             guard let data else {
                 state.result.diagnostics["oversizedLines", default: 0] += 1
                 return

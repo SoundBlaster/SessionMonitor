@@ -283,10 +283,10 @@ private struct ManualImportFixture {
     }
     func model(runtime: any SessionExplorerRuntime, watch: AppWatchController,
                beforeImport: @escaping @Sendable () async throws -> Void = {}) -> SessionExplorerModel {
-        SessionExplorerModel(importOperation: { directory, runtime in
+        SessionExplorerModel(importOperation: { directory, runtime, progress in
             try await watch.importManually {
                 try await beforeImport()
-                return try await runtime.importDirectory(directory)
+                return try await runtime.importDirectory(directory, progress: progress)
             }
         }, runtimeFactory: { runtime }, importedDirectorySettings: ImportedDirectorySettings(defaults: defaults))
     }

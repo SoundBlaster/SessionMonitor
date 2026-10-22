@@ -225,16 +225,18 @@ final class SessionExplorerTests: XCTestCase {
         // A separate SQLite process publishes diagnostics and the marker in the same transaction.
         // The CLI process harness separately verifies that production imports publish this marker.
         let writer = Process()
-        writer.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
-        writer.arguments = ["-c", """
-            import sqlite3, sys, time
-            with sqlite3.connect(sys.argv[1]) as db:
-                db.execute("INSERT INTO source_diagnostics VALUES ('fixture', 'partialTails', 1)")
-                db.execute("UPDATE query_watermark SET revision = revision + 1, committed_at = ?", (time.time(),))
-            """, database.path]
+        writer.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
+        writer.arguments = [database.path, """
+            BEGIN IMMEDIATE;
+            INSERT INTO source_diagnostics VALUES ('fixture', 'partialTails', 1);
+            UPDATE query_watermark SET revision = revision + 1,
+                committed_at = CAST(strftime('%s', 'now') AS REAL);
+            COMMIT;
+            """]
         try writer.run()
         writer.waitUntilExit()
         XCTAssertEqual(writer.terminationStatus, 0)
+        guard writer.terminationStatus == 0 else { return }
         for _ in 0..<200 where model.report.diagnostics["partialTails"] != 1 {
             try await Task.sleep(for: .milliseconds(10))
         }

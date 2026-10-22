@@ -93,8 +93,8 @@ private struct SessionMonitorWindow: View {
         self.cacheHitRateWidgetSettings = cacheHitRateWidgetSettings
         self.cacheAnalytics = cacheAnalytics
         _model = State(initialValue: SessionExplorerModel(
-            importOperation: { directory, runtime in
-                try await watch.importManually { try await runtime.importDirectory(directory) }
+            importOperation: { directory, runtime, progress in
+                try await watch.importManually { try await runtime.importDirectory(directory, progress: progress) }
             },
             runtimeFactory: { try await runtimeLoader.load() }
         ))

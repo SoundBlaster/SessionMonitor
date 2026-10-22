@@ -219,7 +219,9 @@ private actor StubSharedRuntime: SessionExplorerRuntime {
 
     var snapshotsCalls: Int { calls.snapshotStreams }
 
-    func importDirectory(_ directory: URL) async throws -> ImportSummary {
+    func importDirectory(
+        _ directory: URL, progress: (@Sendable (ImportProgress) -> Void)?
+    ) async throws -> ImportSummary {
         calls.imports += 1
         return ImportSummary(files: 0, records: 0, diagnostics: [:])
     }
