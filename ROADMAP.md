@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-21. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-22. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -36,20 +36,27 @@ SwiftLint, FSD architecture lint, `make generate` и `git diff --check` прош
 доверия `SpecificationCoreMacros`; обход macro validation не применялся. Следующий шаг — review,
 проверка CI на PR и после этого merge.
 
-**SM-731 — реализована и локально проверена (2026-10-21): ручной импорт останавливает свой Watch.**
+**SM-730 и SM-731 доставлены в `main` (2026-10-21) атомарным squash-слиянием стопки #118 → #119.**
+PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118) — `cf79925`,
+PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) — `0399b03`.
+Перед слиянием обязательный `CI` успешен на обеих ревизиях, открытых review threads нет.
+Локальный `main` синхронизирован с `origin/main`, сгенерированный Xcode-проект обновлён.
+Следующая доступная задача по прежнему приоритету — **SM-330**: открытие сессии с evidence по клику на уведомление алерта.
+
+**SM-731 — доставлена (2026-10-21): ручной импорт останавливает свой Watch.**
 По уточнению пользователя Import/Update/Retry сначала останавливают свой Watch и дожидаются cleanup.
 Watch не возобновляется автоматически. Общая для окон координация исключает новый Start во время
 ручного импорта и сериализует ручные импорты; чужой importer по-прежнему защищён flock.
-PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) поверх #118, готова к review.
+PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) влит после #118, squash `0399b03`.
 Xcode-tools build-for-testing passed; 36/36 targeted tests прошли, включая 7 новых для active/paused/pending Watch,
 cleanup ordering, ошибки/отмены, двух окон, shutdown и сохранения external ownership.
 Native light/dark/narrow captures проверены, без clipping; артефакты на TB5 в `measurements/sm-731-native`,
 xcresult `Test-MonitorMac-2026.10.21_00-21-26-+0300`. Исправлен directory hint в test fixture.
 `make generate`, SwiftLint/FSD/negative gate и diff passed. После rebase с #118 код/tests идентичны
-проверенной версии (разница только в ROADMAP). Следующий шаг — review и доставка стопки #118 → #119.
+проверенной версии (разница только в ROADMAP). Реализация находится в `main`.
 
-**SM-730 — реализована и локально проверена (2026-10-21): справка при занятой базе.**
-PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118), base `main`, готова к review.
+**SM-730 — доставлена (2026-10-21): справка при занятой базе.**
+PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118) влит в `main`, squash `cf79925`.
 Пользователь подтвердил: Stop Watch устраняет importerBusy при ручном импорте. UI объясняет собственный
 Watch (включая paused), Stop Watch и Retry Import той же папки. Typed error не подменяет последний
 успешный источник/отчёт; dismissal и другая ошибка очищают recovery. Ownership/locking не менялись.
@@ -57,21 +64,19 @@ Xcode-tools test action собрал приложение/tests и прошёл 
 Native light/dark/narrow captures проверены, текст и кнопки не обрезаются. Артефакты на TB5:
 `measurements/sm-730-native`, xcresult `Test-MonitorMac-2026.10.21_00-22-40-+0300`.
 SwiftLint (252 source files и отдельно test files), FSD/negative gate и diff passed.
-Следующий шаг — review/delivery; собственный Watch/manual import координирует зависимый SM-731.
+Собственный Watch/manual import координирует также доставленный SM-731.
 
-**SM-729 — реализована и локально проверена (2026-10-19): Design System карточек SM-718.**
-PR [#117](https://github.com/SoundBlaster/SessionMonitor/pull/117) поверх #116: `shared/ui` содержит card surfaces, badge, metric, adaptive header и
+**SM-729 — доставлена (2026-10-19), PR [#117](https://github.com/SoundBlaster/SessionMonitor/pull/117), squash `b93d203`.** Design System карточек SM-718: `shared/ui` содержит card surfaces, badge, metric, adaptive header и
 binding-driven evidence disclosure; `shared/lib` — общие tokens. Domain/formatting/inspection остаются в feature.
 Xcode-tools build-for-testing и 15 targeted tests прошли; SwiftLint (249 файлов), FSD/negative gate и diff — passed.
 Все 6 native fixture-снимков до/после совпали попиксельно. [Контракты](docs/design-system.md).
-Следующий шаг — review и доставка слоя после #116; затем SM-330.
-**SM-718 — review P2 о provenance исправлен (2026-10-19), PR #116.**
+**SM-718 — доставлена (2026-10-19), PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116), squash `19d9ce2`; обязательный CI прошёл. Review P2 о provenance исправлен.**
 Evidence сохраняет response IDs запросов и source lines отдельных compaction events до projection в anatomy.
 Три regression tests проверяют пары/JSON, несколько событий через unknown-input gap, foreign/trailing events
 и отсутствие выдуманных IDs. Core bundle собран Xcode-tools; `xcrun xctest`: 252 Swift Testing + 9 XCTest,
 все 261 passed. MCP package runner по-прежнему не загрузил executable; это отдельно от успешного прямого runtime.
 Зависимый слой Design System #117 обновлён: Xcode-tools app build и 15 GUI tests прошли повторно;
-merge не запрошен.
+затем SM-729 доставлена отдельным PR #117.
 
 **SM-718 — карточки переработаны по замечанию пользователя (2026-10-19), в PR #116.**
 Плавающий snapshot: размер контекста, зона, компактная сетка cached/new/output. Под графиком —
@@ -81,9 +86,9 @@ source evidence и полный request snapshot раскрываются отд
 Native light/dark/narrow captures проверены, включая несколько сигналов и длинное раскрытое evidence.
 Полный GUI/core run и real-app smoke ниже — baseline до визуальной доработки; merge ещё не выполнен.
 
-**SM-718 — реализована и локально проверена (2026-10-19), PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх docs PR [#115](https://github.com/SoundBlaster/SessionMonitor/pull/115); ожидает review/CI и merge.** SpecificationCore policies формируют независимые сигналы с evidence, UI показывает bounded markers и сводку по зонам/фазам. Xcode-tools build-for-testing прошёл; GUI unit suite: 243 passed + 1 opt-in skip. Core bundle собран через Xcode-tools; прямой `xcrun xctest` прошёл все 258 core tests (249 Swift Testing + 9 XCTest, включая 14 новых policy tests). MCP test runner отдельно не смог загрузить bundle, это не выдано за passed. Через Computer Use проверены реальная сессия с 7 196 requests, 178 signals, сводка и раскрытие evidence; исходный scope восстановлен. [Правила и evidence](docs/context-insights.md). После доставки — SM-330 (открытие сессии по уведомлению).
+**SM-718 — доставлена (2026-10-19), PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх docs PR [#115](https://github.com/SoundBlaster/SessionMonitor/pull/115), squash `19d9ce2`; обязательный CI прошёл.** SpecificationCore policies формируют независимые сигналы с evidence, UI показывает bounded markers и сводку по зонам/фазам. Xcode-tools build-for-testing прошёл; GUI unit suite: 243 passed + 1 opt-in skip. Core bundle собран через Xcode-tools; прямой `xcrun xctest` прошёл все 258 core tests (249 Swift Testing + 9 XCTest, включая 14 новых policy tests). MCP test runner отдельно не смог загрузить bundle, это не выдано за passed. Через Computer Use проверены реальная сессия с 7 196 requests, 178 signals, сводка и раскрытие evidence; исходный scope восстановлен. [Правила и evidence](docs/context-insights.md). После доставки — SM-330 (открытие сессии по уведомлению).
 
-**SM-723 доставлена через PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), squash-merge `d7d8c54` (2026-10-18); обязательный `CI` прошёл.** Hover обновляет отдельные overlays без пересборки marks и overview. На 7 196 synthetic requests p95 replay внутри запроса: 13,31 → 1,26 мс; между запросами: 25,60 → 16,52 мс. Методика и границы измерения — [SM-723](docs/performance/SM-723-context-hover.md). **Активная задача — SM-718: инсайты на графике анатомии контекста.** SM-724 снята с очереди SessionMonitor: по подтверждению пользователя (2026-10-18), работа уже завершена в проекте Screener; повторная реализация здесь не требуется.
+**SM-723 доставлена через PR [#114](https://github.com/SoundBlaster/SessionMonitor/pull/114), squash-merge `d7d8c54` (2026-10-18); обязательный `CI` прошёл.** Hover обновляет отдельные overlays без пересборки marks и overview. На 7 196 synthetic requests p95 replay внутри запроса: 13,31 → 1,26 мс; между запросами: 25,60 → 16,52 мс. Методика и границы измерения — [SM-723](docs/performance/SM-723-context-hover.md). **SM-718 доставлена через PR #116 (2026-10-19); следующая задача — SM-330.** SM-724 снята с очереди SessionMonitor: по подтверждению пользователя (2026-10-18), работа уже завершена в проекте Screener; повторная реализация здесь не требуется.
 
 **Приоритет пользователя (2026-10-06): core-аналитика, уведомления и agent-facing доступ к данным;
 TUI/UI-полировка отложены.** SM-325 доставлена через PR [#82](https://github.com/SoundBlaster/SessionMonitor/pull/82),
@@ -101,7 +106,7 @@ SM-205 (автозапуск watch) — PR [#87](https://github.com/SoundBlaster
 merge `9d05314`, job `Linux CLI checks` в обязательном `CI`. Затем SM-329 (Agent Surface Protocol, ждёт spec), SM-326, SM-327, SM-330.
 SM-327 (live-правила: burn rate, runaway loop, рост input, проекция квоты) доставлена через PR [#90](https://github.com/SoundBlaster/SessionMonitor/pull/90), merge `fee1de4`;
 **ожидает проверки на реальной сессии на Mac пользователя.** Дальше: SM-329 (ждёт spec), SM-326, SM-330.
-**SM-717 доставлена** (анатомия контекста сессии) через PR [#105](https://github.com/SoundBlaster/SessionMonitor/pull/105), merge `0bd808b` (2026-10-11), проверена на Mac. SM-720 (снимок — плавающая карточка) доставлена через PR [#106](https://github.com/SoundBlaster/SessionMonitor/pull/106), merge `fc8a91e`. **Порядок пользователя (2026-10-11): SM-722** (зум графика анатомии контекста с ограничением плотности и слайдером-обзором) **→ SM-725** (цвет зон контекста столбцами под линией; SM-722 доставлена в #108) **→ SM-726** (цвета ввода/вывода/прочего; SM-725 и SM-726 доставлены в #109 и #110) **→ SM-727** (зоны от окна модели; доставлена через PR [#111](https://github.com/SoundBlaster/SessionMonitor/pull/111), squash-merge `6eeba3d`, 2026-10-14) **→ SM-728** (анонимный экспорт сессии; доставлена через PR [#112](https://github.com/SoundBlaster/SessionMonitor/pull/112), squash-merge `465cf1a`, 2026-10-18) **→ SM-723** (исследование лагов; доставлена в #114, squash-merge `d7d8c54`, 2026-10-18) **→ SM-718** (в работе: инсайты на этом графике); SM-724 снята с очереди по уточнению пользователя (2026-10-18): работа завершена в Screener; SM-721 закрыта: обрыв наведения давали перекрывающие окна других приложений. **Затем SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). Проверены на Mac: SM-711…SM-715. Остаются `[ ]`: SM-710 (hooks: смена ветки и rebase), SM-716 (подсказка про подпись после `make generate`) и SM-326 (панель открывается и что-то показывает; содержимое не сверено с `doctor --json` и `alerts --status all --json`).
+**SM-717 доставлена** (анатомия контекста сессии) через PR [#105](https://github.com/SoundBlaster/SessionMonitor/pull/105), merge `0bd808b` (2026-10-11), проверена на Mac. SM-720 (снимок — плавающая карточка) доставлена через PR [#106](https://github.com/SoundBlaster/SessionMonitor/pull/106), merge `fc8a91e`. **Исторический порядок пользователя (2026-10-11): SM-722** (зум графика анатомии контекста с ограничением плотности и слайдером-обзором) **→ SM-725** (цвет зон контекста столбцами под линией; SM-722 доставлена в #108) **→ SM-726** (цвета ввода/вывода/прочего; SM-725 и SM-726 доставлены в #109 и #110) **→ SM-727** (зоны от окна модели; доставлена через PR [#111](https://github.com/SoundBlaster/SessionMonitor/pull/111), squash-merge `6eeba3d`, 2026-10-14) **→ SM-728** (анонимный экспорт сессии; доставлена через PR [#112](https://github.com/SoundBlaster/SessionMonitor/pull/112), squash-merge `465cf1a`, 2026-10-18) **→ SM-723** (исследование лагов; доставлена в #114, squash-merge `d7d8c54`, 2026-10-18) **→ SM-718** (доставлена через PR #116, 2026-10-19); SM-724 снята с очереди по уточнению пользователя (2026-10-18): работа завершена в Screener; SM-721 закрыта: обрыв наведения давали перекрывающие окна других приложений. **Затем SM-330** (клик по уведомлению алерта открывает сессию с evidence); SM-329 заблокирована (ждёт spec Agent Surface Protocol). Проверены на Mac: SM-711…SM-715. Остаются `[ ]`: SM-710 (hooks: смена ветки и rebase), SM-716 (подсказка про подпись после `make generate`) и SM-326 (панель открывается и что-то показывает; содержимое не сверено с `doctor --json` и `alerts --status all --json`).
 **SM-413 доставлена** через PR [#79](https://github.com/SoundBlaster/SessionMonitor/pull/79), merge `ce3600b` (2026-10-11):
 окно Cache analytics (drag/scroll pan, pinch zoom, статистика выбранного интервала крупно над графиком); по решению
 пользователя окно открывается кнопкой «развернуть» в заголовке Sidebar Cache Hit Rate и командой View ▸ Show Cache Analytics,
@@ -1268,8 +1273,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   output, зеркальные счётчики не суммируются; содержимое окна (system prompt, файлы, история) в логах не видно, и снимок
   прямо это говорит. Готово, когда core-тесты покрывают шаги, зоны, дельты, события между запросами и неизвестные значения,
   график встроен в детали сессии с hover-снимком и VoiceOver-описанием, а `CI` зелёный; `[x]` — после проверки на Mac.
-- [ ] **SM-718** — Инсайты на графике анатомии контекста.
-  **Статус: реализована и локально проверена (2026-10-19), PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх #115; ожидает review/CI и merge.**
+- [x] **SM-718** — Инсайты на графике анатомии контекста.
+  **Доставлена (2026-10-19), PR [#116](https://github.com/SoundBlaster/SessionMonitor/pull/116) поверх #115, squash `19d9ce2`; обязательный CI прошёл.**
   `MonitorPolicies` использует SpecificationCore `DecisionSpec` и `.and` для сопоставимости/порогов. Сигналы:
   скачок/падение input, явная compaction, cold-start candidate, cache drop после паузы (оба — гипотезы),
   вход в critical zone только при двух явных одинаковых окнах модели. Неизвестный input разрывает сравнение;
@@ -1285,34 +1290,34 @@ deliverable — WidgetKit extension с App Group в SM-401.
   tests + 9 XCTest (все 258, включая 14 новых policy tests). MCP test-action не загрузил executable bundle;
   это ограничение runner, а не passed MCP run. Real-data dark UI smoke через Computer Use: 7 196 requests,
   178 signals, сводка по зонам, accessibility snapshot и раскрытие cold-start evidence. Scope Today/Unknown/Mixed/Local
-  восстановлен, task-created app остановлен. Full `make check` не запускался; `[ ]` — до доставки через PR.
+  восстановлен, task-created app остановлен. Full `make check` не запускался; доставлено через PR #116.
   [Правила и evidence](docs/context-insights.md).
-- [ ] **SM-729** — Выделить компоненты Design System из карточек context insights.
-  **Статус: реализована и локально проверена (2026-10-19), PR [#117](https://github.com/SoundBlaster/SessionMonitor/pull/117); ожидает review/CI/merge.** Зависимость: SM-718 / PR #116.
+- [x] **SM-729** — Выделить компоненты Design System из карточек context insights.
+  **Доставлена (2026-10-19), PR [#117](https://github.com/SoundBlaster/SessionMonitor/pull/117), squash `b93d203`; обязательный CI прошёл.** Зависимость: SM-718 / PR #116.
   `shared/ui`: DesignCard, DesignBadge, DesignMetric, DesignCardHeader, DesignEvidenceDisclosure;
   `shared/lib`: DesignTokens. Shared импортирует только SwiftUI; domain mapping/formatting и inspection остаются
   в feature. Сохранены binding/state ownership, unknown, palette, идентификаторы и hover boundaries.
   Xcode-tools build-for-testing и 15 targeted tests прошли; SwiftLint (249 файлов), FSD/negative gate,
   diff checks — passed. Все 6 native light/dark/narrow fixtures попиксельно идентичны baseline `0cdec9d`.
-  [Контракты и воспроизведение](docs/design-system.md). `[ ]` — до доставки через PR.
+  [Контракты и воспроизведение](docs/design-system.md).
 
-- [ ] **SM-730** — Справка и повтор ручного импорта при importerBusy.
-  **Статус: реализована и локально проверена (2026-10-21), PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118).** Отдельная справка объясняет
+- [x] **SM-730** — Справка и повтор ручного импорта при importerBusy.
+  **Доставлена (2026-10-21) через PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118), squash `cf79925`; обязательный `CI` прошёл.** Отдельная справка объясняет
   собственный Watch, Pause vs Stop и другие возможные importers; Retry Import использует ту же папку
   в памяти. Последний успешный источник/отчёт сохраняются; другая ошибка и dismissal очищают recovery.
   README дополнен troubleshooting. Xcode-tools test action: 29/29 passed, включая 4 новых tests;
   native light/dark/narrow captures проверены. SwiftLint/FSD/negative gate и diff passed.
-  Ownership/locking не менялись. `[ ]` — до доставки через PR.
+  Ownership/locking не менялись.
 
-- [ ] **SM-731** — Координация ручного импорта с собственным Watch.
-  **Статус: реализована и локально проверена (2026-10-21), PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) поверх #118.** Import/Update/Retry
+- [x] **SM-731** — Координация ручного импорта с собственным Watch.
+  **Доставлена (2026-10-21) через PR [#119](https://github.com/SoundBlaster/SessionMonitor/pull/119) после #118, squash `0399b03`; обязательный `CI` прошёл.** Import/Update/Retry
   останавливают свой active/paused/pending Watch и ждут cleanup перед импортом любой выбранной папки.
   После операции Watch остаётся остановленным. Новый Start запрещён до завершения,
   импорты разных окон сериализованы. Single-writer lease и защита от другого процесса сохранены,
   без обхода flock и удаления lock file. Добавлены 7 tests: cleanup ordering, active/paused/pending,
   два окна, ошибка/отмена, shutdown и external Watch. Xcode-tools build-for-testing и 36/36 targeted tests
   passed; native light/dark/narrow captures проверены. SwiftLint/FSD/negative gate и diff passed.
-  Watch не возобновляется автоматически. `[ ]` — до доставки через PR.
+  Watch не возобновляется автоматически.
 
 - [ ] **SM-719** — Ось реального времени для графика анатомии контекста.
   **Статус: отложено (2026-10-11), по решению пользователя — после SM-717/SM-718.** Переключатель «по запросам / по времени»;
