@@ -500,19 +500,21 @@ profiles и App Group, затем notarizes/staples приложение и ит
 также отправляется на notarization (ZIP не stapled, Gatekeeper проверяет его ticket онлайн).
 App Store `.pkg` и его credentials этим workflow не затрагиваются.
 
-На Mac должны быть Developer ID Application certificate с private key и Developer ID
-provisioning profiles для app `ru.egormerkushev.session-monitor` и extension
-`ru.egormerkushev.session-monitor.widget`; оба профиля должны разрешать
-`group.ru.egormerkushev.session-monitor`. Нужен локальный Keychain profile для `notarytool`.
-При необходимости разрешить Xcode обновить профили из Developer Portal, задайте
-`ALLOW_PROVISIONING_UPDATES=YES`. Не добавляйте секреты, профили и подписи в репозиторий.
+На Mac должны быть Developer ID Application certificate с private key, а Xcode должен быть
+выполнен вход в Apple Developer account команды `P8T2366K8X`. App Group
+`group.ru.egormerkushev.session-monitor` должен быть связан с app
+`ru.egormerkushev.session-monitor` и extension `ru.egormerkushev.session-monitor.widget`.
+Xcode архивирует проект с Automatic signing, затем экспортирует его как Developer ID; при
+`ALLOW_PROVISIONING_UPDATES=YES` Xcode может создать или скачать нужные Developer ID profiles.
+Нужен локальный Keychain profile для `notarytool`. Не добавляйте секреты, профили и подписи
+в репозиторий.
 
 Подготовку выполняйте только из чистого локального `main`, синхронизированного с `origin/main`.
 Скрипт записывает исходный commit в `source-revision.txt`; публикация отклонит артефакты,
 подготовленные для другой ревизии. Поэтому сначала слейте изменения в `main`, затем соберите релиз:
 
 ```sh
-NOTARY_PROFILE=my-notary-profile make release-github
+NOTARY_PROFILE=my-notary-profile ALLOW_PROVISIONING_UPDATES=YES make release-github
 ```
 
 Проверенная схема Dreams воссоздана в `scripts/release-github.sh`. По умолчанию Xcode archive,

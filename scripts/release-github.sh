@@ -130,6 +130,8 @@ mkdir -p "$release_root" "$derived_data"
 release_root="$(cd "$release_root" && pwd)"
 derived_data="$(cd "$derived_data" && pwd)"
 archive_path="$release_root/SessionMonitor-$version.xcarchive"
+export_path="$release_root/export"
+export_options_path="$release_root/DeveloperIDExportOptions.plist"
 dmg_path="$release_root/SessionMonitor-$version.dmg"
 checksum_path="$release_root/SessionMonitor-$version.dmg.sha256"
 cli_arm64_scratch="$cli_scratch_root/arm64"
@@ -138,9 +140,9 @@ cli_package_path="$release_root/codex-monitor-$version-macos-universal"
 cli_archive_path="$release_root/codex-monitor-$version-macos-universal.zip"
 cli_binary_path="$cli_package_path/codex-monitor"
 cli_checksum_path="$release_root/codex-monitor-$version-macos-universal.zip.sha256"
-app_path="$archive_path/Products/Applications/SessionMonitor.app"
+app_path="$export_path/SessionMonitor.app"
 
-for path in "$archive_path" "$dmg_path" "$checksum_path" "$cli_arm64_scratch" \
+for path in "$archive_path" "$export_path" "$export_options_path" "$dmg_path" "$checksum_path" "$cli_arm64_scratch" \
     "$cli_x86_64_scratch" "$cli_package_path" "$cli_archive_path" "$cli_checksum_path" \
     "$release_root/source-revision.txt" \
     "$release_root/notary-app.json" "$release_root/notary-cli.json" "$release_root/notary-dmg.json"; do
@@ -158,7 +160,6 @@ archive_args=(
     -derivedDataPath "$derived_data"
     -archivePath "$archive_path"
     CODE_SIGN_STYLE=Automatic
-    "CODE_SIGN_IDENTITY=$signing_identity"
     "DEVELOPMENT_TEAM=$team_id"
     ENABLE_HARDENED_RUNTIME=YES
     REGISTER_APP_GROUPS=YES
@@ -183,7 +184,33 @@ archive_args+=(archive)
 
 echo "Archiving SessionMonitor $version for Developer ID ($team_id)..."
 run_xcodebuild "${archive_args[@]}"
-[[ -d "$app_path" ]] || { echo "Archived app not found: $app_path" >&2; exit 1; }
+
+python3 - "$export_options_path" "$team_id" <<'PY'
+import plistlib, sys
+path, team_id = sys.argv[1:]
+options = {
+    "destination": "export",
+    "method": "developer-id",
+    "signingStyle": "automatic",
+    "stripSwiftSymbols": True,
+    "teamID": team_id,
+}
+with open(path, "wb") as output:
+    plistlib.dump(options, output)
+PY
+
+export_args=(
+    -exportArchive
+    -archivePath "$archive_path"
+    -exportPath "$export_path"
+    -exportOptionsPlist "$export_options_path"
+)
+if [[ "$allow_provisioning_updates" == "YES" ]]; then
+    export_args+=(-allowProvisioningUpdates)
+fi
+echo "Exporting SessionMonitor with Developer ID signing..."
+run_xcodebuild "${export_args[@]}"
+[[ -d "$app_path" ]] || { echo "Exported app not found: $app_path" >&2; exit 1; }
 
 mkdir -p "$cli_package_path" "$cli_arm64_scratch" "$cli_x86_64_scratch" "$swiftpm_cache"
 echo "Building universal codex-monitor CLI $version..."
