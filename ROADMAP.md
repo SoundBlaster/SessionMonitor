@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-703 — в работе (2026-10-21): настроить прямую раздачу notarized macOS binary через GitHub Releases.**
+**SM-703 — в работе (2026-10-22): настроить прямую раздачу notarized macOS binary через GitHub Releases.**
 Подзадача по запросу пользователя: адаптировать проверенную схему Dreams к app bundle SessionMonitor
 с WidgetKit extension/App Group: Developer ID подпись, notarization/stapling, DMG и checksum;
 standalone notarized CLI ZIP; не смешивать с Mac App Store workflow SM-706. Release tooling и
@@ -24,6 +24,7 @@ clean-install всё ещё требуют проверки. GitHub Release не
 публичного релиза требует отдельного разрешения и проверки на чистой установке.
 
 **SM-733 — реализована (2026-10-21): наблюдаемый и отменяемый импорт больших наборов JSONL.**
+Исправление CI (2026-10-22): внешний SQLite writer использует `/usr/bin/sqlite3` вместо Xcode Python shim; исходный сбой SDK не позволял выполнить транзакцию. Новый CI ожидается без активного polling.
 Импорт/Update показывают текущий файл и обработанные байты, завершённые файлы и общий прогресс;
 Stop проверяется между блоками чтения JSONL, а checkpoint продвигается только после завершения
 файла. Если источник меняется во время чтения, UI объясняет причину, сохраняет предыдущие файлы
@@ -35,6 +36,28 @@ SwiftLint, FSD architecture lint, `make generate` и `git diff --check` прош
 сборка и targeted tests пока заблокированы до компиляции сообщением о необходимости повторного
 доверия `SpecificationCoreMacros`; обход macro validation не применялся. Следующий шаг — review,
 проверка CI на PR и после этого merge.
+
+**SM-732 — реализована и локально проверена (2026-10-21): компактная сводка выбранной сессии.**
+PR [#122](https://github.com/SoundBlaster/SessionMonitor/pull/122), base `main`, готова к review; CI не ожидается активно.
+Title/cache hit/info в одной строке, UUID ниже; экспорт в detail toolbar перед Inspector.
+Четыре равные колонки в общей адаптивной полосе. Уточнение пользователя (2026-10-21):
+canonical/cache пояснения перенести полностью в `(i)`, под полосой текст не показывать;
+**уточнение реализовано и локально проверено**. Краткая причина недоступности остаётся рядом с Cache hit.
+Свежие Xcode-tools build-for-testing, 7/7 summary/cache tests и SwiftLint/FSD/negative gate passed;
+семь обновлённых native fixtures проверены (`measurements/sm-732-help-only`, xcresult `09-52-01`).
+Computer Use подтвердил отсутствие notes под метриками и сохранённую справку в popover; Escape закрывает её.
+Уточнение toolbar (2026-10-21) выполнено: экспорт только иконкой, с tooltip и accessibility label.
+Свежие Xcode-tools BuildProject/RunProject и targeted SwiftLint passed; Computer Use подтвердил вид кнопки и AX label/help.
+Context anatomy расположен сразу после сводки, content cap 960 pt снят.
+DesignMetricStrip, DesignSummaryHeading и DesignInfoButton расширяют Design System;
+domain mapping и SpecificationKit остаются в page. Accounting и графики не менялись.
+Xcode-tools build-for-testing и 26/26 targeted tests passed; семь native light/dark/narrow/state fixtures
+проверены, включая длинное имя/ID, большие числа, partial/zero-input/no-requests/known-zero.
+Computer Use: реальная сводка, смена сессии/UUID/метрик, отдельные AX nodes, popover/Escape,
+export save panel (отменён без записи), existing ambiguous-account guard. Один app window.
+SwiftLint/FSD/negative gate и diff passed. [Контракты](docs/design-system.md), локальные screenshots на TB5:
+`measurements/sm-732-native-final`, xcresult `Test-MonitorMac-2026.10.21_08-58-55-+0300`.
+Следующий шаг — review/CI и доставка PR; затем SM-330. Статусы SM-730/SM-731 — отдельный PR #121.
 
 **SM-730 и SM-731 доставлены в `main` (2026-10-21) атомарным squash-слиянием стопки #118 → #119.**
 PR [#118](https://github.com/SoundBlaster/SessionMonitor/pull/118) — `cf79925`,
@@ -1318,6 +1341,16 @@ deliverable — WidgetKit extension с App Group в SM-401.
   два окна, ошибка/отмена, shutdown и external Watch. Xcode-tools build-for-testing и 36/36 targeted tests
   passed; native light/dark/narrow captures проверены. SwiftLint/FSD/negative gate и diff passed.
   Watch не возобновляется автоматически.
+
+- [ ] **SM-732** — Компактная сводка сессии и переиспользуемые summary components.
+  **Статус: реализована и локально проверена (2026-10-21), PR [#122](https://github.com/SoundBlaster/SessionMonitor/pull/122); ожидает review/CI/merge.**
+  Title/cache hit/info, selectable UUID, единая адаптивная полоса метрик; canonical/cache пояснения только в `(i)`;
+  экспорт перед Inspector в detail toolbar. Общие компоненты — [Design System](docs/design-system.md).
+  Xcode-tools build-for-testing и 26/26 targeted tests, семь native fixtures, Computer Use по реальным данным,
+  SwiftLint/FSD/negative gate и diff passed. Unknown/partial/zero и accounting сохранены.
+  Полный `make check` и полный VoiceOver run не выполнялись. `[ ]` — до доставки через PR. Затем SM-330.
+  Уточнение 2026-10-21: подписи под метриками убраны; краткие unavailable states — inline.
+  Свежие Xcode-tools build + 7/7 tests, семь native fixtures, SwiftLint/FSD/negative gate passed.
 
 - [ ] **SM-719** — Ось реального времени для графика анатомии контекста.
   **Статус: отложено (2026-10-11), по решению пользователя — после SM-717/SM-718.** Переключатель «по запросам / по времени»;

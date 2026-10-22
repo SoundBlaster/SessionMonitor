@@ -59,20 +59,38 @@ struct SessionExplorerToolbar: ToolbarContent {
 
 }
 
-struct SessionExplorerInspectorToolbar: ToolbarContent {
+struct SessionExplorerDetailToolbar: ToolbarContent {
     @Bindable var model: SessionExplorerModel
+    let exportSession: (String) -> Void
 
     @ToolbarContentBuilder
     var body: some ToolbarContent {
 #if compiler(>=6.2.1)
         if #available(macOS 26.1, *) {
+            sessionExport.visibilityPriority(.low)
             inspectorToggle.visibilityPriority(.high)
         } else {
+            sessionExport
             inspectorToggle
         }
 #else
+        sessionExport
         inspectorToggle
 #endif
+    }
+
+    private var sessionExport: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Button("Export anonymized JSON…", systemImage: "square.and.arrow.up") {
+                if let sessionID = model.selectedSession?.id {
+                    exportSession(sessionID)
+                }
+            }
+            .labelStyle(.iconOnly)
+            .disabled(model.selectedSession == nil)
+            .help("Save an identity-free session fixture for diagnostics")
+            .accessibilityIdentifier("sessionExplorer.exportSession")
+        }
     }
 
     private var inspectorToggle: some ToolbarContent {
