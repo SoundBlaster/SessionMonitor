@@ -52,6 +52,7 @@ public actor SessionMonitor {
         let lock = try ownsLease ? nil : ImportLock(url: databaseURL.appendingPathExtension("import-lock"))
         defer { lock?.release() }
         let paths = try sourceFiles(directory, directoryOnly: directoryOnly)
+        var titleImport = SessionTitleImport(store: store)
         var records = 0
         var diagnostics: [String: Int64] = [:]
         var ioMetrics = ImportIO()
@@ -81,6 +82,7 @@ public actor SessionMonitor {
             if update.mode != .unchanged {
                 try store.apply(source: source, update: update, expectedCheckpoint: result.checkpoint)
             }
+            try titleImport.update(path: path, source: source)
             records += update.rollout.records.count
             for (key, count) in update.rollout.diagnostics { diagnostics[key, default: 0] += count }
             ioMetrics.bytesRead += update.bytesRead
@@ -141,10 +143,6 @@ public actor SessionMonitor {
             profileID: profileID, label: label, sourceRoot: root.path
         ))
         return try store.assignAccountProfile(sourceRoot: root, profileID: profileID, label: label)
-    }
-
-    public func accountProfiles() throws -> [AccountProfile] {
-        try store.accountProfiles()
     }
 
     /// Read-only legacy estimates, kept separate from canonical accounting.

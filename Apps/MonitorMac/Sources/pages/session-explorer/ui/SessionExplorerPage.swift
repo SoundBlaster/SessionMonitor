@@ -35,6 +35,8 @@ struct SessionExplorerPage: View {
                 if let session = model.selectedSession {
                     SessionDetailView(session: session, query: model.query,
                                       timelineModel: model.timelineModel, provider: model.contextProvider,
+                                      sessionTitle: model.provenance[session.id]?.sessionTitle
+                                        ?? model.provenance[session.id]?.displayName,
                                       chartPalette: chartPalette)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .task(id: SessionTimelineLoadID(sessionID: session.id, query: model.query)) {

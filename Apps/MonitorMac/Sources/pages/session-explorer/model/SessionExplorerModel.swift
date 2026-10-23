@@ -132,6 +132,7 @@ final class SessionExplorerModel {
             query.isEmpty || session.id.localizedCaseInsensitiveContains(query)
                 || session.model.localizedCaseInsensitiveContains(query)
                 || (provenance[session.id]?.displayName?.localizedCaseInsensitiveContains(query) ?? false)
+                || (provenance[session.id]?.sessionTitle?.localizedCaseInsensitiveContains(query) ?? false)
         }
     }
 

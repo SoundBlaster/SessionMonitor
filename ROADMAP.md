@@ -6,6 +6,14 @@
 
 ## Текущая точка
 
+**SM-740 - implemented (2026-10-23), awaiting PR/CI/merge: Codex chat titles.**
+Optional sibling session_index.jsonl imports source-scoped titles separately from nicknames.
+Renames invalidate snapshots even for unchanged rollout bodies; conflicting names across
+sources are not arbitrarily selected in All accounts. Sidebar/details/search use titles;
+model, UUID and fallback remain. Nullable migration; canonical totals and anonymous export unchanged.
+Validation: make check-core, lint/FSD, app build and 15/15 GUI tests passed. Reviewed long-title
+light/wide and dark/narrow fixture images. Live UI not exercised; v0.1.0 unchanged.
+
 **SM-734 — в работе (2026-10-23): изолировать настройки импорт-тестов.**
 Три новых import tests использовали production UserDefaults; успешный stub import сохранял
 несуществующий `/tmp/2026` как последнюю папку. Все три используют отдельные suites с cleanup;
@@ -1592,3 +1600,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   [Отчёт](reports/SM-412-root-activity-account-scope.md).
 
 - [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
+
+- [ ] **SM-740** - Codex chat titles in sidebar, details and search. Implemented 2026-10-23;
+  source-scoped metadata and nullable migration, rename/missing/conflict handling. make check-core,
+  15/15 GUI tests, lint/FSD passed; awaiting PR/CI/merge.

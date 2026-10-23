@@ -9,11 +9,16 @@ struct SessionListRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(provenance?.displayName ?? (node.session.model.isEmpty ? "Unknown model" : node.session.model))
+            Text(title)
+                .help(title)
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .layoutPriority(1)
+            if provenance?.sessionTitle != nil {
+                Text(node.session.model.isEmpty ? "Unknown model" : node.session.model)
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
             Text(node.session.id)
                 .font(.caption.monospaced())
                 .foregroundStyle(.secondary)
@@ -54,6 +59,11 @@ struct SessionListRow: View {
         }
         .padding(.vertical, 5)
         .accessibilityElement(children: .combine)
+    }
+
+    private var title: String {
+        provenance?.sessionTitle ?? provenance?.displayName
+            ?? (node.session.model.isEmpty ? "Unknown model" : node.session.model)
     }
 
     private var cacheHit: SessionCacheHitPresentation {

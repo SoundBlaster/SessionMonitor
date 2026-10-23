@@ -6,12 +6,13 @@ struct SessionDetailView: View {
     let query: UsageQuery
     let timelineModel: RequestTimelineModel
     let provider: SessionReportContextProvider
+    var sessionTitle: String?
     var chartPalette: UsageChartPalette = .system
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.section) {
-                SessionSummaryView(session: session, provider: provider)
+                SessionSummaryView(session: session, provider: provider, sessionTitle: sessionTitle)
                     .id(session.id)
                 if timelineModel.errorMessage == nil, let timeline = timelineModel.timeline {
                     ContextAnatomyView(timeline: timeline, timeZone: timelineModel.displayTimeZone,

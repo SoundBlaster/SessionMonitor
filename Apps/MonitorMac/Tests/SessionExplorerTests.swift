@@ -43,6 +43,20 @@ final class SessionExplorerTests: XCTestCase {
         XCTAssertEqual(model.selectedSession?.id, first.id)
     }
 
+    func testSearchIncludesCodexChatTitle() {
+        let item = session("chat", model: "model-a")
+        let value = report([item])
+        let model = makeModel(StubExplorerRuntime(report: value))
+        model.apply(UsageSnapshot(query: model.query,
+                                  watermark: QueryWatermark(databaseID: "fixture", revision: 1, committedAt: nil),
+                                  report: value,
+                                  provenance: [item.id: SessionProvenance(
+                                    sessionID: item.id, sessionTitle: "Investigate cache behavior"
+                                  )]), expectedQuery: model.query)
+        model.setFilter("CACHE BEHAVIOR")
+        XCTAssertEqual(model.visibleSessions.map(\.id), [item.id])
+    }
+
     func testWindowsKeepNavigationAndProvidersIndependent() async {
         let first = session("first", model: "model-a")
         let second = session("second", model: "model-b")
