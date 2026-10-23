@@ -6,14 +6,14 @@
 
 ## Текущая точка
 
-**SM-740 - implemented (2026-10-23), awaiting PR/CI/merge: Codex chat titles.**
-Review fix: sidebar tree filtering also matches chat titles; regressions check both a named root and a matching subagent retained under its parent.
-Optional sibling session_index.jsonl imports source-scoped titles separately from nicknames.
-Renames invalidate snapshots even for unchanged rollout bodies; conflicting names across
-sources are not arbitrarily selected in All accounts. Sidebar/details/search use titles;
-model, UUID and fallback remain. Nullable migration; canonical totals and anonymous export unchanged.
-Validation: make check-core, lint/FSD, app build and 15/15 GUI tests passed. Reviewed long-title
-light/wide and dark/narrow fixture images. Live UI not exercised; v0.1.0 unchanged.
+**SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
+Review fix: inferred window теперь имеет видимую inline подпись `≈` без tooltip.
+Signals переносится к времени; inferred window — компактная метка; первый запрос
+получает First request вместо отсутствующей delta. Проверка: равная высота состояний
+при одной ширине/типографике. Xcode-tools build-for-testing и 2/2 targeted tests passed:
+108 комбинаций ширины/темы/шрифта/запроса/signals сохраняют высоту; native dark/narrow
+fixtures просмотрены. SwiftLint/FSD/negative gate passed; accessibility evidence сохранён.
+PR/CI/merge ожидаются; далее синхронизация статусов доставленных SM-732–SM-734.
 
 **SM-734 — в работе (2026-10-23): изолировать настройки импорт-тестов.**
 Три новых import tests использовали production UserDefaults; успешный stub import сохранял
@@ -488,6 +488,19 @@ deliverable — WidgetKit extension с App Group в SM-401.
   SM-202 остаются зелёными.
 
 ## 3. Аналитический GUI и диагностика
+
+**SM-740 - implemented (2026-10-23), awaiting PR/CI/merge: Codex chat titles.**
+Review fix: sidebar tree filtering also matches chat titles; regressions check both a named root and a matching subagent retained under its parent.
+Optional sibling session_index.jsonl imports source-scoped titles separately from nicknames.
+Renames invalidate snapshots even for unchanged rollout bodies; conflicting names across
+sources are not arbitrarily selected in All accounts. Sidebar/details/search use titles;
+model, UUID and fallback remain. Nullable migration; canonical totals and anonymous export unchanged.
+Validation: make check-core, lint/FSD, app build and 15/15 GUI tests passed. Reviewed long-title
+light/wide and dark/narrow fixture images. Live UI not exercised; v0.1.0 unchanged.
+
+- [ ] **SM-740** - Codex chat titles in sidebar, details and search. Implemented 2026-10-23;
+  source-scoped metadata and nullable migration, rename/missing/conflict handling. make check-core,
+  15/15 GUI tests, lint/FSD passed; awaiting PR/CI/merge.
 
 - [x] **SM-301** — Выбор периода/timezone и согласованные фильтры CLI/GUI.
   Выполнено локально 2026-09-12 в ветке `feat/sm-301-period-timezone`.
@@ -1602,6 +1615,4 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 - [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
 
-- [ ] **SM-740** - Codex chat titles in sidebar, details and search. Implemented 2026-10-23;
-  source-scoped metadata and nullable migration, rename/missing/conflict handling. make check-core,
-  15/15 GUI tests, lint/FSD passed; awaiting PR/CI/merge.
+- [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.

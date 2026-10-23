@@ -49,7 +49,7 @@ struct ContextAnatomyInspectionOverlay: View {
         let ruleX = plot.minX + position
         return ContextAnatomySnapshotCard(step: step, requestCount: anatomy.steps.count,
                                           timeZone: timeZone, palette: palette,
-                                          insights: insights?.report.insightsByRequest[step.index] ?? [])
+                                          insightCount: insights?.report.insightsByRequest[step.index]?.count ?? 0)
             .frame(width: CGFloat(placement.width))
             .fixedSize(horizontal: false, vertical: true)
             .alignmentGuide(.leading) { dimensions in
