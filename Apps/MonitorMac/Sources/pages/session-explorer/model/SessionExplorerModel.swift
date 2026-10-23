@@ -343,6 +343,7 @@ private func filteredTree(_ node: SessionTreeNode, query: String,
     let matches = node.session.id.localizedCaseInsensitiveContains(query)
         || node.session.model.localizedCaseInsensitiveContains(query)
         || (provenance[node.id]?.displayName?.localizedCaseInsensitiveContains(query) ?? false)
+        || (provenance[node.id]?.sessionTitle?.localizedCaseInsensitiveContains(query) ?? false)
     let children = node.children.compactMap { filteredTree($0, query: query, provenance: provenance) }
     guard matches || !children.isEmpty else { return nil }
     return SessionTreeNode(session: node.session, state: node.state, children: children)

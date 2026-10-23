@@ -7,6 +7,7 @@
 ## Текущая точка
 
 **SM-740 - implemented (2026-10-23), awaiting PR/CI/merge: Codex chat titles.**
+Review fix: sidebar tree filtering also matches chat titles; regressions check both a named root and a matching subagent retained under its parent.
 Optional sibling session_index.jsonl imports source-scoped titles separately from nicknames.
 Renames invalidate snapshots even for unchanged rollout bodies; conflicting names across
 sources are not arbitrarily selected in All accounts. Sidebar/details/search use titles;
