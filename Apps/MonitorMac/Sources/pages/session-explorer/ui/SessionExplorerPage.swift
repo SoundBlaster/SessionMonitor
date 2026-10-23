@@ -37,7 +37,7 @@ struct SessionExplorerPage: View {
                                       timelineModel: model.timelineModel, provider: model.contextProvider,
                                       chartPalette: chartPalette)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .task(id: SessionTimelineLoadID(sessionID: session.id, query: model.query)) {
+                        .task(id: model.timelineLoadID) {
                             await model.loadTimeline(sessionID: session.id)
                         }
                 } else {

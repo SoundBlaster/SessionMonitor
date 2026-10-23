@@ -6,6 +6,13 @@
 
 ## Текущая точка
 
+**SM-738 — реализована (2026-10-23), ожидает PR/CI/merge: обновление графиков активной сессии.**
+Task загрузки Context anatomy/Request timeline теперь зависит от databaseID/revision snapshot,
+а не только sessionID/query. Старые/cancelled ответы и ответы после reset отклоняются;
+refresh той же сессии сохраняет viewport. App build и 11/11 targeted tests passed
+через xcodebuild с ранее разрешённым per-command skipMacroValidation (MCP blocked macro trust).
+SwiftLint/FSD/diff check passed. Live Watching визуально не проверен; v0.1.0 не менялся.
+
 **SM-734 — в работе (2026-10-23): изолировать настройки импорт-тестов.**
 Три новых import tests использовали production UserDefaults; успешный stub import сохранял
 несуществующий `/tmp/2026` как последнюю папку. Все три используют отдельные suites с cleanup;
@@ -1592,3 +1599,5 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   [Отчёт](reports/SM-412-root-activity-account-scope.md).
 
 - [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
+
+- [ ] **SM-738** — Синхронизировать графики выбранной сессии с новыми database snapshots после Watching/Import. Реализовано 2026-10-23: databaseID/revision task identity и защита от stale async loads. App build, 11/11 tests, SwiftLint/FSD passed; ожидает PR/CI/merge.

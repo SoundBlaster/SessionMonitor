@@ -140,6 +140,8 @@ final class RequestTimelineModel {
     private(set) var rangeMode: RequestTimelineRangeMode = .fitToData
     @ObservationIgnored private var yAxisScaleCache: [TimelineYAxisScale.CacheKey: TimelineYAxisScale] = [:]
 
+    @ObservationIgnored private var loadGeneration: UUID?
+
     var axis: RequestTimelineAxis? {
         guard let timeline, let dataBounds = pointIndex?.dataBounds else { return nil }
         return RequestTimelineAxis(dataBounds: dataBounds, query: timeline.query, mode: rangeMode,
@@ -164,11 +166,14 @@ final class RequestTimelineModel {
     }
 
     func load(sessionID: String, query: UsageQuery, source: any RequestTimelineSource) async {
+        let generation = UUID()
+        loadGeneration = generation
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer { if loadGeneration == generation { isLoading = false } }
         do {
             let value = try await source.timeline(sessionID: sessionID, query: query)
+            guard !Task.isCancelled, loadGeneration == generation else { return }
             guard value.sessionID == sessionID, value.query == query else {
                 errorMessage = "Timeline query did not match the selected session."
                 return
@@ -182,6 +187,7 @@ final class RequestTimelineModel {
             pointIndex = TimelinePointIndex(points: value.points)
             yAxisScaleCache.removeAll(keepingCapacity: true)
         } catch {
+            guard !Task.isCancelled, loadGeneration == generation else { return }
             errorMessage = "Could not load request timeline. \(error.localizedDescription)"
         }
     }
@@ -239,6 +245,7 @@ final class RequestTimelineModel {
     }
 
     func reset() {
+        loadGeneration = nil
         timeline = nil
         pointIndex = nil
         yAxisScaleCache.removeAll(keepingCapacity: true)
@@ -250,6 +257,7 @@ final class RequestTimelineModel {
     }
 
     func fail(_ error: Error) {
+        loadGeneration = nil
         isLoading = false
         errorMessage = "Could not load request timeline. \(error.localizedDescription)"
     }
