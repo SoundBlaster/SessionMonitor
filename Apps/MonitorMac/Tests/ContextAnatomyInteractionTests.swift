@@ -1,3 +1,6 @@
+import AppKit
+import SwiftUI
+import MonitorCore
 import Foundation
 import XCTest
 @testable import SessionMonitor
@@ -5,6 +8,46 @@ import XCTest
 /// Pointer-free rules of the Context anatomy chart: where the floating snapshot card sits and how keyboard
 /// or VoiceOver stepping moves the inspected request.
 final class ContextAnatomyInteractionTests: XCTestCase {
+    @MainActor
+    func testSnapshotHeightIsStableAcrossSignalsFirstRequestAndInferredWindow() throws {
+        let query = try UsageQuery(since: nil, until: nil)
+        let points = (0..<3).map { index in
+            RequestTimelinePoint(id: "request-\(index)", sessionID: "fixture",
+                                 timestamp: Date(timeIntervalSince1970: Double(index)), kind: .usageRequest,
+                                 inputTokens: 145_500, cachedInputTokens: 18_200, outputTokens: 964,
+                                 contextWindowTokens: index == 1 ? nil : 258_400)
+        }
+        let anatomy = ContextAnatomyBuilder.build(RequestTimeline(sessionID: "fixture", query: query, points: points))
+        XCTAssertTrue(anatomy.steps[1].contextWindowInferred)
+        for width in [340.0, 240.0, 160.0] {
+            for scheme in [ColorScheme.light, .dark] {
+                for typeSize in [DynamicTypeSize.large, .accessibility1] {
+                    var baseline: CGFloat?
+                    for step in anatomy.steps {
+                        for count in [0, 1, 12] {
+                            let content = ContextAnatomySnapshotCard(
+                                step: step, requestCount: 9_419, timeZone: .gmt,
+                                palette: .system, insightCount: count
+                            )
+                            .environment(\.colorScheme, scheme)
+                            .environment(\.dynamicTypeSize, typeSize)
+                            .frame(width: width)
+                            let host = NSHostingView(rootView: content)
+                            let height = host.fittingSize.height
+                            XCTAssertGreaterThan(height, 0)
+                            if let baseline {
+                                XCTAssertEqual(height, baseline, accuracy: 1,
+                                               "Width \(width), count \(count), request \(step.index)")
+                            } else {
+                                baseline = height
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: Snapshot card placement (SM-720)
 
     func testSnapshotCardGoesRightOfTheRuleWhenItFits() {

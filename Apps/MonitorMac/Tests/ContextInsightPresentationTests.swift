@@ -136,7 +136,7 @@ final class ContextInsightPresentationTests: XCTestCase {
         for scheme in [ColorScheme.light, .dark] {
             let content = HStack(alignment: .top, spacing: 20) {
                 ContextAnatomySnapshotCard(step: step, requestCount: 12, timeZone: .gmt,
-                                          palette: .system, insights: insights)
+                                          palette: .system, insightCount: insights.count)
                     .frame(width: 340)
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(value.cardsByRequest[step.index] ?? []) { card in
@@ -155,7 +155,7 @@ final class ContextInsightPresentationTests: XCTestCase {
             add(attachment)
         }
         let narrow = ContextAnatomySnapshotCard(step: step, requestCount: 12, timeZone: .gmt,
-                                               palette: .monochrome, insights: insights)
+                                               palette: .monochrome, insightCount: insights.count)
             .frame(width: 188).padding(12)
             .background(Color.white).environment(\.colorScheme, .light)
             .environment(\.dynamicTypeSize, .accessibility2)

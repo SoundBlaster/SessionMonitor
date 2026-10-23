@@ -7,12 +7,13 @@ struct ContextAnatomySnapshotCard: View {
     let requestCount: Int
     let timeZone: TimeZone
     let palette: UsageChartPalette
-    var insights: [ContextInsight] = []
+    var insightCount = 0
 
     var body: some View {
         DesignCard(surface: .floating) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.item) {
-                ContextSnapshotHeading(step: step, requestCount: requestCount, timeZone: timeZone)
+                ContextSnapshotHeading(step: step, requestCount: requestCount, timeZone: timeZone,
+                                       insightCount: insightCount)
                 ContextSnapshotContext(step: step, palette: palette)
                 Divider()
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: DesignTokens.Layout.compactMetricMinimumWidth),
@@ -21,10 +22,6 @@ struct ContextAnatomySnapshotCard: View {
                     ContextSnapshotMetric(title: "Cached", tokens: step.cachedInputTokens)
                     ContextSnapshotMetric(title: "New", tokens: step.newInputTokens)
                     ContextSnapshotMetric(title: "Output", tokens: step.outputTokens)
-                }
-                if !insights.isEmpty {
-                    Text("\(insights.count) signals · details in Context insights")
-                        .font(.caption2).foregroundStyle(.secondary)
                 }
             }
         }
@@ -36,6 +33,7 @@ private struct ContextSnapshotHeading: View {
     let step: ContextAnatomyStep
     let requestCount: Int
     let timeZone: TimeZone
+    let insightCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.inline) {
@@ -47,8 +45,23 @@ private struct ContextSnapshotHeading: View {
                 }
                 Text("Request \(step.index) of \(requestCount)").fontWeight(.semibold)
             }
-            Text(step.timestamp, format: Date.FormatStyle(date: .omitted, time: .standard, timeZone: timeZone))
-                .font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Text(step.timestamp, format: Date.FormatStyle(date: .omitted, time: .standard, timeZone: timeZone))
+                Spacer(minLength: DesignTokens.Spacing.inline)
+                if insightCount > 0 {
+                    Label {
+                        if insightCount == 1 {
+                            Text("1 signal")
+                        } else {
+                            Text("\(insightCount) signals")
+                        }
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle")
+                    }
+                }
+            }
+            .font(.caption).foregroundStyle(.secondary)
+            .lineLimit(1)
         }
         .font(.callout).monospacedDigit()
     }
@@ -80,11 +93,15 @@ private struct ContextSnapshotContext: View {
             if let window = step.contextWindowTokens {
                 let share = step.fillFraction.formatted(.percent.precision(.fractionLength(0)))
                 let capacity = ContextAnatomyPresentation.compactTokens(window)
-                Text("\(share) of \(capacity) window")
-                    .font(.caption).foregroundStyle(.secondary)
-                if step.contextWindowInferred {
-                    Text("Window inferred from nearby request").font(.caption2).foregroundStyle(.secondary)
+                HStack(spacing: DesignTokens.Spacing.inline) {
+                    Text("\(share) of \(capacity) window")
+                    if step.contextWindowInferred {
+                        Image(systemName: "info.circle")
+                            .help("Window inferred from nearby request")
+                            .accessibilityLabel("Window inferred from nearby request")
+                    }
                 }
+                .font(.caption).foregroundStyle(.secondary)
             } else {
                 Text("\(step.fillFraction, format: .percent.precision(.fractionLength(0))) of session peak")
                     .font(.caption).foregroundStyle(.secondary)
@@ -92,6 +109,8 @@ private struct ContextSnapshotContext: View {
             if let delta = step.deltaFromPrevious {
                 Text("\(delta, format: .number.sign(strategy: .always())) vs previous request")
                     .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Text("First request").font(.caption).foregroundStyle(.secondary)
             }
         }
         .monospacedDigit()

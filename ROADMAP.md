@@ -6,6 +6,14 @@
 
 ## Текущая точка
 
+**SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
+Signals переносится к времени; inferred window — компактная метка; первый запрос
+получает First request вместо отсутствующей delta. Проверка: равная высота состояний
+при одной ширине/типографике. Xcode-tools build-for-testing и 2/2 targeted tests passed:
+108 комбинаций ширины/темы/шрифта/запроса/signals сохраняют высоту; native dark/narrow
+fixtures просмотрены. SwiftLint/FSD/negative gate passed; accessibility evidence сохранён.
+PR/CI/merge ожидаются; далее синхронизация статусов доставленных SM-732–SM-734.
+
 **SM-734 — в работе (2026-10-23): изолировать настройки импорт-тестов.**
 Три новых import tests использовали production UserDefaults; успешный stub import сохранял
 несуществующий `/tmp/2026` как последнюю папку. Все три используют отдельные suites с cleanup;
@@ -1592,3 +1600,5 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   [Отчёт](reports/SM-412-root-activity-account-scope.md).
 
 - [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
+
+- [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.
