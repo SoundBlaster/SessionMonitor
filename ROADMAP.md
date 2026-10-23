@@ -4,13 +4,16 @@
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
-
 ## Текущая точка
 
-**SM-739 — реализована (2026-10-23), ожидает PR/CI/merge: Cache Hit Rate 90–100%.**
-Добавлена верхняя ступень при P10 не ниже 90%, отметки каждые 2 п.п.
-App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально не проверен.
-
+**SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
+Review fix: inferred window теперь имеет видимую inline подпись `≈` без tooltip.
+Signals переносится к времени; inferred window — компактная метка; первый запрос
+получает First request вместо отсутствующей delta. Проверка: равная высота состояний
+при одной ширине/типографике. Xcode-tools build-for-testing и 2/2 targeted tests passed:
+108 комбинаций ширины/темы/шрифта/запроса/signals сохраняют высоту; native dark/narrow
+fixtures просмотрены. SwiftLint/FSD/negative gate passed; accessibility evidence сохранён.
+PR/CI/merge ожидаются; далее синхронизация статусов доставленных SM-732–SM-734.
 
 **SM-734 — в работе (2026-10-23): изолировать настройки импорт-тестов.**
 Три новых import tests использовали production UserDefaults; успешный stub import сохранял
@@ -550,6 +553,12 @@ deliverable — WidgetKit extension с App Group в SM-401.
   SM-306 behavior и canonical accounting не изменены. Проверено: `make lint`,
   `make lint-architecture`, `make test-architecture`, targeted 15/15 app tests,
   `git diff --check`.
+**SM-739 — реализована (2026-10-23), ожидает PR/CI/merge: Cache Hit Rate 90–100%.**
+Добавлена верхняя ступень при P10 не ниже 90%, отметки каждые 2 п.п.
+App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально не проверен.
+
+- [ ] **SM-739** — Добавить диапазон Cache Hit Rate 90–100%, сохранив остальные ступени и стабильность при навигации. Реализовано: app build, 17/17 tests, SwiftLint/FSD passed; ожидает PR/CI/merge.
+
 - [x] **SM-307** — Внутренний виджет с графиком cache hit по сессиям и порогом в Settings.
   Зависит от SM-306/SM-202. Компактный Swift Charts block в Session Explorer;
   точное место выбрать и проверить в существующем layout при реализации.
@@ -1599,4 +1608,4 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 - [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
 
-- [ ] **SM-739** — Добавить диапазон Cache Hit Rate 90–100%, сохранив остальные ступени и стабильность при навигации. Реализовано: app build, 17/17 tests, SwiftLint/FSD passed; ожидает PR/CI/merge.
+- [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.
