@@ -7,6 +7,7 @@
 ## Текущая точка
 
 **SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
+Review fix: inferred window теперь имеет видимую inline подпись `≈` без tooltip.
 Signals переносится к времени; inferred window — компактная метка; первый запрос
 получает First request вместо отсутствующей delta. Проверка: равная высота состояний
 при одной ширине/типографике. Xcode-tools build-for-testing и 2/2 targeted tests passed:

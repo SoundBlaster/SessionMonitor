@@ -84,7 +84,7 @@ canonical/legacy limitations, the formula and availability explanation; Escape d
 ### Context anatomy hover snapshot (SM-735)
 
 Signal counts share the timestamp row; absence of signals adds no footer. The window inference
-indicator stays inline beside window capacity; the first request uses the existing delta row.
+marker is visible inline as `≈` beside window capacity, without requiring a tooltip; the first request uses the existing delta row.
 For a fixed width and typography, these state changes must preserve the card height.
 The passive hover card remains accessibility-hidden; its persistent chart inspection element
 continues to expose the full snapshot and insight explanations.

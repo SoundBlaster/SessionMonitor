@@ -95,11 +95,7 @@ private struct ContextSnapshotContext: View {
                 let capacity = ContextAnatomyPresentation.compactTokens(window)
                 HStack(spacing: DesignTokens.Spacing.inline) {
                     Text("\(share) of \(capacity) window")
-                    if step.contextWindowInferred {
-                        Image(systemName: "info.circle")
-                            .help("Window inferred from nearby request")
-                            .accessibilityLabel("Window inferred from nearby request")
-                    }
+                    if step.contextWindowInferred { Text("≈") }
                 }
                 .font(.caption).foregroundStyle(.secondary)
             } else {
