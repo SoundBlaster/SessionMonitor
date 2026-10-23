@@ -17,7 +17,8 @@ Computer Use подтвердил реальную dark selection, раскры�
 AX содержит полную модель/ID/coverage. Bitmap fixture native selection даёт чёрный backdrop,
 поэтому selection проверялась в реальном окне, остальные fixtures — без selected backdrop.
 SwiftLint/FSD/negative gate и diff check passed; xcresult/artifacts на TB5 (`sm743-final`,
-`measurements/sm743-complete`). Отдельный PR поверх #132; CI/merge ещё ожидаются.
+`measurements/sm743-complete`). PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135)
+открыт поверх #132; CI выполняется без активного ожидания, merge ещё не подтверждён.
 Accounting и импорт не меняются. Далее review и доставка стека после зелёных checks.
 
 **SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
@@ -1642,4 +1643,5 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 - [x] **SM-743** — Компактный список сессий по пользовательскому образцу (2026-10-23).
   30 targeted tests, native fixtures, Computer Use selection/child navigation, SwiftLint/FSD passed.
-  Доставка поверх SM-740 / #132; PR/CI/merge ещё ожидаются.
+  PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135) поверх SM-740 / #132;
+  CI/merge ещё ожидаются.
