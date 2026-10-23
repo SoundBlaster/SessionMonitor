@@ -45,6 +45,17 @@ final class RolloutDirectorySelectionTests: XCTestCase {
         XCTAssertEqual(RolloutDirectorySelection.initialDirectory(preferred: nil, home: home, year: 2026), home)
     }
 
+    func testDirectoryYearIsGregorianEvenWithOtherPreferredCalendars() throws {
+        let date = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-12-31T22:00:00Z"))
+        for identifier in [Calendar.Identifier.gregorian, .buddhist, .japanese, .islamicUmmAlQura] {
+            var calendar = Calendar(identifier: identifier)
+            calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Moscow"))
+            XCTAssertEqual(RolloutDirectorySelection.directoryYear(at: date, calendar: calendar), 2027)
+            calendar.timeZone = .gmt
+            XCTAssertEqual(RolloutDirectorySelection.directoryYear(at: date, calendar: calendar), 2026)
+        }
+    }
+
     private func makeHome() throws -> URL {
         let home = FileManager.default.temporaryDirectory
             .appending(path: UUID().uuidString, directoryHint: .isDirectory)

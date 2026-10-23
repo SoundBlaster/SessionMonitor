@@ -7,6 +7,7 @@
 ## Текущая точка
 
 **SM-737 — реализована (2026-10-23), доставка через PR ожидается: начальная папка Import/Start Watch.**
+Review fix: session-directory years use the Gregorian calendar with local timezone; Buddhist/Japanese/Islamic and New Year boundary regressions added.
 В release 0.1.0 NSOpenPanel не задавал directoryURL и скрывал `.codex`; пользователь
 видел произвольную системную папку. Оба диалога теперь показывают скрытые папки и выбирают
 существующий сохранённый каталог либо `~/.codex/sessions/<текущий год>` с fallback
