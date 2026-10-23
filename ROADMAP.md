@@ -4,7 +4,13 @@
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
+
 ## Текущая точка
+
+**SM-739 — реализована (2026-10-23), ожидает PR/CI/merge: Cache Hit Rate 90–100%.**
+Добавлена верхняя ступень при P10 не ниже 90%, отметки каждые 2 п.п.
+App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально не проверен.
+
 
 **SM-734 — в работе (2026-10-23): изолировать настройки импорт-тестов.**
 Три новых import tests использовали production UserDefaults; успешный stub import сохранял
@@ -1592,3 +1598,5 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   [Отчёт](reports/SM-412-root-activity-account-scope.md).
 
 - [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
+
+- [ ] **SM-739** — Добавить диапазон Cache Hit Rate 90–100%, сохранив остальные ступени и стабильность при навигации. Реализовано: app build, 17/17 tests, SwiftLint/FSD passed; ожидает PR/CI/merge.
