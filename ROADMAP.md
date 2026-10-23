@@ -6,15 +6,14 @@
 
 ## Текущая точка
 
-**SM-737 — реализована (2026-10-23), доставка через PR ожидается: начальная папка Import/Start Watch.**
-Review fix: session-directory years use the Gregorian calendar with local timezone; Buddhist/Japanese/Islamic and New Year boundary regressions added.
-В release 0.1.0 NSOpenPanel не задавал directoryURL и скрывал `.codex`; пользователь
-видел произвольную системную папку. Оба диалога теперь показывают скрытые папки и выбирают
-существующий сохранённый каталог либо `~/.codex/sessions/<текущий год>` с fallback
-к sessions, .codex и home. App build и 6/6 targeted tests прошли через xcodebuild
-с ранее разрешённым per-command `-skipMacroValidation`: Xcode-tools остановлен macro trust.
-SwiftLint и FSD passed. UI диалог визуально ещё не проверен; опубликованный v0.1.0 не менялся.
-
+**SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
+Review fix: inferred window теперь имеет видимую inline подпись `≈` без tooltip.
+Signals переносится к времени; inferred window — компактная метка; первый запрос
+получает First request вместо отсутствующей delta. Проверка: равная высота состояний
+при одной ширине/типографике. Xcode-tools build-for-testing и 2/2 targeted tests passed:
+108 комбинаций ширины/темы/шрифта/запроса/signals сохраняют высоту; native dark/narrow
+fixtures просмотрены. SwiftLint/FSD/negative gate passed; accessibility evidence сохранён.
+PR/CI/merge ожидаются; далее синхронизация статусов доставленных SM-732–SM-734.
 
 **SM-734 — в работе (2026-10-23): изолировать настройки импорт-тестов.**
 Три новых import tests использовали production UserDefaults; успешный stub import сохранял
@@ -341,6 +340,17 @@ deliverable — WidgetKit extension с App Group в SM-401.
   проверены IDs, локальные ссылки и согласованность документов.
 
 ## 1. Incremental import и watch
+
+**SM-737 — реализована (2026-10-23), доставка через PR ожидается: начальная папка Import/Start Watch.**
+Review fix: session-directory years use the Gregorian calendar with local timezone; Buddhist/Japanese/Islamic and New Year boundary regressions added.
+В release 0.1.0 NSOpenPanel не задавал directoryURL и скрывал `.codex`; пользователь
+видел произвольную системную папку. Оба диалога теперь показывают скрытые папки и выбирают
+существующий сохранённый каталог либо `~/.codex/sessions/<текущий год>` с fallback
+к sessions, .codex и home. App build и 6/6 targeted tests прошли через xcodebuild
+с ранее разрешённым per-command `-skipMacroValidation`: Xcode-tools остановлен macro trust.
+SwiftLint и FSD passed. UI диалог визуально ещё не проверен; опубликованный v0.1.0 не менялся.
+
+- [ ] **SM-737** — Начальная папка Import/Start Watch: сохранённый каталог либо `~/.codex/sessions/<текущий год>`, fallback при отсутствии; показывать `.codex`. Реализовано 2026-10-23; app build, 6/6 targeted tests, SwiftLint/FSD passed. Ожидает PR/CI/merge; в v0.1.0 исправления нет.
 
 - [x] **SM-101** — Хранить offsets и необходимое состояние decoder вместе с импортированными событиями.
   Готово 2026-09-12: versioned checkpoints, atomic records/diagnostics/progress commit,
@@ -1603,4 +1613,4 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 - [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
 
-- [ ] **SM-737** — Начальная папка Import/Start Watch: сохранённый каталог либо `~/.codex/sessions/<текущий год>`, fallback при отсутствии; показывать `.codex`. Реализовано 2026-10-23; app build, 6/6 targeted tests, SwiftLint/FSD passed. Ожидает PR/CI/merge; в v0.1.0 исправления нет.
+- [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.
