@@ -13,8 +13,8 @@ README сокращён с 704 до 93 строк: ценность, возмо�
 records; снимок Session manager с Cache Hit Rate и Context anatomy просмотрен без prompts,
 credentials и source paths. Снимок development build явно обозначен; файл 551 KB.
 Проверены 59 локальных ссылок/anchors, English-only/fences, 14 CLI help paths и release assets.
-Runtime/accounting не меняются; повторная сборка не нужна. Далее отдельный PR и CI без
-активного ожидания; доставка в main ещё не подтверждена.
+Runtime/accounting не меняются; повторная сборка не нужна. PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134)
+открыт в main; CI выполняется без активного ожидания, merge ещё не подтверждён.
 
 **SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
 Review fix: inferred window теперь имеет видимую inline подпись `≈` без tooltip.
@@ -1624,4 +1624,5 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 - [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.
 
 - [x] **SM-742** — Англоязычный продуктовый README, реальные screenshot/data и отдельные guides.
-  Реализовано и локально проверено 2026-10-23; PR/CI/merge ещё ожидаются (см. текущую точку).
+  Реализовано и локально проверено 2026-10-23; PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134)
+  открыт, CI/merge ещё ожидаются (см. текущую точку).
