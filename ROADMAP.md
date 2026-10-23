@@ -6,6 +6,13 @@
 
 ## Текущая точка
 
+**SM-734 — в работе (2026-10-23): изолировать настройки импорт-тестов.**
+Три новых import tests использовали production UserDefaults; успешный stub import сохранял
+несуществующий `/tmp/2026` как последнюю папку. Все три используют отдельные suites с cleanup;
+регрессия проверяет сохранность production preference. Локальная папка восстановлена на
+`~/.codex/sessions/2026`; Xcode-tools: 7/7 targeted tests и RunProject passed; SwiftLint и diff check passed.
+Реализация завершена; доставка через PR и GitHub CI ещё ожидаются.
+
 **SM-703 — в работе (2026-10-22): настроить прямую раздачу notarized macOS binary через GitHub Releases.**
 Подзадача по запросу пользователя: адаптировать проверенную схему Dreams к app bundle SessionMonitor
 с WidgetKit extension/App Group: Developer ID подпись, notarization/stapling, DMG и checksum;
@@ -1583,3 +1590,5 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   Доставлено: [PR #78](https://github.com/SoundBlaster/SessionMonitor/pull/78), merge `25e67c2` (2026-10-11). 2026-10-02: usage/event membership коррелирован с scope;
   assigned/unknown и foreign provenance removal прошли. Production SQL probe passed.
   [Отчёт](reports/SM-412-root-activity-account-scope.md).
+
+- [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
