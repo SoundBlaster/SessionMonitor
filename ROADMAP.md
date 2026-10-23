@@ -1281,6 +1281,15 @@ deliverable — WidgetKit extension с App Group в SM-401.
   переведены на сессии минимум с двумя запросами. Остаток: нет (живая проверка на Mac пройдена). Ограничение: «1 запрос» считается внутри выбранного периода (запрос длинной сессии на краю периода тоже
   считается холодным); признака «первый запрос сессии» в хранилище нет.
 
+**SM-738 — реализована (2026-10-23), ожидает PR/CI/merge: обновление графиков активной сессии.**
+Task загрузки Context anatomy/Request timeline теперь зависит от databaseID/revision snapshot,
+а не только sessionID/query. Старые/cancelled ответы и ответы после reset отклоняются;
+refresh той же сессии сохраняет viewport. App build и 11/11 targeted tests passed
+через xcodebuild с ранее разрешённым per-command skipMacroValidation (MCP blocked macro trust).
+SwiftLint/FSD/diff check passed. Live Watching визуально не проверен; v0.1.0 не менялся.
+
+- [ ] **SM-738** — Синхронизировать графики выбранной сессии с новыми database snapshots после Watching/Import. Реализовано 2026-10-23: databaseID/revision task identity и защита от stale async loads. App build, 11/11 tests, SwiftLint/FSD passed; ожидает PR/CI/merge.
+
 - [x] **SM-717** — Анатомия контекста сессии: как наслаивались ввод и вывод по запросам.
   **Доставлено через PR [#105](https://github.com/SoundBlaster/SessionMonitor/pull/105), merge `0bd808b` (2026-10-11).**
   Обязательный `CI` прошёл на `7e8863a`. Проверка на Mac (2026-10-11, сборка из Xcode, тёмная и светлая тема, сессии на
