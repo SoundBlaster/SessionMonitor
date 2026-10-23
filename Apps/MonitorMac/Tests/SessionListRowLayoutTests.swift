@@ -49,7 +49,7 @@ final class SessionListRowLayoutTests: XCTestCase {
         }
     }
 
-    func testDeepChildAtMinimumSidebarWidthKeepsCacheAndRelationship() throws {
+    func testDeepChildAtMinimumSidebarWidthKeepsTrailingCache() throws {
         try capture(name: "sidebar-deep-child-minimum-width", width: 180, scheme: .light) {
             SessionListRow(node: child, provenance: childProvenance)
         }
@@ -64,6 +64,30 @@ final class SessionListRowLayoutTests: XCTestCase {
                 .environment(\.dynamicTypeSize, .accessibility1)
                 .padding(8)
         }
+    }
+
+    func testTrailingCacheColumnHighlightsOnlyKnownLowValues() throws {
+        for scheme in [ColorScheme.light, .dark] {
+            try capture(name: "sidebar-cache-emphasis-\(scheme)", width: 340, scheme: scheme) {
+                VStack(spacing: 8) {
+                    SessionListRow(node: root, provenance: rootProvenance)
+                    emphasisRow(name: "Low cache", cached: 700)
+                    emphasisRow(name: "At threshold", cached: 800)
+                    emphasisRow(name: "Partial cache", cached: 100, unknown: 1)
+                    emphasisRow(name: "Zero input", cached: 0, input: 0)
+                }
+                .padding(8)
+            }
+        }
+    }
+
+    private func emphasisRow(name: String, cached: Int64, input: Int64 = 1_000,
+                             unknown: Int64 = 0) -> some View {
+        let summary = SessionSummary(id: name, model: "mixed", totals: UsageTotals(
+            requests: 10, inputTokens: input, cachedInputTokens: cached, unknownCacheRequests: unknown
+        ))
+        return SessionListRow(node: SessionTreeNode(session: summary, state: .knownRoot),
+                              provenance: SessionProvenance(sessionID: name, sessionTitle: name))
     }
 
     private var root: SessionTreeNode {
@@ -98,7 +122,9 @@ final class SessionListRowLayoutTests: XCTestCase {
             .background(Color(nsColor: .windowBackgroundColor)))
         host.frame.size = NSSize(width: width, height: host.fittingSize.height)
         XCTAssertEqual(host.fittingSize.width, width, accuracy: 1, "No row may widen its sidebar")
-        XCTAssertLessThan(host.fittingSize.height, 200, "Long text must not create a tall card")
+        if !name.hasPrefix("sidebar-cache-emphasis") {
+            XCTAssertLessThan(host.fittingSize.height, 200, "Long text must not create a tall card")
+        }
         let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)

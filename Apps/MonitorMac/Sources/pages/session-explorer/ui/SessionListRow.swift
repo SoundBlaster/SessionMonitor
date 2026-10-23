@@ -1,4 +1,5 @@
 import MonitorCore
+import MonitorPolicies
 import SwiftUI
 
 struct SessionListRow: View {
@@ -6,21 +7,20 @@ struct SessionListRow: View {
     let provenance: SessionProvenance?
     /// Only values not already present in the row (for example, the sorted request date).
     var sortDetail: String?
+    var cacheThreshold: CacheHitThreshold = .default
+    var isSelected = false
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             if node.state == .attached {
                 Image(systemName: "arrow.turn.down.right")
                     .font(.caption)
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(isSelected ? Color.white : Color.accentColor)
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 3) {
-                ViewThatFits(in: .horizontal) {
-                    SessionListHeading(title: title, model: modelSubtitle, cacheHit: cacheHit, state: stateLabel)
-                    SessionListHeading(title: title, model: nil, cacheHit: cacheHit, state: stateLabel)
-                    SessionListNarrowHeading(title: title, cacheHit: cacheHit, state: stateLabel)
-                }
+                SessionListHeading(title: title, model: modelSubtitle, cacheHit: cacheHit,
+                                   isLow: isLowCacheHit, isSelected: isSelected)
                 Text(node.session.id)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
@@ -45,7 +45,7 @@ struct SessionListRow: View {
         .help(modelSubtitle.map { "\(title) · \($0)" } ?? title)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityTitle)
-        .accessibilityValue("\(cacheHit.accessibilityValue) \(tokenCount.formatted()) tokens, "
+        .accessibilityValue("\(cacheAccessibilityValue) \(tokenCount.formatted()) tokens, "
                             + "\(node.session.totals.requests.formatted()) requests. \(sortDetail ?? "")")
     }
 
@@ -74,6 +74,18 @@ struct SessionListRow: View {
         SessionCacheHitPresentation(totals: node.session.totals)
     }
 
+    private var isLowCacheHit: Bool {
+        if case .knownBelowThreshold = CacheHitThresholdPolicy(threshold: cacheThreshold)
+            .presentation(for: node.session) { return true }
+        return false
+    }
+
+    private var cacheAccessibilityValue: String {
+        guard isLowCacheHit else { return cacheHit.accessibilityValue }
+        return "Low cache hit. \(cacheHit.accessibilityValue) "
+            + "Below the configured \(cacheThreshold.percent.formatted()) percent threshold."
+    }
+
     private var stateLabel: String {
         switch node.state {
         case .knownRoot: "Root"
@@ -90,28 +102,41 @@ private struct SessionListHeading: View {
     let title: String
     let model: String?
     let cacheHit: SessionCacheHitPresentation
-    let state: String
+    let isLow: Bool
+    let isSelected: Bool
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            SessionListIdentity(title: title, model: model)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            SessionListCacheValue(cacheHit: cacheHit, isLow: isLow, isSelected: isSelected)
+                .frame(width: 96, alignment: .trailing)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .monospacedDigit()
+    }
+}
+
+private struct SessionListIdentity: View {
+    let title: String
+    let model: String?
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            if let model {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(title).font(.headline).foregroundStyle(.primary).fixedSize()
+                    Text(model).fixedSize()
+                }
+            }
             Text(title)
                 .font(.headline)
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .frame(minWidth: 54, alignment: .leading)
-                .layoutPriority(1)
-            if let model {
-                Text(model).fixedSize()
-                Text("|").accessibilityHidden(true)
-            }
-            SessionListCacheValue(cacheHit: cacheHit)
-            Spacer(minLength: 4)
-            Text(state).fixedSize()
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .monospacedDigit()
     }
 }
 
@@ -140,36 +165,25 @@ private struct SessionListCounts: View {
     private var total: Decimal { Decimal(input) + Decimal(output) }
 }
 
-private struct SessionListNarrowHeading: View {
-    let title: String
-    let cacheHit: SessionCacheHitPresentation
-    let state: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer(minLength: 4)
-                Text(state).fixedSize()
-            }
-            SessionListCacheValue(cacheHit: cacheHit)
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .monospacedDigit()
-    }
-}
-
 private struct SessionListCacheValue: View {
     let cacheHit: SessionCacheHitPresentation
+    let isLow: Bool
+    let isSelected: Bool
 
     var body: some View {
-        Text("Cache \(Text(cacheHit.value).fontWeight(.semibold))")
-            .fixedSize()
-            .help(cacheHit.explanation)
+        HStack(spacing: 3) {
+            if isLow {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 9))
+                    .accessibilityHidden(true)
+            }
+            Text("Cache \(Text(cacheHit.value).fontWeight(.semibold))")
+        }
+        .fixedSize()
+        .foregroundStyle(isSelected ? Color.white : (isLow ? .orange : .secondary))
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background(isLow ? Color.orange.opacity(isSelected ? 0.25 : 0.12) : .clear, in: Capsule())
+        .help(cacheHit.explanation)
     }
 }

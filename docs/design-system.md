@@ -96,15 +96,23 @@ continues to expose the full snapshot and insight explanations.
 Session Explorer. Its heading and count line are small view components with explicit inputs;
 there is no new accounting policy or list selection state in the Design System.
 
-The standard row has three lines: title/model/cache/relationship, a monospaced UUID, then
-input + output token count and request count. Native OutlineGroup disclosure/indentation and
-List selection are retained; attached sessions also show a decorative branch arrow. Native
-row separators divide sessions. A date sort can add its date as a fourth line; token sorting
-adds no duplicate counter because tokens are always visible.
+The standard row has three lines: title and optional model with cache in a fixed 96 pt
+trailing column, a monospaced UUID, then input + output token count and request count.
+Visible Root/Subagent labels are omitted. Native OutlineGroup disclosure/indentation and
+List selection are retained; attached sessions also show a decorative branch arrow.
+Relationship information remains available in accessibility. Native row separators divide
+sessions. A date sort can add its date as a fourth line; token sorting adds no duplicate
+counter because tokens are always visible.
 
-At compact widths, the model subtitle yields to the title, cache and relationship. The full
-model remains in help and accessibility. At deeply indented/minimum widths, the cache line
-wraps below the title and relationship rather than letting those labels overlap. UUIDs and long titles truncate in the middle; very
-large counts stack vertically rather than overflowing. Decimal addition preserves input +
-output totals even when their sum exceeds Int64. Unknown cache stays an em dash with an
-accessible explanation. Semantic foreground styles follow native list selection and appearance.
+At compact widths, the model subtitle yields to the title. The full model remains in help
+and accessibility. The cache value stays on the heading line at the same trailing edge
+for root and nested rows. UUIDs and long titles truncate in the middle; very large counts
+stack vertically rather than overflowing. Decimal addition preserves input + output totals
+even when their sum exceeds Int64.
+
+Low cache uses the existing `CacheHitThresholdPolicy` and validated persisted threshold
+(default 80%). Only known values strictly below the threshold receive an orange capsule
+and warning marker; values at the threshold and unknown/partial coverage remain neutral.
+Unknown cache stays an em dash with an accessible explanation. Selected cache text uses
+white with the warning background retained; other foreground styles follow native list
+selection and appearance. No additional accounting policy is introduced.

@@ -6,18 +6,21 @@
 
 ## Текущая точка
 
-**SM-743 — реализована и проверена (2026-10-23): компактные строки сессий в Sidebar по образцу пользователя.**
-Зависимость: SM-740 / PR #132 (названия чатов). Имя/model/cache в заголовке, relationship
-справа; UUID ниже; tokens/requests в нижней строке. Три стандартные строки, native separators;
-model уступает место основным меткам, при минимальной ширине header переносится. Сохранены
-дерево, selection, unknown coverage и даты сортировки; нет дублирования Tokens при сортировке.
+**SM-743 — реализована и проверена (2026-10-23): компактные строки сессий в Sidebar.**
+Зависимость: SM-740 / PR #132 (названия чатов). Имя и доступная модель слева, Cache
+в фиксированной правой колонке; UUID ниже; tokens/requests в нижней строке. Видимые
+Root/Subagent убраны; relationship остаётся в accessibility, native дереве и branch arrow.
+Низкий cache выделяется капсулой и warning marker через существующую CacheHitThresholdPolicy
+и сохранённый порог (по умолчанию 80%); значение на пороге и unknown/partial нейтральны.
+Model уступает место имени, не сдвигая cache; сохранены selection и даты сортировки,
+нет дублирования Tokens при сортировке. Decimal защищает сумму input + output от overflow.
 Xcode-tools остановлен на macro trust; разрешённый per-command CLI bypass: build/test passed,
-30/30 targeted tests. Native light/dark/narrow/long/unknown/Int64-max fixtures просмотрены;
-Computer Use подтвердил реальную dark selection, раскрытие NormLab и выбор Aristotle (35 requests),
-AX содержит полную модель/ID/coverage. Bitmap fixture native selection даёт чёрный backdrop,
-поэтому selection проверялась в реальном окне, остальные fixtures — без selected backdrop.
-SwiftLint/FSD/negative gate и diff check passed; xcresult/artifacts на TB5 (`sm743-final`,
-`measurements/sm743-complete`). PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135)
+37/37 targeted tests. Native light/dark/narrow/long/unknown/Int64-max и low/at-threshold/partial
+fixtures просмотрены. Computer Use на свежей сборке подтвердил dark selection, раскрытие NormLab,
+выравнивание cache у root/child и выбор Aristotle (35 requests). Bitmap fixture native selection даёт чёрный backdrop,
+поэтому selection проверяется в реальном окне, остальные fixtures — без selected backdrop.
+SwiftLint/FSD/negative gate passed; xcresult/artifacts на TB5 (`sm743-cache-column`,
+`measurements/sm743-cache-column`). PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135)
 открыт поверх #132; CI выполняется без активного ожидания, merge ещё не подтверждён.
 Accounting и импорт не меняются. Далее review и доставка стека после зелёных checks.
 
@@ -1642,6 +1645,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 - [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.
 
 - [x] **SM-743** — Компактный список сессий по пользовательскому образцу (2026-10-23).
-  30 targeted tests, native fixtures, Computer Use selection/child navigation, SwiftLint/FSD passed.
+  37 targeted tests, fixed trailing cache column, policy-based low-cache emphasis; native fixtures,
+  Computer Use selection/child navigation, SwiftLint/FSD passed.
   PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135) поверх SM-740 / #132;
   CI/merge ещё ожидаются.
