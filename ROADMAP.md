@@ -6,6 +6,13 @@
 
 ## Текущая точка
 
+**SM-741 - in progress (2026-10-23): GitHub patch release 0.1.1.**
+Owner authorized merging #127-#132 and publishing a signed/notarized patch release.
+App/CLI version 0.1.1, build 2. Release CLI builds use the verified native engine workaround
+and query actual bin paths (SM-736); native remains deprecated. Prepare from clean merged main,
+verify combined functionality, app/widget/CLI signatures, notarization, DMG and downloaded hashes.
+No publication is claimed until the release assets are live and checked.
+
 **SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
 Review fix: inferred window теперь имеет видимую inline подпись `≈` без tooltip.
 Signals переносится к времени; inferred window — компактная метка; первый запрос
@@ -1528,6 +1535,9 @@ deliverable — WidgetKit extension с App Group в SM-401.
   **Снята с очереди SessionMonitor (2026-10-18): по подтверждению пользователя, работа уже завершена в проекте Screener.**
   Повторная реализация в SessionMonitor не требуется. ID сохранён для истории; новая проверка Screener в рамках
   этой синхронизации не выполнялась.
+
+- [ ] **SM-741** - Prepare and publish notarized GitHub release 0.1.1 after integration of #127-#132.
+  In progress: app/CLI version, build number and reproducible universal CLI packaging workaround.
 
 ## Evidence и границы
 

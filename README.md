@@ -702,3 +702,11 @@ GitHub repository: [SoundBlaster/SessionMonitor](https://github.com/SoundBlaster
 ветка `main`, [MIT License](LICENSE). Текущий статус доставки — в [ROADMAP.md](ROADMAP.md).
 Исследовательские snapshots находятся в `ResearchReferences`, чтобы не конфликтовать
 со Swift `Sources` на файловой системе macOS без учёта регистра.
+
+### Release CLI build engine
+
+The GitHub release pipeline uses `CLI_BUILD_SYSTEM=native` for universal CLI slices to avoid
+swiftbuild host-macro dependency failures during Intel cross-builds. Native is deprecated by
+current SwiftPM; this is a compatibility workaround, not a long-term engine choice.
+Set `CLI_BUILD_SYSTEM=swiftbuild` only after validating that the installed toolchain supports
+both target architectures and host macros. Product paths are obtained with `--show-bin-path`.
