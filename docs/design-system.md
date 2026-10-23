@@ -88,3 +88,23 @@ marker is visible inline as `≈` beside window capacity, without requiring a to
 For a fixed width and typography, these state changes must preserve the card height.
 The passive hover card remains accessibility-hidden; its persistent chart inspection element
 continues to expose the full snapshot and insight explanations.
+
+
+## Compact session rows (SM-743)
+
+`SessionListRow` keeps domain-specific identity, cache coverage, and relationship semantics in
+Session Explorer. Its heading and count line are small view components with explicit inputs;
+there is no new accounting policy or list selection state in the Design System.
+
+The standard row has three lines: title/model/cache/relationship, a monospaced UUID, then
+input + output token count and request count. Native OutlineGroup disclosure/indentation and
+List selection are retained; attached sessions also show a decorative branch arrow. Native
+row separators divide sessions. A date sort can add its date as a fourth line; token sorting
+adds no duplicate counter because tokens are always visible.
+
+At compact widths, the model subtitle yields to the title, cache and relationship. The full
+model remains in help and accessibility. At deeply indented/minimum widths, the cache line
+wraps below the title and relationship rather than letting those labels overlap. UUIDs and long titles truncate in the middle; very
+large counts stack vertically rather than overflowing. Decimal addition preserves input +
+output totals even when their sum exceeds Int64. Unknown cache stays an em dash with an
+accessible explanation. Semantic foreground styles follow native list selection and appearance.

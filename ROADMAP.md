@@ -6,6 +6,20 @@
 
 ## Текущая точка
 
+**SM-743 — реализована и проверена (2026-10-23): компактные строки сессий в Sidebar по образцу пользователя.**
+Зависимость: SM-740 / PR #132 (названия чатов). Имя/model/cache в заголовке, relationship
+справа; UUID ниже; tokens/requests в нижней строке. Три стандартные строки, native separators;
+model уступает место основным меткам, при минимальной ширине header переносится. Сохранены
+дерево, selection, unknown coverage и даты сортировки; нет дублирования Tokens при сортировке.
+Xcode-tools остановлен на macro trust; разрешённый per-command CLI bypass: build/test passed,
+30/30 targeted tests. Native light/dark/narrow/long/unknown/Int64-max fixtures просмотрены;
+Computer Use подтвердил реальную dark selection, раскрытие NormLab и выбор Aristotle (35 requests),
+AX содержит полную модель/ID/coverage. Bitmap fixture native selection даёт чёрный backdrop,
+поэтому selection проверялась в реальном окне, остальные fixtures — без selected backdrop.
+SwiftLint/FSD/negative gate и diff check passed; xcresult/artifacts на TB5 (`sm743-final`,
+`measurements/sm743-complete`). Отдельный PR поверх #132; CI/merge ещё ожидаются.
+Accounting и импорт не меняются. Далее review и доставка стека после зелёных checks.
+
 **SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
 Review fix: inferred window теперь имеет видимую inline подпись `≈` без tooltip.
 Signals переносится к времени; inferred window — компактная метка; первый запрос
@@ -1625,3 +1639,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 - [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
 
 - [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.
+
+- [x] **SM-743** — Компактный список сессий по пользовательскому образцу (2026-10-23).
+  30 targeted tests, native fixtures, Computer Use selection/child navigation, SwiftLint/FSD passed.
+  Доставка поверх SM-740 / #132; PR/CI/merge ещё ожидаются.

@@ -45,6 +45,7 @@ struct SessionSidebarList: View {
                 SessionListRow(node: node, provenance: model.provenance[node.id],
                                sortDetail: sortOrder.detail(for: node.session, timeZone: reportTimeZone))
                     .tag(node.id)
+                    .listRowSeparator(.visible)
             }
         }
         .overlay {
