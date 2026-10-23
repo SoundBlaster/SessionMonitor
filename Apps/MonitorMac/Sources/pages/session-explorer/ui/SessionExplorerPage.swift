@@ -39,7 +39,7 @@ struct SessionExplorerPage: View {
                                         ?? model.provenance[session.id]?.displayName,
                                       chartPalette: chartPalette)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .task(id: SessionTimelineLoadID(sessionID: session.id, query: model.query)) {
+                        .task(id: model.timelineLoadID) {
                             await model.loadTimeline(sessionID: session.id)
                         }
                 } else {
