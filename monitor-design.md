@@ -2,7 +2,7 @@
 
 Дата: 12 сентября 2026. Этот документ описывает архитектуру и границы MVP.
 Приоритеты и статусы задач ведутся в [ROADMAP.md](ROADMAP.md). Первый CLI/GUI slice реализован;
-фактические возможности, проверки и ограничения перечислены в [README](README.md).
+возможности перечислены в [README](README.md), проверки — в [Development](docs/development.md), ограничения — в [Data and coverage](docs/data-and-coverage.md).
 Выбранное пользователем направление реализации: нативный macOS, Swift и SPM.
 Dogfooding: SpecificationCore для общих правил/CLI, SpecificationKit для GUI
 features, FSD для GUI architecture/tooling. NavigationSplitViewKit используется
@@ -350,7 +350,7 @@ Build/test entry points и подпись описаны в [quality workflow](q
 обязательное ведение плана — в [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Расширенный CLI command surface ниже — предложение. Реализованные `import` / `report`
-и их текущие flags описаны в [README](README.md); приведённый здесь синтаксис целиком ещё не поддерживается:
+и их текущие flags описаны в [CLI guide](docs/cli.md); приведённый здесь синтаксис целиком ещё не поддерживается:
 
 ```text
 codex-monitor import --since 2026-09-05 --until 2026-09-12 --timezone Europe/Moscow

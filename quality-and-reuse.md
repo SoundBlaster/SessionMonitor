@@ -2,7 +2,7 @@
 
 Дата: 12 сентября 2026. Требования пользователя для Swift/macOS проекта.
 Активные quality files находятся в корне проекта; starter сохраняется как исходный шаблон.
-Текущие результаты первой CLI/app сборки и тестов — в [README](README.md).
+Историческая проверка accounting — в [Data and coverage](docs/data-and-coverage.md#validation-and-performance-references); текущие проверки — в [Development](docs/development.md#quality-checks).
 План и статусы задач — в [ROADMAP.md](ROADMAP.md), обязательный workflow — в [CONTRIBUTING.md](CONTRIBUTING.md).
 
 GitHub delivery выполняется строго через PR. Активные CI entry points:

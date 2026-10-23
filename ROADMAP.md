@@ -6,6 +6,16 @@
 
 ## Текущая точка
 
+**SM-742 — реализована и проверена (2026-10-23): англоязычный продуктовый README.**
+README сокращён с 704 до 93 строк: ценность, возможности, download CTA и реальный screenshot.
+Восемь английских guides сохраняют app/CLI/Watch/hooks/accounting/build/release инструкции;
+входящие ссылки обновлены. Computer Use: успешный свежий импорт 83 файлов / 354 canonical
+records; снимок Session manager с Cache Hit Rate и Context anatomy просмотрен без prompts,
+credentials и source paths. Снимок development build явно обозначен; файл 551 KB.
+Проверены 59 локальных ссылок/anchors, English-only/fences, 14 CLI help paths и release assets.
+Runtime/accounting не меняются; повторная сборка не нужна. Далее отдельный PR и CI без
+активного ожидания; доставка в main ещё не подтверждена.
+
 **SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
 Review fix: inferred window теперь имеет видимую inline подпись `≈` без tooltip.
 Signals переносится к времени; inferred window — компактная метка; первый запрос
@@ -331,7 +341,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
   12 core tests и 6 GUI/model tests passed; positive/negative FSD gates и подпись проверены.
 - [x] **SM-009** — Сверить Swift accounting с недельным Python audit.
   Готово 2026-09-12: 155 реальных rollout files, 6 340 requests; все семь usage totals совпали.
-  [Локальное evidence](.build/verification.json), [сводка](README.md#проверка-результата).
+  [Локальное evidence](.build/verification.json), [историческая сводка](docs/data-and-coverage.md#validation-and-performance-references).
 - [x] **SM-010** — Проверить подключённый Xcode MCP и разделить package/app workflow.
   Готово 2026-09-12: 43 tools, успешные discovery calls; [workflow](quality-and-reuse.md).
   `SessionMonitor-Package` и `MonitorMac` имеют разные test plans.
@@ -1612,3 +1622,6 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 - [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
 
 - [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.
+
+- [x] **SM-742** — Англоязычный продуктовый README, реальные screenshot/data и отдельные guides.
+  Реализовано и локально проверено 2026-10-23; PR/CI/merge ещё ожидаются (см. текущую точку).
