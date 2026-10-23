@@ -6,6 +6,20 @@
 
 ## Текущая точка
 
+**SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
+Review fix: inferred window теперь имеет видимую inline подпись `≈` без tooltip.
+Signals переносится к времени; inferred window — компактная метка; первый запрос
+получает First request вместо отсутствующей delta. Проверка: равная высота состояний
+при одной ширине/типографике. Xcode-tools build-for-testing и 2/2 targeted tests passed:
+108 комбинаций ширины/темы/шрифта/запроса/signals сохраняют высоту; native dark/narrow
+fixtures просмотрены. SwiftLint/FSD/negative gate passed; accessibility evidence сохранён.
+PR/CI/merge ожидаются; далее синхронизация статусов доставленных SM-732–SM-734.
+
+**SM-734 — доставлена (2026-10-23), PR [#126](https://github.com/SoundBlaster/SessionMonitor/pull/126).**
+Import tests используют изолированные UserDefaults suites. Baseline: Xcode-tools 7/7 targeted
+и RunProject, SwiftLint/diff check. Реальная папка восстановлена на `~/.codex/sessions/2026`;
+полный импорт завершён: 80 файлов, 26 892 records.
+
 **SM-703 — в работе (2026-10-23): GitHub release 0.1.0 опубликован.**
 Из чистого `main` `0e19530542b4b71bf5efa9a989f6bae25f317b3b` созданы universal
 arm64/x86_64 app с WidgetKit extension, DMG и standalone CLI ZIP версии 0.1.0.
@@ -24,11 +38,6 @@ CLI `--help` прошёл нативно и через `arch -x86_64` (Rosetta).
 DMG, CLI ZIP и оба checksum. Remote tag указывает на исходный `0e19530`; скачанные с GitHub
 DMG/CLI совпадают по SHA-256. Открытый PR #127 в релиз не входит.
 Остаток: SM-736, clean-install/update и widget acceptance; SM-703 остаётся незавершённой.
-
-**SM-734 — доставлена (2026-10-23), PR [#126](https://github.com/SoundBlaster/SessionMonitor/pull/126).**
-Import tests используют изолированные UserDefaults suites. Baseline: Xcode-tools 7/7 targeted
-и RunProject, SwiftLint/diff check. Реальная папка восстановлена на `~/.codex/sessions/2026`;
-полный импорт завершён: 80 файлов, 26 892 records.
 
 **SM-733 — реализована (2026-10-21): наблюдаемый и отменяемый импорт больших наборов JSONL.**
 Исправление CI (2026-10-22): внешний SQLite writer использует `/usr/bin/sqlite3` вместо Xcode Python shim; исходный сбой SDK не позволял выполнить транзакцию. Новый CI ожидается без активного polling.
@@ -1590,6 +1599,8 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   [Отчёт](reports/SM-412-root-activity-account-scope.md).
 
 - [x] **SM-734** — Изоляция UserDefaults тестов импорта; доставлена 2026-10-23 в PR [#126](https://github.com/SoundBlaster/SessionMonitor/pull/126).
+
+- [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.
 
 - [ ] **SM-736** — Исправить universal CLI сборку в GitHub release pipeline.
   Выявлено 2026-10-23: default SwiftPM swiftbuild при Intel cross-build не разрешает host-модули
