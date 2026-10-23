@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-703 — в работе (2026-10-23): notarized GitHub release candidate подготовлен.**
+**SM-703 — в работе (2026-10-23): GitHub release 0.1.0 опубликован.**
 Из чистого `main` `0e19530542b4b71bf5efa9a989f6bae25f317b3b` созданы universal
 arm64/x86_64 app с WidgetKit extension, DMG и standalone CLI ZIP версии 0.1.0.
 Developer ID export, embedded profiles/App Group и hardened runtime проверены.
@@ -20,8 +20,10 @@ CLI ZIP: 7 084 111 bytes; SHA-256 `5ea77b3d079b145c41b3e839f6c2bd978acb5332b233a
 CLI `--help` прошёл нативно и через `arch -x86_64` (Rosetta).
 Штатная подготовка остановилась на Intel CLI cross-build; кандидат завершён отдельным
 локальным resume script: arm64 CLI из swiftbuild, Intel CLI через `--build-system native`.
-Остаток: SM-736, clean-install/update и widget acceptance, затем отдельное разрешение
-на GitHub publication. Release/tag не создавались; открытый PR #127 в кандидат не входит.
+По разрешению владельца опубликован [v0.1.0](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.0):
+DMG, CLI ZIP и оба checksum. Remote tag указывает на исходный `0e19530`; скачанные с GitHub
+DMG/CLI совпадают по SHA-256. Открытый PR #127 в релиз не входит.
+Остаток: SM-736, clean-install/update и widget acceptance; SM-703 остаётся незавершённой.
 
 **SM-734 — доставлена (2026-10-23), PR [#126](https://github.com/SoundBlaster/SessionMonitor/pull/126).**
 Import tests используют изолированные UserDefaults suites. Baseline: Xcode-tools 7/7 targeted
@@ -1106,7 +1108,8 @@ deliverable — WidgetKit extension с App Group в SM-401.
   подписи app/widget проверены также внутри DMG. Intel CLI потребовал native SwiftPM workaround
   и локальное продолжение packaging (SM-736); штатный pipeline пока не прошёл целиком.
   Готово после clean-install/update с сохранением данных и widget acceptance. Release/tag
-  не опубликованы; публикация требует отдельного разрешения. Mac App Store — SM-706.
+  опубликованы по разрешению владельца: [v0.1.0](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.0);
+  remote tag и скачанные assets проверены. Mac App Store — SM-706.
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
   Статус: в работе. Скрипт создаёт archive и `.pkg` только локально, проверяет app ID и bundle ID,
   запрашивает подтверждение перед upload и использует локальную аутентификацию `asc`; GitHub Actions
