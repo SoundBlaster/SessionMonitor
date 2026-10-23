@@ -73,6 +73,8 @@ struct AppMenuHost: View {
         guard !watch.isBusy, !watch.isImporting, !watch.isRunning, !watch.isShuttingDown else { return }
         let panel = NSOpenPanel()
         panel.title = "Watch JSONL Rollouts"
+        panel.directoryURL = RolloutDirectorySelection.initialDirectory(preferred: WatchLaunchSettings().directory)
+        panel.showsHiddenFiles = true
         panel.message = "The selected folder is imported, then monitored for changes until you stop watch or quit."
         panel.prompt = "Start Watch"
         panel.canChooseFiles = false
