@@ -40,6 +40,7 @@ extension UsageStore {
                 accountScope.kind.rawValue
             ])
         let wanted = Set(sessionIDs)
+        let titles = Self.uniqueSessionTitles(rows)
         var result: [String: SessionProvenance] = [:]
         for row in rows {
             let session: String = row["session"]
@@ -53,14 +54,15 @@ extension UsageStore {
                 }
             }
             let value = SessionProvenance(sessionID: session, rootSessionID: row["root_session"],
-                                          displayName: row["display_name"], agentPath: row["agent_path"],
+                                          displayName: row["display_name"], sessionTitle: titles[session],
+                                          agentPath: row["agent_path"],
                                           originator: row["originator"], clientVersion: row["client_version"],
                                           modelProvider: row["model_provider"], models: models, efforts: efforts,
                                           relationship: relationship)
             if let existing = result[session] {
                 result[session] = SessionProvenance(sessionID: session,
                     rootSessionID: existing.rootSessionID ?? value.rootSessionID,
-                    displayName: existing.displayName ?? value.displayName,
+                    displayName: existing.displayName ?? value.displayName, sessionTitle: value.sessionTitle,
                     agentPath: existing.agentPath ?? value.agentPath,
                     originator: existing.originator ?? value.originator,
                     clientVersion: existing.clientVersion ?? value.clientVersion,
@@ -74,4 +76,44 @@ extension UsageStore {
         }
         return result
     }
+
+    private static func uniqueSessionTitles(_ rows: [Row]) -> [String: String] {
+        var titles: [String: Set<String>] = [:]
+        for row in rows {
+            let session: String = row["session"]
+            if let title: String = row["session_title"] { titles[session, default: []].insert(title) }
+        }
+        return titles.compactMapValues { $0.count == 1 ? $0.first : nil }
+    }
+
+    static func insertProvenance(
+        _ provenance: SessionProvenance, source: String, database: Database
+    ) throws {
+        let encoder = JSONEncoder()
+        let models = try encoder.encode(provenance.models)
+        let efforts = try encoder.encode(provenance.efforts)
+        try database.execute(sql: """
+            INSERT INTO source_provenance (
+                source, session, root_session, display_name, agent_path, originator,
+                client_version, model_provider, models, efforts, relationship_kind, parent_session
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(source, session) DO UPDATE SET
+                root_session = COALESCE(excluded.root_session, source_provenance.root_session),
+                display_name = COALESCE(excluded.display_name, source_provenance.display_name),
+                agent_path = COALESCE(excluded.agent_path, source_provenance.agent_path),
+                originator = COALESCE(excluded.originator, source_provenance.originator),
+                client_version = COALESCE(excluded.client_version, source_provenance.client_version),
+                model_provider = COALESCE(excluded.model_provider, source_provenance.model_provider),
+                models = excluded.models, efforts = excluded.efforts,
+                relationship_kind = COALESCE(excluded.relationship_kind, source_provenance.relationship_kind),
+                parent_session = COALESCE(excluded.parent_session, source_provenance.parent_session)
+            """, arguments: [
+                source, provenance.sessionID, provenance.rootSessionID, provenance.displayName,
+                provenance.agentPath, provenance.originator, provenance.clientVersion,
+                provenance.modelProvider, String(bytes: models, encoding: .utf8) ?? "[]",
+                String(bytes: efforts, encoding: .utf8) ?? "[]", provenance.relationship?.kind.rawValue,
+                provenance.relationship?.parentSessionID
+            ])
+    }
+
 }

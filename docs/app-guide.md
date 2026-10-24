@@ -17,6 +17,15 @@ changing report totals. The session list can be sorted by first/last request, ca
 count, or input + output tokens, in either direction. Unknown sort values remain last. First/last
 request dates describe the session’s imported history, not just the selected period.
 
+## Session names
+
+After Import/Update or a Watch import, the list and session details show Codex chat titles
+from the optional `session_index.jsonl` beside the imported `sessions` folder. Reimporting
+picks up title changes even without new requests. Without a title, the subagent nickname
+or model remains the fallback; model and UUID stay available, and search includes titles.
+Conflicting titles for the same ID across sources are not arbitrarily combined in All accounts.
+The index is read locally (up to 16 MiB); titles are excluded from anonymized exports.
+
 ## Cache Hit Rate
 
 The sidebar chart follows the report’s account and period. Today uses hourly buckets from
