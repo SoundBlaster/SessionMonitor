@@ -43,6 +43,21 @@ final class SessionExplorerTests: XCTestCase {
         XCTAssertEqual(model.selectedSession?.id, first.id)
     }
 
+    func testSearchIncludesCodexChatTitle() {
+        let item = session("chat", model: "model-a")
+        let value = report([item])
+        let model = makeModel(StubExplorerRuntime(report: value))
+        model.apply(UsageSnapshot(query: model.query,
+                                  watermark: QueryWatermark(databaseID: "fixture", revision: 1, committedAt: nil),
+                                  report: value,
+                                  provenance: [item.id: SessionProvenance(
+                                    sessionID: item.id, sessionTitle: "Investigate cache behavior"
+                                  )]), expectedQuery: model.query)
+        model.setFilter("CACHE BEHAVIOR")
+        XCTAssertEqual(model.visibleSessions.map(\.id), [item.id])
+        XCTAssertEqual(model.visibleSessionTree.map(\.id), [item.id])
+    }
+
     func testWindowsKeepNavigationAndProvidersIndependent() async {
         let first = session("first", model: "model-a")
         let second = session("second", model: "model-b")
@@ -273,6 +288,26 @@ final class SessionExplorerTests: XCTestCase {
             runtimeFactory: { runtime },
             importedDirectorySettings: ImportedDirectorySettings(defaults: defaults)
         )
+    }
+
+}
+
+@MainActor
+extension SessionExplorerTests {
+    func testTitleSearchRetainsParentOfMatchingSubagentInSidebar() {
+        let root = session("root", model: "model-a")
+        let child = session("child", model: "model-b")
+        let value = report([root, child])
+        let model = makeModel(StubExplorerRuntime(report: value))
+        let provenance = SessionProvenance(sessionID: child.id, sessionTitle: "Investigate cache behavior",
+                                           relationship: SessionRelationship(kind: .subagent, parentSessionID: root.id))
+        model.apply(UsageSnapshot(query: model.query,
+                                  watermark: QueryWatermark(databaseID: "fixture", revision: 1, committedAt: nil),
+                                  report: value, provenance: [child.id: provenance]), expectedQuery: model.query)
+        model.setFilter("CACHE BEHAVIOR")
+        XCTAssertEqual(model.visibleSessions.map(\.id), [child.id])
+        XCTAssertEqual(model.visibleSessionTree.map(\.id), [root.id])
+        XCTAssertEqual(model.visibleSessionTree.first?.children.map(\.id), [child.id])
     }
 
 }

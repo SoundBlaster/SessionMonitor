@@ -105,10 +105,7 @@ struct SessionSortOrder: Hashable, Identifiable, Sendable {
             }
             let style = Date.FormatStyle(date: .abbreviated, time: .shortened, locale: locale, timeZone: timeZone)
             return "\(key.title): \(date.formatted(style))"
-        case .tokens:
-            let total = session.totals.inputTokens + session.totals.outputTokens
-            return "Tokens: \(total.formatted(.number.locale(locale)))"
-        case .cacheHit, .requests:
+        case .tokens, .cacheHit, .requests:
             return nil
         }
     }

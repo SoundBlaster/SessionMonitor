@@ -1,10 +1,17 @@
 import MonitorCore
+import MonitorPolicies
 import SwiftUI
 
 /// The Sidebar session tree with a sort selector above it. The chosen order is remembered.
 struct SessionSidebarList: View {
     @Bindable var model: SessionExplorerModel
     @AppStorage("sessionExplorer.sortOrder") private var sortOrderRaw = SessionSortOrder.default.rawValue
+    @AppStorage(CacheHitThresholdSettings.storageKey)
+    private var minimumCacheHitPercent = CacheHitThreshold.default.percent
+
+    private var cacheThreshold: CacheHitThreshold {
+        (try? CacheHitThreshold(percent: minimumCacheHitPercent)) ?? .default
+    }
 
     private var reportTimeZone: TimeZone { TimeZone(identifier: model.query.timeZoneIdentifier) ?? .current }
 
@@ -43,8 +50,11 @@ struct SessionSidebarList: View {
         )) {
             OutlineGroup(sortOrder.sorted(model.visibleSessionTree), children: \.outlineChildren) { node in
                 SessionListRow(node: node, provenance: model.provenance[node.id],
-                               sortDetail: sortOrder.detail(for: node.session, timeZone: reportTimeZone))
+                               sortDetail: sortOrder.detail(for: node.session, timeZone: reportTimeZone),
+                               cacheThreshold: cacheThreshold,
+                               isSelected: model.navigation.selectedSessionID == node.id)
                     .tag(node.id)
+                    .listRowSeparator(.visible)
             }
         }
         .overlay {
