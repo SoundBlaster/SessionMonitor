@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-749 — реализована и локально проверена (2026-10-25); PR готовится, в main ещё не доставлена.**
+**SM-749 — реализована и локально проверена (2026-10-25); [PR #145](https://github.com/SoundBlaster/SessionMonitor/pull/145) открыт, в main ещё не доставлена.**
 Локальный main синхронизирован с `origin/main` до `3eaa862`; предыдущие #139/#140/#141/#144 влиты.
 Compact agent status использует session-scoped totals и атомарно поддерживаемую quota projection.
 SpecificationCore policies, attribution, coverage, freshness, reset evidence и raw quota JSON сохранены.
@@ -1941,7 +1941,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   Готово при отдельном решении о scope, adapter contract и проверяемых fixtures выбранного клиента.
 
 - [x] **SM-749** — Устранить полный quota-history read в compact agent CLI path.
-  **Статус: реализована и локально проверена (2026-10-25), PR готовится; не влита.**
+  **Статус: реализована и локально проверена (2026-10-25), [PR #145](https://github.com/SoundBlaster/SessionMonitor/pull/145) открыт; не влита.**
   Session-scoped canonical totals/selection/watermark; SQLite projection по account/limit/slot с latest ties
   и точными свидетелями последнего reset transition. Изменённые event identities и их mirrors обновляются
   атомарно с импортом/профилями; unchanged account scope не вызывает rebuild старых quota при append.
