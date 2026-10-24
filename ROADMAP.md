@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-750 — реализована и проверена локально (2026-10-24), PR готовится: размер исходных файлов.**
+**SM-750 — реализована и проверена локально (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) открыт; CI выполняется: размер исходных файлов.**
 Сохранять наблюдённый размер вместе с checkpoint, без повторного чтения source logs на query path.
 Показывать в CLI и inspector; это полный размер известных исходных файлов сессии на момент импорта,
 не bytes read за запуск, не размер SQLite и не обещание освобождаемого места. Сохранять account scope,
@@ -1767,7 +1767,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 ### Source storage и подтверждённая производительность (2026-10-24)
 
 - [x] **SM-750** — Размер импортированных source logs сессии в байтах.
-  **Статус: реализована и проверена локально (2026-10-24), PR готовится.** Persisted descriptor observations, atomic checkpoint, account-filtered
+  **Статус: реализована и проверена локально (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) открыт; CI выполняется.** Persisted descriptor observations, atomic checkpoint, account-filtered
   aggregation без query-time filesystem scan. CLI JSON и inspector, unknown для старого индекса
   до повторного импорта. Проверить append/replacement/unchanged, mirrors/hard links,
   session ownership и независимость от выбранного периода; canonical totals не меняются.
