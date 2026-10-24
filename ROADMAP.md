@@ -17,7 +17,8 @@ Xcode-tools OpenWorkspace ждёт повторного разрешения age
 project generation и diff check passed. Computer Use на свежем binary: обе настройки on,
 Last 7 days, System colors; подписи полностью видимы и controls выровнены. Native dark
 screenshot: `measurements/sm744/settings-dark.png`. Цвета semantic/system; отдельная живая
-проверка светлой темы не проводилась. Доставка через отдельный PR от main; CI без активного ожидания.
+проверка светлой темы не проводилась. PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137)
+открыт в main; CI без активного ожидания, merge ещё не выполнен.
 
 **SM-743 — реализована и проверена (2026-10-23): компактные строки сессий в Sidebar.**
 Зависимость: SM-740 / PR #132 (названия чатов). Имя и доступная модель слева, Cache
@@ -1665,4 +1666,4 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 - [x] **SM-744** — Компактные grouped Settings по пользовательскому образцу (2026-10-24).
   Build, 6 targeted settings tests, SwiftLint/FSD и native dark Computer Use passed.
-  Реализовано; PR/CI/merge ожидаются. Подробнее в текущей точке.
+  PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137) открыт в main; CI/merge ожидаются.
