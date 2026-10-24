@@ -48,7 +48,7 @@ struct WidgetUpdatedLabel: View {
                 Image(systemName: "clock.arrow.circlepath")
                 Text("May be out of date")
             } else if let snapshot = entry.snapshot {
-                Text(WidgetFormatting.updated(snapshot.generatedAt))
+                Text(WidgetFormatting.updated(snapshot.generatedAt)).monospaced()
             }
         }
         .font(.caption2)

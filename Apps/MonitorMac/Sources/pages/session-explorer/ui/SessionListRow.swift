@@ -34,7 +34,7 @@ struct SessionListRow: View {
                     Text(sortDetail)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                        .monospaced()
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .help(sortDetail)
@@ -115,7 +115,6 @@ private struct SessionListHeading: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .font(.caption)
         .foregroundStyle(.secondary)
-        .monospacedDigit()
     }
 }
 
@@ -148,18 +147,17 @@ private struct SessionListCounts: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Tokens: \(total.formatted())").fixedSize()
+                Text("Tokens: \(Text(total.formatted()).font(.caption.monospaced()))").fixedSize()
                 Spacer(minLength: 8)
-                Text("\(requests.formatted()) requests").fixedSize()
+                Text("\(Text(requests.formatted()).font(.caption.monospaced())) requests").fixedSize()
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Tokens: \(total.formatted())")
-                Text("\(requests.formatted()) requests")
+                Text("Tokens: \(Text(total.formatted()).font(.caption.monospaced()))")
+                Text("\(Text(requests.formatted()).font(.caption.monospaced())) requests")
             }
         }
         .font(.caption)
         .foregroundStyle(.secondary)
-        .monospacedDigit()
     }
 
     private var total: Decimal { Decimal(input) + Decimal(output) }
@@ -177,7 +175,7 @@ private struct SessionListCacheValue: View {
                     .font(.system(size: 9))
                     .accessibilityHidden(true)
             }
-            Text("Cache \(Text(cacheHit.value).fontWeight(.semibold))")
+            Text("Cache \(Text(cacheHit.value).font(.caption.monospaced()).fontWeight(.semibold))")
         }
         .fixedSize()
         .foregroundStyle(isSelected ? Color.white : (isLow ? .orange : .secondary))

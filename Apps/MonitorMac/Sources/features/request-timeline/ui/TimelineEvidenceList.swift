@@ -18,7 +18,7 @@ struct TimelineEvidenceList: View {
                             Text(point.kind.label)
                                 .font(.callout)
                             if let cached = point.cachedInputTokens, let uncached = point.uncachedInputTokens {
-                                Text("\(cached.formatted()) cached · \(uncached.formatted()) uncached")
+                                Text("\(cached.formatted()) cached · \(uncached.formatted()) uncached").monospaced()
                                     .foregroundStyle(.secondary)
                             } else if point.kind == .usageRequest {
                                 Text("Unavailable")
@@ -29,7 +29,7 @@ struct TimelineEvidenceList: View {
                             }
                             Spacer(minLength: 0)
                             Text(point.timestamp.formatted(evidenceDateFormat))
-                                .font(.caption.monospacedDigit())
+                                .font(.caption.monospaced())
                                 .foregroundStyle(.secondary)
                         }
                         .accessibilityElement(children: .combine)

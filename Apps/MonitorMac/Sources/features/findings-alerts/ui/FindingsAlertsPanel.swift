@@ -45,7 +45,7 @@ struct FindingsAlertsPanel: View {
             HStack {
                 filter
                 Spacer()
-                Text(model.summary).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                Text(model.summary).font(.caption.monospaced()).foregroundStyle(.secondary)
             }
         }
     }

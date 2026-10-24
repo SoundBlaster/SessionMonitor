@@ -6,7 +6,27 @@
 
 ## Текущая точка
 
-**SM-750 — реализована и проверена локально (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) открыт; CI выполняется: размер исходных файлов.**
+**SM-753 — реализована и проверена локально (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) открыт; локальные исправления готовы, требуется свежий CI: mono numeric typography.**
+Требование владельца: числа всегда mono. Общие DS metrics, percentages, counters,
+chart axes, inspector/menu bar и widgets получают system monospaced values.
+Подписи и поясняющий текст сохраняют обычную типографику. Проверить narrow/light/dark
+и large type; числа/форматы/accounting не меняются. Shared DesignMetric и новый DesignNumericRow,
+числовой вариант DesignBadge; app/widget build, SwiftLint/FSD/negative gate passed.
+Отдельный native AppKit renderer собран из production DS sources: четыре light/dark
+fixtures шириной 360/720 просмотрены, без clipping и с сохранённым Grid fallback.
+Computer Use на свежем debug binary: dark main window с NormLab, mono totals/cache/axes и
+четырьмя полными колонками метрик, без clipping. Тестовая копия закрыта; установленная оставлена.
+GitHub CI выявил перенос metadata строк на ширине 160 pt: исправлены single-line layout
+и mono только для numeric runs в карточке и event legend (замечание review).
+Native AppKit harness из production sources повторяет матрицу существующего regression test:
+108 измерений (160/240/340 pt, light/dark, large/accessibility1, три requests, 0/1/12 signals),
+ни одного расхождения высоты > 1 pt; узкая light и широкая dark fixtures просмотрены.
+Это проверка NSHostingView на macOS, не подтверждение Dynamic Type на других платформах.
+Hosted targeted suite снова остановлен до старта test host; full suite остаётся gate GitHub CI.
+Размеры сессий доставлены отдельно
+через PR #142 (`3ca4ece`); baseline/SM-749 — PR #141. После typography вернуться к SM-749.
+
+**SM-750 — доставлена (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) влит squash `3ca4ece`; все пять GitHub checks зелёные: размер исходных файлов.**
 Сохранять наблюдённый размер вместе с checkpoint, без повторного чтения source logs на query path.
 Показывать в CLI и inspector; это полный размер известных исходных файлов сессии на момент импорта,
 не bytes read за запуск, не размер SQLite и не обещание освобождаемого места. Сохранять account scope,
@@ -23,7 +43,7 @@ fixture run после mono-правки остановлен: sample показ
 SQL projection на read-only копии индекса 603 MB до backfill: 11,92 ms первый вызов,
 1,48 ms median / 2,31 ms max десяти повторов в одном Python SQLite connection. Это только SQL,
 не end-to-end CLI latency и не результат после backfill. Личные данные и artifacts остаются на TB5.
-Далее SM-753 (единая mono typography по новому требованию), затем SM-749 и SM-706.
+Локальный main синхронизирован после merge. Далее завершить SM-753, затем SM-749 и SM-706.
 
 
 **SM-741 - in progress (2026-10-23): GitHub patch release 0.1.1.**
@@ -1767,7 +1787,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 ### Source storage и подтверждённая производительность (2026-10-24)
 
 - [x] **SM-750** — Размер импортированных source logs сессии в байтах.
-  **Статус: реализована и проверена локально (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) открыт; CI выполняется.** Persisted descriptor observations, atomic checkpoint, account-filtered
+  **Статус: доставлена (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) влит squash `3ca4ece`; все пять checks зелёные.** Persisted descriptor observations, atomic checkpoint, account-filtered
   aggregation без query-time filesystem scan. CLI JSON и inspector, unknown для старого индекса
   до повторного импорта. Проверить append/replacement/unchanged, mirrors/hard links,
   session ownership и независимость от выбранного периода; canonical totals не меняются.
@@ -1790,9 +1810,13 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   окружением и методикой. Не публиковать «blazing fast scanning» как доказанный факт до
   замеров и не выдавать быстрый incremental update за initial scan.
 
-- [ ] **SM-753** — Monospaced typography для всех числовых UI values.
-  **Статус: следующая задача по требованию владельца (2026-10-24).** Размеры, counters,
-  token values, проценты, числовые оси и даты/время в data views — mono; explanatory
-  labels остаются обычным системным шрифтом. Начать с shared DesignMetric, затем
-  app/chart/inspector/menu bar/WidgetKit; закрепить правило в AGENTS и проверить
-  narrow/light/dark/large type без изменения чисел и accounting.
+### Numeric typography (2026-10-24)
+
+- [ ] **SM-753** — Использовать mono для числовых UI values.
+  **Статус: реализована и проверена локально (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) открыт; исправление review и CI regression проверено native harness, требуется свежий CI.** Общий DesignMetric, counters, token values,
+  проценты, числовые chart axes и data timestamps, inspector/menu bar/WidgetKit.
+  Не менять форматирование и accounting; explanatory labels остаются обычным шрифтом.
+  App/widget build, lint/FSD и native DS narrow/light/dark fixtures passed.
+  Single-line metadata предотвращает скачки высоты карточки; explanatory event labels остаются proportional.
+  Native NSHostingView regression matrix: 108 измерений, 0 failures; narrow light/wide dark PNG просмотрены.
+  Hosted targeted suite остановлен до старта test host; полноценный suite остаётся обязательным GitHub gate.

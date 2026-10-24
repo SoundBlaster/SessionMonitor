@@ -77,13 +77,13 @@ struct CacheHitRateWidgetHeader: View {
     private var metric: some View {
         Text(report.periodCacheHitRate.map { $0.formatted(.number.precision(.fractionLength(1))) + "%" } ?? "--")
             .font(family == .large ? .largeTitle.weight(.semibold) : .title.weight(.semibold))
-            .monospacedDigit()
+            .monospaced()
     }
 
     @ViewBuilder private var delta: some View {
         if let delta = report.comparisonDeltaPercentagePoints {
             Label {
-                Text("\(delta > 0 ? "+" : "")\(delta.formatted(.number.precision(.fractionLength(1)))) pp")
+                Text("\(delta > 0 ? "+" : "")\(delta.formatted(.number.precision(.fractionLength(1)))) pp").monospaced()
             } icon: {
                 Image(systemName: delta == 0 ? "minus" : "triangle.fill")
                     .rotationEffect(delta < 0 ? .degrees(180) : .zero)

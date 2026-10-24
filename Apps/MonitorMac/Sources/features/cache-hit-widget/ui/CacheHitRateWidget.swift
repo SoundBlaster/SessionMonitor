@@ -120,7 +120,7 @@ struct CacheHitRateWidget: View {
             .map { CacheHitRateWidgetBucketDetail.text(for: $0, report: report) }
         return Text(text ?? (onSelectInterval == nil ? CacheHitRateWidgetBucketDetail.hint
                          : CacheHitRateWidgetBucketDetail.selectableHint))
-            .font(.caption2).monospacedDigit()
+            .font(text == nil ? .caption2 : .caption2.monospaced())
             .foregroundStyle(.secondary)
             .lineLimit(2)
             .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
@@ -132,7 +132,8 @@ struct CacheHitRateWidget: View {
             Divider()
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("\(report.sessionCount.formatted()) sessions").font(.subheadline.weight(.semibold))
+                    Text("\(report.sessionCount.formatted()) sessions")
+                        .font(.subheadline.weight(.semibold).monospaced())
                     Text("Mixed models").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 8)
