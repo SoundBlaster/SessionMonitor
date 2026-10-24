@@ -1,10 +1,26 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-22. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-24. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
+
+**SM-753 — реализована и проверена локально (2026-10-24), PR готовится: mono numeric typography.**
+Требование владельца: числа всегда mono. Общие DS metrics, percentages, counters,
+chart axes, inspector/menu bar и widgets получают system monospaced values.
+Подписи и поясняющий текст сохраняют обычную типографику. Проверить narrow/light/dark
+и large type; числа/форматы/accounting не меняются. Shared DesignMetric и новый DesignNumericRow,
+числовой вариант DesignBadge; app/widget build, SwiftLint/FSD/negative gate passed.
+Отдельный native AppKit renderer собран из production DS sources: четыре light/dark
+fixtures шириной 360/720 просмотрены, без clipping и с сохранённым Grid fallback.
+Computer Use на свежем debug binary: dark main window с NormLab, mono totals/cache/axes и
+четырьмя полными колонками метрик, без clipping. Тестовая копия закрыта; установленная оставлена.
+Повтор GUI unit suite остановлен на LaunchServices launch без старта тестов; предыдущие
+результаты до typography не выдаются за свежую проверку. Large-type и полный interaction regression
+остаются на GitHub/native acceptance. Размеры сессий доставляются отдельно
+через открытый PR #142; baseline/SM-749 — PR #141. После typography вернуться к SM-749.
+
 
 **SM-741 - in progress (2026-10-23): GitHub patch release 0.1.1.**
 Owner authorized merging #127-#132 and publishing a signed/notarized patch release.
@@ -1743,3 +1759,13 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 - [x] **SM-744** — Компактные grouped Settings по пользовательскому образцу (2026-10-24).
   Build, 6 targeted settings tests, SwiftLint/FSD и native dark Computer Use passed.
   PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137) влит как `6d1d06b`, пять checks зелёные.
+
+### Numeric typography (2026-10-24)
+
+- [x] **SM-753** — Использовать mono для числовых UI values.
+  **Статус: реализована и проверена локально (2026-10-24), PR готовится.** Общий DesignMetric, counters, token values,
+  проценты, числовые chart axes и data timestamps, inspector/menu bar/WidgetKit.
+  Не менять форматирование и accounting; explanatory labels остаются обычным шрифтом.
+  App/widget build, lint/FSD и native DS narrow/light/dark fixtures passed.
+  Повтор hosted GUI suite blocked на LaunchServices до test-host handshake; large-type
+  и full app runtime после typography не заявлены. CI остаётся обязательным gate.

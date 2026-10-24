@@ -157,7 +157,7 @@ struct ContextAnatomyChart: View {
             AxisGridLine().foregroundStyle(palette.grid)
             AxisTick()
             AxisValueLabel {
-                if let position = value.as(Double.self) { Text("\(Int(position))") }
+                if let position = value.as(Double.self) { Text("\(Int(position))").font(.caption.monospaced()) }
             }
         }
     }
@@ -168,7 +168,7 @@ struct ContextAnatomyChart: View {
             AxisTick()
             AxisValueLabel {
                 if let tokens = value.as(Double.self) {
-                    Text(ContextAnatomyPresentation.compactTokens(Int64(tokens)))
+                    Text(ContextAnatomyPresentation.compactTokens(Int64(tokens))).font(.caption.monospaced())
                 }
             }
         }

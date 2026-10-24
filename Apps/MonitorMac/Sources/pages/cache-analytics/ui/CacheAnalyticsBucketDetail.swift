@@ -123,7 +123,7 @@ struct CacheAnalyticsBucketDetail: View {
             Text(title).font(.caption).foregroundStyle(.secondary)
             Text(value)
                 .font(prominent ? .largeTitle.weight(.semibold) : .title3.weight(.semibold))
-                .monospacedDigit()
+                .monospaced()
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)

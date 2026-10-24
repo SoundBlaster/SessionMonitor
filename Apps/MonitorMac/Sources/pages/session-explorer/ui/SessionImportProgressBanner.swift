@@ -23,7 +23,7 @@ struct SessionImportProgressBanner: View {
                     Spacer(minLength: DesignTokens.Spacing.item)
                     if let size = progress.currentFileSize {
                         Text("\(byteCount(progress.currentFileBytesProcessed)) of \(byteCount(size))")
-                            .font(.caption.monospacedDigit())
+                            .font(.caption.monospaced())
                             .foregroundStyle(.secondary)
                     }
                 }

@@ -92,22 +92,23 @@ struct MenuSummaryPage: View {
                 Text("Choose Watch Folder… or import from the main window.")
                     .font(.caption).foregroundStyle(.secondary)
             } else {
-                LabeledContent("Requests", value: snapshot.report.totals.requests.formatted())
-                LabeledContent("Input tokens", value: snapshot.report.totals.inputTokens.formatted())
-                LabeledContent("Output tokens", value: snapshot.report.totals.outputTokens.formatted())
-                LabeledContent("Known cached input", value: snapshot.report.totals.cachedInputTokens.formatted())
+                DesignNumericRow(title: "Requests", value: snapshot.report.totals.requests.formatted())
+                DesignNumericRow(title: "Input tokens", value: snapshot.report.totals.inputTokens.formatted())
+                DesignNumericRow(title: "Output tokens", value: snapshot.report.totals.outputTokens.formatted())
+                DesignNumericRow(title: "Known cached input",
+                                 value: snapshot.report.totals.cachedInputTokens.formatted())
             }
             Divider()
             LabeledContent("Cache coverage", value: snapshot.coverage.cache.rawValue.capitalized)
             Text("Known for \(snapshot.coverage.knownCacheRequests.formatted()) of "
                  + "\(snapshot.report.totals.requests.formatted()) requests")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption.monospaced()).foregroundStyle(.secondary)
             if let committedAt = snapshot.watermark.committedAt {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Last index update (local time)")
                         .font(.caption).foregroundStyle(.secondary)
                     Text(committedAt, format: .dateTime.year().month().day().hour().minute().second())
-                        .font(.caption)
+                        .font(.caption.monospaced())
                 }
             } else {
                 Text("No index update recorded")

@@ -55,6 +55,7 @@ struct RequestTimelinePlot: View {
                         AxisValueLabel {
                             if let date = value.as(Date.self) {
                                 Text(date.formatted(axisDateFormat(for: axis.visibleDomain.duration)))
+                                    .font(.caption.monospaced())
                             }
                         }
                     }
@@ -63,7 +64,7 @@ struct RequestTimelinePlot: View {
                     AxisMarks(position: .leading) { _ in
                         AxisGridLine().foregroundStyle(palette.grid)
                         AxisTick()
-                        AxisValueLabel().foregroundStyle(palette.neutral)
+                        AxisValueLabel().font(.caption.monospaced()).foregroundStyle(palette.neutral)
                     }
                 }
                 .chartYScale(domain: yScale.domain,

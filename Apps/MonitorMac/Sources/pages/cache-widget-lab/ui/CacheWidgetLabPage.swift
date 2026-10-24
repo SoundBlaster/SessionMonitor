@@ -47,7 +47,7 @@ struct CacheWidgetLabPage: View {
                 Toggle("Embedded (no card)", isOn: $embedded)
             }
             HStack {
-                Text("Width \(Int(width)) pt").monospacedDigit()
+                Text("Width \(Int(width)) pt").monospaced()
                 Slider(value: $width, in: 220...720, step: 20)
                 Toggle("Dark", isOn: $dark)
                 Toggle("Monochrome", isOn: $monochrome)

@@ -24,8 +24,8 @@ struct SessionReportInspector: View {
                     .font(.headline)
                 Text("Canonical records are counted. Legacy token_count entries are not included.")
                     .foregroundStyle(.secondary)
-                LabeledContent("Requests", value: model.report.totals.requests.formatted())
-                LabeledContent("Unknown cache", value: model.report.totals.unknownCacheRequests.formatted())
+                DesignNumericRow(title: "Requests", value: model.report.totals.requests.formatted())
+                DesignNumericRow(title: "Unknown cache", value: model.report.totals.unknownCacheRequests.formatted())
                 if let finding = CacheCoverageDecision().decide(model.report.totals) {
                     Text(finding).font(.callout).foregroundStyle(.secondary)
                 }
@@ -72,7 +72,7 @@ struct SessionReportInspector: View {
                     ForEach(model.report.diagnostics.keys.sorted(), id: \.self) { key in
                         LabeledContent {
                             Text((model.report.diagnostics[key] ?? 0).formatted())
-                                .monospacedDigit()
+                                .monospaced()
                         } label: {
                             Text(key).font(.caption.monospaced())
                         }
@@ -86,7 +86,7 @@ struct SessionReportInspector: View {
     @ViewBuilder
     private func queryBoundary(_ date: Date?, fallback: String) -> some View {
         if let date {
-            Text(date.formatted(queryDateFormat)).monospacedDigit()
+            Text(date.formatted(queryDateFormat)).monospaced()
         } else {
             Text(fallback).foregroundStyle(.secondary)
         }

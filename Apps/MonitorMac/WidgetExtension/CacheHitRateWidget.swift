@@ -90,7 +90,7 @@ private struct CacheWidgetHeader: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(WidgetFormatting.percentage(cache.hitRate))
                     .font(family == .systemSmall ? .title2 : .title.weight(.semibold))
-                    .monospacedDigit()
+                    .monospaced()
                     .lineLimit(1)
                     .minimumScaleFactor(0.65)
                 if let delta = cache.comparisonDeltaPercentagePoints {
@@ -113,7 +113,7 @@ private struct CacheWidgetDelta: View {
                 .font(.system(size: WidgetDesignTokens.outlierDiameter + 2, weight: .bold))
                 .rotationEffect(value < 0 ? .degrees(180) : .zero)
             Text("\(value > 0 ? "+" : "")\(value.formatted(.number.precision(.fractionLength(1)))) pp")
-                .font((isCompact ? Font.caption2 : Font.caption).weight(.semibold).monospacedDigit())
+                .font((isCompact ? Font.caption2 : Font.caption).weight(.semibold).monospaced())
         }
         .foregroundStyle(color)
         .accessibilityLabel(accessibilityLabel)
@@ -158,7 +158,7 @@ private struct CacheWidgetLegend: View {
             Label("Average", systemImage: "minus")
             Label("Outlier", systemImage: "circle.fill")
             Spacer(minLength: 0)
-            Text("\(sessionCount.formatted()) sessions")
+            Text("\(sessionCount.formatted()) sessions").monospaced()
                 .foregroundStyle(.secondary)
         }
         .font(.caption2)
@@ -199,7 +199,7 @@ private struct CacheWidgetRangeChart: View {
         GeometryReader { geometry in
             ForEach(WidgetDesignTokens.chartAxisTicks, id: \.self) { value in
                 Text("\(value)")
-                    .font(.system(size: WidgetDesignTokens.axisFontSize, weight: .regular, design: .rounded))
+                    .font(.system(size: WidgetDesignTokens.axisFontSize, weight: .regular, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .position(x: geometry.size.width / 2, y: axisPosition(for: value, height: height))
             }
