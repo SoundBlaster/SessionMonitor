@@ -390,7 +390,9 @@ SM-308/SM-503/SM-504 не блокируют готовность обзора �
 [Tokscale](https://github.com/junhoyeo/tokscale/tree/669fdaeec54502a30468adbfa97789bb7ee2b762)
 используется как reference для coverage, нормализации и regression-сценариев, а не как обязательство
 повторить каталог integrations, pricing или leaderboard. Идеи сохранены ниже в SM-746–SM-748.
-Ближайшая delivery-проверка остаётся SM-703; из новых продуктовых задач первой выбирать SM-746.
+**Текущий приоритет владельца (2026-10-24): SM-746 → SM-706.** Сначала измерить
+производительность CLI, затем готовить Mac App Store release. Installation/widget acceptance
+SM-703 учитывать в release readiness; GitHub notarization не заменяет App Store readiness.
 Доставка этой правки ROADMAP — через отдельный PR; до merge она не считается доставленной в main.
 
 ## Как отмечать прогресс
@@ -1253,6 +1255,12 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   опубликованы по разрешению владельца: [v0.1.0](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.0);
   remote tag и скачанные assets проверены. Mac App Store — SM-706.
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
+  **Приоритет владельца (2026-10-24): после performance-проверки SM-746 начать подготовку Mac App Store.**
+  Read-only ASC preflight: существующий app `6812366729`, draft 1.0 PREPARE_FOR_SUBMISSION, macOS builds нет;
+  validator: 34 errors / 3 warnings (24 errors — age-rating fields), cached web session expired.
+  API auth работает; upload/submission/metadata mutations не выполнялись. Техническая подготовка:
+  sandbox-конфигурация, persistent folder bookmarks, общий app/CLI index и migration, App Group/widget parity,
+  затем App Store signing/export, Store metadata и sandboxed acceptance. [Актуальная подготовка](docs/mac-app-store-readiness.md).
   Статус: в работе. Скрипт создаёт archive и `.pkg` только локально, проверяет app ID и bundle ID,
   запрашивает подтверждение перед upload и использует локальную аутентификацию `asc`; GitHub Actions
   и repository secrets не участвуют. 2026-09-19: установленный Mac App Distribution identity,
@@ -1778,7 +1786,15 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   отложено, существующая реализация не удаляется. Готово после проверки согласованности приоритетов,
   IDs, ссылок и формата; эти docs checks прошли, доставка через отдельный PR.
 - [ ] **SM-746** — Аудит существующего CLI contract и скорости запросов для агента.
-  Приоритет среди новых идей: первый после текущих delivery-проверок. Начать с инвентаризации
+  **Статус: performance baseline выполнен (2026-10-24), полный contract audit остаётся частичным.**
+  Release 0.1.1 на копии базы 603 320 320 bytes: 13 сценариев × (первый вызов + 10 повторов), 143 успешных
+  fresh-process runs. Median report/snapshot/sessions ≈0,5 с; agent status 7,145–7,385 с / 725–759 MiB;
+  doctor за неделю 10,78 с. Sample подтвердил unbounded quota SQL read в compact agent path (SM-749).
+  Report/snapshot parity, byte stability фиксированных queries, errors exit 64 с чистым stdout и unchanged
+  snapshot watermark проверены; 3 harness tests passed. OS cache uncontrolled, это не cold-disk и не GUI FPS.
+  [Методика, результаты и воспроизведение](docs/performance/SM-746-cli-baseline.md). Полный schema/backward-compatibility
+  audit и оптимизация ещё не выполнены; после проверки узкого места — подготовка Mac App Store (SM-706).
+  Остаток полного scope: завершить инвентаризацию
   имеющихся commands и regression tests, сохраняя работающие contracts. Проверить явные account/session
   scope, period/timezone, units, coverage/freshness/evidence и значения unknown/not_applicable;
   документировать JSON schema/versioning, exit codes, разделение stdout/stderr и детерминированный порядок.
@@ -1801,3 +1817,14 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   не обещает Context anatomy/attribution, для которых источник не даёт evidence. Не планировать
   универсальность ради количества integrations, замену Swift core, Rust bridge или pricing как обязательные зависимости.
   Готово при отдельном решении о scope, adapter contract и проверяемых fixtures выбранного клиента.
+
+- [ ] **SM-749** — Устранить полный quota-history read в compact agent CLI path.
+  Выявлено и профилировано в SM-746 (2026-10-24): `agent status` ≈7,1–7,4 с и до 759 MiB на текущем
+  корпусе, хотя output ≈13,2 KiB. Нужен bounded latest-window read либо atomically maintained projection
+  и session-scoped summary вместо all-session report там, где session уже известна. Сохранить существующие
+  SpecificationCore policies, account/limit/window/reset identity, coverage, unknown/freshness и evidence;
+  произвольный LIMIT и молчаливое отбрасывание observations не допускаются. Существующий raw quota JSON
+  не ломать; bounded summary имеет отдельный явный contract. Готово после projection-parity tests и
+  повторения baseline на том же корпусе, с измеренным latency/output budget для типового agent workload.
+  Производительность compact CLI учесть до acceptance App Store candidate; подготовка SM-706 следует
+  после performance-проверки и не означает автоматическую отправку на review.
