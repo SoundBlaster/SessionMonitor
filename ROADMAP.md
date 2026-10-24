@@ -489,6 +489,19 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 3. Аналитический GUI и диагностика
 
+**SM-740 - implemented (2026-10-23), awaiting PR/CI/merge: Codex chat titles.**
+Review fix: sidebar tree filtering also matches chat titles; regressions check both a named root and a matching subagent retained under its parent.
+Optional sibling session_index.jsonl imports source-scoped titles separately from nicknames.
+Renames invalidate snapshots even for unchanged rollout bodies; conflicting names across
+sources are not arbitrarily selected in All accounts. Sidebar/details/search use titles;
+model, UUID and fallback remain. Nullable migration; canonical totals and anonymous export unchanged.
+Validation: make check-core, lint/FSD, app build and 15/15 GUI tests passed. Reviewed long-title
+light/wide and dark/narrow fixture images. Live UI not exercised; v0.1.0 unchanged.
+
+- [ ] **SM-740** - Codex chat titles in sidebar, details and search. Implemented 2026-10-23;
+  source-scoped metadata and nullable migration, rename/missing/conflict handling. make check-core,
+  15/15 GUI tests, lint/FSD passed; awaiting PR/CI/merge.
+
 - [x] **SM-301** — Выбор периода/timezone и согласованные фильтры CLI/GUI.
   Выполнено локально 2026-09-12 в ветке `feat/sm-301-period-timezone`.
   CLI `report` и `snapshot` разделяют parsing/validation абсолютного `[since, until)`
