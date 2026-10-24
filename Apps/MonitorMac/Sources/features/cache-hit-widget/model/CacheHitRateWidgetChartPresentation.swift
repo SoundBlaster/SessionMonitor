@@ -43,12 +43,13 @@ enum CacheHitRateWidgetChartPresentation {
 enum CacheHitRateWidgetAxis {
     static func domain(for buckets: [CacheHitRateBucket]) -> ClosedRange<Double> {
         let normalMinimum = buckets.map(\.lower).min() ?? 75
-        let minimum = [75.0, 50, 25, 0].first(where: { $0 <= normalMinimum }) ?? 0
+        let minimum = [90.0, 75, 50, 25, 0].first(where: { $0 <= normalMinimum }) ?? 0
         return minimum...100
     }
 
     static func ticks(for domain: ClosedRange<Double>) -> [Double] {
-        let step = domain.lowerBound == 75 ? 5.0 : domain.lowerBound == 50 ? 10.0 : 25.0
+        let step = domain.lowerBound == 90 ? 2.0
+            : domain.lowerBound == 75 ? 5.0 : domain.lowerBound == 50 ? 10.0 : 25.0
         return Array(stride(from: domain.lowerBound, through: domain.upperBound, by: step))
     }
 }

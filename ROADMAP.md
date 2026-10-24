@@ -648,6 +648,12 @@ light/wide and dark/narrow fixture images. Live UI not exercised; v0.1.0 unchang
   SM-306 behavior и canonical accounting не изменены. Проверено: `make lint`,
   `make lint-architecture`, `make test-architecture`, targeted 15/15 app tests,
   `git diff --check`.
+**SM-739 — реализована (2026-10-23), ожидает PR/CI/merge: Cache Hit Rate 90–100%.**
+Добавлена верхняя ступень при P10 не ниже 90%, отметки каждые 2 п.п.
+App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально не проверен.
+
+- [ ] **SM-739** — Добавить диапазон Cache Hit Rate 90–100%, сохранив остальные ступени и стабильность при навигации. Реализовано: app build, 17/17 tests, SwiftLint/FSD passed; ожидает PR/CI/merge.
+
 - [x] **SM-307** — Внутренний виджет с графиком cache hit по сессиям и порогом в Settings.
   Зависит от SM-306/SM-202. Компактный Swift Charts block в Session Explorer;
   точное место выбрать и проверить в существующем layout при реализации.

@@ -46,6 +46,17 @@ final class CacheHitRateWidgetTests: XCTestCase {
         XCTAssertEqual(CacheHitRateWidgetAxis.domain(for: [bucket]), 75...100)
     }
 
+    func testHighCacheRangeUses90To100WithTwoPointTicks() {
+        let bucket = CacheHitRateBucket(
+            start: Date(timeIntervalSince1970: 0), end: Date(timeIntervalSince1970: 3_600),
+            lower: 99.4, upper: 99.8, average: 99.6, median: 99.6,
+            outliers: [], sampleCount: 12, usesMinMaxFallback: false
+        )
+        XCTAssertEqual(CacheHitRateWidgetAxis.domain(for: [bucket]), 90...100)
+        XCTAssertEqual(CacheHitRateWidgetAxis.ticks(for: 90...100), [90, 92, 94, 96, 98, 100])
+        XCTAssertEqual(CacheHitRateWidgetAxis.domain(for: []), 75...100)
+    }
+
     func testHourlyBucketLabelUsesReportTimeZone() {
         let date = Date(timeIntervalSince1970: 0)
         let label = CacheHitRateWidgetLabelFormat.bucketLabel(
