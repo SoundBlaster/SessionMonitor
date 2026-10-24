@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-753 — реализована и проверена локально (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) открыт; локальные исправления готовы, требуется свежий CI: mono numeric typography.**
+**SM-753 — доставлена (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) влит squash `a20cf7b`; все пять GitHub checks зелёные: mono numeric typography.**
 Требование владельца: числа всегда mono. Общие DS metrics, percentages, counters,
 chart axes, inspector/menu bar и widgets получают system monospaced values.
 Подписи и поясняющий текст сохраняют обычную типографику. Проверить narrow/light/dark
@@ -22,9 +22,9 @@ Native AppKit harness из production sources повторяет матрицу 
 108 измерений (160/240/340 pt, light/dark, large/accessibility1, три requests, 0/1/12 signals),
 ни одного расхождения высоты > 1 pt; узкая light и широкая dark fixtures просмотрены.
 Это проверка NSHostingView на macOS, не подтверждение Dynamic Type на других платформах.
-Hosted targeted suite снова остановлен до старта test host; full suite остаётся gate GitHub CI.
+Hosted targeted suite локально остановлен до старта test host; актуальный GitHub Native checks затем прошёл перед merge.
 Размеры сессий доставлены отдельно
-через PR #142 (`3ca4ece`); baseline/SM-749 — PR #141. После typography вернуться к SM-749.
+через PR #142 (`3ca4ece`); baseline/SM-749 — PR #141. Открытых review threads перед merge #143 нет; локальный main синхронизирован.
 
 **SM-750 — доставлена (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) влит squash `3ca4ece`; все пять GitHub checks зелёные: размер исходных файлов.**
 Сохранять наблюдённый размер вместе с checkpoint, без повторного чтения source logs на query path.
@@ -43,33 +43,32 @@ fixture run после mono-правки остановлен: sample показ
 SQL projection на read-only копии индекса 603 MB до backfill: 11,92 ms первый вызов,
 1,48 ms median / 2,31 ms max десяти повторов в одном Python SQLite connection. Это только SQL,
 не end-to-end CLI latency и не результат после backfill. Личные данные и artifacts остаются на TB5.
-Локальный main синхронизирован после merge. Далее завершить SM-753, затем SM-749 и SM-706.
+Локальный main синхронизирован после merge. Далее актуализировать открытые docs/performance PR, затем SM-749 и SM-706.
 
+**SM-741 — доставлена (2026-10-24): [GitHub release 0.1.1](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.1).**
+Из чистого синхронизированного `main` `ccfb96f4b59549643933ef49ec02187ed3559564` штатный
+`make release-github` собрал app/widget 0.1.1 (build 2) и CLI для arm64 + x86_64.
+Developer ID, timestamp, hardened runtime, embedded profiles/App Group и отсутствие
+get-task-allow проверены. Apple приняла app (`e92b75e6-197e-41d9-ba8c-514ccd1e63c7`),
+CLI (`755dfc6a-71d7-4520-ac97-2eaf3e5bea71`) и DMG (`8f019cac-e3f2-406b-beb0-cce7dcaecd22`).
+App/DMG stapling и Gatekeeper прошли; app/widget внутри read-only DMG проверены повторно.
+CLI `--version`/`--help` прошли нативно и через Rosetta; обе архитектуры сообщают 0.1.1.
+DMG: 18 728 558 bytes, SHA-256 `f6a511b3aa6774de19e7f617b3afc40c3543c7590881342cf68711bd9be2606c`.
+CLI ZIP: 7 032 782 bytes, SHA-256 `948cfebf33f3db3a949117182fcefa21f0f1837eb0692c262fb2f5451693c00b`.
+Опубликованы оба файла и оба checksum; обратное скачивание с GitHub подтвердило SHA-256.
+Remote tag `v0.1.1` указывает на тот же source revision. Artifacts/logs: TB5 `release-0.1.1`, вне Git.
+Полный pipeline подтверждает SM-736; deprecated native SwiftPM engine остаётся временным workaround.
+Clean-machine install/update и system-widget acceptance остаются отдельной незавершённой проверкой SM-703.
+Документирование релиза в PR [#139](https://github.com/SoundBlaster/SessionMonitor/pull/139)
+актуализировано к `main` `a20cf7b`; конфликт ROADMAP устранён, старые delivery statuses не возвращены.
+Изменение документации ожидает свежий CI и merge; исходный релиз уже опубликован.
 
-**SM-741 - in progress (2026-10-23): GitHub patch release 0.1.1.**
-Owner authorized merging #127-#132 and publishing a signed/notarized patch release.
-App/CLI version 0.1.1, build 2. Release CLI builds use the verified native engine workaround
-and query actual bin paths (SM-736); native remains deprecated. Prepare from clean merged main,
-verify combined functionality, app/widget/CLI signatures, notarization, DMG and downloaded hashes.
-No publication is claimed until the release assets are live and checked.
-
-**Интеграция PR (2026-10-24, после #137): линейный стек #128 → #129 → #131 → #133.**
-Settings #137 доставлены (`6d1d06b`); main синхронизирован. Оставшиеся ветки собираются
-в один native stack, release-подготовка — вершина, для атомарного merge после свежего CI.
-Ни один failing/pending gate не обходится. Старый run #131 `40070132488` отменён: последний
-начавшийся тест `ImportBusyHelpTests.testNativeHelpLightDarkAndNarrow`, без assertion failure
-в конце log; job остановлен примерно через 30 минут. Это не установленная причина зависания;
-после актуализации нужен новый полный CI. Проверки не отключаются и не пропускаются.
-
-
-**Интеграция PR (2026-10-24): #134 влит, остальные обновлены к текущему main.**
-Проверены heads/checks/GraphQL threads всех шести открытых PR: у #134 все gates прошли,
-merge подтверждён (`6ba73c7`), локальный main синхронизирован. #128/#133 имели конфликты,
-#129/#131 отставали; выполнен merge origin/main без rewrite, сохранены roadmap entries,
-английский README и инструкции в guides. #137 также актуализирован после #134.
-Для пяти новых heads требуется свежий CI/review; старые зелёные результаты не засчитываются.
-CI не ожидается активно; merge оставшихся после проверки новых ревизий.
-
+**Интеграция PR (2026-10-24): native stack #138 влит, main синхронизирован.**
+Перед атомарным squash merge #128 → #129 → #131 → #133 все пять checks на каждом
+актуальном head прошли, merge state CLEAN, открытых GraphQL review threads нет.
+Merge commits: #128 `94214bb`, #129 `1543b69`, #131 `c0bd71a`, #133 `ccfb96f`.
+Свежий Native checks #131 прошёл; прежняя отмена run `40070132488` не выдаётся за assertion failure.
+Settings #137 и docs #134 также входят в 0.1.1. Обход checks не применялся.
 
 **SM-744 — доставлена (2026-10-24): компактные native Settings, PR #137, squash `6d1d06b`.**
 Две grouped Form секции General/Analytics: labels слева, switches и menus справа;
@@ -131,7 +130,7 @@ Signals переносится к времени; inferred window — компа
 при одной ширине/типографике. Xcode-tools build-for-testing и 2/2 targeted tests passed:
 108 комбинаций ширины/темы/шрифта/запроса/signals сохраняют высоту; native dark/narrow
 fixtures просмотрены. SwiftLint/FSD/negative gate passed; accessibility evidence сохранён.
-PR/CI/merge ожидаются; далее синхронизация статусов доставленных SM-732–SM-734.
+Доставлено в PR [#127](https://github.com/SoundBlaster/SessionMonitor/pull/127), squash `7d102d0`; входит в 0.1.1. Далее acceptance SM-703.
 
 **SM-734 — доставлена (2026-10-23), PR [#126](https://github.com/SoundBlaster/SessionMonitor/pull/126).**
 Import tests используют изолированные UserDefaults suites. Baseline: Xcode-tools 7/7 targeted
@@ -155,7 +154,7 @@ CLI `--help` прошёл нативно и через `arch -x86_64` (Rosetta).
 По разрешению владельца опубликован [v0.1.0](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.0):
 DMG, CLI ZIP и оба checksum. Remote tag указывает на исходный `0e19530`; скачанные с GitHub
 DMG/CLI совпадают по SHA-256. Открытый PR #127 в релиз не входит.
-Остаток: SM-736, clean-install/update и widget acceptance; SM-703 остаётся незавершённой.
+На момент 0.1.0 оставались SM-736, clean-install/update и widget acceptance. SM-736 закрыта полным pipeline 0.1.1 (2026-10-24); acceptance SM-703 остаётся незавершённой.
 
 **SM-733 — реализована (2026-10-21): наблюдаемый и отменяемый импорт больших наборов JSONL.**
 Исправление CI (2026-10-22): внешний SQLite writer использует `/usr/bin/sqlite3` вместо Xcode Python shim; исходный сбой SDK не позволял выполнить транзакцию. Новый CI ожидается без активного polling.
@@ -459,7 +458,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 1. Incremental import и watch
 
-**SM-737 — реализована (2026-10-23), доставка через PR ожидается: начальная папка Import/Start Watch.**
+**SM-737 — доставлена (2026-10-24), PR [#129](https://github.com/SoundBlaster/SessionMonitor/pull/129), squash `1543b69`: начальная папка Import/Start Watch.**
 Review fix: session-directory years use the Gregorian calendar with local timezone; Buddhist/Japanese/Islamic and New Year boundary regressions added.
 В release 0.1.0 NSOpenPanel не задавал directoryURL и скрывал `.codex`; пользователь
 видел произвольную системную папку. Оба диалога теперь показывают скрытые папки и выбирают
@@ -468,7 +467,7 @@ Review fix: session-directory years use the Gregorian calendar with local timezo
 с ранее разрешённым per-command `-skipMacroValidation`: Xcode-tools остановлен macro trust.
 SwiftLint и FSD passed. UI диалог визуально ещё не проверен; опубликованный v0.1.0 не менялся.
 
-- [ ] **SM-737** — Начальная папка Import/Start Watch: сохранённый каталог либо `~/.codex/sessions/<текущий год>`, fallback при отсутствии; показывать `.codex`. Реализовано 2026-10-23; app build, 6/6 targeted tests, SwiftLint/FSD passed. Ожидает PR/CI/merge; в v0.1.0 исправления нет.
+- [x] **SM-737** — Начальная папка Import/Start Watch: сохранённый каталог либо `~/.codex/sessions/<текущий год>`, fallback при отсутствии; показывать `.codex`. App build, 6/6 targeted tests, SwiftLint/FSD passed (baseline); актуальный CI прошёл перед merge #129 `1543b69`. Доставлено в 0.1.1; в v0.1.0 исправления нет.
 
 - [x] **SM-101** — Хранить offsets и необходимое состояние decoder вместе с импортированными событиями.
   Готово 2026-09-12: versioned checkpoints, atomic records/diagnostics/progress commit,
@@ -695,11 +694,11 @@ light/wide and dark/narrow fixture images. Live UI not exercised; v0.1.0 unchang
   SM-306 behavior и canonical accounting не изменены. Проверено: `make lint`,
   `make lint-architecture`, `make test-architecture`, targeted 15/15 app tests,
   `git diff --check`.
-**SM-739 — реализована (2026-10-23), ожидает PR/CI/merge: Cache Hit Rate 90–100%.**
+**SM-739 — доставлена (2026-10-24), PR [#131](https://github.com/SoundBlaster/SessionMonitor/pull/131), squash `c0bd71a`: Cache Hit Rate 90–100%.**
 Добавлена верхняя ступень при P10 не ниже 90%, отметки каждые 2 п.п.
 App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально не проверен.
 
-- [ ] **SM-739** — Добавить диапазон Cache Hit Rate 90–100%, сохранив остальные ступени и стабильность при навигации. Реализовано: app build, 17/17 tests, SwiftLint/FSD passed; ожидает PR/CI/merge.
+- [x] **SM-739** — Диапазон Cache Hit Rate 90–100% с сохранением остальных ступеней и стабильности при навигации. App build, 17/17 tests, SwiftLint/FSD passed (baseline); актуальный CI прошёл перед merge #131 `c0bd71a`. Доставлено в 0.1.1.
 
 - [x] **SM-307** — Внутренний виджет с графиком cache hit по сессиям и порогом в Settings.
   Зависит от SM-306/SM-202. Компактный Swift Charts block в Session Explorer;
@@ -1263,10 +1262,12 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   app/CLI/DMG notarization Accepted, app/DMG stapling и Gatekeeper passed. Размеры,
   submission IDs и SHA-256 приведены в текущей точке. CLI arm64/x86_64 smoke passed;
   подписи app/widget проверены также внутри DMG. Intel CLI потребовал native SwiftPM workaround
-  и локальное продолжение packaging (SM-736); штатный pipeline пока не прошёл целиком.
+  и локальное продолжение packaging (SM-736). 2026-10-24 штатный pipeline 0.1.1
+  прошёл целиком на `ccfb96f`; SM-736 закрыта, обе опубликованные загрузки проверены по SHA-256.
   Готово после clean-install/update с сохранением данных и widget acceptance. Release/tag
   опубликованы по разрешению владельца: [v0.1.0](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.0);
-  remote tag и скачанные assets проверены. Mac App Store — SM-706.
+  remote tag и скачанные assets проверены. Актуальный релиз — [v0.1.1](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.1).
+  Clean-machine/update/widget acceptance остаётся открытой. Mac App Store — SM-706.
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
   Статус: в работе. Скрипт создаёт archive и `.pkg` только локально, проверяет app ID и bundle ID,
   запрашивает подтверждение перед upload и использует локальную аутентификацию `asc`; GitHub Actions
@@ -1427,14 +1428,14 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   переведены на сессии минимум с двумя запросами. Остаток: нет (живая проверка на Mac пройдена). Ограничение: «1 запрос» считается внутри выбранного периода (запрос длинной сессии на краю периода тоже
   считается холодным); признака «первый запрос сессии» в хранилище нет.
 
-**SM-738 — реализована (2026-10-23), ожидает PR/CI/merge: обновление графиков активной сессии.**
+**SM-738 — доставлена (2026-10-23), PR [#130](https://github.com/SoundBlaster/SessionMonitor/pull/130), squash `fc08fd5`: обновление графиков активной сессии.**
 Task загрузки Context anatomy/Request timeline теперь зависит от databaseID/revision snapshot,
 а не только sessionID/query. Старые/cancelled ответы и ответы после reset отклоняются;
 refresh той же сессии сохраняет viewport. App build и 11/11 targeted tests passed
 через xcodebuild с ранее разрешённым per-command skipMacroValidation (MCP blocked macro trust).
 SwiftLint/FSD/diff check passed. Live Watching визуально не проверен; v0.1.0 не менялся.
 
-- [ ] **SM-738** — Синхронизировать графики выбранной сессии с новыми database snapshots после Watching/Import. Реализовано 2026-10-23: databaseID/revision task identity и защита от stale async loads. App build, 11/11 tests, SwiftLint/FSD passed; ожидает PR/CI/merge.
+- [x] **SM-738** — Графики выбранной сессии синхронизируются с database snapshots после Watching/Import: databaseID/revision task identity и защита от stale async loads. App build, 11/11 tests, SwiftLint/FSD passed (baseline); доставлено в #130 `fc08fd5`, входит в 0.1.1.
 
 - [x] **SM-717** — Анатомия контекста сессии: как наслаивались ввод и вывод по запросам.
   **Доставлено через PR [#105](https://github.com/SoundBlaster/SessionMonitor/pull/105), merge `0bd808b` (2026-10-11).**
@@ -1684,8 +1685,9 @@ SwiftLint/FSD/diff check passed. Live Watching визуально не пров�
   Повторная реализация в SessionMonitor не требуется. ID сохранён для истории; новая проверка Screener в рамках
   этой синхронизации не выполнялась.
 
-- [ ] **SM-741** - Prepare and publish notarized GitHub release 0.1.1 after integration of #127-#132.
-  In progress: app/CLI version, build number and reproducible universal CLI packaging workaround.
+- [x] **SM-741** — Опубликовать подписанный/notarized GitHub release 0.1.1. Доставлено 2026-10-24
+  из `ccfb96f`; app/widget/CLI universal, Apple Accepted, app/DMG stapled, downloaded hashes совпали.
+  [Релиз](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.1); подробное evidence — в текущей точке.
 
 ## Evidence и границы
 
@@ -1760,15 +1762,16 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 - [x] **SM-734** — Изоляция UserDefaults тестов импорта; доставлена 2026-10-23 в PR [#126](https://github.com/SoundBlaster/SessionMonitor/pull/126).
 
-- [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.
+- [x] **SM-735** — Стабильная высота карточки запроса; доставлена в #127 `7d102d0`, входит в 0.1.1. Проверки и visual evidence приведены выше.
 
-- [ ] **SM-736** — Исправить universal CLI сборку в GitHub release pipeline.
+- [x] **SM-736** — Исправить universal CLI сборку в GitHub release pipeline; доставлено в #133 `ccfb96f` (2026-10-24).
   Выявлено 2026-10-23: default SwiftPM swiftbuild при Intel cross-build не разрешает host-модули
   SwiftSyntax для SpecificationCoreMacros; кроме того, script ожидает native layout products.
   Проверенный локальный workaround: `--build-system native` для Intel и фактический arm64 product
   из `out/Products/Release`; native engine deprecated, поэтому не считать его долгосрочным решением.
-  Готово после исправления выбора build engine/product paths и полного прохода штатного pipeline
-  на чистом main с зафиксированными dependencies. App archive/export повторять для диагностики не нужно.
+  Выбор build engine/product paths исправлен; штатный pipeline полностью прошёл на чистом
+  main `ccfb96f` с locked dependencies. Universal CLI 0.1.1 подписан, notarized, опубликован
+  и проверен через native/Rosetta smoke; downloaded SHA-256 совпал. Native engine остаётся временным workaround.
 
 - [x] **SM-742** — Англоязычный продуктовый README, реальные screenshot/data и отдельные guides.
   Реализовано и локально проверено 2026-10-23; PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134)
@@ -1812,11 +1815,11 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 ### Numeric typography (2026-10-24)
 
-- [ ] **SM-753** — Использовать mono для числовых UI values.
-  **Статус: реализована и проверена локально (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) открыт; исправление review и CI regression проверено native harness, требуется свежий CI.** Общий DesignMetric, counters, token values,
+- [x] **SM-753** — Использовать mono для числовых UI values.
+  **Статус: доставлена (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) влит squash `a20cf7b`; все пять checks зелёные.** Общий DesignMetric, counters, token values,
   проценты, числовые chart axes и data timestamps, inspector/menu bar/WidgetKit.
   Не менять форматирование и accounting; explanatory labels остаются обычным шрифтом.
   App/widget build, lint/FSD и native DS narrow/light/dark fixtures passed.
   Single-line metadata предотвращает скачки высоты карточки; explanatory event labels остаются proportional.
   Native NSHostingView regression matrix: 108 измерений, 0 failures; narrow light/wide dark PNG просмотрены.
-  Hosted targeted suite остановлен до старта test host; полноценный suite остаётся обязательным GitHub gate.
+  Hosted targeted suite локально остановлен до старта test host; полный GitHub Native checks прошёл перед merge.
