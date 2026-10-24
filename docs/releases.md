@@ -62,6 +62,10 @@ Automatic updates are not configured by this workflow.
 
 ## App Store Connect: local archive and upload
 
+Before preparing a candidate, follow the [current Mac App Store readiness assessment](mac-app-store-readiness.md).
+The October 24 preflight identifies sandbox access, persistent folder bookmarks, and shared app/CLI index
+behavior as engineering work before a Store candidate; the historical export workflow alone is not readiness evidence.
+
 This path produces an App Store `.pkg`; it does not use the Developer ID release artifacts.
 Authorize `asc` locally through Keychain, then run:
 

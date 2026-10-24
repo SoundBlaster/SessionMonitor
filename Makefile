@@ -105,6 +105,7 @@ test-core: guard-package
 
 # check/check-core build the executable first; this harness exercises real process signals.
 test-cli: guard-package
+	python3 -m unittest discover -s scripts/tests -p test_cli_queries.py
 	python3 scripts/tests/watch-cli-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
 	python3 scripts/tests/snapshot-cli-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
 	python3 scripts/tests/quota-cli-smoke.py --binary "$$($(SWIFT) build $(SWIFT_FLAGS) --configuration debug --show-bin-path)/$(CLI_PRODUCT)"
