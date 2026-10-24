@@ -12,6 +12,7 @@ extension UsageStore {
             ON quota_projection_snapshots(account_scope_id, account_scope_state, state, window_count, timestamp);
         CREATE INDEX quota_projection_first
             ON quota_projection_snapshots(account_scope_id, account_scope_state, timestamp, event_identity);
+        CREATE INDEX quota_projection_snapshot_events ON quota_projection_snapshots(event_identity);
         CREATE TABLE quota_projection_windows (
             series_key TEXT NOT NULL, account_scope_id TEXT NOT NULL, event_identity TEXT NOT NULL,
             slot_key TEXT NOT NULL, timestamp REAL NOT NULL, line INTEGER NOT NULL, resets_at REAL,
@@ -19,6 +20,7 @@ extension UsageStore {
         );
         CREATE INDEX quota_projection_latest
             ON quota_projection_windows(series_key, timestamp, line, event_identity);
+        CREATE INDEX quota_projection_window_events ON quota_projection_windows(event_identity);
         CREATE INDEX quota_projection_resets
             ON quota_projection_windows(series_key, timestamp, line, event_identity, resets_at)
             WHERE resets_at IS NOT NULL;
