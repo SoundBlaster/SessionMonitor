@@ -93,6 +93,12 @@ def report(binary, database, since=None, until=None):
     return json.loads(subprocess.check_output(command, timeout=60))
 
 
+def period_usage(value):
+    """File lengths describe whole sources, so an out-of-period append may change only this metadata."""
+    return {**value, 'sessions': [{key: item for key, item in session.items() if key != 'sourceStorage'}
+                                  for session in value['sessions']]}
+
+
 def database_size(path):
     sizes = {suffix or 'database': Path(str(path)+suffix).stat().st_size
              if Path(str(path)+suffix).exists() else 0 for suffix in ('', '-wal', '-shm')}
@@ -139,8 +145,9 @@ def run(args):
     output = args.output.resolve()
     source = args.source.expanduser().resolve(strict=True)
     binary = args.binary.resolve(strict=True)
-    if not output.is_relative_to(REPOSITORY / '.build') or output == REPOSITORY / '.build':
-        raise ValueError('Output must be a new subdirectory of repository .build (contains private copies)')
+    artifact_root = Path(os.environ.get('SESSIONMONITOR_BENCHMARK_ROOT', str(REPOSITORY / '.build'))).resolve()
+    if not output.is_relative_to(artifact_root) or output == artifact_root:
+        raise ValueError('Output must be a new subdirectory of the benchmark root (contains private copies)')
     if output.is_relative_to(source) or source.is_relative_to(output):
         raise ValueError('Corpus source and output must not overlap')
     output.mkdir(parents=True, exist_ok=False)
@@ -201,7 +208,8 @@ def run(args):
         after = report(binary, database)
         require(after['totals']['requests'] == baseline['totals']['requests']+1, 'Unexpected appended request count')
         require(after['totals']['inputTokens'] == baseline['totals']['inputTokens']+100, 'Unexpected appended input count')
-        require(report(binary, database, args.since, args.until) == window, 'Append changed the audit window')
+        require(period_usage(report(binary, database, args.since, args.until)) == period_usage(window),
+                'Append changed the audit window usage')
         appended.append(measurement)
     # Independent complete decode must match every incremental report field, not only total input.
     rebuilt = output / 'rebuild.sqlite'

@@ -36,6 +36,7 @@ context growth, repeated waits, or unusual activity deserve a closer look.
 | Where are my tokens going? | Input, output, and known cached input by session and model, with root/subagent relationships and sortable sessions. |
 | Is the cache working? | Weighted cache hit rate, typical ranges, and outliers. Switch from a month to today’s hourly view, or open the larger interactive chart. |
 | Why is this session getting so large? | Context anatomy across requests, with compactions, human turns, token composition, and an inspectable request snapshot. |
+| How large are my session logs? | Imported source size in bytes, with explicit unknown/partial coverage and separate subagent files. |
 | What changed while I was working? | Folder watching, incremental imports, diagnostic findings, and macOS alerts for supported signals. |
 | What do the logs say about my quota? | Observed usage windows, reset times, freshness, and account-specific coverage, with unknown data clearly identified. |
 

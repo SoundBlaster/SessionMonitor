@@ -58,7 +58,7 @@ private struct SessionSummaryHeader: View {
             } accessory: {
                 HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.item) {
                     Text(cacheValue)
-                        .font(.title.bold()).monospacedDigit()
+                        .font(.title.bold()).monospaced()
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("Cache hit")
                         .accessibilityValue(cacheHit.accessibilityValue)

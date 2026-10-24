@@ -17,7 +17,8 @@ rtk proxy make benchmark \
   BENCHMARK_OUTPUT=.build/performance/my-run
 ```
 
-The output directory must be new and located under the repository's ignored `.build`.
+The output directory must be new and located under the repository's ignored `.build`,
+or under the explicit `SESSIONMONITOR_BENCHMARK_ROOT` override described below.
 The explicit source is read-only. The harness copies visible `*.jsonl` files, checks
 size/identity/modification metadata around each copy, and retries unstable files up
 to three times. It creates independent files, never symlinks or hard links. The
@@ -47,7 +48,8 @@ Run without competing builds to reduce scheduler and I/O interference.
 4. **Parity:** run the existing `audit_codex.py` on the same private corpus and period.
    Compare request count and all six token totals. Unknown cache/optional totals
    cannot be silently converted to zero to claim parity. The window report must be
-   unchanged after append, and every full-report field must match a fresh rebuild.
+   unchanged after append except for whole-source `sourceStorage` metadata; every
+   full-report field, including source storage, must match a fresh rebuild.
 5. **Idle:** wait for an unchanged watch import and one second of settling, then
    measure watch alone and watch plus one snapshot observer. CPU is process CPU-time
    delta, expressed as percent of one core, not system-wide CPU. Verify no JSON
@@ -97,3 +99,10 @@ for the supported append-only workload. The original run below predates this cha
 - [2026-09-12 — 155-file release baseline](2026-09-12.md)
 
 - [2026-09-12 - append-only release baseline](2026-09-12-append.md)
+
+For an external local build disk, set `SESSIONMONITOR_BENCHMARK_ROOT` to an existing
+private artifact directory and choose `--output` beneath it. The performance smoke
+uses the same override for temporary corpora; the default remains repository `.build`.
+File-size metadata describes whole imported sources and may change after an append
+outside the audit window. The harness excludes only `sourceStorage` from that period
+invariance assertion; full-rebuild parity still compares every report field.

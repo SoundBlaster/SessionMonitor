@@ -17,7 +17,8 @@ def check(condition, message):
 
 def run(binary):
     repository = Path(__file__).resolve().parents[2]
-    with tempfile.TemporaryDirectory(prefix='performance-smoke-', dir=repository / '.build') as temporary:
+    artifact_root = Path(os.environ.get('SESSIONMONITOR_BENCHMARK_ROOT', str(repository / '.build'))).resolve()
+    with tempfile.TemporaryDirectory(prefix='performance-smoke-', dir=artifact_root) as temporary:
         base = Path(temporary)
         source = base / 'source'
         source.mkdir()
@@ -47,8 +48,26 @@ def run(binary):
         check(result['append']['samples'][0]['import']['ioMetrics']['bytesRead']
               == result['append']['fixture']['appended_bytes'], 'Expected delta-only append reads')
         check(hashlib.sha256(fixture.read_bytes()).digest() == before, 'Original fixture was mutated')
+        verify_storage_contract(binary, base, result, fixture.stat().st_size)
         reject_corrupt_metrics(binary, repository, source, base)
     print('Performance harness smoke passed: isolated copy, native metrics, audit and incremental parity')
+
+
+def verify_storage_contract(binary, base, result, original_bytes):
+    database = base / 'result/index-0.sqlite'
+    def query(command, *args):
+        return json.loads(subprocess.check_output([str(binary), command, *args, '--database', str(database), '--json']))
+    report = query('report')
+    session = next(item for item in report['sessions'] if item['id'].startswith('sessionmonitor-benchmark-'))
+    storage = session['sourceStorage']
+    check(storage['knownBytes'] == original_bytes + result['append']['fixture']['appended_bytes'],
+          'Source size must measure the whole imported file, not bytes read in an incremental import')
+    check(storage['unknownSizeFileCount'] == 0, 'Expected known source size')
+    listed = next(item for item in query('sessions')['sessions'] if item['id'] == session['id'])
+    check(listed['sourceStorage'] == storage, 'Sessions storage differs from report')
+    check(query('inspect', session['id'])['sourceStorage'] == storage, 'Inspect storage differs from report')
+    check('file_identity' not in json.dumps(storage) and str(base) not in json.dumps(storage),
+          'Storage summary leaked file identity or source path')
 
 
 def reject_corrupt_metrics(binary, repository, source, base):

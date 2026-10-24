@@ -26,7 +26,7 @@ struct DesignMetric: View {
         VStack(alignment: .leading,
                spacing: emphasis == .compact ? DesignTokens.Spacing.micro : DesignTokens.Spacing.inline) {
             title.font(emphasis == .summary ? .callout : .caption).foregroundStyle(.secondary)
-            value.font(emphasis.valueFont).monospacedDigit()
+            value.font(emphasis.valueFont.monospaced())
         }
         .frame(maxWidth: emphasis == .compact ? nil : .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)

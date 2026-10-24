@@ -130,10 +130,10 @@ private struct QuotaCoverageSummary: View {
     var body: some View {
         VStack(alignment: .leading) {
             LabeledContent("Coverage", value: coverage.state.rawValue.capitalized)
-            LabeledContent("Windows", value: coverage.supportedWindowObservations.formatted())
+            DesignNumericRow(title: "Windows", value: coverage.supportedWindowObservations.formatted())
             if let detail { LabeledContent("Scope", value: detail) }
             if let latest = coverage.latestObservedAt {
-                LabeledContent("Latest observation", value: latest.formatted(dateFormat))
+                DesignNumericRow(title: "Latest observation", value: latest.formatted(dateFormat))
             }
             if let reason = coverage.unknownReason {
                 LabeledContent("Unknown reason", value: reason.rawValue)
@@ -173,9 +173,9 @@ private struct QuotaWindowRow: View {
                     .truncationMode(.middle)
                 Spacer(minLength: 8)
                 Text(usedValue)
-                    .font(.headline.monospacedDigit())
+                    .font(.headline.monospaced())
             }
-            LabeledContent("Remaining", value: remainingValue)
+            DesignNumericRow(title: "Remaining", value: remainingValue)
             if window.accountProfileID == nil {
                 LabeledContent(
                     "Account scope",
@@ -184,7 +184,7 @@ private struct QuotaWindowRow: View {
                 )
             }
             LabeledContent("Freshness", value: freshnessLabel)
-            LabeledContent("Reset", value: resetValue)
+            DesignNumericRow(title: "Reset", value: resetValue)
             if window.isResetDiscontinuity {
                 Button("Reset discontinuity") {
                     isShowingResetDetails.toggle()
@@ -261,16 +261,16 @@ private struct ResetDiscontinuityPopover: View {
                 .foregroundStyle(.secondary)
 
             if let transition {
-                LabeledContent("Usage", value: percentageChange(
+                DesignNumericRow(title: "Usage", value: percentageChange(
                     from: transition.previousUsedPercent, current: transition.currentUsedPercent
                 ))
-                LabeledContent("Remaining", value: percentageChange(
+                DesignNumericRow(title: "Remaining", value: percentageChange(
                     from: transition.previousRemainingPercent, current: transition.currentRemainingPercent
                 ))
-                LabeledContent("Reset", value: dateChange(
+                DesignNumericRow(title: "Reset", value: dateChange(
                     from: transition.previousResetsAt, current: transition.currentResetsAt
                 ))
-                LabeledContent("Observed", value: dateChange(
+                DesignNumericRow(title: "Observed", value: dateChange(
                     from: transition.previousObservedAt, current: transition.currentObservedAt
                 ))
             } else {
