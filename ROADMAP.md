@@ -6,13 +6,26 @@
 
 ## Текущая точка
 
-**Интеграция PR (2026-10-25): #140 (`18216c5`) и #141 (`91f94db`) влиты; локальный main синхронизирован.**
-#141 доставил performance baseline SM-746 и план подготовки Mac App Store; полный contract audit
-SM-746 остаётся частичным, оптимизация SM-749 ещё не выполнена. Для #139 и #144 после
-актуализации на `91f94db` требуется свежий CI: strict branch protection не принимает старые
-зелёные результаты после продвижения main. Release evidence, product priorities и
-SM-754/SM-755 сохраняются; GitHub CI не ожидается активно.
-После доставки оставшихся PR вернуться к SM-749, затем к Mac App Store (SM-706).
+**Интеграция PR (2026-10-25): #140 (`18216c5`), #141 (`91f94db`) и #144 (`aa67b65`) влиты; локальный main синхронизирован.**
+SM-754 доставлена, performance baseline SM-746 доставлен; полный contract audit SM-746 остаётся
+частичным, SM-749 и SM-755 не выполнены. Остался docs PR #139 с release evidence и этой
+синхронизацией ROADMAP. Ветка актуализирована на `aa67b65`; для её новой ревизии нужен
+свежий CI согласно strict branch protection. Открытых review threads перед merge #144 не было.
+GitHub CI не ожидается активно. После доставки #139 вернуться к SM-749,
+затем к подготовке Mac App Store (SM-706).
+
+**SM-754 — доставлена (2026-10-25): панель импорта ниже toolbar; [PR #144](https://github.com/SoundBlaster/SessionMonitor/pull/144) влит squash `aa67b65`.**
+Колонки NavigationSplitView теперь допускают сжатие viewport вместо расширения за границы окна.
+Progress/recovery/error notices закреплены в top safe area detail, вне прокрутки отчёта;
+sidebar учитывает свою safe area. Высота toolbar не захардкожена, import/cancel/retry semantics сохранены.
+Проверки: app/widget build, 8 targeted GUI tests (0 failures), SwiftLint/FSD/negative gate.
+Native NavigationSplitView regression: 760/1280 pt, light/dark, длинное имя файла,
+появление/скрытие прогресса, неизменная геометрия sidebar. Computer Use на полном production Page
+с изолированными synthetic данными: narrow/wide, light/dark, scroll, Stop import,
+recovery/dismiss и Inspector в широком окне. Установленное приложение и его импорт не изменялись.
+Отдельное ограничение fixture: открытие Inspector на 760 pt вызывает NSGenericException и с
+неизменённым Page из main; требуется независимая проверка SM-755, это не результат данного изменения.
+Перед merge #144 прошли все пять checks на текущем head, открытых threads не было. Далее SM-749 и SM-755.
 
 **SM-753 — доставлена (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) влит squash `a20cf7b`; все пять GitHub checks зелёные: mono numeric typography.**
 Требование владельца: числа всегда mono. Общие DS metrics, percentages, counters,
@@ -1864,6 +1877,21 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   Single-line metadata предотвращает скачки высоты карточки; explanatory event labels остаются proportional.
   Native NSHostingView regression matrix: 108 измерений, 0 failures; narrow light/wide dark PNG просмотрены.
   Hosted targeted suite локально остановлен до старта test host; полный GitHub Native checks прошёл перед merge.
+
+### Import progress layout (2026-10-24)
+
+- [x] **SM-754** — Панель текущего импорта ниже toolbar, без вертикальной обрезки sidebar.
+  **Статус: доставлена (2026-10-25); [PR #144](https://github.com/SoundBlaster/SessionMonitor/pull/144) влит squash `aa67b65`.** Flexible frames колонок
+  допускают сжатие; notices вынесены в top safe area detail. Stop import, текущая сессия,
+  progress и recovery сохранены. App/widget build, 8 targeted GUI tests (0 failures),
+  SwiftLint/FSD/negative gate; native screenshots 760/1280 pt light/dark просмотрены.
+  Computer Use на полном production Page с synthetic runtime подтвердил progress, scroll,
+  Stop import, recovery/dismiss и широкий Inspector. Пять GitHub checks прошли перед merge; main синхронизирован.
+- [ ] **SM-755** — Проверить открытие Inspector в узком окне на macOS 27.
+  В изолированном native fixture (760 pt) возникает NSGenericException; воспроизведено
+  и с неизменённым SessionExplorerPage из main. В широком окне Inspector работает.
+  Отделить ограничение fixture от production behavior и проверить минимальную ширину
+  NavigationSplitView/Inspector; не считать установленное приложение проверенным этим probe.
 
 ## Product follow-ups и отложенные идеи Tokscale (2026-10-24)
 
