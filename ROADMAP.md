@@ -412,6 +412,17 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 1. Incremental import и watch
 
+**SM-737 — реализована (2026-10-23), доставка через PR ожидается: начальная папка Import/Start Watch.**
+Review fix: session-directory years use the Gregorian calendar with local timezone; Buddhist/Japanese/Islamic and New Year boundary regressions added.
+В release 0.1.0 NSOpenPanel не задавал directoryURL и скрывал `.codex`; пользователь
+видел произвольную системную папку. Оба диалога теперь показывают скрытые папки и выбирают
+существующий сохранённый каталог либо `~/.codex/sessions/<текущий год>` с fallback
+к sessions, .codex и home. App build и 6/6 targeted tests прошли через xcodebuild
+с ранее разрешённым per-command `-skipMacroValidation`: Xcode-tools остановлен macro trust.
+SwiftLint и FSD passed. UI диалог визуально ещё не проверен; опубликованный v0.1.0 не менялся.
+
+- [ ] **SM-737** — Начальная папка Import/Start Watch: сохранённый каталог либо `~/.codex/sessions/<текущий год>`, fallback при отсутствии; показывать `.codex`. Реализовано 2026-10-23; app build, 6/6 targeted tests, SwiftLint/FSD passed. Ожидает PR/CI/merge; в v0.1.0 исправления нет.
+
 - [x] **SM-101** — Хранить offsets и необходимое состояние decoder вместе с импортированными событиями.
   Готово 2026-09-12: versioned checkpoints, atomic records/diagnostics/progress commit,
   restart и partial-tail recovery, stale-writer rejection, `--rescan`, CLI I/O metrics.
