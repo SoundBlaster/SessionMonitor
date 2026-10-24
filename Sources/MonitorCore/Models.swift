@@ -39,16 +39,18 @@ public struct SessionSummary: Codable, Equatable, Identifiable, Sendable {
     /// `nil` when unknown; consumers must not treat a missing date as a real time.
     public let firstRequestAt: Date?
     public let lastRequestAt: Date?
+    public let sourceStorage: SessionStorageSummary?
 
     public init(
         id: String, model: String, totals: UsageTotals,
-        firstRequestAt: Date? = nil, lastRequestAt: Date? = nil
+        firstRequestAt: Date? = nil, lastRequestAt: Date? = nil, sourceStorage: SessionStorageSummary? = nil
     ) {
         self.id = id
         self.model = model
         self.totals = totals
         self.firstRequestAt = firstRequestAt
         self.lastRequestAt = lastRequestAt
+        self.sourceStorage = sourceStorage
     }
 }
 
@@ -248,6 +250,7 @@ public struct ContextWindowObservation: Codable, Equatable, Sendable {
 }
 
 public struct ParsedRollout: Sendable {
+    public var sourceFile: SourceFileObservation?
     public var records: [UsageRecord] = []
     public var contextWindows: [ContextWindowObservation] = []
     public var legacyEstimates: [LegacyUsageEstimate] = []

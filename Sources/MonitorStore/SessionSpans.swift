@@ -21,9 +21,11 @@ extension UsageStore {
         })
     }
 
-    static func sessionSummary(_ row: Row, spans: SessionSpans) -> SessionSummary {
+    static func sessionSummary(_ row: Row, spans: SessionSpans,
+                               storage: [String: SessionStorageSummary]) -> SessionSummary {
         let span = spans[row["session"] as String]
         return SessionSummary(id: row["session"], model: row["model"], totals: totals(row),
-                              firstRequestAt: span?.first, lastRequestAt: span?.last)
+                              firstRequestAt: span?.first, lastRequestAt: span?.last,
+                              sourceStorage: storage[row["session"] as String])
     }
 }

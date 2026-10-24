@@ -100,11 +100,13 @@ public struct SessionListItem: Codable, Equatable, Identifiable, Sendable {
     public let cacheHitRatio: Double?
     public let provenanceState: SessionProvenanceState
     public let relationshipState: SessionTreeState
+    public let sourceStorage: SessionStorageSummary?
 
     public init(
         id: String, displayName: String? = nil, model: String, totals: UsageTotals,
         cacheCoverage: QueryCoverage.Cache, cacheHitRatio: Double?,
-        provenanceState: SessionProvenanceState, relationshipState: SessionTreeState
+        provenanceState: SessionProvenanceState, relationshipState: SessionTreeState,
+        sourceStorage: SessionStorageSummary? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -114,6 +116,7 @@ public struct SessionListItem: Codable, Equatable, Identifiable, Sendable {
         self.cacheHitRatio = cacheHitRatio
         self.provenanceState = provenanceState
         self.relationshipState = relationshipState
+        self.sourceStorage = sourceStorage
     }
 }
 
@@ -195,11 +198,12 @@ public struct SessionInspection: Codable, Equatable, Sendable {
     public let timeline: SessionTimelineSummary
     public let relationship: SessionRelationshipInfo
     public let evidence: DiagnosticEvidence
+    public let sourceStorage: SessionStorageSummary?
 
     public init(
         query: UsageQuery, sessionID: String, model: String, effort: [String], clientVersion: String?,
         totals: UsageTotals, cache: SessionCacheCoverage, timeline: SessionTimelineSummary,
-        relationship: SessionRelationshipInfo, evidence: DiagnosticEvidence
+        relationship: SessionRelationshipInfo, evidence: DiagnosticEvidence, sourceStorage: SessionStorageSummary? = nil
     ) {
         schemaVersion = 1
         self.query = query
@@ -212,6 +216,7 @@ public struct SessionInspection: Codable, Equatable, Sendable {
         self.timeline = timeline
         self.relationship = relationship
         self.evidence = evidence
+        self.sourceStorage = sourceStorage
     }
 }
 
