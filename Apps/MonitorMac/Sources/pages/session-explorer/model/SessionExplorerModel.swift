@@ -64,6 +64,15 @@ extension MonitorRuntime.SessionMonitor: SessionExplorerRuntime {
 struct SessionTimelineLoadID: Hashable {
     let sessionID: String
     let query: UsageQuery
+    let databaseID: String?
+    let revision: Int64?
+
+    init(sessionID: String, query: UsageQuery, watermark: QueryWatermark? = nil) {
+        self.sessionID = sessionID
+        self.query = query
+        databaseID = watermark?.databaseID
+        revision = watermark?.revision
+    }
 }
 
 typealias SessionImportOperation = @Sendable (
@@ -132,6 +141,7 @@ final class SessionExplorerModel {
             query.isEmpty || session.id.localizedCaseInsensitiveContains(query)
                 || session.model.localizedCaseInsensitiveContains(query)
                 || (provenance[session.id]?.displayName?.localizedCaseInsensitiveContains(query) ?? false)
+                || (provenance[session.id]?.sessionTitle?.localizedCaseInsensitiveContains(query) ?? false)
         }
     }
 
@@ -164,12 +174,20 @@ final class SessionExplorerModel {
         publishSnapshot()
     }
 
+    var timelineLoadID: SessionTimelineLoadID? {
+        selectedSession.map { SessionTimelineLoadID(sessionID: $0.id, query: query, watermark: snapshot?.watermark) }
+    }
+
     func loadTimeline(sessionID: String) async {
         guard selectedSession?.id == sessionID else { return }
+        let requestedID = timelineLoadID
+        let requestedQuery = query
         do {
             let runtime = try await resolvedRuntime()
-            await timelineModel.load(sessionID: sessionID, query: query, source: runtime)
+            guard !Task.isCancelled, timelineLoadID == requestedID else { return }
+            await timelineModel.load(sessionID: sessionID, query: requestedQuery, source: runtime)
         } catch {
+            guard !Task.isCancelled, timelineLoadID == requestedID else { return }
             timelineModel.fail(error)
         }
     }
@@ -342,6 +360,7 @@ private func filteredTree(_ node: SessionTreeNode, query: String,
     let matches = node.session.id.localizedCaseInsensitiveContains(query)
         || node.session.model.localizedCaseInsensitiveContains(query)
         || (provenance[node.id]?.displayName?.localizedCaseInsensitiveContains(query) ?? false)
+        || (provenance[node.id]?.sessionTitle?.localizedCaseInsensitiveContains(query) ?? false)
     let children = node.children.compactMap { filteredTree($0, query: query, provenance: provenance) }
     guard matches || !children.isEmpty else { return nil }
     return SessionTreeNode(session: node.session, state: node.state, children: children)

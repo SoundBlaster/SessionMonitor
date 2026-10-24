@@ -127,9 +127,9 @@ public final class UsageStore: Sendable {
         Self.registerAccountProfileMigration(on: &migrator)
         Self.registerAlertMigration(on: &migrator)
         Self.registerContextWindowMigration(on: &migrator)
+        Self.registerSessionTitleMigration(on: &migrator)
         return migrator
     }
-
     /// Replaces one complete source snapshot atomically; duplicate IDs remain globally idempotent.
     public func replace(source: String, rollout: ParsedRollout) throws {
         try database.write { database in
@@ -265,32 +265,6 @@ public final class UsageStore: Sendable {
         if let provenance = rollout.provenance {
             try Self.insertProvenance(provenance, source: source, database: database)
         }
-    }
-
-    private static func insertProvenance(_ provenance: SessionProvenance, source: String,
-                                         database: Database) throws {
-        let encoder = JSONEncoder()
-        let models = try encoder.encode(provenance.models)
-        let efforts = try encoder.encode(provenance.efforts)
-        try database.execute(sql: """
-            INSERT INTO source_provenance VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(source, session) DO UPDATE SET
-                root_session = COALESCE(excluded.root_session, source_provenance.root_session),
-                display_name = COALESCE(excluded.display_name, source_provenance.display_name),
-                agent_path = COALESCE(excluded.agent_path, source_provenance.agent_path),
-                originator = COALESCE(excluded.originator, source_provenance.originator),
-                client_version = COALESCE(excluded.client_version, source_provenance.client_version),
-                model_provider = COALESCE(excluded.model_provider, source_provenance.model_provider),
-                models = excluded.models, efforts = excluded.efforts,
-                relationship_kind = COALESCE(excluded.relationship_kind, source_provenance.relationship_kind),
-                parent_session = COALESCE(excluded.parent_session, source_provenance.parent_session)
-            """, arguments: [
-                source, provenance.sessionID, provenance.rootSessionID, provenance.displayName,
-                provenance.agentPath, provenance.originator, provenance.clientVersion,
-                provenance.modelProvider, String(bytes: models, encoding: .utf8) ?? "[]",
-                String(bytes: efforts, encoding: .utf8) ?? "[]", provenance.relationship?.kind.rawValue,
-                provenance.relationship?.parentSessionID
-            ])
     }
 
     /// Returns legacy deltas separately. They are estimates, never part of `report`.

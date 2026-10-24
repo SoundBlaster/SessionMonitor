@@ -5,17 +5,19 @@ import SwiftUI
 /// The selected session owns cache semantics; shared components only lay out formatted values.
 struct SessionSummaryView: View {
     let session: SessionSummary
+    let sessionTitle: String?
     @ObservedSatisfies<SessionReportSnapshot> private var hasCompleteCacheCoverage: Bool
 
-    init(session: SessionSummary, provider: SessionReportContextProvider) {
+    init(session: SessionSummary, provider: SessionReportContextProvider, sessionTitle: String? = nil) {
         self.session = session
+        self.sessionTitle = sessionTitle
         _hasCompleteCacheCoverage = ObservedSatisfies(provider: provider, using: DisplayedCacheCoverageSpec())
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.section) {
             SessionSummaryHeader(
-                model: session.model, sessionID: session.id, cacheHit: cacheHit,
+                model: session.model, sessionTitle: sessionTitle, sessionID: session.id, cacheHit: cacheHit,
                 cacheValue: hasCompleteCacheCoverage ? cacheHit.value : "—"
             )
             DesignMetricStrip(items: [
@@ -40,6 +42,7 @@ struct SessionSummaryView: View {
 
 private struct SessionSummaryHeader: View {
     let model: String
+    let sessionTitle: String?
     let sessionID: String
     let cacheHit: SessionCacheHitPresentation
     let cacheValue: String
@@ -47,9 +50,11 @@ private struct SessionSummaryHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.inline) {
             DesignSummaryHeading {
-                Text(model.isEmpty ? "Unknown model" : model)
+                Text(sessionTitle ?? (model.isEmpty ? "Unknown model" : model))
+                    .lineLimit(2)
+                    .help(sessionTitle ?? model)
                     .accessibilityAddTraits(.isHeader)
-                    .accessibilityIdentifier("sessionDetail.model")
+                    .accessibilityIdentifier(sessionTitle == nil ? "sessionDetail.model" : "sessionDetail.title")
             } accessory: {
                 HStack(alignment: .firstTextBaseline, spacing: DesignTokens.Spacing.item) {
                     Text(cacheValue)
@@ -65,6 +70,11 @@ private struct SessionSummaryHeader: View {
                     }
                     .accessibilityIdentifier("sessionDetail.cacheHelp")
                 }
+            }
+            if sessionTitle != nil {
+                Text(model.isEmpty ? "Unknown model" : model)
+                    .font(.callout).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("sessionDetail.model")
             }
             Text(sessionID)
                 .font(.callout.monospaced()).foregroundStyle(.secondary)
