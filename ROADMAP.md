@@ -6,8 +6,17 @@
 
 ## Текущая точка
 
+**Уточнение SM-742 — реализовано и проверено (2026-10-24): Privacy в README.**
+Раздел описывает локальную обработку без telemetry upload, сохраняемые metadata,
+отсутствие transcript/credentials, aggregate-only widgets, явный экспорт и optional hooks.
+Формулировки сверены с decoder/storage/export/widget models и сетевыми вызовами в app/core.
+Проверены 63 локальные ссылки/anchors, English-only README, fences, conflict markers и diff.
+README теперь 110 строк; справка о названиях чатов перенесена в App guide при merge main.
+Доставка в PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134); CI новой ревизии
+не ожидается активно. Изменение только документации; сборка/tests повторно не запускались.
+
 **SM-742 — реализована и проверена (2026-10-23): англоязычный продуктовый README.**
-README сокращён с 704 до 93 строк: ценность, возможности, download CTA и реальный screenshot.
+README первоначально сокращён с 704 до 93 строк (110 с Privacy): ценность, возможности, download CTA и реальный screenshot.
 Восемь английских guides сохраняют app/CLI/Watch/hooks/accounting/build/release инструкции;
 входящие ссылки обновлены. Computer Use: успешный свежий импорт 83 файлов / 354 canonical
 records; снимок Session manager с Cache Hit Rate и Context anatomy просмотрен без prompts,
@@ -16,7 +25,7 @@ credentials и source paths. Снимок development build явно обозн�
 Runtime/accounting не меняются; повторная сборка не нужна. PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134)
 открыт в main; CI выполняется без активного ожидания, merge ещё не подтверждён.
 
-**SM-743 — реализована и проверена (2026-10-23): компактные строки сессий в Sidebar.**
+**SM-743 — доставлена (2026-10-24): компактные строки сессий в Sidebar.**
 Зависимость: SM-740 / PR #132 (названия чатов). Имя и доступная модель слева, Cache
 в фиксированной правой колонке; UUID ниже; tokens/requests в нижней строке. Видимые
 Root/Subagent убраны; relationship остаётся в accessibility, native дереве и branch arrow.
@@ -31,8 +40,9 @@ fixtures просмотрены. Computer Use на свежей сборке п�
 поэтому selection проверяется в реальном окне, остальные fixtures — без selected backdrop.
 SwiftLint/FSD/negative gate passed; xcresult/artifacts на TB5 (`sm743-cache-column`,
 `measurements/sm743-cache-column`). PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135)
-открыт поверх #132; CI выполняется без активного ожидания, merge ещё не подтверждён.
-Accounting и импорт не меняются. Далее review и доставка стека после зелёных checks.
+влит атомарным stack merge после #132 (2026-10-24), squash `dc53653`. Все пять checks
+были зелёными, открытых review threads нет; локальный main синхронизирован.
+Accounting и импорт не меняются.
 
 **SM-735 — реализована и проверена (2026-10-23): стабильная hover-карточка Context anatomy.**
 Review fix: inferred window теперь имеет видимую inline подпись `≈` без tooltip.
@@ -517,7 +527,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ## 3. Аналитический GUI и диагностика
 
-**SM-740 - implemented (2026-10-23), awaiting PR/CI/merge: Codex chat titles.**
+**SM-740 - delivered (2026-10-24): Codex chat titles, PR #132, squash `b5d0ce2`.**
 Review fix: sidebar tree filtering also matches chat titles; regressions check both a named root and a matching subagent retained under its parent.
 Optional sibling session_index.jsonl imports source-scoped titles separately from nicknames.
 Renames invalidate snapshots even for unchanged rollout bodies; conflicting names across
@@ -526,9 +536,9 @@ model, UUID and fallback remain. Nullable migration; canonical totals and anonym
 Validation: make check-core, lint/FSD, app build and 15/15 GUI tests passed. Reviewed long-title
 light/wide and dark/narrow fixture images. Live UI not exercised; v0.1.0 unchanged.
 
-- [ ] **SM-740** - Codex chat titles in sidebar, details and search. Implemented 2026-10-23;
+- [x] **SM-740** - Codex chat titles in sidebar, details and search. Delivered 2026-10-24;
   source-scoped metadata and nullable migration, rename/missing/conflict handling. make check-core,
-  15/15 GUI tests, lint/FSD passed; awaiting PR/CI/merge.
+  15/15 GUI tests, lint/FSD passed (baseline); PR #132 merged as `b5d0ce2`, five checks green, no open threads.
 
 - [x] **SM-301** — Выбор периода/timezone и согласованные фильтры CLI/GUI.
   Выполнено локально 2026-09-12 в ветке `feat/sm-301-period-timezone`.
@@ -1661,5 +1671,5 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 - [x] **SM-743** — Компактный список сессий по пользовательскому образцу (2026-10-23).
   37 targeted tests, fixed trailing cache column, policy-based low-cache emphasis; native fixtures,
   Computer Use selection/child navigation, SwiftLint/FSD passed.
-  PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135) поверх SM-740 / #132;
-  CI/merge ещё ожидаются.
+  PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135) merged 2026-10-24 as `dc53653`
+  after SM-740 / #132; five checks green, no open review threads.

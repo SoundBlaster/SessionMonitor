@@ -57,12 +57,29 @@ Cache hit rate is **cached input ÷ input**. It describes cache usage, not a dol
 Quota comes from observations in your logs, not a live billing connection. A signal is a reason
 to investigate, not proof of its cause. [How the data is interpreted →](docs/data-and-coverage.md)
 
-## Your logs stay on your Mac
+## Privacy
 
-Analysis runs locally against Codex session files. You do not need to connect a cloud account
-or hand over an API key. The index stores normalized usage and event metadata, rather than
-prompt bodies or tool output. It can include session names, identifiers, and source paths;
-your original logs remain in their existing folders.
+**Local analysis. No telemetry uploads. No cloud account or API key required.**
+
+- **Your files stay yours.** SessionMonitor reads the local Codex folders you import or watch,
+  plus the optional chat-title index. It does not modify the source logs or upload them to
+  OpenAI, the developer, or an analytics service. Quota is read from imported observations;
+  the app does not contact a billing API.
+- **Metadata stays local.** The SQLite index stores token counters, timestamps, model names,
+  session titles/IDs, source paths, account/profile metadata, and diagnostic events. It does
+  not retain prompt bodies, assistant responses, or tool output as a transcript. Account
+  attribution uses explicit log metadata or your mappings, not `auth.json`, cookies, or API keys.
+- **Widgets receive aggregates.** The app shares a local App Group snapshot with its widget
+  extension, containing usage/cache statistics, periods, and timezone—not session names, IDs,
+  model names, or source paths.
+- **Sharing is your choice.** Anonymized JSON export removes session/account identifiers,
+  titles, paths, and absolute timestamps. It retains models/client version, token counts,
+  relative request timing, and event counts. Review it before sharing: activity patterns can
+  still be recognizable. Export saves a file; it does not upload it automatically.
+
+The local database, ordinary CLI reports, screenshots, and notifications can expose metadata.
+Optional agent hooks add alerts to the receiving agent’s context; that agent’s own data-handling
+policy then applies. [More about local data and exports →](docs/data-and-coverage.md#local-data-and-exports)
 
 ## From download to insight
 
