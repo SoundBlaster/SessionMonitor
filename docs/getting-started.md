@@ -18,6 +18,11 @@ Use **Import Folder…** in the main window and choose `~/.codex/sessions`. In t
 press **Shift–Command–G** to enter the path. Selecting the parent `sessions` folder includes all
 years; selecting `sessions/2026`, for example, includes only that subtree.
 
+Import Folder and Start Watch initially open the last selected folder if it still exists;
+otherwise they prefer `~/.codex/sessions/<current year>` (for example, `2026`), then the
+nearest existing parent. Hidden folders such as `.codex` are visible in these pickers.
+The year follows the Gregorian calendar in your local timezone, matching Codex folder names.
+
 Codex can continue an old session in the file where it originally started. Importing only the
 current month can therefore miss recent activity written to an older file. Use the full sessions
 folder for ongoing monitoring. Archived logs in `~/.codex/archived_sessions` can be imported separately.

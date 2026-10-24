@@ -116,3 +116,17 @@ and warning marker; values at the threshold and unknown/partial coverage remain 
 Unknown cache stays an em dash with an accessible explanation. Selected cache text uses
 white with the warning background retained; other foreground styles follow native list
 selection and appearance. No additional accounting policy is introduced.
+
+## Grouped settings (SM-744)
+
+`MonitorSettingsPage` uses a native grouped `Form` with two sections. General owns menu bar
+visibility and resuming the last watched folder; Analytics owns the cache widget period and
+chart palette. Labels lead, switches and equally sized picker slots trail. Native row separators,
+section surfaces, semantic text styles, and the system window title provide the hierarchy.
+General includes the persistent explanation that hiding the icon or closing windows does not
+stop Watching. The switches use a blue tint; the page follows the system appearance.
+
+The 580 × 370 pt content area accommodates the complete English labels without the old Form
+alignment clipping. Picker content aligns to the trailing edge of its slot. The watch toggle
+has an explicit accessibility label and hint so its subtitle does not replace its name.
+Existing preference keys, defaults, picker options, and watching behavior remain unchanged.

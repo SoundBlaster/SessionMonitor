@@ -6,14 +6,47 @@
 
 ## Текущая точка
 
+**Интеграция PR (2026-10-24, после #137): линейный стек #128 → #129 → #131 → #133.**
+Settings #137 доставлены (`6d1d06b`); main синхронизирован. Оставшиеся ветки собираются
+в один native stack, release-подготовка — вершина, для атомарного merge после свежего CI.
+Ни один failing/pending gate не обходится. Старый run #131 `40070132488` отменён: последний
+начавшийся тест `ImportBusyHelpTests.testNativeHelpLightDarkAndNarrow`, без assertion failure
+в конце log; job остановлен примерно через 30 минут. Это не установленная причина зависания;
+после актуализации нужен новый полный CI. Проверки не отключаются и не пропускаются.
+
+
+**Интеграция PR (2026-10-24): #134 влит, остальные обновлены к текущему main.**
+Проверены heads/checks/GraphQL threads всех шести открытых PR: у #134 все gates прошли,
+merge подтверждён (`6ba73c7`), локальный main синхронизирован. #128/#133 имели конфликты,
+#129/#131 отставали; выполнен merge origin/main без rewrite, сохранены roadmap entries,
+английский README и инструкции в guides. #137 также актуализирован после #134.
+Для пяти новых heads требуется свежий CI/review; старые зелёные результаты не засчитываются.
+CI не ожидается активно; merge оставшихся после проверки новых ревизий.
+
+
+**SM-744 — доставлена (2026-10-24): компактные native Settings, PR #137, squash `6d1d06b`.**
+Две grouped Form секции General/Analytics: labels слева, switches и menus справа;
+полные подписи, тонкие native separators, синий акцент. Пояснение Watching рядом с General.
+Сохранены четыре settings keys, текущие значения, варианты и прежние accessibility IDs;
+добавлены IDs для menu bar/period и явное accessibility имя Watching. About/monitoring не меняются.
+Проверка: app build + 6/6 existing targeted settings tests passed через разрешённый
+per-command CLI `-skipMacroValidation`, outputs на TB5 (`sm744-settings-final.xcresult`).
+Xcode-tools OpenWorkspace ждёт повторного разрешения agent. SwiftLint/FSD/negative gate,
+project generation и diff check passed. Computer Use на свежем binary: обе настройки on,
+Last 7 days, System colors; подписи полностью видимы и controls выровнены. Native dark
+screenshot: `measurements/sm744/settings-dark.png`. Цвета semantic/system; отдельная живая
+проверка светлой темы не проводилась. PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137)
+влит после пяти зелёных checks и проверки отсутствия открытых review threads; main синхронизирован.
+
 **Уточнение SM-742 — реализовано и проверено (2026-10-24): Privacy в README.**
 Раздел описывает локальную обработку без telemetry upload, сохраняемые metadata,
 отсутствие transcript/credentials, aggregate-only widgets, явный экспорт и optional hooks.
 Формулировки сверены с decoder/storage/export/widget models и сетевыми вызовами в app/core.
 Проверены 63 локальные ссылки/anchors, English-only README, fences, conflict markers и diff.
 README теперь 110 строк; справка о названиях чатов перенесена в App guide при merge main.
-Доставка в PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134); CI новой ревизии
-не ожидается активно. Изменение только документации; сборка/tests повторно не запускались.
+Доставлено через PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134), squash `6ba73c7`
+(2026-10-24), пять checks зелёные, открытых review threads нет. Изменение только документации;
+сборка/tests повторно не запускались.
 
 **SM-742 — реализована и проверена (2026-10-23): англоязычный продуктовый README.**
 README первоначально сокращён с 704 до 93 строк (110 с Privacy): ценность, возможности, download CTA и реальный screenshot.
@@ -23,7 +56,7 @@ records; снимок Session manager с Cache Hit Rate и Context anatomy пр�
 credentials и source paths. Снимок development build явно обозначен; файл 551 KB.
 Проверены 59 локальных ссылок/anchors, English-only/fences, 14 CLI help paths и release assets.
 Runtime/accounting не меняются; повторная сборка не нужна. PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134)
-открыт в main; CI выполняется без активного ожидания, merge ещё не подтверждён.
+влит в main 2026-10-24 как `6ba73c7`; пять checks зелёные, открытых review threads нет.
 
 **SM-743 — доставлена (2026-10-24): компактные строки сессий в Sidebar.**
 Зависимость: SM-740 / PR #132 (названия чатов). Имя и доступная модель слева, Cache
@@ -53,29 +86,29 @@ Signals переносится к времени; inferred window — компа
 fixtures просмотрены. SwiftLint/FSD/negative gate passed; accessibility evidence сохранён.
 PR/CI/merge ожидаются; далее синхронизация статусов доставленных SM-732–SM-734.
 
-**SM-734 — в работе (2026-10-23): изолировать настройки импорт-тестов.**
-Три новых import tests использовали production UserDefaults; успешный stub import сохранял
-несуществующий `/tmp/2026` как последнюю папку. Все три используют отдельные suites с cleanup;
-регрессия проверяет сохранность production preference. Локальная папка восстановлена на
-`~/.codex/sessions/2026`; Xcode-tools: 7/7 targeted tests и RunProject passed; SwiftLint и diff check passed.
-Реализация завершена; доставка через PR и GitHub CI ещё ожидаются.
+**SM-734 — доставлена (2026-10-23), PR [#126](https://github.com/SoundBlaster/SessionMonitor/pull/126).**
+Import tests используют изолированные UserDefaults suites. Baseline: Xcode-tools 7/7 targeted
+и RunProject, SwiftLint/diff check. Реальная папка восстановлена на `~/.codex/sessions/2026`;
+полный импорт завершён: 80 файлов, 26 892 records.
 
-**SM-703 — в работе (2026-10-22): настроить прямую раздачу notarized macOS binary через GitHub Releases.**
-Подзадача по запросу пользователя: адаптировать проверенную схему Dreams к app bundle SessionMonitor
-с WidgetKit extension/App Group: Developer ID подпись, notarization/stapling, DMG и checksum;
-standalone notarized CLI ZIP; не смешивать с Mac App Store workflow SM-706. Release tooling и
-отдельные prepare/publish Make targets подготовлены для review. Подготовка требует чистый `main`,
-синхронизированный с `origin/main`; commit артефактов сохраняется и проверяется перед публикацией.
-Скрипт проверяет bundle IDs, universal architectures, Developer ID signatures, hardened runtime,
-embedded profiles/App Group, notarization tickets, stapling, Gatekeeper и опубликованные SHA-256.
-PR [#125](https://github.com/SoundBlaster/SessionMonitor/pull/125) добавляет Developer ID archive export.
-2026-10-21: Automatic-signing universal archive был создан локально, но export завершился ошибкой
-Xcode `No Accounts` и отсутствием подходящих Developer ID profiles. В Xcode требуется войти в Apple
-Developer account команды `P8T2366K8X` и разрешить provisioning updates; App Group должен быть
-назначен обоим bundle IDs. Владелец подтвердил, что `group.ru.egormerkushev.session-monitor` включён
-для app и widget. После этого profiles, полный export, notarization/stapling, Gatekeeper и
-clean-install всё ещё требуют проверки. GitHub Release не публиковался; публикация первого
-публичного релиза требует отдельного разрешения и проверки на чистой установке.
+**SM-703 — в работе (2026-10-23): GitHub release 0.1.0 опубликован.**
+Из чистого `main` `0e19530542b4b71bf5efa9a989f6bae25f317b3b` созданы universal
+arm64/x86_64 app с WidgetKit extension, DMG и standalone CLI ZIP версии 0.1.0.
+Developer ID export, embedded profiles/App Group и hardened runtime проверены.
+Apple приняла app (`6f10190d-640e-4422-a8a0-82c0d3c5ff45`), CLI
+(`4cc54427-c6e3-45d2-8ad9-71787c3e00eb`) и DMG
+(`0033b336-e0a2-44a3-934a-1e52bd8d7ad5`); app/DMG stapling и Gatekeeper прошли.
+DMG: 18 716 321 bytes; SHA-256 `0305fcc7ffabfd3809a06aebb30b9e97ffac359b09201527559939e4a19860d4`.
+CLI ZIP: 7 084 111 bytes; SHA-256 `5ea77b3d079b145c41b3e839f6c2bd978acb5332b233afebde988be6dea0757c`.
+Локальные evidence и artifacts находятся на TB5 в `release-main-20261023` (не входят в Git).
+Подписи app/widget внутри смонтированного read-only DMG и оба checksum проверены;
+CLI `--help` прошёл нативно и через `arch -x86_64` (Rosetta).
+Штатная подготовка остановилась на Intel CLI cross-build; кандидат завершён отдельным
+локальным resume script: arm64 CLI из swiftbuild, Intel CLI через `--build-system native`.
+По разрешению владельца опубликован [v0.1.0](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.0):
+DMG, CLI ZIP и оба checksum. Remote tag указывает на исходный `0e19530`; скачанные с GitHub
+DMG/CLI совпадают по SHA-256. Открытый PR #127 в релиз не входит.
+Остаток: SM-736, clean-install/update и widget acceptance; SM-703 остаётся незавершённой.
 
 **SM-733 — реализована (2026-10-21): наблюдаемый и отменяемый импорт больших наборов JSONL.**
 Исправление CI (2026-10-22): внешний SQLite writer использует `/usr/bin/sqlite3` вместо Xcode Python shim; исходный сбой SDK не позволял выполнить транзакцию. Новый CI ожидается без активного polling.
@@ -378,6 +411,17 @@ deliverable — WidgetKit extension с App Group в SM-401.
   проверены IDs, локальные ссылки и согласованность документов.
 
 ## 1. Incremental import и watch
+
+**SM-737 — реализована (2026-10-23), доставка через PR ожидается: начальная папка Import/Start Watch.**
+Review fix: session-directory years use the Gregorian calendar with local timezone; Buddhist/Japanese/Islamic and New Year boundary regressions added.
+В release 0.1.0 NSOpenPanel не задавал directoryURL и скрывал `.codex`; пользователь
+видел произвольную системную папку. Оба диалога теперь показывают скрытые папки и выбирают
+существующий сохранённый каталог либо `~/.codex/sessions/<текущий год>` с fallback
+к sessions, .codex и home. App build и 6/6 targeted tests прошли через xcodebuild
+с ранее разрешённым per-command `-skipMacroValidation`: Xcode-tools остановлен macro trust.
+SwiftLint и FSD passed. UI диалог визуально ещё не проверен; опубликованный v0.1.0 не менялся.
+
+- [ ] **SM-737** — Начальная папка Import/Start Watch: сохранённый каталог либо `~/.codex/sessions/<текущий год>`, fallback при отсутствии; показывать `.codex`. Реализовано 2026-10-23; app build, 6/6 targeted tests, SwiftLint/FSD passed. Ожидает PR/CI/merge; в v0.1.0 исправления нет.
 
 - [x] **SM-101** — Хранить offsets и необходимое состояние decoder вместе с импортированными событиями.
   Готово 2026-09-12: versioned checkpoints, atomic records/diagnostics/progress commit,
@@ -1167,17 +1211,15 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   Проверено: состав 78 добавленных файлов, `git diff --cached --check`, исключение audit outputs,
   личных plot labels и signing overrides. Build/test evidence — baseline SM-008/SM-009.
 - [ ] **SM-703** — Distribution packaging CLI/app/widget, notices, signing, notarization и обновления.
-  Готово, когда выбранный способ доставки проверен на чистой установке с сохранением данных;
-  Apple Development build сам по себе не подтверждает distribution readiness. Статус: в работе,
-  PR [#125](https://github.com/SoundBlaster/SessionMonitor/pull/125); локальная попытка export
-  остановилась после успешного archive на Xcode `No Accounts`/missing Developer ID profiles.
-  Подтверждённая настройка App Group ещё не подтверждает наличие разрешающих profiles. Остаток —
-  проверить provisioning profiles, завершить Developer ID export и notarization, выполнить
-  clean-install acceptance; GitHub Release не публиковался.
-  текущий scope — GitHub direct-download universal DMG и standalone CLI ZIP по схеме Dreams,
-  адаптированные к основному app и embedded WidgetKit extension/App Group. Первый выпуск и
-  clean-install evidence остаются отдельным acceptance gate; Mac App Store signing/upload остаётся
-  в SM-706.
+  Статус: в работе. Release tooling доставлен PR [#125](https://github.com/SoundBlaster/SessionMonitor/pull/125).
+  2026-10-23: локальный candidate 0.1.0 из `main` `0e19530` подписан Developer ID;
+  app/CLI/DMG notarization Accepted, app/DMG stapling и Gatekeeper passed. Размеры,
+  submission IDs и SHA-256 приведены в текущей точке. CLI arm64/x86_64 smoke passed;
+  подписи app/widget проверены также внутри DMG. Intel CLI потребовал native SwiftPM workaround
+  и локальное продолжение packaging (SM-736); штатный pipeline пока не прошёл целиком.
+  Готово после clean-install/update с сохранением данных и widget acceptance. Release/tag
+  опубликованы по разрешению владельца: [v0.1.0](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.0);
+  remote tag и скачанные assets проверены. Mac App Store — SM-706.
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
   Статус: в работе. Скрипт создаёт archive и `.pkg` только локально, проверяет app ID и bundle ID,
   запрашивает подтверждение перед upload и использует локальную аутентификацию `asc`; GitHub Actions
@@ -1666,16 +1708,28 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   assigned/unknown и foreign provenance removal прошли. Production SQL probe passed.
   [Отчёт](reports/SM-412-root-activity-account-scope.md).
 
-- [ ] **SM-734** — Изоляция UserDefaults тестов импорта; реализована и проверена (2026-10-23), ожидает PR/CI/merge.
+- [x] **SM-734** — Изоляция UserDefaults тестов импорта; доставлена 2026-10-23 в PR [#126](https://github.com/SoundBlaster/SessionMonitor/pull/126).
 
 - [ ] **SM-735** — Стабильная высота карточки запроса; реализована и проверена, ожидает PR/CI/merge.
 
+- [ ] **SM-736** — Исправить universal CLI сборку в GitHub release pipeline.
+  Выявлено 2026-10-23: default SwiftPM swiftbuild при Intel cross-build не разрешает host-модули
+  SwiftSyntax для SpecificationCoreMacros; кроме того, script ожидает native layout products.
+  Проверенный локальный workaround: `--build-system native` для Intel и фактический arm64 product
+  из `out/Products/Release`; native engine deprecated, поэтому не считать его долгосрочным решением.
+  Готово после исправления выбора build engine/product paths и полного прохода штатного pipeline
+  на чистом main с зафиксированными dependencies. App archive/export повторять для диагностики не нужно.
+
 - [x] **SM-742** — Англоязычный продуктовый README, реальные screenshot/data и отдельные guides.
   Реализовано и локально проверено 2026-10-23; PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134)
-  открыт, CI/merge ещё ожидаются (см. текущую точку).
+  влит 2026-10-24 как `6ba73c7`; CI прошёл, review threads закрыты.
 
 - [x] **SM-743** — Компактный список сессий по пользовательскому образцу (2026-10-23).
   37 targeted tests, fixed trailing cache column, policy-based low-cache emphasis; native fixtures,
   Computer Use selection/child navigation, SwiftLint/FSD passed.
   PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135) merged 2026-10-24 as `dc53653`
   after SM-740 / #132; five checks green, no open review threads.
+
+- [x] **SM-744** — Компактные grouped Settings по пользовательскому образцу (2026-10-24).
+  Build, 6 targeted settings tests, SwiftLint/FSD и native dark Computer Use passed.
+  PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137) влит как `6d1d06b`, пять checks зелёные.

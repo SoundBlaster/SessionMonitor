@@ -208,6 +208,8 @@ struct SessionExplorerPage: View {
     private func chooseImportDirectory() {
         let panel = NSOpenPanel()
         panel.title = "Import JSONL Rollouts"
+        panel.directoryURL = RolloutDirectorySelection.initialDirectory(preferred: model.importedDirectory)
+        panel.showsHiddenFiles = true
         panel.message = "Choose a folder. JSONL files in its subfolders will also be imported."
         panel.prompt = "Import"
         panel.canChooseFiles = false
