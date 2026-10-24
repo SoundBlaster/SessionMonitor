@@ -6,6 +6,15 @@
 
 ## Текущая точка
 
+**Интеграция PR (2026-10-24, после #137): линейный стек #128 → #129 → #131 → #133.**
+Settings #137 доставлены (`6d1d06b`); main синхронизирован. Оставшиеся ветки собираются
+в один native stack, release-подготовка — вершина, для атомарного merge после свежего CI.
+Ни один failing/pending gate не обходится. Старый run #131 `40070132488` отменён: последний
+начавшийся тест `ImportBusyHelpTests.testNativeHelpLightDarkAndNarrow`, без assertion failure
+в конце log; job остановлен примерно через 30 минут. Это не установленная причина зависания;
+после актуализации нужен новый полный CI. Проверки не отключаются и не пропускаются.
+
+
 **Интеграция PR (2026-10-24): #134 влит, остальные обновлены к текущему main.**
 Проверены heads/checks/GraphQL threads всех шести открытых PR: у #134 все gates прошли,
 merge подтверждён (`6ba73c7`), локальный main синхронизирован. #128/#133 имели конфликты,
@@ -15,7 +24,7 @@ merge подтверждён (`6ba73c7`), локальный main синхрон
 CI не ожидается активно; merge оставшихся после проверки новых ревизий.
 
 
-**SM-744 — реализована и проверена (2026-10-24): компактные native Settings.**
+**SM-744 — доставлена (2026-10-24): компактные native Settings, PR #137, squash `6d1d06b`.**
 Две grouped Form секции General/Analytics: labels слева, switches и menus справа;
 полные подписи, тонкие native separators, синий акцент. Пояснение Watching рядом с General.
 Сохранены четыре settings keys, текущие значения, варианты и прежние accessibility IDs;
@@ -27,7 +36,7 @@ project generation и diff check passed. Computer Use на свежем binary: 
 Last 7 days, System colors; подписи полностью видимы и controls выровнены. Native dark
 screenshot: `measurements/sm744/settings-dark.png`. Цвета semantic/system; отдельная живая
 проверка светлой темы не проводилась. PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137)
-открыт в main; CI без активного ожидания, merge ещё не выполнен.
+влит после пяти зелёных checks и проверки отсутствия открытых review threads; main синхронизирован.
 
 **Уточнение SM-742 — реализовано и проверено (2026-10-24): Privacy в README.**
 Раздел описывает локальную обработку без telemetry upload, сохраняемые metadata,
@@ -1706,4 +1715,4 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 - [x] **SM-744** — Компактные grouped Settings по пользовательскому образцу (2026-10-24).
   Build, 6 targeted settings tests, SwiftLint/FSD и native dark Computer Use passed.
-  PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137) открыт в main; CI/merge ожидаются.
+  PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137) влит как `6d1d06b`, пять checks зелёные.
