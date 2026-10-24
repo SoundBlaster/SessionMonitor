@@ -1,10 +1,31 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-24. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-25. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
+
+**Интеграция PR (2026-10-25): #140 (`18216c5`) и #141 (`91f94db`) влиты; локальный main синхронизирован.**
+#141 доставил performance baseline SM-746 и план подготовки Mac App Store; полный contract audit
+SM-746 остаётся частичным, оптимизация SM-749 ещё не выполнена. Для #139 и #144 после
+актуализации на `91f94db` требуется свежий CI: strict branch protection не принимает старые
+зелёные результаты после продвижения main. Release evidence, product priorities и
+SM-754/SM-755 сохраняются; GitHub CI не ожидается активно.
+После доставки оставшихся PR вернуться к SM-749, затем к Mac App Store (SM-706).
+
+**SM-754 — реализована и проверена локально (2026-10-24): панель импорта ниже toolbar; [PR #144](https://github.com/SoundBlaster/SessionMonitor/pull/144) открыт.**
+Колонки NavigationSplitView теперь допускают сжатие viewport вместо расширения за границы окна.
+Progress/recovery/error notices закреплены в top safe area detail, вне прокрутки отчёта;
+sidebar учитывает свою safe area. Высота toolbar не захардкожена, import/cancel/retry semantics сохранены.
+Проверки: app/widget build, 8 targeted GUI tests (0 failures), SwiftLint/FSD/negative gate.
+Native NavigationSplitView regression: 760/1280 pt, light/dark, длинное имя файла,
+появление/скрытие прогресса, неизменная геометрия sidebar. Computer Use на полном production Page
+с изолированными synthetic данными: narrow/wide, light/dark, scroll, Stop import,
+recovery/dismiss и Inspector в широком окне. Установленное приложение и его импорт не изменялись.
+Отдельное ограничение fixture: открытие Inspector на 760 pt вызывает NSGenericException и с
+неизменённым Page из main; требуется независимая проверка SM-755, это не результат данного изменения.
+GitHub CI не ожидать активно. После review/merge вернуться к открытым PR и SM-749.
 
 **SM-753 — доставлена (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) влит squash `a20cf7b`; все пять GitHub checks зелёные: mono numeric typography.**
 Требование владельца: числа всегда mono. Общие DS metrics, percentages, counters,
@@ -1854,17 +1875,32 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   Native NSHostingView regression matrix: 108 измерений, 0 failures; narrow light/wide dark PNG просмотрены.
   Hosted targeted suite локально остановлен до старта test host; полный GitHub Native checks прошёл перед merge.
 
+### Import progress layout (2026-10-24)
+
+- [x] **SM-754** — Панель текущего импорта ниже toolbar, без вертикальной обрезки sidebar.
+  **Статус: реализована и проверена локально; [PR #144](https://github.com/SoundBlaster/SessionMonitor/pull/144) открыт.** Flexible frames колонок
+  допускают сжатие; notices вынесены в top safe area detail. Stop import, текущая сессия,
+  progress и recovery сохранены. App/widget build, 8 targeted GUI tests (0 failures),
+  SwiftLint/FSD/negative gate; native screenshots 760/1280 pt light/dark просмотрены.
+  Computer Use на полном production Page с synthetic runtime подтвердил progress, scroll,
+  Stop import, recovery/dismiss и широкий Inspector. GitHub CI и merge ещё не подтверждены.
+- [ ] **SM-755** — Проверить открытие Inspector в узком окне на macOS 27.
+  В изолированном native fixture (760 pt) возникает NSGenericException; воспроизведено
+  и с неизменённым SessionExplorerPage из main. В широком окне Inspector работает.
+  Отделить ограничение fixture от production behavior и проверить минимальную ширину
+  NavigationSplitView/Inspector; не считать установленное приложение проверенным этим probe.
+
 ## Product follow-ups и отложенные идеи Tokscale (2026-10-24)
 
-- [ ] **SM-745** — Зафиксировать Codex-first фокус, красивый обзор для человека и быстрый CLI аналитики для агента.
-  Статус: документация подготовлена и проверена (2026-10-24); открытый PR
-  [#140](https://github.com/SoundBlaster/SessionMonitor/pull/140), актуализирован к main `a20cf7b`; конфликт ROADMAP устранён, требуется свежий CI и merge.
+- [x] **SM-745** — Зафиксировать Codex-first фокус, красивый обзор для человека и быстрый CLI аналитики для агента.
+  Статус: доставлено (2026-10-25): [PR #140](https://github.com/SoundBlaster/SessionMonitor/pull/140)
+  влит merge-коммитом `18216c5` после пяти зелёных checks и проверки отсутствия открытых review threads.
   Изменение только ROADMAP; расширение provider coverage и денежной аналитики
   отложено, существующая реализация не удаляется. Готово после проверки согласованности приоритетов,
   IDs, ссылок и формата; эти docs checks прошли, доставка через отдельный PR.
 - [ ] **SM-746** — Аудит существующего CLI contract и скорости запросов для агента.
   **Статус: performance baseline выполнен (2026-10-24), полный contract audit остаётся частичным.**
-  Открытый PR [#141](https://github.com/SoundBlaster/SessionMonitor/pull/141) актуализирован поверх #140 и main `a20cf7b`; требуется свежий CI и merge.
+  Baseline и readiness-план доставлены (2026-10-25): [PR #141](https://github.com/SoundBlaster/SessionMonitor/pull/141) влит squash `91f94db` после пяти зелёных checks и проверки threads.
   После актуализации повторены 3/3 harness tests; runtime-код совпадает с main, результаты Release baseline не пересчитывались.
   Release 0.1.1 на копии базы 603 320 320 bytes: 13 сценариев × (первый вызов + 10 повторов), 143 успешных
   fresh-process runs. Median report/snapshot/sessions ≈0,5 с; agent status 7,145–7,385 с / 725–759 MiB;
