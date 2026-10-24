@@ -1864,7 +1864,8 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   IDs, ссылок и формата; эти docs checks прошли, доставка через отдельный PR.
 - [ ] **SM-746** — Аудит существующего CLI contract и скорости запросов для агента.
   **Статус: performance baseline выполнен (2026-10-24), полный contract audit остаётся частичным.**
-  Открытый PR [#141](https://github.com/SoundBlaster/SessionMonitor/pull/141) поверх #140; CI/merge ожидаются.
+  Открытый PR [#141](https://github.com/SoundBlaster/SessionMonitor/pull/141) актуализирован поверх #140 и main `a20cf7b`; требуется свежий CI и merge.
+  После актуализации повторены 3/3 harness tests; runtime-код совпадает с main, результаты Release baseline не пересчитывались.
   Release 0.1.1 на копии базы 603 320 320 bytes: 13 сценариев × (первый вызов + 10 повторов), 143 успешных
   fresh-process runs. Median report/snapshot/sessions ≈0,5 с; agent status 7,145–7,385 с / 725–759 MiB;
   doctor за неделю 10,78 с. Sample подтвердил unbounded quota SQL read в compact agent path (SM-749).
