@@ -96,7 +96,11 @@ private struct TimelineEventLegend: View {
                     .font(.caption2).foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), alignment: .leading)], alignment: .leading) {
                     ForEach(eventCounts) { event in
-                        Label("\(event.kind.label) · \(event.count)", systemImage: "circle.fill").monospaced()
+                        Label {
+                            Text("\(event.kind.label) · \(Text(event.count, format: .number).monospaced())")
+                        } icon: {
+                            Image(systemName: "circle.fill")
+                        }
                             .font(.caption2)
                             .foregroundStyle(palette.color(for: event.kind))
                     }

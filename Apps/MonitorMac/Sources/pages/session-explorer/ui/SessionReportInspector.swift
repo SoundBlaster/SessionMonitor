@@ -34,6 +34,7 @@ struct SessionReportInspector: View {
             QuotaPresentationSection(report: model.quotaPresentationReport)
 
             if let session = model.selectedSession {
+                SessionStorageSection(storage: session.sourceStorage)
                 Section("Selection") {
                     if let provenance = model.provenance[session.id] {
                         LabeledContent("Display name", value: provenance.displayName ?? "Unknown")

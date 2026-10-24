@@ -116,3 +116,34 @@ codex-monitor import ~/.codex/sessions --rescan
 
 See [data and coverage](data-and-coverage.md) for append-only assumptions, deduplication,
 partial records, and anonymized export boundaries.
+
+## Session source size
+
+`report --json`, `snapshot --json`, `sessions --json` and `inspect --json` expose an
+optional `sourceStorage` per session:
+
+```json
+{"knownBytes": 1048576, "fileCount": 2, "unknownSizeFileCount": 0}
+```
+
+`knownBytes` is an integer byte count of the whole imported source logs owned by
+that session in the selected account scope. When `unknownSizeFileCount` is positive,
+it is a **lower bound**, not an exact total. Missing `sourceStorage` means unknown,
+not zero. `lastModifiedAt`, when present, is the newest observed source modification
+time, using the existing JSON date encoding; it is not a live filesystem check.
+The text forms of `sessions` and `inspect` also show bytes (`unknown` or `>=` for
+incomplete observations). Older JSON without this additive field still decodes.
+
+The metric is independent of the selected request period: a one-day report for a
+long-running session still describes its whole imported source files. It includes
+numeric JSONL archives and unfinished tails in successfully imported files. Copies
+count separately, hard links and resolved symlinks count once; descendants remain
+separate sessions. It is neither bytes read during this import, SQLite/index size,
+allocated disk usage, nor a promise of reclaimable space on APFS/cloud storage.
+
+Values are persisted atomically with source checkpoints. Run `import`/Update to
+observe changes or backfill an older index; unchanged files need no body reread.
+Queries read SQLite and work even while sources are offline or removed. These are
+last-import observations of known indexed files, **not** a complete disk inventory;
+unimported, externally deleted or inaccessible files are not rediscovered by a report.
+Hunter-backed storage management is a separate planned feature (SM-751).
