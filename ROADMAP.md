@@ -6,7 +6,20 @@
 
 ## Текущая точка
 
-**SM-753 — реализована и проверена локально (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) открыт; локальные исправления готовы, требуется свежий CI: mono numeric typography.**
+**SM-754 — реализована и проверена локально (2026-10-24): панель импорта ниже toolbar; PR готовится.**
+Колонки NavigationSplitView теперь допускают сжатие viewport вместо расширения за границы окна.
+Progress/recovery/error notices закреплены в top safe area detail, вне прокрутки отчёта;
+sidebar учитывает свою safe area. Высота toolbar не захардкожена, import/cancel/retry semantics сохранены.
+Проверки: app/widget build, 8 targeted GUI tests (0 failures), SwiftLint/FSD/negative gate.
+Native NavigationSplitView regression: 760/1280 pt, light/dark, длинное имя файла,
+появление/скрытие прогресса, неизменная геометрия sidebar. Computer Use на полном production Page
+с изолированными synthetic данными: narrow/wide, light/dark, scroll, Stop import,
+recovery/dismiss и Inspector в широком окне. Установленное приложение и его импорт не изменялись.
+Отдельное ограничение fixture: открытие Inspector на 760 pt вызывает NSGenericException и с
+неизменённым Page из main; требуется независимая проверка SM-755, это не результат данного изменения.
+GitHub CI не ожидать активно. После review/merge вернуться к открытым PR и SM-749.
+
+**SM-753 — доставлена (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) влит (`a20cf7b`): mono numeric typography.**
 Требование владельца: числа всегда mono. Общие DS metrics, percentages, counters,
 chart axes, inspector/menu bar и widgets получают system monospaced values.
 Подписи и поясняющий текст сохраняют обычную типографику. Проверить narrow/light/dark
@@ -1820,3 +1833,18 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   Single-line metadata предотвращает скачки высоты карточки; explanatory event labels остаются proportional.
   Native NSHostingView regression matrix: 108 измерений, 0 failures; narrow light/wide dark PNG просмотрены.
   Hosted targeted suite остановлен до старта test host; полноценный suite остаётся обязательным GitHub gate.
+
+### Import progress layout (2026-10-24)
+
+- [x] **SM-754** — Панель текущего импорта ниже toolbar, без вертикальной обрезки sidebar.
+  **Статус: реализована и проверена локально; PR готовится.** Flexible frames колонок
+  допускают сжатие; notices вынесены в top safe area detail. Stop import, текущая сессия,
+  progress и recovery сохранены. App/widget build, 8 targeted GUI tests (0 failures),
+  SwiftLint/FSD/negative gate; native screenshots 760/1280 pt light/dark просмотрены.
+  Computer Use на полном production Page с synthetic runtime подтвердил progress, scroll,
+  Stop import, recovery/dismiss и широкий Inspector. GitHub CI и merge ещё не подтверждены.
+- [ ] **SM-755** — Проверить открытие Inspector в узком окне на macOS 27.
+  В изолированном native fixture (760 pt) возникает NSGenericException; воспроизведено
+  и с неизменённым SessionExplorerPage из main. В широком окне Inspector работает.
+  Отделить ограничение fixture от production behavior и проверить минимальную ширину
+  NavigationSplitView/Inspector; не считать установленное приложение проверенным этим probe.

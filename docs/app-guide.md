@@ -17,6 +17,12 @@ changing report totals. The session list can be sorted by first/last request, ca
 count, or input + output tokens, in either direction. Unknown sort values remain last. First/last
 request dates describe the session’s imported history, not just the selected period.
 
+## Import progress
+
+During an import, progress and **Stop import** stay below the toolbar, above the
+scrolling session report. Import messages use the same area. The sidebar and
+selected session remain available while files are processed.
+
 ## Session names
 
 After Import/Update or a Watch import, the list and session details show Codex chat titles

@@ -16,35 +16,23 @@ struct SessionExplorerPage: View {
             sidebar
                 .navigationSplitViewColumnWidth(min: 240, ideal: 290, max: 420)
         } detail: {
-            VStack(spacing: 0) {
-                if let directory = model.importRecoveryDirectory {
-                    SessionImportBusyBanner(directory: directory, isBusy: model.isBusy, retry: {
-                        model.startRetryImport { await reportScope.refreshProfiles() }
-                    }, dismiss: model.dismissError)
-                } else if let directory = model.importSourceRecoveryDirectory {
-                    SessionImportChangedSourceBanner(directory: directory, message: model.errorMessage ?? "",
-                                                     isBusy: model.isBusy, retry: {
-                        model.startRetryImport { await reportScope.refreshProfiles() }
-                    }, dismiss: model.dismissError)
-                } else if let error = model.errorMessage {
-                    errorBanner(error)
-                }
-                if model.activity == .importing, let progress = model.importProgress {
-                    SessionImportProgressBanner(progress: progress, cancel: model.cancelImport)
-                }
+            SessionExplorerDetailLayout {
                 if let session = model.selectedSession {
                     SessionDetailView(session: session, query: model.query,
                                       timelineModel: model.timelineModel, provider: model.contextProvider,
                                       sessionTitle: model.provenance[session.id]?.sessionTitle
                                         ?? model.provenance[session.id]?.displayName,
                                       chartPalette: chartPalette)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity,
+                               alignment: .topLeading)
                         .task(id: model.timelineLoadID) {
                             await model.loadTimeline(sessionID: session.id)
                         }
                 } else {
                     emptyDetail
                 }
+            } notices: {
+                SessionExplorerImportNotices(model: model, reportScope: reportScope)
             }
             .navigationTitle("SessionMonitor")
             .navigationSubtitle("\(reportScope.accountLabel) · Canonical usage")
@@ -53,7 +41,7 @@ struct SessionExplorerPage: View {
                     exportSession(sessionID: sessionID)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
         }
         .toolbar {
             SessionExplorerToolbar(
@@ -66,10 +54,10 @@ struct SessionExplorerPage: View {
             SessionReportInspector(model: model)
                 .inspectorColumnWidth(min: 250, ideal: 300, max: 400)
         }
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             statusBar
         }
-        .safeAreaPadding(.top)
         .modifier(QuotaPresentationLoader(model: model))
         .findingsAlertsSheet(model: model)
     }
@@ -86,11 +74,12 @@ struct SessionExplorerPage: View {
             }
             Divider()
             SessionSidebarList(model: model)
-                .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                 .layoutPriority(1)
         }
         .navigationTitle("Sessions")
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .safeAreaPadding(.top)
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
         .clipped()
     }
 
@@ -117,7 +106,7 @@ struct SessionExplorerPage: View {
                 .truncationMode(.tail)
         }
         .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
         .clipped()
     }
 
@@ -157,7 +146,7 @@ struct SessionExplorerPage: View {
                                        description: Text("Choose a session to inspect its usage and cache coverage."))
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
     }
 
     private var statusBar: some View {
@@ -188,21 +177,6 @@ struct SessionExplorerPage: View {
                 .font(.headline.monospaced())
             Text(label).font(.caption).foregroundStyle(.secondary)
         }
-    }
-
-    private func errorBanner(_ message: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-            Text(message).textSelection(.enabled)
-            Spacer(minLength: 0)
-            Button("Dismiss", systemImage: "xmark", action: model.dismissError)
-                .labelStyle(.iconOnly)
-                .buttonStyle(.plain)
-        }
-        .padding()
-        .background(.orange.opacity(0.10))
-        .accessibilityElement(children: .combine)
     }
 
     private func chooseImportDirectory() {
