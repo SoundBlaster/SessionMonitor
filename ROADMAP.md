@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-753 — реализована и проверена локально (2026-10-24), PR готовится: mono numeric typography.**
+**SM-753 — реализована и проверена локально (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) открыт; CI выполняется: mono numeric typography.**
 Требование владельца: числа всегда mono. Общие DS metrics, percentages, counters,
 chart axes, inspector/menu bar и widgets получают system monospaced values.
 Подписи и поясняющий текст сохраняют обычную типографику. Проверить narrow/light/dark
@@ -1763,7 +1763,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 ### Numeric typography (2026-10-24)
 
 - [x] **SM-753** — Использовать mono для числовых UI values.
-  **Статус: реализована и проверена локально (2026-10-24), PR готовится.** Общий DesignMetric, counters, token values,
+  **Статус: реализована и проверена локально (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) открыт; CI выполняется.** Общий DesignMetric, counters, token values,
   проценты, числовые chart axes и data timestamps, inspector/menu bar/WidgetKit.
   Не менять форматирование и accounting; explanatory labels остаются обычным шрифтом.
   App/widget build, lint/FSD и native DS narrow/light/dark fixtures passed.
