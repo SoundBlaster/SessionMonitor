@@ -11,30 +11,78 @@ struct MonitorSettingsPage: View {
 
     var body: some View {
         Form {
-            Toggle("Show SessionMonitor in the menu bar", isOn: $showMenuBarExtra)
-            Toggle("Resume watching the last folder at launch", isOn: $watchOnLaunch)
-                .accessibilityIdentifier("settings.watchOnLaunch")
-            Picker("Cache Hit Rate widget period", selection: Binding(
+            GeneralSettingsSection(showMenuBarExtra: $showMenuBarExtra, watchOnLaunch: $watchOnLaunch)
+            AnalyticsSettingsSection(period: Binding(
                 get: { cacheHitRateWidgetSettings.period },
                 set: { cacheHitRateWidgetSettings.selectPeriod($0) }
-            )) {
-                Text("Last 24 hours").tag(CacheHitRateWidgetPeriod.last24Hours)
-                Text("Last 7 days").tag(CacheHitRateWidgetPeriod.last7Days)
-                Text("Last 14 days").tag(CacheHitRateWidgetPeriod.last14Days)
-                Text("Last 30 days").tag(CacheHitRateWidgetPeriod.last30Days)
-            }
-            Picker("Analytics chart colors", selection: $chartPaletteRawValue) {
-                ForEach(UsageChartPaletteSelection.allCases) { selection in
-                    Text(selection.title).tag(selection.rawValue)
+            ), palette: $chartPaletteRawValue)
+        }
+        .formStyle(.grouped)
+        .tint(.blue)
+        .frame(width: 580, height: 370)
+    }
+}
+
+private struct GeneralSettingsSection: View {
+    @Binding var showMenuBarExtra: Bool
+    @Binding var watchOnLaunch: Bool
+
+    var body: some View {
+        Section {
+            Toggle("Show in menu bar", isOn: $showMenuBarExtra)
+                .accessibilityIdentifier("settings.showMenuBarExtra")
+            Toggle(isOn: $watchOnLaunch) {
+                VStack(alignment: .leading, spacing: DesignTokens.Spacing.micro) {
+                    Text("Resume watching at launch")
+                    Text("Continue watching the last selected folder.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
+                .fixedSize(horizontal: false, vertical: true)
             }
-            .accessibilityIdentifier("settings.analyticsChartPalette")
-            Text("Hiding the icon or closing a window does not stop an active watch. "
-                 + "Use Stop Watch or Quit SessionMonitor to stop it.")
-                .font(.callout).foregroundStyle(.secondary)
+            .accessibilityLabel("Resume watching at launch")
+            .accessibilityHint("Continue watching the last selected folder.")
+            .accessibilityIdentifier("settings.watchOnLaunch")
+        } header: {
+            Text("General")
+        } footer: {
+            Text("""
+                 Watching continues when windows are closed or the menu bar icon is hidden. \
+                 To stop, choose Stop Watch or quit SessionMonitor.
+                 """)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(24)
-        .frame(width: 440, height: 290)
+        .toggleStyle(.switch)
+    }
+}
+
+private struct AnalyticsSettingsSection: View {
+    @Binding var period: CacheHitRateWidgetPeriod
+    @Binding var palette: String
+
+    var body: some View {
+        Section("Analytics") {
+            LabeledContent("Cache hit rate widget period") {
+                Picker("Cache hit rate widget period", selection: $period) {
+                    Text("Last 24 hours").tag(CacheHitRateWidgetPeriod.last24Hours)
+                    Text("Last 7 days").tag(CacheHitRateWidgetPeriod.last7Days)
+                    Text("Last 14 days").tag(CacheHitRateWidgetPeriod.last14Days)
+                    Text("Last 30 days").tag(CacheHitRateWidgetPeriod.last30Days)
+                }
+                .labelsHidden()
+                .frame(width: 170, alignment: .trailing)
+                .accessibilityIdentifier("settings.cacheWidgetPeriod")
+            }
+            LabeledContent("Chart colors") {
+                Picker("Analytics chart colors", selection: $palette) {
+                    ForEach(UsageChartPaletteSelection.allCases) { selection in
+                        Text(selection.title).tag(selection.rawValue)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 170, alignment: .trailing)
+                .accessibilityIdentifier("settings.analyticsChartPalette")
+            }
+        }
     }
 }

@@ -6,14 +6,38 @@
 
 ## Текущая точка
 
+**Интеграция PR (2026-10-24): #134 влит, остальные обновлены к текущему main.**
+Проверены heads/checks/GraphQL threads всех шести открытых PR: у #134 все gates прошли,
+merge подтверждён (`6ba73c7`), локальный main синхронизирован. #128/#133 имели конфликты,
+#129/#131 отставали; выполнен merge origin/main без rewrite, сохранены roadmap entries,
+английский README и инструкции в guides. #137 также актуализирован после #134.
+Для пяти новых heads требуется свежий CI/review; старые зелёные результаты не засчитываются.
+CI не ожидается активно; merge оставшихся после проверки новых ревизий.
+
+
+**SM-744 — реализована и проверена (2026-10-24): компактные native Settings.**
+Две grouped Form секции General/Analytics: labels слева, switches и menus справа;
+полные подписи, тонкие native separators, синий акцент. Пояснение Watching рядом с General.
+Сохранены четыре settings keys, текущие значения, варианты и прежние accessibility IDs;
+добавлены IDs для menu bar/period и явное accessibility имя Watching. About/monitoring не меняются.
+Проверка: app build + 6/6 existing targeted settings tests passed через разрешённый
+per-command CLI `-skipMacroValidation`, outputs на TB5 (`sm744-settings-final.xcresult`).
+Xcode-tools OpenWorkspace ждёт повторного разрешения agent. SwiftLint/FSD/negative gate,
+project generation и diff check passed. Computer Use на свежем binary: обе настройки on,
+Last 7 days, System colors; подписи полностью видимы и controls выровнены. Native dark
+screenshot: `measurements/sm744/settings-dark.png`. Цвета semantic/system; отдельная живая
+проверка светлой темы не проводилась. PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137)
+открыт в main; CI без активного ожидания, merge ещё не выполнен.
+
 **Уточнение SM-742 — реализовано и проверено (2026-10-24): Privacy в README.**
 Раздел описывает локальную обработку без telemetry upload, сохраняемые metadata,
 отсутствие transcript/credentials, aggregate-only widgets, явный экспорт и optional hooks.
 Формулировки сверены с decoder/storage/export/widget models и сетевыми вызовами в app/core.
 Проверены 63 локальные ссылки/anchors, English-only README, fences, conflict markers и diff.
 README теперь 110 строк; справка о названиях чатов перенесена в App guide при merge main.
-Доставка в PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134); CI новой ревизии
-не ожидается активно. Изменение только документации; сборка/tests повторно не запускались.
+Доставлено через PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134), squash `6ba73c7`
+(2026-10-24), пять checks зелёные, открытых review threads нет. Изменение только документации;
+сборка/tests повторно не запускались.
 
 **SM-742 — реализована и проверена (2026-10-23): англоязычный продуктовый README.**
 README первоначально сокращён с 704 до 93 строк (110 с Privacy): ценность, возможности, download CTA и реальный screenshot.
@@ -23,7 +47,7 @@ records; снимок Session manager с Cache Hit Rate и Context anatomy пр�
 credentials и source paths. Снимок development build явно обозначен; файл 551 KB.
 Проверены 59 локальных ссылок/anchors, English-only/fences, 14 CLI help paths и release assets.
 Runtime/accounting не меняются; повторная сборка не нужна. PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134)
-открыт в main; CI выполняется без активного ожидания, merge ещё не подтверждён.
+влит в main 2026-10-24 как `6ba73c7`; пять checks зелёные, открытых review threads нет.
 
 **SM-743 — доставлена (2026-10-24): компактные строки сессий в Sidebar.**
 Зависимость: SM-740 / PR #132 (названия чатов). Имя и доступная модель слева, Cache
@@ -1672,10 +1696,14 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 - [x] **SM-742** — Англоязычный продуктовый README, реальные screenshot/data и отдельные guides.
   Реализовано и локально проверено 2026-10-23; PR [#134](https://github.com/SoundBlaster/SessionMonitor/pull/134)
-  открыт, CI/merge ещё ожидаются (см. текущую точку).
+  влит 2026-10-24 как `6ba73c7`; CI прошёл, review threads закрыты.
 
 - [x] **SM-743** — Компактный список сессий по пользовательскому образцу (2026-10-23).
   37 targeted tests, fixed trailing cache column, policy-based low-cache emphasis; native fixtures,
   Computer Use selection/child navigation, SwiftLint/FSD passed.
   PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135) merged 2026-10-24 as `dc53653`
   after SM-740 / #132; five checks green, no open review threads.
+
+- [x] **SM-744** — Компактные grouped Settings по пользовательскому образцу (2026-10-24).
+  Build, 6 targeted settings tests, SwiftLint/FSD и native dark Computer Use passed.
+  PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137) открыт в main; CI/merge ожидаются.
