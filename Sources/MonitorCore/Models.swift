@@ -70,6 +70,7 @@ public struct SessionRelationship: Codable, Equatable, Sendable {
 public struct SessionProvenance: Codable, Equatable, Sendable {
     public let sessionID: String
     public let rootSessionID: String?
+    public let sessionTitle: String?
     public let displayName: String?
     public let agentPath: String?
     public let originator: String?
@@ -80,13 +81,14 @@ public struct SessionProvenance: Codable, Equatable, Sendable {
     public let relationship: SessionRelationship?
 
     public init(
-        sessionID: String, rootSessionID: String? = nil, displayName: String? = nil,
+        sessionID: String, rootSessionID: String? = nil, displayName: String? = nil, sessionTitle: String? = nil,
         agentPath: String? = nil, originator: String? = nil, clientVersion: String? = nil,
         modelProvider: String? = nil, models: [String] = [], efforts: [String] = [],
         relationship: SessionRelationship? = nil
     ) {
         self.sessionID = sessionID
         self.rootSessionID = rootSessionID
+        self.sessionTitle = sessionTitle
         self.displayName = displayName
         self.agentPath = agentPath
         self.originator = originator

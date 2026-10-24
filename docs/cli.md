@@ -1,0 +1,118 @@
+# CLI guide
+
+[← SessionMonitor](../README.md) · [Install the CLI](getting-started.md#install-the-cli)
+
+Run `codex-monitor --help` for the command list. Examples below assume it is on your `PATH`.
+
+## Import and report
+
+```sh
+codex-monitor import ~/.codex/sessions
+codex-monitor report
+codex-monitor sessions --sort input
+codex-monitor doctor
+codex-monitor quota
+codex-monitor export-session SESSION_ID > session-export.json
+```
+
+A directory import recursively discovers `.jsonl` and uncompressed numeric rotations such as
+`.jsonl.1`. Hidden entries, `.jsonl.bak`, and compressed `.jsonl.gz` files are not selected.
+Import `~/.codex/archived_sessions` separately if needed. Imports are incremental; their summary
+counts only this run. An unchanged import can report zero records while the database still
+contains your complete previously imported index.
+
+Reports use an absolute half-open interval: `[since, until)`. Timestamps require an explicit
+ISO 8601 offset. Timezone affects presentation metadata, not the absolute boundaries.
+
+```sh
+codex-monitor report --since 2026-10-01T00:00:00Z --until 2026-11-01T00:00:00Z
+codex-monitor report --since 2026-10-01T00:00:00+03:00 --time-zone Europe/Moscow
+codex-monitor report --json
+codex-monitor doctor --json
+codex-monitor quota --json
+```
+
+`quota` reads imported `event_msg/token_count.rate_limits` observations, not a provider API.
+Remaining usage is derived from observed used percentage. Missing events mean unknown,
+not zero usage. Reset, freshness, and coverage qualify the result; account-level usage is not
+attributed to a session just because its log contains the observation.
+See [quota ingestion](../reports/SM-308a-quota-snapshot-ingestion.md).
+
+## Account profiles
+
+Map a homogeneous source root to an explicit local profile:
+
+```sh
+codex-monitor profiles map-root --root ~/.codex/account-work/sessions --id work --label Work
+codex-monitor report --profile work
+codex-monitor quota --profile work --json
+codex-monitor report --unknown-or-mixed
+codex-monitor export-session SESSION_ID --profile work > session-export.json
+```
+
+Do not assign a root containing multiple accounts to one profile. Attribution uses explicit
+non-secret rollout metadata or your mapping, not credentials, cookies, `auth.json`, or prompt
+content. Session ownership and account profiles are separate concepts. Unrestricted reports
+are labeled All accounts; quota windows remain separated by account scope.
+
+## Alerts
+
+```sh
+codex-monitor watch ~/.codex/sessions --alerts
+codex-monitor alerts
+codex-monitor alerts --status all --json
+codex-monitor alerts evaluate --lookback-hours 6 --json
+```
+
+Watch with `--alerts` emits alert JSON lines after imports. Supported signals include session
+anomalies, quota shifts and low remaining observations, data diagnostics, and Watch recovery.
+Session findings cover repeated polling, expensive startup, cache drops, uncached-input spikes,
+unusually large usage, and a session dominating the selected workload. The default evaluation
+looks back six hours. Fresh quota observations warn at remaining usage ≤20% and escalate at
+≤5%; stale observations retain unknown coverage. A supported usage-rate projection can also
+warn when a window may run out before its reset (error if depletion is projected within 30 minutes).
+Live rules can use a 14-day personal baseline for unusual input rate, repeated requests without
+a human turn, and growing input. Insufficient history or unknown inputs suppress unsupported
+conclusions. Baselines are refreshed periodically.
+
+Alert state supports raise/escalate/update/resolve, deduplication, cooldown, severity ordering,
+muted kinds, and notification rate limits. A persistent condition does not notify on every
+refresh. Low cache hit alone is informational and does not prove wasted spending. The app
+provides macOS notifications; the CLI provides structured output.
+
+## Observable snapshots
+
+```sh
+codex-monitor snapshot --time-zone Europe/Moscow
+codex-monitor snapshot --follow --time-zone Europe/Moscow
+```
+
+`snapshot` prints one JSON object; `--follow` prints the initial snapshot and later changes as
+JSON lines. Both only read the index. They accept `--since`, `--until`, `--time-zone`, and
+`--database`. UTC is the default presentation timezone.
+
+Schema version 1 includes `query`, `report`, `coverage`, and `watermark`. `report --json`
+retains its bare UsageReport shape for compatibility; use `snapshot` for the versioned envelope.
+The watermark contains a database UUID, monotonic commit revision, and optional commit time.
+It advances atomically with changed source snapshots, checkpoints, and diagnostics. Unchanged
+imports do not advance it. Migrated databases begin at revision 0 with an unknown commit time.
+
+The stream checks the marker once per second and recalculates the report only after a change,
+including commits from another app/CLI process. Reads are transactional, intermediate commits
+may be coalesced, and cancelling the consumer ends observation. Source timestamps are not
+commit times. Direct SQL writes without a marker are outside the supported write API;
+replacing the database file requires reopening the runtime.
+
+## Database selection and recovery
+
+The app and CLI share the [default index](getting-started.md#where-data-lives). Use
+`--database PATH` or `SESSIONMONITOR_DATABASE` for an isolated index. Only one importer may
+own a database at a time; readers can continue during imports. See [Watch ownership](watching.md).
+After editing old log lines or restoring logs, force a rescan:
+
+```sh
+codex-monitor import ~/.codex/sessions --rescan
+```
+
+See [data and coverage](data-and-coverage.md) for append-only assumptions, deduplication,
+partial records, and anonymized export boundaries.
