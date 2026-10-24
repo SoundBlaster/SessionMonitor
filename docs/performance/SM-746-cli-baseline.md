@@ -1,5 +1,9 @@
 # SM-746: Release CLI query baseline
 
+The compact agent path has since been optimized in SM-749. See the
+[repeat measurements and compatibility checks](SM-749-bounded-agent-status.md);
+this document preserves the original baseline.
+
 Measured October 24, 2026. The compact agent status is the main performance issue:
 **7.145–7.385 s median and 724.9–758.8 MiB peak RSS**, despite a response of about 13.2 KiB.
 Ordinary reports, session lists and snapshots take about 0.5 s on the same index.

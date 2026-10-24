@@ -41,8 +41,8 @@ struct QuotaSummaryTests {
             snapshot("tie-\(index)", at: 2, line: index, used: Double(index), reset: 500)
         }
         observations += [
-            snapshot("named", at: 3, line: 61, name: "name:literal"),
-            snapshot("id", at: 4, line: 62, limit: "name:name:literal"),
+            snapshot("named", at: 3, line: 61, name: "pool"),
+            snapshot("id", at: 4, line: 62, limit: "pool"),
             snapshot("unicode-before", at: 5, line: 63, reset: 300, name: "caf\u{00e9}"),
             snapshot("unicode-after", at: 6, line: 64, reset: 500, name: "cafe\u{0301}"),
             snapshot("weekly", at: 7, line: 65, windows: [

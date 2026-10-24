@@ -6,15 +6,17 @@
 
 ## Текущая точка
 
-**SM-749 — в работе (2026-10-25): bounded quota projection для compact agent CLI.**
-Все предыдущие PR влиты: #140 (`18216c5`), #141 (`91f94db`), #144 (`aa67b65`),
-#139 (`3eaa862`); локальный main синхронизирован. Исследовать полный quota-history read
-и all-session report в agent status; заменить их ограниченной проекцией последних окон
-и запросом выбранной сессии. Сохранить SpecificationCore policies, account/limit/window/reset
-identity, explicit unknown/coverage/freshness и evidence; raw quota JSON не менять.
-Критерий: parity/regression tests, подходящие core/CLI gates, повтор baseline на том же
-корпусе с измерением latency/RSS/output и PR без активного ожидания GitHub CI.
-После SM-749 — подготовка Mac App Store (SM-706); SM-755 остаётся отдельным UI follow-up.
+**SM-749 — реализована и локально проверена (2026-10-25); PR готовится, в main ещё не доставлена.**
+Локальный main синхронизирован с `origin/main` до `3eaa862`; предыдущие #139/#140/#141/#144 влиты.
+Compact agent status использует session-scoped totals и атомарно поддерживаемую quota projection.
+SpecificationCore policies, attribution, coverage, freshness, reset evidence и raw quota JSON сохранены.
+На том же корпусе Release median: latest/24h **0,18 с / 31,9 MiB** вместо 7,145 с / 724,9 MiB;
+selected/168h **0,68 с / 52,3 MiB** вместо 7,385 с / 758,8 MiB. Summary quota — 0,05 с / 23 MiB.
+Проверки: `make check-core` (277 Swift Testing, 9 XCTest, Python/CLI smoke), SwiftLint/FSD/negative gate;
+full-corpus parity (124 227 snapshots → 167 witnesses, 98 windows), 13-case replay + summary benchmark.
+[Методика, бюджеты, upgrade/storage cost и ограничения](docs/performance/SM-749-bounded-agent-status.md).
+Далее review/merge SM-749, затем подготовка Mac App Store (SM-706); SM-755 — отдельный UI follow-up.
+GitHub CI после создания PR активно не ожидается.
 
 **SM-754 — доставлена (2026-10-25): панель импорта ниже toolbar; [PR #144](https://github.com/SoundBlaster/SessionMonitor/pull/144) влит squash `aa67b65`.**
 Колонки NavigationSplitView теперь допускают сжатие viewport вместо расширения за границы окна.
@@ -55,7 +57,7 @@ Hosted targeted suite локально остановлен до старта te
 не bytes read за запуск, не размер SQLite и не обещание освобождаемого места. Сохранять account scope,
 unknown и dedup физических файлов; очищать источники не требуется. Идея Hunter — SM-751.
 Приоритет владельца дополнен SM-752: измеримая скорость как часть позиционирования.
-Performance baseline/план SM-749 находятся в открытом PR #141, подготовка Store остаётся следующим этапом.
+Performance baseline/план SM-749 влиты в PR #141; результаты оптимизации — в текущей точке выше. Store остаётся следующим этапом.
 Проверки: `make check-core` (265 Swift Testing + 9 XCTest, четыре CLI smoke), app build,
 282 GUI unit tests (один штатный skip), SwiftLint/FSD/negative gate. Шесть light/dark
 fixtures known/partial/unknown просмотрены; финальная mono-правка собрана успешно. Xcode-tools остановился
@@ -66,7 +68,7 @@ fixture run после mono-правки остановлен: sample показ
 SQL projection на read-only копии индекса 603 MB до backfill: 11,92 ms первый вызов,
 1,48 ms median / 2,31 ms max десяти повторов в одном Python SQLite connection. Это только SQL,
 не end-to-end CLI latency и не результат после backfill. Личные данные и artifacts остаются на TB5.
-Локальный main синхронизирован после merge. Далее актуализировать открытые docs/performance PR, затем SM-749 и SM-706.
+Локальный main синхронизирован после merge. Docs/performance PR влиты; после review SM-749 следует SM-706.
 
 **SM-741 — доставлена (2026-10-24): [GitHub release 0.1.1](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.1).**
 Из чистого синхронизированного `main` `ccfb96f4b59549643933ef49ec02187ed3559564` штатный
@@ -1938,14 +1940,25 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   универсальность ради количества integrations, замену Swift core, Rust bridge или pricing как обязательные зависимости.
   Готово при отдельном решении о scope, adapter contract и проверяемых fixtures выбранного клиента.
 
-- [ ] **SM-749** — Устранить полный quota-history read в compact agent CLI path.
-  **Статус: в работе (2026-10-25).** Bounded projection и session-scoped query, parity tests и повтор baseline; доставка через отдельный PR.
-  Выявлено и профилировано в SM-746 (2026-10-24): `agent status` ≈7,1–7,4 с и до 759 MiB на текущем
-  корпусе, хотя output ≈13,2 KiB. Нужен bounded latest-window read либо atomically maintained projection
-  и session-scoped summary вместо all-session report там, где session уже известна. Сохранить существующие
-  SpecificationCore policies, account/limit/window/reset identity, coverage, unknown/freshness и evidence;
-  произвольный LIMIT и молчаливое отбрасывание observations не допускаются. Существующий raw quota JSON
-  не ломать; bounded summary имеет отдельный явный contract. Готово после projection-parity tests и
-  повторения baseline на том же корпусе, с измеренным latency/output budget для типового agent workload.
-  Производительность compact CLI учесть до acceptance App Store candidate; подготовка SM-706 следует
-  после performance-проверки и не означает автоматическую отправку на review.
+- [x] **SM-749** — Устранить полный quota-history read в compact agent CLI path.
+  **Статус: реализована и локально проверена (2026-10-25), PR готовится; не влита.**
+  Session-scoped canonical totals/selection/watermark; SQLite projection по account/limit/slot с latest ties
+  и точными свидетелями последнего reset transition. Изменённые event identities и их mirrors обновляются
+  атомарно с импортом/профилями; unchanged account scope не вызывает rebuild старых quota при append.
+  Coverage включает всю историю, в том числе partial/unsupported/no-window; payloads остаются в raw table.
+  SpecificationCore decisions и account-level attribution сохранены; `agent status` schema v1 и raw
+  `quota --json` совместимы. Отдельный `quota --summary --json` возвращает presentation schema v1.
+  Никакого произвольного history LIMIT; latest conflicts не отбрасываются.
+  `make check-core`: 277 Swift Testing + 9 XCTest, SwiftLint, Python и CLI process smokes; FSD/negative gate passed.
+  Regression/parity: mirrors/remap/mixed/Unicode/ties/reset gaps/coverage, append, upgrade, rollback,
+  canonical session totals и конфликты response. Full-corpus probe подтвердил равенство полного quota report
+  и agent reports при фиксированном времени для 24h/168h; 124 227 snapshots сведены к 167 witnesses / 98 windows.
+  Повторены 13 baseline cases на той же копии + quota summary: latest agent 0,18 с / 31,9 MiB,
+  explicit/168h 0,68 с / 52,3 MiB, output ≤13,2 KiB; summary 0,05 с / 23 MiB / 121,8 KiB.
+  Измеренные бюджеты: latest ≤0,30 с/48 MiB/16 KiB; selected/168h ≤1 с/64 MiB/16 KiB;
+  summary ≤0,10 с/32 MiB/256 KiB — выполнены на данном hardware/corpus, не универсальный SLA.
+  [Evidence, воспроизведение и ограничения](docs/performance/SM-749-bounded-agent-status.md).
+  Первое открытие со schema upgrade + report — 7,88 с / 117,6 MiB; derived index добавляет 297,6 MiB.
+  Filtered queries и pending invalidations от older writer используют raw compatibility path.
+  Canonical watermark и исходные logs не изменены; broader doctor/schema audit остаётся в SM-746.
+  После review/merge — подготовка SM-706, без автоматической отправки на App Store review.

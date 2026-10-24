@@ -3,7 +3,8 @@ import Foundation
 /// Reduced input for quota presentation, not a raw observation report or anomaly history.
 /// Keeps all latest-timestamp ties and the final reset-transition witnesses per presentation series.
 /// Coverage counts include the entire query, including unsupported and windowless snapshots.
-/// The evidence size follows the number of series and tied observations, never a fixed row limit.
+/// For a current all-time/all-account projection, size follows series and ties, never a fixed row limit.
+/// Filtered queries and invalidated projections may carry the raw history for exact compatibility.
 public struct QuotaPresentationEvidence: Equatable, Sendable {
     public let query: UsageQuery
     public let generatedAt: Date
