@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-753 — реализована и проверена локально (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) открыт; локальные исправления готовы, требуется свежий CI: mono numeric typography.**
+**SM-753 — доставлена (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) влит squash `a20cf7b`; все пять GitHub checks зелёные: mono numeric typography.**
 Требование владельца: числа всегда mono. Общие DS metrics, percentages, counters,
 chart axes, inspector/menu bar и widgets получают system monospaced values.
 Подписи и поясняющий текст сохраняют обычную типографику. Проверить narrow/light/dark
@@ -22,9 +22,9 @@ Native AppKit harness из production sources повторяет матрицу 
 108 измерений (160/240/340 pt, light/dark, large/accessibility1, три requests, 0/1/12 signals),
 ни одного расхождения высоты > 1 pt; узкая light и широкая dark fixtures просмотрены.
 Это проверка NSHostingView на macOS, не подтверждение Dynamic Type на других платформах.
-Hosted targeted suite снова остановлен до старта test host; full suite остаётся gate GitHub CI.
+Hosted targeted suite локально остановлен до старта test host; актуальный GitHub Native checks затем прошёл перед merge.
 Размеры сессий доставлены отдельно
-через PR #142 (`3ca4ece`); baseline/SM-749 — PR #141. После typography вернуться к SM-749.
+через PR #142 (`3ca4ece`); baseline/SM-749 — PR #141. Открытых review threads перед merge #143 нет; локальный main синхронизирован.
 
 **SM-750 — доставлена (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) влит squash `3ca4ece`; все пять GitHub checks зелёные: размер исходных файлов.**
 Сохранять наблюдённый размер вместе с checkpoint, без повторного чтения source logs на query path.
@@ -43,7 +43,7 @@ fixture run после mono-правки остановлен: sample показ
 SQL projection на read-only копии индекса 603 MB до backfill: 11,92 ms первый вызов,
 1,48 ms median / 2,31 ms max десяти повторов в одном Python SQLite connection. Это только SQL,
 не end-to-end CLI latency и не результат после backfill. Личные данные и artifacts остаются на TB5.
-Локальный main синхронизирован после merge. Далее завершить SM-753, затем SM-749 и SM-706.
+Локальный main синхронизирован после merge. Далее актуализировать открытые docs/performance PR, затем SM-749 и SM-706.
 
 
 **SM-741 - in progress (2026-10-23): GitHub patch release 0.1.1.**
@@ -409,6 +409,29 @@ deliverable — WidgetKit extension с App Group в SM-401.
 Основной порядок: этапы 1 → 2 → 3 → 4 → 5 → 6. Этап 7 содержит сопровождение
 и доставку, которые можно выполнять по необходимости. Изменение приоритетов
 пользователем отражается здесь до начала зависимой работы.
+
+### Фокус продукта — решение владельца от 2026-10-24 (SM-745)
+
+**Статус: документация подготовлена и проверена; открытый PR [#140](https://github.com/SoundBlaster/SessionMonitor/pull/140) актуализирован к main `a20cf7b`, требуется свежий CI и merge.**
+SessionMonitor ориентирован прежде всего на **Codex** и два взаимодополняющих интерфейса:
+
+- **Для человека:** красивый, наглядный native macOS обзор сессий; ясная иерархия,
+  сравнимые графики, быстрый переход от сводки к запросу и evidence, понятные unknown/partial states.
+- **Для агента:** быстрый CLI аналитики с чёткими и однозначными результатами.
+  Явные scope/period/units, стабильный machine-readable contract и компактный output;
+  одинаковые canonical данные и domain policies с GUI, без LLM для базовых расчётов.
+
+Расширение количества клиентов и провайдеров не является текущей целью. Денежная аналитика,
+расчёт стоимости и экономии также не входят в текущие приоритеты: имеющиеся функции сохраняются,
+но новые pricing integrations, rate cards и billing estimates откладываются. Денежные части
+SM-308/SM-503/SM-504 не блокируют готовность обзора и CLI аналитики. Tokens, cache и quota
+остаются разными наблюдаемыми величинами; их источник, coverage и неопределённость показываются явно.
+
+[Tokscale](https://github.com/junhoyeo/tokscale/tree/669fdaeec54502a30468adbfa97789bb7ee2b762)
+используется как reference для coverage, нормализации и regression-сценариев, а не как обязательство
+повторить каталог integrations, pricing или leaderboard. Идеи сохранены ниже в SM-746–SM-748.
+Ближайшая delivery-проверка остаётся SM-703; из новых продуктовых задач первой выбирать SM-746.
+Доставка этой правки ROADMAP — через отдельный PR; до merge она не считается доставленной в main.
 
 ## Как отмечать прогресс
 
@@ -1169,13 +1192,15 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   confidence и `non_deterministic` state при параллельном/внешнем usage. Сырые account quota
   observations не приписывать одной сессии без достаточных оснований; token totals сами по себе
   не являются observed subscription quota percent.
+  **Денежная часть отложена решением владельца 2026-10-24 (SM-745); не является текущим acceptance gate.**
   API-equivalent cost рассчитывать только по датированному/versioned model rate card. Распределение
   фактической фиксированной цены подписки возможно только как user-configured scenario с явными
   currency, billing period и allocation assumption; называть результат allocated/effective estimate,
   не provider charge, marginal cost или savings. Ни estimate, ни quota allocation не меняют canonical
   usage totals; неизвестные цены/coverage не подменять нулями.
 - [ ] **SM-504** — Компактный отчёт для Parallel Subagent Orchestrator.
-  Зависит от SM-304/SM-501. Отражать суммарные parent+child costs, startup и ожидания;
+  Зависит от SM-304/SM-501. Отражать суммарные parent+child tokens, cache coverage, startup и ожидания;
+  денежные costs отложены по SM-745 и не входят в текущий acceptance scope;
   чтение отчёта для решения не должно запускать постоянный LLM polling или повторять весь audit.
 - [ ] **SM-505** — Управляемый config apply после проверенных рекомендаций.
   Зависит от SM-503. Concrete diff, backup, сохранение TOML comments, validation всех
@@ -1812,11 +1837,44 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 ### Numeric typography (2026-10-24)
 
-- [ ] **SM-753** — Использовать mono для числовых UI values.
-  **Статус: реализована и проверена локально (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) открыт; исправление review и CI regression проверено native harness, требуется свежий CI.** Общий DesignMetric, counters, token values,
+- [x] **SM-753** — Использовать mono для числовых UI values.
+  **Статус: доставлена (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) влит squash `a20cf7b`; все пять checks зелёные.** Общий DesignMetric, counters, token values,
   проценты, числовые chart axes и data timestamps, inspector/menu bar/WidgetKit.
   Не менять форматирование и accounting; explanatory labels остаются обычным шрифтом.
   App/widget build, lint/FSD и native DS narrow/light/dark fixtures passed.
   Single-line metadata предотвращает скачки высоты карточки; explanatory event labels остаются proportional.
   Native NSHostingView regression matrix: 108 измерений, 0 failures; narrow light/wide dark PNG просмотрены.
-  Hosted targeted suite остановлен до старта test host; полноценный suite остаётся обязательным GitHub gate.
+  Hosted targeted suite локально остановлен до старта test host; полный GitHub Native checks прошёл перед merge.
+
+## Product follow-ups и отложенные идеи Tokscale (2026-10-24)
+
+- [ ] **SM-745** — Зафиксировать Codex-first фокус, красивый обзор для человека и быстрый CLI аналитики для агента.
+  Статус: документация подготовлена и проверена (2026-10-24); открытый PR
+  [#140](https://github.com/SoundBlaster/SessionMonitor/pull/140), актуализирован к main `a20cf7b`; конфликт ROADMAP устранён, требуется свежий CI и merge.
+  Изменение только ROADMAP; расширение provider coverage и денежной аналитики
+  отложено, существующая реализация не удаляется. Готово после проверки согласованности приоритетов,
+  IDs, ссылок и формата; эти docs checks прошли, доставка через отдельный PR.
+- [ ] **SM-746** — Аудит существующего CLI contract и скорости запросов для агента.
+  Приоритет среди новых идей: первый после текущих delivery-проверок. Начать с инвентаризации
+  имеющихся commands и regression tests, сохраняя работающие contracts. Проверить явные account/session
+  scope, period/timezone, units, coverage/freshness/evidence и значения unknown/not_applicable;
+  документировать JSON schema/versioning, exit codes, разделение stdout/stderr и детерминированный порядок.
+  Выделить компактный bounded response для типовых вопросов агента без повторного полного импорта,
+  фонового LLM polling и дублирования расчётов GUI. Измерить cold/warm latency на фиксированном корпусе,
+  отделив import от read-only queries; согласовать бюджет по baseline до оптимизации.
+  Готово, когда контракт проверяется fixtures, parity с GUI подтверждена, а latency измерена воспроизводимо.
+- [ ] **SM-747** — Понятная coverage источников Codex и дополнительные accounting regression fixtures.
+  Reference: Tokscale adapters/cache на зафиксированной выше ревизии. Вначале проверить имеющиеся
+  discovery/diagnostics и fixtures: active/archive copies, fork replay, mirrored usage records,
+  model switches, cumulative resets, partial JSONL tail, обновление parser/cache version.
+  При сравнении явно нормализовать inclusive/exclusive input/cache и output/reasoning counters;
+  другой результат reference не считать автоматически ошибкой SessionMonitor.
+  Готово после документированной матрицы supported/partial/unknown и tests на найденные пробелы;
+  сравнение с Tokscale остаётся дополнительным oracle, canonical accounting не подменяется.
+- [ ] **SM-748** — Возможные дополнительные source adapters (например, Claude Code/OpenCode).
+  **Статус: отложено, вне активной очереди; возвращаться только по новому решению владельца.**
+  Сначала определить нужный пользователю клиент и доказуемые capabilities его данных; сохранить
+  provenance, account boundaries, explicit unknown и semantics каждого счётчика. Частичная поддержка
+  не обещает Context anatomy/attribution, для которых источник не даёт evidence. Не планировать
+  универсальность ради количества integrations, замену Swift core, Rust bridge или pricing как обязательные зависимости.
+  Готово при отдельном решении о scope, adapter contract и проверяемых fixtures выбранного клиента.
