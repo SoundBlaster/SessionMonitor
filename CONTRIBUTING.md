@@ -96,7 +96,7 @@ Log и `.xcresult` сохраняются artifact `native-results-*` на 7 д�
 
 ## Сборка и quality gates
 
-Настройка toolchain, dependencies и локальной подписи описана в [README](README.md).
+Настройка toolchain, dependencies и локальной подписи описана в [Development](docs/development.md).
 Build entry points находятся в [Makefile](Makefile); Xcode project генерируется
 из [project.yml](Apps/MonitorMac/project.yml). Оба SwiftPM lock-файла входят в изменения
 при обновлении dependencies; локальный `Local.xcconfig` в Git не добавляется.
