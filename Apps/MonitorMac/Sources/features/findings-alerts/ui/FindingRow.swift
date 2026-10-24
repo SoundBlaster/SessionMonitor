@@ -76,7 +76,7 @@ struct FindingRow: View {
                           : "This session is not in the current report")
             }
             if sessions.count > 3 {
-                Text("+\(sessions.count - 3) more").font(.caption).foregroundStyle(.secondary)
+                Text("+\(sessions.count - 3) more").font(.caption.monospaced()).foregroundStyle(.secondary)
             }
         }
     }

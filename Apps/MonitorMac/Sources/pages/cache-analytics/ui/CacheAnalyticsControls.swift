@@ -55,7 +55,7 @@ struct CacheAnalyticsControls: View {
                     .disabled(viewport.zoom >= Double(slots.count))
             }
             Text("\(viewport.zoom.formatted(.number.precision(.fractionLength(1))))×")
-                .font(.caption).monospacedDigit().foregroundStyle(.secondary)
+                .font(.caption).monospaced().foregroundStyle(.secondary)
                 .accessibilityLabel("Chart zoom")
             Button("Reset") { viewport = CacheAnalyticsViewport() }
                 .help("Show full period; keep selected interval")

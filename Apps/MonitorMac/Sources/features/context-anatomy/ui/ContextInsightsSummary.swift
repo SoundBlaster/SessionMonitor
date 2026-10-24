@@ -22,7 +22,7 @@ struct ContextInsightsSummary: View {
         } label: {
             HStack {
                 Text("Context insights").font(.callout.weight(.semibold))
-                DesignBadge(title: Text("\(presentation.report.insights.count) signals"))
+                DesignBadge(title: Text("\(presentation.report.insights.count) signals"), isNumeric: true)
             }
         }
         .accessibilityIdentifier("contextAnatomy.insights")
@@ -41,7 +41,7 @@ private struct ContextInsightSelection: View {
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.item) {
             HStack {
                 Text(index.map { "Request \($0)" } ?? "Request insights")
-                    .font(.headline)
+                    .font(index == nil ? .headline : .headline.monospaced())
                 if index != nil {
                     Text("Last inspected").font(.caption).foregroundStyle(.secondary)
                 }
@@ -99,8 +99,8 @@ private struct ContextInsightZoneCard: View {
         DesignCard(surface: .tinted(palette.color(for: row.zone))) {
             VStack(alignment: .leading, spacing: DesignTokens.Spacing.item) {
                 Text(ContextInsightPresentation.zoneTitle(row.zone)).font(.callout.weight(.semibold))
-                Text("\(row.requests) requests").font(.headline).monospacedDigit()
-                Text("\(row.phases) phases").font(.caption).foregroundStyle(.secondary)
+                Text("\(row.requests) requests").font(.headline).monospaced()
+                Text("\(row.phases) phases").font(.caption.monospaced()).foregroundStyle(.secondary)
                 Divider()
                 ContextInsightMetric(title: "Input tokens", tokens: row.input)
                 ContextInsightMetric(title: "Output tokens", tokens: row.output)

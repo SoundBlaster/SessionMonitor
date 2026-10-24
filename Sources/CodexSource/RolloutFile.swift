@@ -10,6 +10,13 @@ struct RolloutFileVersion: Codable, Equatable {
     let size: UInt64
     let modification: String
 
+    var modifiedAt: Date {
+        let parts = modification.split(separator: ":")
+        let seconds = parts.first.flatMap { Double($0) } ?? 0
+        let nanos = parts.dropFirst().first.flatMap { Double($0) } ?? 0
+        return Date(timeIntervalSince1970: seconds + nanos / 1_000_000_000)
+    }
+
     init(handle: FileHandle) throws {
         var attributes = stat()
         guard fstat(handle.fileDescriptor, &attributes) == 0 else {

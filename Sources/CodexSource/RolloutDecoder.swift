@@ -56,6 +56,7 @@ public struct RolloutDecoder: Sendable {
         state.result.provenance = state.provenance()
         state.result.accountIdentity = state.context.accountIdentity
         try source.validateSnapshot()
+        state.result.sourceFile = sourceObservation(source, sessionID: state.context.sessionID)
         let next = DecoderCheckpoint(version: source.version, cursor: progress.cursor,
                                      state: state.context)
         return SourceImport(rollout: state.result, checkpoint: try JSONEncoder().encode(next),
@@ -74,7 +75,9 @@ public struct RolloutDecoder: Sendable {
         if let previous, previous.isUsable(for: source.version) {
             if previous.version == source.version, let checkpoint {
                 try source.validateSnapshot()
-                return SourceImport(rollout: ParsedRollout(), checkpoint: checkpoint, mode: .unchanged, bytesRead: 0)
+                var rollout = ParsedRollout()
+                rollout.sourceFile = sourceObservation(source, sessionID: previous.state.sessionID)
+                return SourceImport(rollout: rollout, checkpoint: checkpoint, mode: .unchanged, bytesRead: 0)
             }
             // Growth of the same file is treated as append-only; --rescan repairs prefix rewrites.
             if source.version.size > previous.version.size {
@@ -94,11 +97,17 @@ public struct RolloutDecoder: Sendable {
         state.result.accountIdentity = state.context.accountIdentity
         if progress.partialTail { state.result.diagnostics["partialTails"] = 1 }
         try source.validateSnapshot()
+        state.result.sourceFile = sourceObservation(source, sessionID: state.context.sessionID)
         let next = DecoderCheckpoint(version: source.version, cursor: progress.cursor,
                                      state: state.context)
         return SourceImport(rollout: state.result, checkpoint: try JSONEncoder().encode(next),
                             mode: mode, bytesRead: source.bytesRead)
     }
+}
+
+private func sourceObservation(_ source: RolloutFile, sessionID: String?) -> SourceFileObservation {
+    SourceFileObservation(sessionID: sessionID, identity: source.version.identity,
+                          byteCount: Int64(source.version.size), modifiedAt: source.version.modifiedAt)
 }
 
 private struct DecoderCheckpoint: Codable {
