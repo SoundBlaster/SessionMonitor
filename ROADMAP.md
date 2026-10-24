@@ -6,13 +6,15 @@
 
 ## Текущая точка
 
-**Интеграция PR (2026-10-25): #140 (`18216c5`), #141 (`91f94db`) и #144 (`aa67b65`) влиты; локальный main синхронизирован.**
-SM-754 доставлена, performance baseline SM-746 доставлен; полный contract audit SM-746 остаётся
-частичным, SM-749 и SM-755 не выполнены. Остался docs PR #139 с release evidence и этой
-синхронизацией ROADMAP. Ветка актуализирована на `aa67b65`; для её новой ревизии нужен
-свежий CI согласно strict branch protection. Открытых review threads перед merge #144 не было.
-GitHub CI не ожидается активно. После доставки #139 вернуться к SM-749,
-затем к подготовке Mac App Store (SM-706).
+**SM-749 — в работе (2026-10-25): bounded quota projection для compact agent CLI.**
+Все предыдущие PR влиты: #140 (`18216c5`), #141 (`91f94db`), #144 (`aa67b65`),
+#139 (`3eaa862`); локальный main синхронизирован. Исследовать полный quota-history read
+и all-session report в agent status; заменить их ограниченной проекцией последних окон
+и запросом выбранной сессии. Сохранить SpecificationCore policies, account/limit/window/reset
+identity, explicit unknown/coverage/freshness и evidence; raw quota JSON не менять.
+Критерий: parity/regression tests, подходящие core/CLI gates, повтор baseline на том же
+корпусе с измерением latency/RSS/output и PR без активного ожидания GitHub CI.
+После SM-749 — подготовка Mac App Store (SM-706); SM-755 остаётся отдельным UI follow-up.
 
 **SM-754 — доставлена (2026-10-25): панель импорта ниже toolbar; [PR #144](https://github.com/SoundBlaster/SessionMonitor/pull/144) влит squash `aa67b65`.**
 Колонки NavigationSplitView теперь допускают сжатие viewport вместо расширения за границы окна.
@@ -1937,6 +1939,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   Готово при отдельном решении о scope, adapter contract и проверяемых fixtures выбранного клиента.
 
 - [ ] **SM-749** — Устранить полный quota-history read в compact agent CLI path.
+  **Статус: в работе (2026-10-25).** Bounded projection и session-scoped query, parity tests и повтор baseline; доставка через отдельный PR.
   Выявлено и профилировано в SM-746 (2026-10-24): `agent status` ≈7,1–7,4 с и до 759 MiB на текущем
   корпусе, хотя output ≈13,2 KiB. Нужен bounded latest-window read либо atomically maintained projection
   и session-scoped summary вместо all-session report там, где session уже известна. Сохранить существующие

@@ -30,6 +30,7 @@ codex-monitor report --since 2026-10-01T00:00:00+03:00 --time-zone Europe/Moscow
 codex-monitor report --json
 codex-monitor doctor --json
 codex-monitor quota --json
+codex-monitor quota --summary --json
 ```
 
 `quota` reads imported `event_msg/token_count.rate_limits` observations, not a provider API.
@@ -37,6 +38,37 @@ Remaining usage is derived from observed used percentage. Missing events mean un
 not zero usage. Reset, freshness, and coverage qualify the result; account-level usage is not
 attributed to a session just because its log contains the observation.
 See [quota ingestion](../reports/SM-308a-quota-snapshot-ingestion.md).
+
+`quota --json` retains the complete raw snapshot report. For a smaller response, use
+`quota --summary --json`: it emits `QuotaPresentationReport` schema version 1 with
+`windows`, full-query `coverage`, and `accountCoverages`, without the `snapshots` array.
+The text command uses the same summary. Equal-timestamp conflicts remain ambiguous;
+the final reset change includes its original before/after evidence, even if newer
+observations omit reset information.
+
+The all-time, all-account summary reads a SQLite projection maintained atomically
+with imports and account mapping. Time/account-filtered queries retain the raw
+filter-before-deduplication rules and can cost more. If an older app or CLI writes
+without refreshing the projection, the new reader uses raw observations rather
+than serving stale values. The first open of an older database builds the projection
+once; this migration is separate from steady-state query latency.
+
+## Compact agent status
+
+```sh
+codex-monitor agent status --json
+codex-monitor agent status --session SESSION_ID --lookback-hours 168 --json
+```
+
+`agent status` schema version 1 keeps its existing JSON contract. It reads only the
+chosen session's canonical totals/timeline and the all-account quota summary;
+it does not load every session or the complete quota history. Without `--session`,
+it selects the session with the latest confirmed request in the lookback interval.
+An unknown explicit ID returns no session block. Quota remains account-level,
+including its original reset identity and current/stale/future/unknown freshness;
+it is never allocated to the selected session. Status reads do not import or
+evaluate alerts. Index revisions, canonical totals, and raw observation reports
+are unchanged by projection maintenance.
 
 ## Account profiles
 

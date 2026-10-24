@@ -129,6 +129,7 @@ public final class UsageStore: Sendable {
         Self.registerContextWindowMigration(on: &migrator)
         Self.registerSessionTitleMigration(on: &migrator)
         Self.registerSourceStorageMigration(on: &migrator)
+        Self.registerQuotaProjectionMigration(on: &migrator)
         return migrator
     }
     /// Replaces one complete source snapshot atomically; duplicate IDs remain globally idempotent.
@@ -299,12 +300,7 @@ public final class UsageStore: Sendable {
     /// A previous watermark must come from this same query; changed queries require an initial fetch.
     public func snapshot(query: UsageQuery, after previous: QueryWatermark? = nil) throws -> UsageSnapshot? {
         try database.read { database in
-            guard let row = try Row.fetchOne(database, sql: "SELECT * FROM query_watermark WHERE singleton = 1") else {
-                throw DatabaseError(resultCode: .SQLITE_CORRUPT, message: "Missing query watermark")
-            }
-            let committed: Double? = row["committed_at"]
-            let watermark = QueryWatermark(databaseID: row["database_id"], revision: row["revision"],
-                                           committedAt: committed.map(Date.init(timeIntervalSince1970:)))
+            let watermark = try Self.queryWatermark(database)
             guard watermark != previous else { return nil }
             let report = try Self.report(database, since: query.since, until: query.until,
                                          accountScope: query.accountScope)
@@ -317,9 +313,19 @@ public final class UsageStore: Sendable {
     }
 
     static func advanceWatermark(_ database: Database) throws {
+        try Self.refreshQuotaProjection(database)
         try database.execute(sql: """
             UPDATE query_watermark SET revision = revision + 1, committed_at = ? WHERE singleton = 1
             """, arguments: [Date().timeIntervalSince1970])
+    }
+
+    static func queryWatermark(_ database: Database) throws -> QueryWatermark {
+        guard let row = try Row.fetchOne(database, sql: "SELECT * FROM query_watermark WHERE singleton = 1") else {
+            throw DatabaseError(resultCode: .SQLITE_CORRUPT, message: "Missing query watermark")
+        }
+        let committed: Double? = row["committed_at"]
+        return QueryWatermark(databaseID: row["database_id"], revision: row["revision"],
+                              committedAt: committed.map(Date.init(timeIntervalSince1970:)))
     }
 
     static func report(_ database: Database, since: Date?, until: Date?,
@@ -351,7 +357,7 @@ public final class UsageStore: Sendable {
         try report(database, since: query.since, until: query.until, accountScope: query.accountScope)
     }
 
-    private static let aggregates = """
+    static let aggregates = """
         COUNT(*) AS requests, COALESCE(SUM(input), 0) AS inputs,
         COALESCE(SUM(cached), 0) AS cached, COALESCE(SUM(output), 0) AS outputs,
         COALESCE(SUM(cached IS NULL), 0) AS unknown,

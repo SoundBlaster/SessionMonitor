@@ -143,11 +143,25 @@ public struct UsageLimitTelemetryCoverage: Codable, Equatable, Sendable {
     public let latestObservedAt: Date?
 
     public init(snapshots: [UsageLimitSnapshotObservation]) {
-        supportedWindowObservations = snapshots.reduce(0) { $0 + $1.windows.count }
-        partialSnapshots = snapshots.filter { $0.state == .partial }.count
-        unsupportedSnapshots = snapshots.filter { $0.state == .unsupportedSchema }.count
-        snapshotsWithoutWindowData = snapshots.filter { $0.state == .noWindowData }.count
-        latestObservedAt = snapshots.map(\.timestamp).max()
+        self.init(
+            supportedWindowObservations: snapshots.reduce(0) { $0 + $1.windows.count },
+            partialSnapshots: snapshots.filter { $0.state == .partial }.count,
+            unsupportedSnapshots: snapshots.filter { $0.state == .unsupportedSchema }.count,
+            snapshotsWithoutWindowData: snapshots.filter { $0.state == .noWindowData }.count,
+            latestObservedAt: snapshots.map(\.timestamp).max()
+        )
+    }
+
+    /// Exact aggregate counts over the query, independent of retained presentation evidence.
+    public init(
+        supportedWindowObservations: Int, partialSnapshots: Int, unsupportedSnapshots: Int,
+        snapshotsWithoutWindowData: Int, latestObservedAt: Date?
+    ) {
+        self.supportedWindowObservations = supportedWindowObservations
+        self.partialSnapshots = partialSnapshots
+        self.unsupportedSnapshots = unsupportedSnapshots
+        self.snapshotsWithoutWindowData = snapshotsWithoutWindowData
+        self.latestObservedAt = latestObservedAt
         if supportedWindowObservations == 0 {
             state = .unknown
             if unsupportedSnapshots > 0 {
@@ -173,6 +187,12 @@ public struct UsageLimitSnapshotReport: Codable, Equatable, Sendable {
     public let generatedAt: Date
     public let snapshots: [UsageLimitSnapshotObservation]
     public let coverage: UsageLimitTelemetryCoverage
+
+    public var accountCoverages: [QuotaAccountCoverage] {
+        Dictionary(grouping: snapshots, by: {
+            "\($0.accountScopeID ?? "no-scope")|\($0.accountScopeState.rawValue)"
+        }).values.map(QuotaAccountCoverage.init(snapshots:)).sorted { $0.id < $1.id }
+    }
 
     public init(query: UsageQuery, generatedAt: Date, snapshots: [UsageLimitSnapshotObservation]) {
         schemaVersion = 1

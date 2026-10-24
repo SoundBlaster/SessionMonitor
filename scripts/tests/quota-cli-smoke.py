@@ -66,6 +66,18 @@ def main() -> int:
         assert window["usedPercent"] == first_used
         assert window["windowMinutes"] == 300
 
+        summary_result = subprocess.run(
+            [str(binary), "quota", "--database", str(database), "--summary", "--json"],
+            check=True, capture_output=True, text=True,
+        )
+        summary = json.loads(summary_result.stdout)
+        assert "snapshots" not in summary
+        assert summary["coverage"] == report["coverage"]
+        assert summary["windows"][0]["usedPercent"] == used_percent
+        assert summary["windows"][0]["remainingPercent"] == 100 - used_percent
+        assert summary["windows"][0]["freshness"]["state"] == "current"
+        assert len(summary["accountCoverages"]) == 1
+
         text_result = subprocess.run(
             [str(binary), "quota", "--database", str(database)],
             check=True,
