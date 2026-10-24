@@ -81,7 +81,7 @@ struct CacheHitRateWidgetChart: View {
                             Text(CacheHitRateWidgetLabelFormat.bucketLabel(
                                 for: slot.start, period: report.period,
                                 family: labelFamily, timeZoneIdentifier: report.timeZoneIdentifier))
-                                .font(.caption2).foregroundStyle(appearance.palette.neutral)
+                                .font(.caption2.monospaced()).foregroundStyle(appearance.palette.neutral)
                                 .allowsHitTesting(false)
                                 .position(x: plot.minX + position,
                                           y: plot.maxY + CacheHitRateWidgetLayout.labelOffset)
@@ -90,7 +90,7 @@ struct CacheHitRateWidgetChart: View {
                     if family != .small {
                         ForEach(CacheHitRateWidgetAxis.ticks(for: domain), id: \.self) { tick in
                             Text(tick.formatted(.number.precision(.fractionLength(0))))
-                                .font(.caption2)
+                                .font(.caption2.monospaced())
                                 .foregroundStyle(appearance.palette.neutral)
                                 .allowsHitTesting(false)
                                 .position(
@@ -202,7 +202,7 @@ struct CacheHitRateWidgetChart: View {
                     .foregroundStyle(appearance.palette.grid)
                 AxisValueLabel {
                     Text(value.as(Double.self)?.formatted(.number.precision(.fractionLength(0))) ?? "")
-                        .font(.caption2)
+                        .font(.caption2.monospaced())
                         .foregroundStyle(.clear)
                 }
             }

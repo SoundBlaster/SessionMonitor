@@ -36,24 +36,28 @@ private struct ContextSnapshotHeading: View {
     let insightCount: Int
 
     var body: some View {
+        let index = Text(step.index, format: .number).monospaced()
+        let total = Text(requestCount, format: .number).monospaced()
         VStack(alignment: .leading, spacing: DesignTokens.Spacing.inline) {
             ViewThatFits(in: .horizontal) {
                 HStack {
-                    Text("Request \(step.index)").fontWeight(.semibold)
+                    Text("Request \(index)").fontWeight(.semibold)
                     Spacer(minLength: DesignTokens.Spacing.item)
-                    Text("of \(requestCount)").foregroundStyle(.secondary)
+                    Text("of \(total)").foregroundStyle(.secondary)
                 }
-                Text("Request \(step.index) of \(requestCount)").fontWeight(.semibold)
+                Text("Request \(index) of \(total)")
+                    .fontWeight(.semibold)
             }
             HStack {
                 Text(step.timestamp, format: Date.FormatStyle(date: .omitted, time: .standard, timeZone: timeZone))
+                    .monospaced()
                 Spacer(minLength: DesignTokens.Spacing.inline)
                 if insightCount > 0 {
                     Label {
                         if insightCount == 1 {
-                            Text("1 signal")
+                            Text("\(Text(1, format: .number).monospaced()) signal")
                         } else {
-                            Text("\(insightCount) signals")
+                            Text("\(Text(insightCount, format: .number).monospaced()) signals")
                         }
                     } icon: {
                         Image(systemName: "exclamationmark.triangle")
@@ -63,7 +67,7 @@ private struct ContextSnapshotHeading: View {
             .font(.caption).foregroundStyle(.secondary)
             .lineLimit(1)
         }
-        .font(.callout).monospacedDigit()
+        .font(.callout)
     }
 }
 
@@ -76,7 +80,7 @@ private struct ContextSnapshotContext: View {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(ContextAnatomyPresentation.compactTokens(step.contextTokens))
-                        .font(.title2.weight(.semibold))
+                        .font(.title2.weight(.semibold).monospaced())
                         .accessibilityLabel("Context tokens")
                     Spacer(minLength: DesignTokens.Spacing.item)
                     DesignBadge(title: Text(ContextInsightPresentation.zoneTitle(step.zone)),
@@ -84,7 +88,7 @@ private struct ContextSnapshotContext: View {
                 }
                 VStack(alignment: .leading, spacing: DesignTokens.Spacing.inline) {
                     Text(ContextAnatomyPresentation.compactTokens(step.contextTokens))
-                        .font(.title2.weight(.semibold))
+                        .font(.title2.weight(.semibold).monospaced())
                         .accessibilityLabel("Context tokens")
                     DesignBadge(title: Text(ContextInsightPresentation.zoneTitle(step.zone)),
                                 fill: palette.color(for: step.zone))
@@ -94,22 +98,25 @@ private struct ContextSnapshotContext: View {
                 let share = step.fillFraction.formatted(.percent.precision(.fractionLength(0)))
                 let capacity = ContextAnatomyPresentation.compactTokens(window)
                 HStack(spacing: DesignTokens.Spacing.inline) {
-                    Text("\(share) of \(capacity) window")
+                    Text("\(Text(share).monospaced()) of \(Text(capacity).monospaced()) window")
+                        .lineLimit(1).minimumScaleFactor(0.5)
                     if step.contextWindowInferred { Text("≈") }
                 }
                 .font(.caption).foregroundStyle(.secondary)
             } else {
-                Text("\(step.fillFraction, format: .percent.precision(.fractionLength(0))) of session peak")
+                let share = Text(step.fillFraction, format: .percent.precision(.fractionLength(0))).monospaced()
+                Text("\(share) of session peak")
+                    .lineLimit(1).minimumScaleFactor(0.5)
                     .font(.caption).foregroundStyle(.secondary)
             }
             if let delta = step.deltaFromPrevious {
-                Text("\(delta, format: .number.sign(strategy: .always())) vs previous request")
+                Text("\(Text(delta, format: .number.sign(strategy: .always())).monospaced()) vs previous request")
+                    .lineLimit(1).minimumScaleFactor(0.5)
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 Text("First request").font(.caption).foregroundStyle(.secondary)
             }
         }
-        .monospacedDigit()
     }
 }
 

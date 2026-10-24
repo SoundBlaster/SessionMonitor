@@ -6,6 +6,45 @@
 
 ## Текущая точка
 
+**SM-753 — доставлена (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) влит squash `a20cf7b`; все пять GitHub checks зелёные: mono numeric typography.**
+Требование владельца: числа всегда mono. Общие DS metrics, percentages, counters,
+chart axes, inspector/menu bar и widgets получают system monospaced values.
+Подписи и поясняющий текст сохраняют обычную типографику. Проверить narrow/light/dark
+и large type; числа/форматы/accounting не меняются. Shared DesignMetric и новый DesignNumericRow,
+числовой вариант DesignBadge; app/widget build, SwiftLint/FSD/negative gate passed.
+Отдельный native AppKit renderer собран из production DS sources: четыре light/dark
+fixtures шириной 360/720 просмотрены, без clipping и с сохранённым Grid fallback.
+Computer Use на свежем debug binary: dark main window с NormLab, mono totals/cache/axes и
+четырьмя полными колонками метрик, без clipping. Тестовая копия закрыта; установленная оставлена.
+GitHub CI выявил перенос metadata строк на ширине 160 pt: исправлены single-line layout
+и mono только для numeric runs в карточке и event legend (замечание review).
+Native AppKit harness из production sources повторяет матрицу существующего regression test:
+108 измерений (160/240/340 pt, light/dark, large/accessibility1, три requests, 0/1/12 signals),
+ни одного расхождения высоты > 1 pt; узкая light и широкая dark fixtures просмотрены.
+Это проверка NSHostingView на macOS, не подтверждение Dynamic Type на других платформах.
+Hosted targeted suite локально остановлен до старта test host; актуальный GitHub Native checks затем прошёл перед merge.
+Размеры сессий доставлены отдельно
+через PR #142 (`3ca4ece`); baseline/SM-749 — PR #141. Открытых review threads перед merge #143 нет; локальный main синхронизирован.
+
+**SM-750 — доставлена (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) влит squash `3ca4ece`; все пять GitHub checks зелёные: размер исходных файлов.**
+Сохранять наблюдённый размер вместе с checkpoint, без повторного чтения source logs на query path.
+Показывать в CLI и inspector; это полный размер известных исходных файлов сессии на момент импорта,
+не bytes read за запуск, не размер SQLite и не обещание освобождаемого места. Сохранять account scope,
+unknown и dedup физических файлов; очищать источники не требуется. Идея Hunter — SM-751.
+Приоритет владельца дополнен SM-752: измеримая скорость как часть позиционирования.
+Performance baseline/план SM-749 находятся в открытом PR #141, подготовка Store остаётся следующим этапом.
+Проверки: `make check-core` (265 Swift Testing + 9 XCTest, четыре CLI smoke), app build,
+282 GUI unit tests (один штатный skip), SwiftLint/FSD/negative gate. Шесть light/dark
+fixtures known/partial/unknown просмотрены; финальная mono-правка собрана успешно. Xcode-tools остановился
+на macro trust; использован ранее разрешённый per-command `-skipMacroValidation`.
+Полный UI automation runner не инициализировался (timeout automation mode); повторный
+fixture run после mono-правки остановлен: sample показывает LaunchServices open RPC wait
+без старта test host. Прежний fixture run зелёный; финальный live UX не подтверждён.
+SQL projection на read-only копии индекса 603 MB до backfill: 11,92 ms первый вызов,
+1,48 ms median / 2,31 ms max десяти повторов в одном Python SQLite connection. Это только SQL,
+не end-to-end CLI latency и не результат после backfill. Личные данные и artifacts остаются на TB5.
+Локальный main синхронизирован после merge. Далее актуализировать открытые docs/performance PR, затем SM-749 и SM-706.
+
 **SM-741 — доставлена (2026-10-24): [GitHub release 0.1.1](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.1).**
 Из чистого синхронизированного `main` `ccfb96f4b59549643933ef49ec02187ed3559564` штатный
 `make release-github` собрал app/widget 0.1.1 (build 2) и CLI для arm64 + x86_64.
@@ -20,7 +59,9 @@ CLI ZIP: 7 032 782 bytes, SHA-256 `948cfebf33f3db3a949117182fcefa21f0f1837eb0692
 Remote tag `v0.1.1` указывает на тот же source revision. Artifacts/logs: TB5 `release-0.1.1`, вне Git.
 Полный pipeline подтверждает SM-736; deprecated native SwiftPM engine остаётся временным workaround.
 Clean-machine install/update и system-widget acceptance остаются отдельной незавершённой проверкой SM-703.
-**Следующий шаг — SM-703: проверить установку/обновление и system widgets из опубликованного DMG.**
+Документирование релиза в PR [#139](https://github.com/SoundBlaster/SessionMonitor/pull/139)
+актуализировано к `main` `a20cf7b`; конфликт ROADMAP устранён, старые delivery statuses не возвращены.
+Изменение документации ожидает свежий CI и merge; исходный релиз уже опубликован.
 
 **Интеграция PR (2026-10-24): native stack #138 влит, main синхронизирован.**
 Перед атомарным squash merge #128 → #129 → #131 → #133 все пять checks на каждом
@@ -1745,3 +1786,40 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 - [x] **SM-744** — Компактные grouped Settings по пользовательскому образцу (2026-10-24).
   Build, 6 targeted settings tests, SwiftLint/FSD и native dark Computer Use passed.
   PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137) влит как `6d1d06b`, пять checks зелёные.
+
+### Source storage и подтверждённая производительность (2026-10-24)
+
+- [x] **SM-750** — Размер импортированных source logs сессии в байтах.
+  **Статус: доставлена (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) влит squash `3ca4ece`; все пять checks зелёные.** Persisted descriptor observations, atomic checkpoint, account-filtered
+  aggregation без query-time filesystem scan. CLI JSON и inspector, unknown для старого индекса
+  до повторного импорта. Проверить append/replacement/unchanged, mirrors/hard links,
+  session ownership и независимость от выбранного периода; canonical totals не меняются.
+  Восемь новых core tests, cross-CLI storage assertions и шесть GUI fixtures; updated
+  performance parity исключает только whole-source metadata из проверки неизменности периода.
+- [ ] **SM-751** — Спроектировать управление хранилищем сессий на основе Hunter.
+  **Статус: идея, после SM-750; удаление не реализуется этим этапом.** Изучить reuse Hunter,
+  безопасный preview с provenance/coverage, отдельные own/descendant bytes и ограничения
+  reclaimable space. Hunter предоставляет descriptor-anchored metadata/scan primitives;
+  product policy, durable action identity, permissions и подтверждённый preview остаются у SessionMonitor. Reference: [codex-session-gc](https://github.com/YuriyKrasilnikov/codex-session-gc).
+- [ ] **SM-752** — Подтверждённые performance claims для README и Mac App Store.
+  **Статус: запланирована; зависит от SM-746/SM-749 и повторных измерений.**
+  Скорость — часть продукта: быстрый human overview и однозначный CLI для агента.
+  Измерять отдельно initial import (files/requests/bytes per second), incremental/no-change
+  update, fresh-process CLI median/p95 и peak RSS, chart pan/zoom и refresh latency.
+  Зафиксировать reference corpus, hardware/OS/build, cold/warm cache условия и корректность
+  accounting. Сначала устранить найденные bottlenecks, затем записать численные acceptance
+  budgets и repeatable regression gates на synthetic fixtures; реальные данные остаются локально.
+  В README/store использовать только воспроизводимые результаты с объёмом данных,
+  окружением и методикой. Не публиковать «blazing fast scanning» как доказанный факт до
+  замеров и не выдавать быстрый incremental update за initial scan.
+
+### Numeric typography (2026-10-24)
+
+- [x] **SM-753** — Использовать mono для числовых UI values.
+  **Статус: доставлена (2026-10-24), [PR #143](https://github.com/SoundBlaster/SessionMonitor/pull/143) влит squash `a20cf7b`; все пять checks зелёные.** Общий DesignMetric, counters, token values,
+  проценты, числовые chart axes и data timestamps, inspector/menu bar/WidgetKit.
+  Не менять форматирование и accounting; explanatory labels остаются обычным шрифтом.
+  App/widget build, lint/FSD и native DS narrow/light/dark fixtures passed.
+  Single-line metadata предотвращает скачки высоты карточки; explanatory event labels остаются proportional.
+  Native NSHostingView regression matrix: 108 измерений, 0 failures; narrow light/wide dark PNG просмотрены.
+  Hosted targeted suite локально остановлен до старта test host; полный GitHub Native checks прошёл перед merge.

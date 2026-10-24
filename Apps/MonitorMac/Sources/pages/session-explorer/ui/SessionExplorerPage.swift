@@ -168,7 +168,7 @@ struct SessionExplorerPage: View {
             } else if let summary = model.importSummary {
                 Text("Last import: \(summary.files) files · \(summary.records) canonical records")
             } else if let date = model.lastUpdated {
-                Text("Updated \(date.formatted(date: .omitted, time: .shortened))")
+                Text("Updated \(date.formatted(date: .omitted, time: .shortened))").monospaced()
             } else {
                 Text("Choose a JSONL folder to get started")
             }
@@ -185,7 +185,7 @@ struct SessionExplorerPage: View {
     private func compactTotal(_ label: String, value: Int64) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(value, format: .number)
-                .font(.headline.monospacedDigit())
+                .font(.headline.monospaced())
             Text(label).font(.caption).foregroundStyle(.secondary)
         }
     }

@@ -74,11 +74,11 @@ private struct UsageCompactView: View {
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text(period.inputTokens.formatted())
-                    .font(.title2.weight(.semibold).monospacedDigit())
+                    .font(.title2.weight(.semibold).monospaced())
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
                     .accessibilityLabel("\(period.inputTokens) input tokens today")
-                Label("\(period.requests.formatted()) requests", systemImage: "arrow.left.arrow.right")
+                Label("\(period.requests.formatted()) requests", systemImage: "arrow.left.arrow.right").monospaced()
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -119,15 +119,15 @@ private struct UsagePeriodMetric: View {
                 Text("No activity").font(.title3.weight(.medium))
             } else {
                 Text(period.inputTokens.formatted())
-                    .font(.title3.weight(.semibold).monospacedDigit())
+                    .font(.title3.weight(.semibold).monospaced())
                     .lineLimit(1)
                     .minimumScaleFactor(0.65)
-                Text("\(period.requests.formatted()) requests")
+                Text("\(period.requests.formatted()) requests").monospaced()
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 if period.cacheCoverage == .partial {
-                    Text("\(period.unknownCacheRequests.formatted()) cache values unknown")
+                    Text("\(period.unknownCacheRequests.formatted()) cache values unknown").monospaced()
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -151,7 +151,7 @@ private struct UsageLargeView: View {
             UsageComparisonRow(title: "Last 7 days", value: week)
             Divider()
             if week.cacheCoverage == .partial {
-                Text("\(week.unknownCacheRequests.formatted()) requests have unknown cache coverage")
+                Text("\(week.unknownCacheRequests.formatted()) requests have unknown cache coverage").monospaced()
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -175,8 +175,8 @@ private struct UsageComparisonRow: View {
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 2) {
                 Text(value.inputTokens.formatted())
-                    .font(.title3.weight(.semibold).monospacedDigit())
-                Text("\(value.requests.formatted()) requests")
+                    .font(.title3.weight(.semibold).monospaced())
+                Text("\(value.requests.formatted()) requests").monospaced()
                     .font(.caption2).foregroundStyle(.secondary)
             }
         }
@@ -191,7 +191,7 @@ private struct UsageSecondaryMetric: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title).font(.caption2).foregroundStyle(.secondary)
-            Text(value.formatted()).font(.subheadline.weight(.medium).monospacedDigit())
+            Text(value.formatted()).font(.subheadline.weight(.medium).monospaced())
                 .lineLimit(1).minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

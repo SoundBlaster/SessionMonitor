@@ -74,6 +74,15 @@ ruleset проверять через GitHub API. Статус реализац�
 - Canonical Xcode project definition — `Apps/MonitorMac/project.yml`;
   `make generate` создаёт `.xcodeproj`. Сохранять оба Package.resolved.
 
+## UI typography
+
+Числовые значения UI всегда отображать системным monospaced font (`.monospaced()`
+или `Font.system(..., design: .monospaced)`): bytes, token counts, requests, percentages,
+numeric chart axes и data timestamps. `monospacedDigit()` недостаточно для нового
+числового компонента: mono относится ко всему значению, включая разделители и единицы.
+Форматирование/локаль сохранять; explanatory labels и обычный текст не делать mono.
+Переиспользовать shared `DesignMetric`, проверять narrow/large-type layouts после смены шрифта.
+
 ## Инструменты и проверки
 
 Основной интерфейс работы с открытым Xcode — MCP `xcode-tools`.

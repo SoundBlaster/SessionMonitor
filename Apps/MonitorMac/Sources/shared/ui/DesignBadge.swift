@@ -5,9 +5,11 @@ struct DesignBadge: View {
     let title: Text
     var fill: Color = .secondary.opacity(DesignTokens.Badge.backgroundOpacity)
 
+    var isNumeric = false
+
     var body: some View {
         title
-            .font(.caption.weight(.medium))
+            .font(isNumeric ? .caption.weight(.medium).monospaced() : .caption.weight(.medium))
             .padding(.horizontal, DesignTokens.Spacing.item)
             .padding(.vertical, DesignTokens.Spacing.inline)
             .background(fill, in: Capsule())

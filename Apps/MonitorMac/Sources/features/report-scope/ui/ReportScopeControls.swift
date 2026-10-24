@@ -100,7 +100,7 @@ struct ReportScopeControls: View {
             LabeledContent("Resolved start") {
                 if let since = model.query.since {
                     Text(since.formatted(resolvedDateFormat))
-                        .monospacedDigit()
+                        .monospaced()
                 } else {
                     Text("Beginning of imported history")
                         .foregroundStyle(.secondary)
@@ -109,7 +109,7 @@ struct ReportScopeControls: View {
             LabeledContent("Resolved end") {
                 if let until = model.query.until {
                     Text(until.formatted(resolvedDateFormat))
-                        .monospacedDigit()
+                        .monospaced()
                 } else {
                     Text("No upper bound")
                         .foregroundStyle(.secondary)
