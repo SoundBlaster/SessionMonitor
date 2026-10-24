@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-754 — реализована и проверена локально (2026-10-24): панель импорта ниже toolbar; PR готовится.**
+**SM-754 — реализована и проверена локально (2026-10-24): панель импорта ниже toolbar; [PR #144](https://github.com/SoundBlaster/SessionMonitor/pull/144) открыт.**
 Колонки NavigationSplitView теперь допускают сжатие viewport вместо расширения за границы окна.
 Progress/recovery/error notices закреплены в top safe area detail, вне прокрутки отчёта;
 sidebar учитывает свою safe area. Высота toolbar не захардкожена, import/cancel/retry semantics сохранены.
@@ -1837,7 +1837,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 ### Import progress layout (2026-10-24)
 
 - [x] **SM-754** — Панель текущего импорта ниже toolbar, без вертикальной обрезки sidebar.
-  **Статус: реализована и проверена локально; PR готовится.** Flexible frames колонок
+  **Статус: реализована и проверена локально; [PR #144](https://github.com/SoundBlaster/SessionMonitor/pull/144) открыт.** Flexible frames колонок
   допускают сжатие; notices вынесены в top safe area detail. Stop import, текущая сессия,
   progress и recovery сохранены. App/widget build, 8 targeted GUI tests (0 failures),
   SwiftLint/FSD/negative gate; native screenshots 760/1280 pt light/dark просмотрены.
