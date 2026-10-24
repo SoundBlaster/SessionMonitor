@@ -6,6 +6,19 @@
 
 ## Текущая точка
 
+**SM-744 — реализована и проверена (2026-10-24): компактные native Settings.**
+Две grouped Form секции General/Analytics: labels слева, switches и menus справа;
+полные подписи, тонкие native separators, синий акцент. Пояснение Watching рядом с General.
+Сохранены четыре settings keys, текущие значения, варианты и прежние accessibility IDs;
+добавлены IDs для menu bar/period и явное accessibility имя Watching. About/monitoring не меняются.
+Проверка: app build + 6/6 existing targeted settings tests passed через разрешённый
+per-command CLI `-skipMacroValidation`, outputs на TB5 (`sm744-settings-final.xcresult`).
+Xcode-tools OpenWorkspace ждёт повторного разрешения agent. SwiftLint/FSD/negative gate,
+project generation и diff check passed. Computer Use на свежем binary: обе настройки on,
+Last 7 days, System colors; подписи полностью видимы и controls выровнены. Native dark
+screenshot: `measurements/sm744/settings-dark.png`. Цвета semantic/system; отдельная живая
+проверка светлой темы не проводилась. Доставка через отдельный PR от main; CI без активного ожидания.
+
 **SM-743 — реализована и проверена (2026-10-23): компактные строки сессий в Sidebar.**
 Зависимость: SM-740 / PR #132 (названия чатов). Имя и доступная модель слева, Cache
 в фиксированной правой колонке; UUID ниже; tokens/requests в нижней строке. Видимые
@@ -1649,3 +1662,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   Computer Use selection/child navigation, SwiftLint/FSD passed.
   PR [#135](https://github.com/SoundBlaster/SessionMonitor/pull/135) поверх SM-740 / #132;
   CI/merge ещё ожидаются.
+
+- [x] **SM-744** — Компактные grouped Settings по пользовательскому образцу (2026-10-24).
+  Build, 6 targeted settings tests, SwiftLint/FSD и native dark Computer Use passed.
+  Реализовано; PR/CI/merge ожидаются. Подробнее в текущей точке.
