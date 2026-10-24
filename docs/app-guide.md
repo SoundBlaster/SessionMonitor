@@ -94,3 +94,13 @@ with a warning; reopening retries the subscription.
 Closing a window or hiding the icon does not stop Watch. Quitting waits for Watch cleanup;
 relaunching does not automatically resume it. Widgets have independent periods and use the
 app’s shared snapshot. See [widget setup](getting-started.md#add-a-widget).
+
+## Session file size
+
+The inspector's **Session files** section shows source size, exact bytes, known file
+count and the last observed source modification time. A `≥`/partial value is a lower
+bound; unknown asks for Update/reimport. This measures the session's own whole
+imported logs, independently of the selected period and excluding its subagents.
+Copies count separately; hard links count once. Values describe the last successful
+import and do not claim allocated or reclaimable disk space. See the
+[CLI contract](cli.md#session-source-size) for details.

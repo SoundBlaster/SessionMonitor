@@ -128,6 +128,7 @@ public final class UsageStore: Sendable {
         Self.registerAlertMigration(on: &migrator)
         Self.registerContextWindowMigration(on: &migrator)
         Self.registerSessionTitleMigration(on: &migrator)
+        Self.registerSourceStorageMigration(on: &migrator)
         return migrator
     }
     /// Replaces one complete source snapshot atomically; duplicate IDs remain globally idempotent.
@@ -198,7 +199,12 @@ public final class UsageStore: Sendable {
         try database.write { database in
             let current = try Self.checkpoint(source: source, database: database)
             guard current == expectedCheckpoint else { throw CheckpointWriteError.staleCheckpoint }
-            if update.mode == .unchanged { return }
+            if update.mode == .unchanged {
+                if try Self.updateSourceStorage(update.rollout.sourceFile, source: source, database: database) {
+                    try Self.advanceWatermark(database)
+                }
+                return
+            }
             if update.mode == .replaced {
                 try Self.clear(source: source, database: database)
             } else if current == nil {
@@ -221,6 +227,7 @@ public final class UsageStore: Sendable {
     }
 
     private static func clear(source: String, database: Database) throws {
+        try database.execute(sql: "DELETE FROM source_storage WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_records WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_legacy_estimates WHERE source = ?", arguments: [source])
         try database.execute(sql: "DELETE FROM source_context_windows WHERE source = ?", arguments: [source])
@@ -231,6 +238,7 @@ public final class UsageStore: Sendable {
     }
 
     private static func insert(_ rollout: ParsedRollout, source: String, database: Database) throws {
+        _ = try Self.updateSourceStorage(rollout.sourceFile, source: source, database: database)
         for record in rollout.records {
             let fingerprint = try Self.fingerprint(record)
             try database.execute(sql: """
@@ -329,11 +337,12 @@ public final class UsageStore: Sendable {
             SELECT \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
             """, arguments: arguments)
         let spans = try Self.sessionSpans(database, accountScope: accountScope)
+        let storage = try Self.sessionStorage(database, accountScope: accountScope)
         let sessions = try Row.fetchAll(database, sql: """
             SELECT session, CASE WHEN COUNT(DISTINCT model) = 1 THEN MIN(model) ELSE 'mixed' END AS model,
             \(Self.aggregates) FROM confirmed WHERE \(predicate) \(scopePredicate)
             GROUP BY session ORDER BY inputs DESC, session ASC
-            """, arguments: arguments).map { Self.sessionSummary($0, spans: spans) }
+            """, arguments: arguments).map { Self.sessionSummary($0, spans: spans, storage: storage) }
         return UsageReport(totals: totalsRow.map(Self.totals) ?? UsageTotals(),
                            sessions: sessions, diagnostics: try Self.diagnostics(database), accountScope: accountScope)
     }

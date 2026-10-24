@@ -27,7 +27,7 @@ extension UsageStore {
                 id: session.id, displayName: provenance?.displayName, model: session.model, totals: totals,
                 cacheCoverage: status, cacheHitRatio: totals.cacheHitRatio,
                 provenanceState: provenance == nil ? .missing : .present,
-                relationshipState: states[session.id] ?? .unknown
+                relationshipState: states[session.id] ?? .unknown, sourceStorage: session.sourceStorage
             )
         }.filter { item in
             (model == nil || item.model == model)
@@ -89,7 +89,7 @@ extension UsageStore {
             evidence: Self.inspectionEvidence(
                 sessionID: sessionID, summary: summary, timeline: timeline, provenance: provenance,
                 diagnostics: snapshot.report.diagnostics
-            )
+            ), sourceStorage: summary.sourceStorage
         )
     }
 

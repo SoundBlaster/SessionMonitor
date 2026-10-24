@@ -79,9 +79,7 @@ public actor SessionMonitor {
             ioMetrics.bytesRead += result.metadataBytesRead
             let update = result.update
             try Task.checkCancellation()
-            if update.mode != .unchanged {
-                try store.apply(source: source, update: update, expectedCheckpoint: result.checkpoint)
-            }
+            try store.apply(source: source, update: update, expectedCheckpoint: result.checkpoint)
             try titleImport.update(path: path, source: source)
             records += update.rollout.records.count
             for (key, count) in update.rollout.diagnostics { diagnostics[key, default: 0] += count }

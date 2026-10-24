@@ -1,10 +1,30 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-22. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-24. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
+
+**SM-750 — реализована и проверена локально (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) открыт; CI выполняется: размер исходных файлов.**
+Сохранять наблюдённый размер вместе с checkpoint, без повторного чтения source logs на query path.
+Показывать в CLI и inspector; это полный размер известных исходных файлов сессии на момент импорта,
+не bytes read за запуск, не размер SQLite и не обещание освобождаемого места. Сохранять account scope,
+unknown и dedup физических файлов; очищать источники не требуется. Идея Hunter — SM-751.
+Приоритет владельца дополнен SM-752: измеримая скорость как часть позиционирования.
+Performance baseline/план SM-749 находятся в открытом PR #141, подготовка Store остаётся следующим этапом.
+Проверки: `make check-core` (265 Swift Testing + 9 XCTest, четыре CLI smoke), app build,
+282 GUI unit tests (один штатный skip), SwiftLint/FSD/negative gate. Шесть light/dark
+fixtures known/partial/unknown просмотрены; финальная mono-правка собрана успешно. Xcode-tools остановился
+на macro trust; использован ранее разрешённый per-command `-skipMacroValidation`.
+Полный UI automation runner не инициализировался (timeout automation mode); повторный
+fixture run после mono-правки остановлен: sample показывает LaunchServices open RPC wait
+без старта test host. Прежний fixture run зелёный; финальный live UX не подтверждён.
+SQL projection на read-only копии индекса 603 MB до backfill: 11,92 ms первый вызов,
+1,48 ms median / 2,31 ms max десяти повторов в одном Python SQLite connection. Это только SQL,
+не end-to-end CLI latency и не результат после backfill. Личные данные и artifacts остаются на TB5.
+Далее SM-753 (единая mono typography по новому требованию), затем SM-749 и SM-706.
+
 
 **SM-741 - in progress (2026-10-23): GitHub patch release 0.1.1.**
 Owner authorized merging #127-#132 and publishing a signed/notarized patch release.
@@ -1743,3 +1763,36 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 - [x] **SM-744** — Компактные grouped Settings по пользовательскому образцу (2026-10-24).
   Build, 6 targeted settings tests, SwiftLint/FSD и native dark Computer Use passed.
   PR [#137](https://github.com/SoundBlaster/SessionMonitor/pull/137) влит как `6d1d06b`, пять checks зелёные.
+
+### Source storage и подтверждённая производительность (2026-10-24)
+
+- [x] **SM-750** — Размер импортированных source logs сессии в байтах.
+  **Статус: реализована и проверена локально (2026-10-24), [PR #142](https://github.com/SoundBlaster/SessionMonitor/pull/142) открыт; CI выполняется.** Persisted descriptor observations, atomic checkpoint, account-filtered
+  aggregation без query-time filesystem scan. CLI JSON и inspector, unknown для старого индекса
+  до повторного импорта. Проверить append/replacement/unchanged, mirrors/hard links,
+  session ownership и независимость от выбранного периода; canonical totals не меняются.
+  Восемь новых core tests, cross-CLI storage assertions и шесть GUI fixtures; updated
+  performance parity исключает только whole-source metadata из проверки неизменности периода.
+- [ ] **SM-751** — Спроектировать управление хранилищем сессий на основе Hunter.
+  **Статус: идея, после SM-750; удаление не реализуется этим этапом.** Изучить reuse Hunter,
+  безопасный preview с provenance/coverage, отдельные own/descendant bytes и ограничения
+  reclaimable space. Hunter предоставляет descriptor-anchored metadata/scan primitives;
+  product policy, durable action identity, permissions и подтверждённый preview остаются у SessionMonitor. Reference: [codex-session-gc](https://github.com/YuriyKrasilnikov/codex-session-gc).
+- [ ] **SM-752** — Подтверждённые performance claims для README и Mac App Store.
+  **Статус: запланирована; зависит от SM-746/SM-749 и повторных измерений.**
+  Скорость — часть продукта: быстрый human overview и однозначный CLI для агента.
+  Измерять отдельно initial import (files/requests/bytes per second), incremental/no-change
+  update, fresh-process CLI median/p95 и peak RSS, chart pan/zoom и refresh latency.
+  Зафиксировать reference corpus, hardware/OS/build, cold/warm cache условия и корректность
+  accounting. Сначала устранить найденные bottlenecks, затем записать численные acceptance
+  budgets и repeatable regression gates на synthetic fixtures; реальные данные остаются локально.
+  В README/store использовать только воспроизводимые результаты с объёмом данных,
+  окружением и методикой. Не публиковать «blazing fast scanning» как доказанный факт до
+  замеров и не выдавать быстрый incremental update за initial scan.
+
+- [ ] **SM-753** — Monospaced typography для всех числовых UI values.
+  **Статус: следующая задача по требованию владельца (2026-10-24).** Размеры, counters,
+  token values, проценты, числовые оси и даты/время в data views — mono; explanatory
+  labels остаются обычным системным шрифтом. Начать с shared DesignMetric, затем
+  app/chart/inspector/menu bar/WidgetKit; закрепить правило в AGENTS и проверить
+  narrow/light/dark/large type без изменения чисел и accounting.

@@ -116,7 +116,8 @@ extension MonitorCommand {
                     "\(session.id)  requests=\(session.totals.requests) input=\(session.totals.inputTokens) "
                         + "cached=\(session.totals.cachedInputTokens) output=\(session.totals.outputTokens) "
                         + "cache=\(ratio) provenance=\(session.provenanceState.rawValue) "
-                        + "relationship=\(session.relationshipState.rawValue)"
+                        + "relationship=\(session.relationshipState.rawValue) "
+                        + "sourceBytes=\(sourceStorageBytes(session.sourceStorage))"
                 )
             }
         }
@@ -179,6 +180,7 @@ extension MonitorCommand {
                 "Cache: \(ratio) (\(result.cache.status.rawValue), "
                     + "unknown requests: \(result.cache.unknownRequests))"
             )
+            print("Source bytes (whole imported session): \(sourceStorageBytes(result.sourceStorage))")
             print("Timeline events: \(result.timeline.eventCounts)")
             print("Relationship: \(result.relationship.state.rawValue)")
             let evidenceSources = Set(result.evidence.observed.map(\.source)).sorted().joined(separator: ", ")
@@ -349,4 +351,9 @@ private struct ActivityUsageLine {
         output = usage.outputTokens
         ratio = usage.cacheHitRatio
     }
+}
+
+private func sourceStorageBytes(_ storage: SessionStorageSummary?) -> String {
+    guard let storage else { return "unknown" }
+    return storage.totalBytes.map(String.init) ?? ">=\(storage.knownBytes) (partial)"
 }
