@@ -47,6 +47,20 @@ final class SessionSummaryLayoutTests: XCTestCase {
         }
     }
 
+    func testNamedSessionSummaryInLightDarkAndNarrowLayouts() throws {
+        for scheme in [ColorScheme.light, .dark] {
+            for width: CGFloat in [360, 1_040] {
+                let window = summaryWindow(session: fixture(), width: width, scheme: scheme,
+                                           title: "A long Codex chat title about debugging session synchronization")
+                defer { window.orderOut(nil) }
+                let host = try XCTUnwrap(window.contentView)
+                XCTAssertGreaterThan(host.bounds.height, 0)
+                XCTAssertLessThan(host.bounds.height, 600)
+                try attach(window, name: "named-session-\(scheme)-\(width)")
+            }
+        }
+    }
+
     private func fixture() -> SessionSummary {
         SessionSummary(id: "fixture-session-0001", model: "gpt-6-luna", totals: UsageTotals(
             requests: 34, inputTokens: 3_703_836, cachedInputTokens: 3_429_179, outputTokens: 41_198
@@ -54,12 +68,12 @@ final class SessionSummaryLayoutTests: XCTestCase {
     }
 
     private func summaryWindow(session: SessionSummary, width: CGFloat,
-                               scheme: ColorScheme, largeType: Bool = false) -> NSWindow {
+                               scheme: ColorScheme, largeType: Bool = false, title: String? = nil) -> NSWindow {
         let provider = SessionReportContextProvider(snapshot: SessionReportSnapshot(
             report: UsageReport(totals: session.totals, sessions: [session], diagnostics: [:]),
             selectedSessionID: session.id
         ))
-        let content = SessionSummaryView(session: session, provider: provider)
+        let content = SessionSummaryView(session: session, provider: provider, sessionTitle: title)
             .padding(DesignTokens.Layout.pageInset)
             .frame(width: width, alignment: .leading)
             .environment(\.colorScheme, scheme)

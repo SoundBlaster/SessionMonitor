@@ -77,7 +77,7 @@ final class SessionSortOrderTests: XCTestCase {
         }
         XCTAssertTrue(try XCTUnwrap(detail(.firstRequest)).hasPrefix("First request: "))
         XCTAssertEqual(detail(.lastRequest), "Last request: unknown")
-        XCTAssertEqual(detail(.tokens), "Tokens: 1,500")
+        XCTAssertNil(detail(.tokens))
         XCTAssertNil(detail(.cacheHit))
         XCTAssertNil(detail(.requests))
     }
