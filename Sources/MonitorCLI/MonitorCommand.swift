@@ -8,7 +8,7 @@ import MonitorRuntime
 struct MonitorCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "codex-monitor", abstract: "Inspect local Codex canonical request usage.",
-        version: "0.1.0", subcommands: [
+        version: "0.1.1", subcommands: [
             Import.self, Report.self, Watch.self, Snapshot.self, Sessions.self, Inspect.self,
             ExportSession.self, Activity.self, Doctor.self, Quota.self
         ]

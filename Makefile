@@ -31,6 +31,7 @@ DERIVED_DATA ?= .build/xcode
 RELEASE_ROOT ?= .build/release-github
 RELEASE_DERIVED_DATA ?= $(RELEASE_ROOT)/DerivedData
 CLI_SCRATCH_ROOT ?= $(RELEASE_ROOT)/SwiftPM
+CLI_BUILD_SYSTEM ?= native
 SWIFTPM_CACHE_PATH ?= $(RELEASE_ROOT)/SwiftPMCache
 RUN_ID := $(shell date -u +%Y%m%dT%H%M%S)-$(shell uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)
 RESULT_BUNDLE ?= $(BUILD_ROOT)/$(RUN_ID).xcresult
@@ -200,7 +201,7 @@ release-local:
 release-github: guard-app
 	PROJECT="$(PROJECT)" SCHEME="$(SCHEME)" XCODEBUILD="$(XCODEBUILD)" XCODEGEN="$(XCODEGEN)" \
 		XCODEBUILD_FLAGS="$(XCODEBUILD_FLAGS)" RELEASE_ROOT="$(RELEASE_ROOT)" DERIVED_DATA="$(RELEASE_DERIVED_DATA)" \
-		CLI_SCRATCH_ROOT="$(CLI_SCRATCH_ROOT)" SWIFTPM_CACHE_PATH="$(SWIFTPM_CACHE_PATH)" \
+		CLI_SCRATCH_ROOT="$(CLI_SCRATCH_ROOT)" CLI_BUILD_SYSTEM="$(CLI_BUILD_SYSTEM)" SWIFTPM_CACHE_PATH="$(SWIFTPM_CACHE_PATH)" \
 		NOTARY_PROFILE="$(NOTARY_PROFILE)" ALLOW_PROVISIONING_UPDATES="$(ALLOW_PROVISIONING_UPDATES)" \
 		./scripts/release-github.sh
 
@@ -208,7 +209,7 @@ release-github: guard-app
 release-github-local: guard-app
 	PROJECT="$(PROJECT)" SCHEME="$(SCHEME)" XCODEBUILD="$(XCODEBUILD)" XCODEGEN="$(XCODEGEN)" \
 		XCODEBUILD_FLAGS="$(XCODEBUILD_FLAGS)" RELEASE_ROOT="$(RELEASE_ROOT)" DERIVED_DATA="$(RELEASE_DERIVED_DATA)" \
-		CLI_SCRATCH_ROOT="$(CLI_SCRATCH_ROOT)" SWIFTPM_CACHE_PATH="$(SWIFTPM_CACHE_PATH)" \
+		CLI_SCRATCH_ROOT="$(CLI_SCRATCH_ROOT)" CLI_BUILD_SYSTEM="$(CLI_BUILD_SYSTEM)" SWIFTPM_CACHE_PATH="$(SWIFTPM_CACHE_PATH)" \
 		./scripts/release-github.sh --skip-notarize
 
 # Requires a prior notarized/stapled local artifact; validates and publishes it on the current main commit.

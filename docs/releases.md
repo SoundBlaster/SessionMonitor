@@ -34,6 +34,14 @@ The default output is `.build/release-github`. Before running locally, direct `R
 `RELEASE_DERIVED_DATA`, `CLI_SCRATCH_ROOT`, and `SWIFTPM_CACHE_PATH` to your approved build/cache
 locations. See [release-github.sh](../scripts/release-github.sh) for supported flags.
 
+### CLI build engine
+
+The GitHub release pipeline uses `CLI_BUILD_SYSTEM=native` for universal CLI slices to avoid
+swiftbuild host-macro dependency failures during Intel cross-builds. Native is deprecated by
+current SwiftPM; this is a compatibility workaround, not a long-term engine choice.
+Set `CLI_BUILD_SYSTEM=swiftbuild` only after validating that the installed toolchain supports
+both target architectures and host macros. Product paths are obtained with `--show-bin-path`.
+
 `make release-github-local` skips notarization for local packaging/signing checks. Its output is
 not suitable for publication. A signed build alone is not a notarized release.
 

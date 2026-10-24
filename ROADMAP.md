@@ -6,6 +6,13 @@
 
 ## Текущая точка
 
+**SM-741 - in progress (2026-10-23): GitHub patch release 0.1.1.**
+Owner authorized merging #127-#132 and publishing a signed/notarized patch release.
+App/CLI version 0.1.1, build 2. Release CLI builds use the verified native engine workaround
+and query actual bin paths (SM-736); native remains deprecated. Prepare from clean merged main,
+verify combined functionality, app/widget/CLI signatures, notarization, DMG and downloaded hashes.
+No publication is claimed until the release assets are live and checked.
+
 **Интеграция PR (2026-10-24, после #137): линейный стек #128 → #129 → #131 → #133.**
 Settings #137 доставлены (`6d1d06b`); main синхронизирован. Оставшиеся ветки собираются
 в один native stack, release-подготовка — вершина, для атомарного merge после свежего CI.
@@ -1636,6 +1643,9 @@ SwiftLint/FSD/diff check passed. Live Watching визуально не пров�
   **Снята с очереди SessionMonitor (2026-10-18): по подтверждению пользователя, работа уже завершена в проекте Screener.**
   Повторная реализация в SessionMonitor не требуется. ID сохранён для истории; новая проверка Screener в рамках
   этой синхронизации не выполнялась.
+
+- [ ] **SM-741** - Prepare and publish notarized GitHub release 0.1.1 after integration of #127-#132.
+  In progress: app/CLI version, build number and reproducible universal CLI packaging workaround.
 
 ## Evidence и границы
 

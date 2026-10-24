@@ -28,6 +28,7 @@ scheme="${SCHEME:-MonitorMac}"
 xcodebuild_bin="${XCODEBUILD:-xcodebuild}"
 xcodegen_bin="${XCODEGEN:-xcodegen}"
 swift_bin="${SWIFT:-swift}"
+cli_build_system="${CLI_BUILD_SYSTEM:-native}"
 release_root="${RELEASE_ROOT:-.build/release-github}"
 derived_data="${DERIVED_DATA:-$release_root/DerivedData}"
 cli_scratch_root="${CLI_SCRATCH_ROOT:-$release_root/SwiftPM}"
@@ -142,8 +143,7 @@ cli_binary_path="$cli_package_path/codex-monitor"
 cli_checksum_path="$release_root/codex-monitor-$version-macos-universal.zip.sha256"
 app_path="$export_path/SessionMonitor.app"
 
-for path in "$archive_path" "$export_path" "$export_options_path" "$dmg_path" "$checksum_path" "$cli_arm64_scratch" \
-    "$cli_x86_64_scratch" "$cli_package_path" "$cli_archive_path" "$cli_checksum_path" \
+for path in "$archive_path" "$export_path" "$export_options_path" "$dmg_path" "$checksum_path" "$cli_package_path" "$cli_archive_path" "$cli_checksum_path" \
     "$release_root/source-revision.txt" \
     "$release_root/notary-app.json" "$release_root/notary-cli.json" "$release_root/notary-dmg.json"; do
     [[ ! -e "$path" ]] || {
@@ -214,14 +214,19 @@ run_xcodebuild "${export_args[@]}"
 
 mkdir -p "$cli_package_path" "$cli_arm64_scratch" "$cli_x86_64_scratch" "$swiftpm_cache"
 echo "Building universal codex-monitor CLI $version..."
-"$swift_bin" build --package-path "$repo_root" --scratch-path "$cli_arm64_scratch" \
-    --cache-path "$swiftpm_cache" --triple arm64-apple-macosx15.0 \
-    --configuration release --product codex-monitor
-"$swift_bin" build --package-path "$repo_root" --scratch-path "$cli_x86_64_scratch" \
-    --cache-path "$swiftpm_cache" --triple x86_64-apple-macosx15.0 \
-    --configuration release --product codex-monitor
-arm64_cli="$cli_arm64_scratch/arm64-apple-macosx/release/codex-monitor"
-x86_64_cli="$cli_x86_64_scratch/x86_64-apple-macosx/release/codex-monitor"
+# Native avoids the current swiftbuild cross-target host macro dependency failure.
+# Query the actual product directory rather than assuming one engine's output layout.
+build_cli_slice() {
+    local scratch="$1" triple="$2"
+    shift 2
+    "$swift_bin" build --build-system "$cli_build_system" --package-path "$repo_root" \
+        --scratch-path "$scratch" --cache-path "$swiftpm_cache" --triple "$triple" \
+        --force-resolved-versions --configuration release --product codex-monitor "$@"
+}
+build_cli_slice "$cli_arm64_scratch" arm64-apple-macosx15.0
+build_cli_slice "$cli_x86_64_scratch" x86_64-apple-macosx15.0
+arm64_cli="$(build_cli_slice "$cli_arm64_scratch" arm64-apple-macosx15.0 --show-bin-path)/codex-monitor"
+x86_64_cli="$(build_cli_slice "$cli_x86_64_scratch" x86_64-apple-macosx15.0 --show-bin-path)/codex-monitor"
 [[ -x "$arm64_cli" && -x "$x86_64_cli" ]] || {
     echo "SwiftPM did not produce both architecture-specific codex-monitor executables." >&2
     exit 1
