@@ -6,6 +6,14 @@
 
 ## Текущая точка
 
+**SM-752 — частично реализована (2026-10-25): performance-блок README по подтверждённым CLI-замерам SM-749; docs PR готовится, не влит.**
+Под главным скриншотом: latest status 180 ms / 31,9 MiB peak RSS, selected/7 days 680 ms / 52,3 MiB,
+quota summary 50 ms / 23 MiB. Указаны Release CLI, M4 Pro/24 GiB/macOS 27, размер корпуса,
+10 fresh-process повторов после инициализации индекса и явная пометка development build.
+Evidence закреплён permalink на документ из commit `8097a8b`; ссылка и численные значения проверены.
+Изменения только README/ROADMAP, сборки повторно не запускались. SM-749 остаётся в открытом PR #145.
+Первоначальный импорт, incremental update, GUI и Mac App Store claims остаются в scope SM-752.
+
 **Интеграция PR (2026-10-25): #140 (`18216c5`), #141 (`91f94db`) и #144 (`aa67b65`) влиты; локальный main синхронизирован.**
 SM-754 доставлена, performance baseline SM-746 доставлен; полный contract audit SM-746 остаётся
 частичным, SM-749 и SM-755 не выполнены. Остался docs PR #139 с release evidence и этой
@@ -1856,7 +1864,15 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   reclaimable space. Hunter предоставляет descriptor-anchored metadata/scan primitives;
   product policy, durable action identity, permissions и подтверждённый preview остаются у SessionMonitor. Reference: [codex-session-gc](https://github.com/YuriyKrasilnikov/codex-session-gc).
 - [ ] **SM-752** — Подтверждённые performance claims для README и Mac App Store.
-  **Статус: запланирована; зависит от SM-746/SM-749 и повторных измерений.**
+  **Статус: частично реализована (2026-10-25), README — docs PR готовится, не влит.**
+  Добавлен CLI performance-блок под главным скриншотом: 180 ms / 31,9 MiB для latest session,
+  680 ms / 52,3 MiB для selected/7 days, 50 ms / 23 MiB для quota summary. Числа mono;
+  время — median 10 fresh-process повторов, память — peak CLI RSS. Указаны reference corpus,
+  Release/arm64, M4 Pro/24 GiB/macOS 27, after-initialization условия и development build.
+  [Неизменяемый evidence SM-749](https://github.com/SoundBlaster/SessionMonitor/blob/8097a8b98a8691e85fb2441d4016b9b926320a52/docs/performance/SM-749-bounded-agent-status.md).
+  Docs checks: значения сверены с evidence, permalink подтверждён через GitHub API, формат/links/IDs проверены.
+  Повторные builds/tests не требуются для README/ROADMAP. Код SM-749 — в открытом PR #145.
+  Остаток: initial/incremental/no-change import, GUI refresh/pan/zoom и App Store claims; [ ] сохранён.
   Скорость — часть продукта: быстрый human overview и однозначный CLI для агента.
   Измерять отдельно initial import (files/requests/bytes per second), incremental/no-change
   update, fresh-process CLI median/p95 и peak RSS, chart pan/zoom и refresh latency.
