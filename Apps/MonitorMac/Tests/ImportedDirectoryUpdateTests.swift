@@ -50,7 +50,7 @@ final class ImportedDirectoryUpdateTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let directory = URL(fileURLWithPath: "/tmp/codex-rollouts", isDirectory: true)
         let settings = ImportedDirectorySettings(defaults: defaults)
-        settings.save(directory)
+        try settings.save(directory)
         let original = report([session("stored")])
         let runtime = StubExplorerRuntime(report: original)
         let model = SessionExplorerModel(runtimeFactory: { runtime }, importedDirectorySettings: settings)

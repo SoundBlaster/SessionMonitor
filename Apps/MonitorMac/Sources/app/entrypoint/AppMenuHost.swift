@@ -82,7 +82,6 @@ struct AppMenuHost: View {
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
         guard panel.runModal() == .OK, let directory = panel.url else { return }
-        WatchLaunchSettings().remember(directory)
-        Task { await watch.start(directory) }
+        Task { await watch.startSelected(directory) }
     }
 }

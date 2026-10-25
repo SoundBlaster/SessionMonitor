@@ -51,7 +51,7 @@ final class AppWatchController {
         self.didImport = didImport
     }
 
-    /// Starts exactly one watch for the selected directory.
+    /// Retains access until the watch stops; resolving a bookmark alone does not acquire access.
     func start(_ directory: URL) async {
         guard !isShuttingDown, !isImporting, !isBusy, handle == nil, startupTask == nil else { return }
 
@@ -89,20 +89,6 @@ final class AppWatchController {
         startupTask = task
         startupGeneration = generation
         await task.value
-    }
-
-    /// Resumes the saved folder at launch. A missing folder leaves an actionable message instead
-    /// of starting nothing silently.
-    func startSaved(_ settings: WatchLaunchSettings) async {
-        switch settings.launchDirectory() {
-        case nil:
-            return
-        case let .failure(error):
-            guard !isRunning else { return }
-            errorMessage = error.localizedDescription
-        case let .success(directory):
-            await start(directory)
-        }
     }
 
     func pause() async {
@@ -306,6 +292,30 @@ final class AppWatchController {
 }
 
 extension AppWatchController {
+    /// Saves the folder picker's grant before starting exactly one watch.
+    func startSelected(_ directory: URL, settings: WatchLaunchSettings = WatchLaunchSettings()) async {
+        guard !isShuttingDown, !isImporting, !isBusy, handle == nil, startupTask == nil else { return }
+        do {
+            try settings.remember(directory)
+            await start(directory)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// A missing folder or lost permission leaves an actionable message at launch.
+    func startSaved(_ settings: WatchLaunchSettings) async {
+        switch settings.launchDirectory() {
+        case nil:
+            return
+        case let .failure(error):
+            guard !isRunning else { return }
+            errorMessage = error.localizedDescription
+        case let .success(directory):
+            await start(directory)
+        }
+    }
+
     /// All windows share this controller. A manual import joins Watch cleanup, then owns the
     /// app's import slot until completion. Explicit Start Watch is rejected during that slot.
     func importManually(

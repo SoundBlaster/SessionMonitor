@@ -15,7 +15,14 @@ struct SessionMonitorApp: App {
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
 
     init() {
-        let loader = SessionMonitorRuntimeLoader()
+        let isHostedTest = NSClassFromString("XCTestCase") != nil
+            || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        let testDatabase = URL.temporaryDirectory
+            .appending(path: "SessionMonitor-hosted-tests-\(ProcessInfo.processInfo.processIdentifier)/usage.sqlite")
+        let loader = SessionMonitorRuntimeLoader(
+            databaseURL: isHostedTest ? testDatabase : MonitorRuntime.SessionMonitor.defaultDatabaseURL,
+            publishesWidgets: !isHostedTest
+        )
         runtimeLoader = loader
         let watch = AppWatchController(
             didImport: {
@@ -35,7 +42,7 @@ struct SessionMonitorApp: App {
         }))
         appDelegate.shutdown = { await watch.shutdown() }
         // SM-205: resume watching the last chosen folder without user action.
-        Task { await watch.startSaved(WatchLaunchSettings()) }
+        if !isHostedTest { Task { await watch.startSaved(WatchLaunchSettings()) } }
     }
 
     var body: some Scene {
@@ -135,13 +142,20 @@ private struct SessionMonitorWindow: View {
 
 /// Database setup, like imports and queries, is performed away from MainActor.
 actor SessionMonitorRuntimeLoader {
+    private let databaseURL: URL
+    private let publishesWidgets: Bool
     private var runtime: SharedReportRuntime?
     private var databaseRuntime: MonitorRuntime.SessionMonitor?
     private var watchdog: AlertWatchdog?
 
+    init(databaseURL: URL = MonitorRuntime.SessionMonitor.defaultDatabaseURL, publishesWidgets: Bool = true) {
+        self.databaseURL = databaseURL
+        self.publishesWidgets = publishesWidgets
+    }
+
     private func database() throws -> MonitorRuntime.SessionMonitor {
         if let databaseRuntime { return databaseRuntime }
-        let value = try MonitorRuntime.SessionMonitor(databaseURL: MonitorRuntime.SessionMonitor.defaultDatabaseURL)
+        let value = try MonitorRuntime.SessionMonitor(databaseURL: databaseURL)
         databaseRuntime = value
         return value
     }
@@ -165,7 +179,8 @@ actor SessionMonitorRuntimeLoader {
     func load() async throws -> SharedReportRuntime {
         if let runtime { return runtime }
         let databaseRuntime = try database()
-        let runtime = SharedReportRuntime(runtime: databaseRuntime)
+        let runtime = SharedReportRuntime(runtime: databaseRuntime,
+                                          widgetSnapshotStore: publishesWidgets ? .appGroup() : nil)
         self.runtime = runtime
         Task { await runtime.publishWidgetSnapshotNow() }
         return runtime

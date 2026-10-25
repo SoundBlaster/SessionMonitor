@@ -1,4 +1,9 @@
 name: MonitorMac
+configs:
+  Debug: debug
+  Release: release
+  StoreDebug: debug
+  StoreRelease: release
 options:
   minimumXcodeGenVersion: 2.46.0
   deploymentTarget:
@@ -27,6 +32,8 @@ settings:
 configFiles:
   Debug: Local.xcconfig
   Release: Local.xcconfig
+  StoreDebug: Local.xcconfig
+  StoreRelease: Local.xcconfig
 targets:
   MonitorMac:
     type: application
@@ -53,6 +60,15 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: SessionMonitor
         ENABLE_APP_SANDBOX: NO
         CODE_SIGN_ENTITLEMENTS: Config/AppGroups.entitlements
+      configs:
+        StoreDebug:
+          ENABLE_APP_SANDBOX: YES
+          CODE_SIGN_ENTITLEMENTS: Config/Store.entitlements
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) DEBUG APP_STORE"
+        StoreRelease:
+          ENABLE_APP_SANDBOX: YES
+          CODE_SIGN_ENTITLEMENTS: Config/Store.entitlements
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
     dependencies:
       - target: SessionMonitorWidgetExtension
         embed: true
@@ -114,6 +130,15 @@ targets:
       - target: MonitorMac
 
 schemes:
+  MonitorMacStore:
+    build:
+      targets:
+        MonitorMac: all
+        SessionMonitorWidgetExtension: all
+    run:
+      config: StoreDebug
+    archive:
+      config: StoreRelease
   MonitorMac:
     build:
       targets:

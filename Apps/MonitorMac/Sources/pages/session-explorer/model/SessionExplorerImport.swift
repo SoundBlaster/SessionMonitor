@@ -6,6 +6,10 @@ import MonitorRuntime
 extension SessionExplorerModel {
     /// Imports the last selected folder before loading the report; falls back to a read-only refresh.
     func update() async {
+        if let importedDirectoryAccessError, importedDirectory == nil {
+            failure = .message(importedDirectoryAccessError)
+            return
+        }
         guard let importedDirectory else {
             await refresh()
             return
@@ -15,6 +19,10 @@ extension SessionExplorerModel {
 
     func startUpdate(afterCompletion: @escaping @MainActor @Sendable () async -> Void = {}) {
         guard !isBusy else { return }
+        if let importedDirectoryAccessError, importedDirectory == nil {
+            failure = .message(importedDirectoryAccessError)
+            return
+        }
         if let importedDirectory {
             startImportDirectory(importedDirectory, afterCompletion: afterCompletion)
         } else {
@@ -74,7 +82,13 @@ extension SessionExplorerModel {
             let summary = try await importOperation(directory, runtime, progress)
             await Task.yield()
             importedDirectory = directory
-            importedDirectorySettings.save(directory)
+            do {
+                try importedDirectorySettings.save(directory)
+                importedDirectoryAccessError = nil
+            } catch {
+                importedDirectoryAccessError = error.localizedDescription
+                failure = .message("Import completed. \(error.localizedDescription)")
+            }
             let requestedQuery = query
             let snapshot = try await runtime.snapshot(query: requestedQuery)
             importSummary = summary
