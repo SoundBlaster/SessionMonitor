@@ -47,17 +47,27 @@ public struct QuotaPresentationDecision: DecisionSpec {
         presentation(for: context)
     }
 
+    /// Applies the same SpecificationCore decision to reduced witnesses, retaining full-query coverage.
+    public func presentation(for evidence: QuotaPresentationEvidence) -> Result {
+        let report = UsageLimitSnapshotReport(
+            query: evidence.query, generatedAt: evidence.generatedAt, snapshots: evidence.snapshots
+        )
+        return QuotaPresentationReport(
+            query: evidence.query, generatedAt: evidence.generatedAt,
+            freshnessThresholdSeconds: configuration.freshnessThreshold,
+            coverage: evidence.coverage, accountCoverages: evidence.accountCoverages,
+            windows: presentations(QuotaPresentationContext(report: report))
+        )
+    }
+
     public func presentation(for context: Context) -> Result {
         let hasSnapshots = HasQuotaSnapshotsSpec().isSatisfiedBy(context)
         let hasWindows = HasWindowObservationsSpec().isSatisfiedBy(context)
         let windows = hasSnapshots && hasWindows ? presentations(context) : []
-        let accountCoverages = Dictionary(grouping: context.report.snapshots, by: { snapshot in
-            "\(snapshot.accountScopeID ?? "no-scope")|\(snapshot.accountScopeState.rawValue)"
-        }).values.map(QuotaAccountCoverage.init(snapshots:)).sorted { $0.id < $1.id }
         return QuotaPresentationReport(
             query: context.report.query, generatedAt: context.generatedAt,
             freshnessThresholdSeconds: configuration.freshnessThreshold,
-            coverage: context.report.coverage, accountCoverages: accountCoverages, windows: windows
+            coverage: context.report.coverage, accountCoverages: context.report.accountCoverages, windows: windows
         )
     }
 
@@ -157,44 +167,12 @@ public struct QuotaPresentationDecision: DecisionSpec {
     }
 }
 
-private struct WindowKey: Hashable {
-    let accountScopeID: String?
-    let scope: UsageLimitScope
-    let scopeIdentifier: String?
-    let limitIdentity: LimitIdentity
-    let slot: UsageLimitWindowSlot
-
-    var identifier: String {
-        [accountScopeID ?? "unknown", scope.rawValue, scopeIdentifier ?? "unknown",
-         limitIdentity.identifier, slot.rawValue]
-            .joined(separator: "|")
-    }
-
-    enum LimitIdentity: Hashable {
-        case id(String)
-        case name(String)
-        case anonymous
-
-        var identifier: String {
-            switch self {
-            case let .id(value): value
-            case let .name(value): "name:\(value)"
-            case .anonymous: "unknown"
-            }
-        }
-    }
-}
-
 private struct WindowCandidate {
     let snapshot: UsageLimitSnapshotObservation
     let window: UsageLimitWindowObservation
 
-    var key: WindowKey {
-        WindowKey(
-            accountScopeID: snapshot.accountScopeID,
-            scope: snapshot.scope, scopeIdentifier: snapshot.scopeIdentifier,
-            limitIdentity: Self.limitIdentity(snapshot), slot: window.slot
-        )
+    var key: QuotaPresentationSeriesKey {
+        QuotaPresentationSeriesKey(snapshot: snapshot, window: window)
     }
 
     var fingerprint: Fingerprint {
@@ -205,16 +183,6 @@ private struct WindowCandidate {
         )
     }
 
-    private static func limitIdentity(_ snapshot: UsageLimitSnapshotObservation)
-        -> WindowKey.LimitIdentity {
-        if let limitID = snapshot.limitID, !limitID.isEmpty {
-            return .id(limitID)
-        }
-        if let limitName = snapshot.limitName, !limitName.isEmpty {
-            return .name(limitName)
-        }
-        return .anonymous
-    }
 }
 
 private struct Fingerprint: Hashable {

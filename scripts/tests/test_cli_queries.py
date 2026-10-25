@@ -7,10 +7,16 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'performance'))
-from cli_queries import backup, percentile, summary
+from cli_queries import backup, percentile, query_cases, summary
 
 
 class QueryBenchmarkTests(unittest.TestCase):
+    def test_cases_keep_full_quota_and_summary_contracts_separate(self):
+        cases = dict(query_cases(Path('index.sqlite'), 'start', 'end', 'synthetic-session'))
+        self.assertNotIn('--summary', cases['quota-all'])
+        self.assertIn('--summary', cases['quota-summary-all'])
+        self.assertIn('--json', cases['quota-summary-all'])
+
     def test_backup_includes_committed_wal_but_not_an_open_transaction(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

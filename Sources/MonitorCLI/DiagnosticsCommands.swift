@@ -262,17 +262,23 @@ extension MonitorCommand {
         @OptionGroup var options: DatabaseOptions
         @OptionGroup var queryOptions: UsageQueryOptions
         @Flag(help: "Emit stable structured JSON.") var json = false
+        @Flag(help: "Emit a presentation summary with full-query coverage and reset evidence, without raw history.")
+        var summary = false
 
         // swiftlint:disable:next function_body_length
         mutating func run() async throws {
             let query = try queryOptions.query()
             let monitor = try options.runtime()
-            if json {
+            if json && !summary {
                 let report = try await monitor.usageLimitSnapshots(query: query)
                 try printJSON(report)
                 return
             }
-            let report = try await monitor.quotaPresentation(query: query)
+            let report = try await monitor.quotaSummary(query: query)
+            if json {
+                try printJSON(report)
+                return
+            }
 
             print("Account scope: \(query.accountScope.displayLabel)")
             print("Imported usage-limit telemetry: \(report.coverage.state.rawValue)")

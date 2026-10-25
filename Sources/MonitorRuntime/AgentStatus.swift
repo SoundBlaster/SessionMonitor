@@ -3,6 +3,15 @@ import MonitorCore
 import MonitorPolicies
 
 extension SessionMonitor {
+    /// Presentation-equivalent summary backed by reduced evidence, not raw quota history.
+    /// The all-time/all-account query uses an atomically maintained SQLite projection.
+    public func quotaSummary(
+        query: UsageQuery, generatedAt: Date = Date(), configuration: QuotaPresentationConfiguration = .init()
+    ) throws -> QuotaPresentationReport {
+        let evidence = try store.quotaPresentationEvidence(query: query, generatedAt: generatedAt)
+        return QuotaPresentationDecision(configuration: configuration).presentation(for: evidence)
+    }
+
     /// Status for an agent's session. Without `sessionID`, the session with the newest request in the
     /// lookback window is used. Usage totals cover the lookback window; quota uses the latest
     /// observation per window. Read-only: it never imports, evaluates or delivers alerts.
@@ -12,15 +21,13 @@ extension SessionMonitor {
     ) throws -> AgentStatusReport {
         // Bounded at `now`, so future-dated (skewed or malformed) records never enter the window.
         let query = try UsageQuery(since: now.addingTimeInterval(-lookback), until: now)
-        // Select before the snapshot: imports only add sessions, so a later snapshot still contains
-        // the selected one even if another process commits in between (GRDB reads cannot nest).
-        let id = try sessionID ?? store.latestSessionID(query: query)
-        let snapshot = try snapshot(query: query)
-        let summary = id.flatMap { id in snapshot.report.sessions.first { $0.id == id } }
+        let snapshot = try store.agentSessionSnapshot(sessionID: sessionID, query: query)
+        let summary = snapshot.summary
         let sessionTimeline = try summary.map { try self.timeline(sessionID: $0.id, query: query) }
         let inputs = AgentStatusInputs(
-            sessionID: id, summary: summary, timeline: sessionTimeline, activeAlerts: try alerts(status: .active),
-            quota: try quotaPresentation(query: UsageQuery(), generatedAt: now), watermark: snapshot.watermark
+            sessionID: snapshot.sessionID, summary: summary, timeline: sessionTimeline,
+            activeAlerts: try alerts(status: .active),
+            quota: try quotaSummary(query: UsageQuery(), generatedAt: now), watermark: snapshot.watermark
         )
         // Recent activity cannot extend past the fetched timeline; the report states the effective window.
         return AgentStatusBuilder.build(
