@@ -85,76 +85,27 @@ extension UsageStore {
     }
 }
 
-private extension UsageStore {
-    // swiftlint:disable:next function_body_length
+extension UsageStore {
     func usageLimitRows(query: UsageQuery) throws -> [Row] {
+        try database.read { database in
+            try Row.fetchAll(database, sql: Self.usageLimitRowsCTE + """
+                SELECT * FROM ranked WHERE duplicate_rank = 1
+                ORDER BY timestamp ASC, event_identity ASC, slot_key ASC
+                """, arguments: Self.usageLimitArguments(query))
+        }
+    }
+
+    static func usageLimitArguments(_ query: UsageQuery) -> StatementArguments {
         let lower = query.since?.timeIntervalSince1970
         let upper = query.until?.timeIntervalSince1970
-        return try database.read { database in
-            try Row.fetchAll(database, sql: """
-                WITH scoped AS (
-                    SELECT snapshots.*, scope.scope_key AS resolved_scope_key,
-                           CASE WHEN scope.state = 'assigned'
-                                      AND (snapshots.account_id IS NULL OR scope.account_id IS NULL
-                                           OR snapshots.account_id = scope.account_id)
-                                      AND (snapshots.user_id IS NULL OR scope.user_id IS NULL
-                                           OR snapshots.user_id = scope.user_id)
-                                THEN 'profile:' || scope.profile_id
-                                WHEN snapshots.account_id IS NOT NULL OR snapshots.user_id IS NOT NULL
-                                THEN 'identity:' || COALESCE(snapshots.account_id, scope.account_id, '')
-                                     || char(31) || COALESCE(snapshots.user_id, scope.user_id, '')
-                                ELSE scope.scope_key END AS dedup_scope_key,
-                           CASE WHEN scope.state = 'mixed'
-                                  OR (snapshots.account_id IS NOT NULL AND scope.account_id IS NOT NULL
-                                      AND snapshots.account_id != scope.account_id)
-                                  OR (snapshots.user_id IS NOT NULL AND scope.user_id IS NOT NULL
-                                      AND snapshots.user_id != scope.user_id)
-                                THEN NULL ELSE scope.profile_id END AS resolved_profile_id,
-                           CASE WHEN scope.state = 'mixed'
-                                  OR (snapshots.account_id IS NOT NULL AND scope.account_id IS NOT NULL
-                                      AND snapshots.account_id != scope.account_id)
-                                  OR (snapshots.user_id IS NOT NULL AND scope.user_id IS NOT NULL
-                                      AND snapshots.user_id != scope.user_id)
-                                THEN 'mixed'
-                                WHEN scope.profile_id IS NOT NULL THEN 'assigned'
-                                WHEN snapshots.account_id IS NOT NULL OR snapshots.user_id IS NOT NULL
-                                  OR scope.account_id IS NOT NULL OR scope.user_id IS NOT NULL
-                                THEN 'explicitIdentity'
-                                ELSE scope.state END AS resolved_scope_state,
-                           CASE WHEN scope.state = 'assigned'
-                                      AND (snapshots.account_id IS NULL OR scope.account_id IS NULL
-                                           OR snapshots.account_id = scope.account_id)
-                                      AND (snapshots.user_id IS NULL OR scope.user_id IS NULL
-                                           OR snapshots.user_id = scope.user_id)
-                                THEN profiles.label END AS profile_label,
-                           COALESCE(snapshots.account_id, scope.account_id) AS resolved_account_id,
-                           COALESCE(snapshots.user_id, scope.user_id) AS resolved_user_id
-                    FROM source_usage_limit_snapshots AS snapshots
-                    JOIN source_account_scope AS scope ON scope.source = snapshots.source
-                    LEFT JOIN account_profiles AS profiles ON profiles.profile_id = scope.profile_id
-                    WHERE (? IS NULL OR snapshots.timestamp >= ?) AND (? IS NULL OR snapshots.timestamp < ?)
-                ), ranked AS (
-                    SELECT scoped.*, resolved_profile_id AS account_profile_id,
-                           COUNT(*) OVER (PARTITION BY dedup_scope_key, event_identity, slot_key) AS source_count,
-                           ROW_NUMBER() OVER (
-                               PARTITION BY dedup_scope_key, event_identity, slot_key ORDER BY source ASC, line ASC
-                           ) AS duplicate_rank
-                    FROM scoped
-                    WHERE (? = 'allAccounts'
-                           OR (? = 'profile' AND resolved_profile_id = ?)
-                           OR (? = 'unknownOrMixed' AND resolved_profile_id IS NULL))
-                )
-                SELECT * FROM ranked
-                WHERE duplicate_rank = 1
-                ORDER BY timestamp ASC, event_identity ASC, slot_key ASC
-                """, arguments: [lower, lower, upper, upper,
-                                  query.accountScope.kind.rawValue, query.accountScope.kind.rawValue,
-                                  query.accountScope.profileID, query.accountScope.kind.rawValue])
-        }
+        return [lower, lower, upper, upper,
+                query.accountScope.kind.rawValue, query.accountScope.kind.rawValue,
+                query.accountScope.profileID, query.accountScope.kind.rawValue]
     }
 
     static func snapshots(from rows: [Row]) -> [UsageLimitSnapshotObservation] {
         var grouped: [String: SnapshotAccumulator] = [:]
+        var scopeIdentifiers: [String: String] = [:]
         for row in rows {
             let identity: String = row["event_identity"]
             let scopeKey: String = row["dedup_scope_key"]
@@ -162,9 +113,11 @@ private extension UsageStore {
             let duplicates = max(0, (row["source_count"] as Int - 1))
             let groupKey = "\(scopeKey)\u{1f}\(identity)"
             if grouped[groupKey] == nil {
+                let identifier = scopeIdentifiers[scopeKey] ?? Self.scopeIdentifier(scopeKey)
+                scopeIdentifiers[scopeKey] = identifier
                 grouped[groupKey] = SnapshotAccumulator(
                     eventIdentity: identity,
-                    accountScopeID: Self.scopeIdentifier(scopeKey),
+                    accountScopeID: identifier,
                     accountProfileID: row["account_profile_id"],
                     accountProfileLabel: row["profile_label"],
                     accountScopeState: UsageAccountScopeState(rawValue: row["resolved_scope_state"]) ?? .unknown,

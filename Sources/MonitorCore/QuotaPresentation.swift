@@ -110,13 +110,25 @@ public struct QuotaAccountCoverage: Codable, Equatable, Identifiable, Sendable {
     public let coverage: UsageLimitTelemetryCoverage
 
     public init(snapshots: [UsageLimitSnapshotObservation]) {
-        let first = snapshots.first
-        accountScopeID = first?.accountScopeID
-        accountProfileID = first?.accountProfileID
-        accountProfileLabel = first?.accountProfileLabel
-        accountScopeState = first?.accountScopeState ?? .unknown
+        self.init(first: snapshots.first, coverage: UsageLimitTelemetryCoverage(snapshots: snapshots))
+    }
+
+    public init(first: UsageLimitSnapshotObservation?, coverage: UsageLimitTelemetryCoverage) {
+        self.init(accountScopeID: first?.accountScopeID, accountProfileID: first?.accountProfileID,
+                  accountProfileLabel: first?.accountProfileLabel,
+                  accountScopeState: first?.accountScopeState ?? .unknown, coverage: coverage)
+    }
+
+    public init(
+        accountScopeID: String?, accountProfileID: String?, accountProfileLabel: String?,
+        accountScopeState: UsageAccountScopeState, coverage: UsageLimitTelemetryCoverage
+    ) {
+        self.accountScopeID = accountScopeID
+        self.accountProfileID = accountProfileID
+        self.accountProfileLabel = accountProfileLabel
+        self.accountScopeState = accountScopeState
         id = "\(accountScopeID ?? "no-scope")|\(accountScopeState.rawValue)"
-        coverage = UsageLimitTelemetryCoverage(snapshots: snapshots)
+        self.coverage = coverage
     }
 }
 

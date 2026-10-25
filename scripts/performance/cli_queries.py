@@ -59,6 +59,7 @@ def query_cases(database, since, until, session):
         ('activity-session-window', ['activity', *index, *window, '--session', session, '--json']),
         ('quota-window', ['quota', *index, *window, '--json']),
         ('quota-all', ['quota', *index, '--json']),
+        ('quota-summary-all', ['quota', *index, '--summary', '--json']),
         ('agent-latest-24h', ['agent', 'status', *index, '--json']),
         ('agent-session-168h', ['agent', 'status', *index, '--session', session,
                                 '--lookback-hours', '168', '--json']),
