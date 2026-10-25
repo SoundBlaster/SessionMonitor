@@ -6,6 +6,8 @@ Updated October 25, 2026. CLI performance work SM-749 is delivered in PR #145;
 the README measurements are delivered in PR #146. SM-706 now implements the first
 engineering prerequisite: a separate sandbox configuration and persisted folder grants.
 This document records preparation, not a submitted or approved build.
+The engineering foundation is proposed in [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147);
+it is not delivered to main yet. The remaining acceptance/release gates are listed below.
 
 ## Current App Store Connect state
 

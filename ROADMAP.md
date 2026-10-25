@@ -7,6 +7,8 @@
 ## Текущая точка
 
 **SM-706 — в работе (2026-10-25): подготовка sandboxed Mac App Store configuration и постоянного доступа к выбранным папкам.**
+Первый engineering-этап — [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), открыт, не влит;
+GitHub CI после создания PR активно не ожидается.
 SM-749 доставлена через #145 (`c5a507b`), README-часть SM-752 — через #146 (`b052e5d`);
 оба PR прошли все пять checks, локальный main синхронизирован. ASC API доступен с существующим
 Keychain profile; app `6812366729`, draft macOS `1.0` и отсутствие macOS builds проверены заново.
@@ -1350,6 +1352,7 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   Clean-machine/update/widget acceptance остаётся открытой. Mac App Store — SM-706.
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
   **2026-10-25: в работе — sandbox configuration и persistent folder permissions.** ASC API/app/draft
+  Доставка первого этапа — [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), открыт, не влит; CI не опрашивается.
   проверены заново, macOS builds по-прежнему отсутствуют. Import/Update/Watching должны сохранять
   и восстанавливать security-scoped bookmarks с явным reselect при утрате доступа: реализовано
   в StoreDebug/StoreRelease, read-only grants, сохранение предыдущего выбора при ошибке. Финальный Debug
