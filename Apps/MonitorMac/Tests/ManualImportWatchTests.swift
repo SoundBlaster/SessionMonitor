@@ -15,7 +15,7 @@ final class ManualImportWatchTests: XCTestCase {
             await watch.start(fixture.watched)
             XCTAssertTrue(watch.isRunning)
             if paused { await watch.pause() }
-            if paused { ImportedDirectorySettings(defaults: fixture.defaults).save(fixture.selected) }
+            if paused { try ImportedDirectorySettings(defaults: fixture.defaults).save(fixture.selected) }
             let model = fixture.model(runtime: runtime, watch: watch)
 
             if paused {

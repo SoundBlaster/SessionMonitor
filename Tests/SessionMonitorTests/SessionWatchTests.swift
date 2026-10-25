@@ -77,15 +77,17 @@ struct SessionWatchTests {
         #expect(await probe.calls == 1)
     }
 
-    @Test func transientFailureRetriesWithoutAnotherEvent() async throws {
+    @Test(.timeLimit(.minutes(1)))
+    func transientFailureRetriesWithoutAnotherEvent() async throws {
         let source = FakeWatchSource()
         let probe = WatchImportProbe(failures: 1)
         let watch = try makeWatch(source, probe)
         defer { Task { await watch.stop() } }
         try await watch.start()
-        try await eventually { await watch.status.completedImports == 1 }
+        let recovered = await watch.updates.first { $0.completedImports == 1 }
+        try #require(recovered != nil)
         #expect(await probe.calls == 2)
-        #expect(await watch.status.error == nil)
+        #expect(recovered?.error == nil)
         await watch.stop()
     }
 

@@ -30,17 +30,17 @@ final class WatchLaunchSettingsTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: folder) }
         let settings = WatchLaunchSettings(defaults: defaults)
 
-        settings.remember(folder)
+        try settings.remember(folder)
         XCTAssertEqual(settings.launchDirectory(), .success(folder.standardizedFileURL))
 
         defaults.set(false, forKey: WatchLaunchSettings.startOnLaunchKey)
         XCTAssertNil(settings.launchDirectory())
     }
 
-    func testMissingFolderReportsAnActionableError() {
+    func testMissingFolderReportsAnActionableError() throws {
         let settings = WatchLaunchSettings(defaults: defaults)
         let missing = URL(fileURLWithPath: "/tmp/\(UUID().uuidString)", isDirectory: true)
-        settings.remember(missing)
+        try settings.remember(missing)
         XCTAssertEqual(settings.launchDirectory(), .failure(.missingDirectory(missing.standardizedFileURL.path)))
     }
 }

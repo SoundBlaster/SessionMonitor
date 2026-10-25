@@ -14,7 +14,7 @@ final class ImportBusyHelpTests: XCTestCase {
         let settings = ImportedDirectorySettings(defaults: defaults)
         let previous = URL(fileURLWithPath: "/tmp/previous", isDirectory: true)
         let selected = URL(fileURLWithPath: "/tmp/2026", isDirectory: true)
-        settings.save(previous)
+        try settings.save(previous)
         let original = UsageReport(totals: UsageTotals(requests: 1), sessions: [], diagnostics: [:])
         let runtime = StubExplorerRuntime(report: original)
         let model = SessionExplorerModel(runtimeFactory: { runtime }, importedDirectorySettings: settings)

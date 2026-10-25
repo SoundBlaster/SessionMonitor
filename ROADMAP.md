@@ -6,13 +6,38 @@
 
 ## Текущая точка
 
-**SM-752 — частично реализована (2026-10-25): performance-блок README по подтверждённым CLI-замерам SM-749; [PR #146](https://github.com/SoundBlaster/SessionMonitor/pull/146) открыт, не влит.**
+**SM-706 — в работе (2026-10-25): sandbox и общий индекс Store app/CLI в [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), открыт, не влит.**
+StoreDebug/StoreRelease и scheme MonitorMacStore сохраняют read-only security-scoped bookmarks для
+session folders и отдельный read/write bookmark для выбранной папки `usage.sqlite`. Первый запуск без
+выбора индекса не создаёт приватную пустую замену: открытие прежней базы на месте сохраняет историю,
+profiles, watermark и incremental checkpoints. Окно и menu bar используют общий connection state;
+Settings показывает активный/отложенный путь и копирует shell-quoted CLI command с `--database`.
+Смена папки применяется после restart; ошибка bookmark/open не заменяет прежние settings, утрата grant
+ведёт к повторному выбору. Grants от Open/Save Panel и explicit start сбалансированы. Picker предлагает
+реальную домашнюю папку Codex без pre-grant existence probe. Canonical accounting и CLI defaults сохранены.
+Текущая проверка: 277 core tests и полный `make check-core` с CLI process/performance smoke прошли;
+Debug targeted — 23 XCTest + 21 Swift Testing passed. Синтетические connection/Settings snapshots
+визуально проверены в light/dark. SwiftLint — 0 violations в 300 файлах, FSD positive/negative passed,
+pins сохранены. StoreRelease app/widget после интеграции индекса собраны без подписи; оба universal arm64/x86_64.
+Предыдущая ревизия CI #147 упала на timeout прежнего retry test Watching; короткий polling заменён
+ожиданием update stream с общим test time limit. GitHub CI новой ревизии после push активно не ожидается.
+MCP build остановился на изменённом macro trust; console checks — с ранее разрешённым per-command bypass.
+Hosted tests изолированы от пользовательского индекса/Watching/widget publication; ad-hoc test build
+не проверяет Store signing/App Groups. Ранее обе Store configurations собраны без подписи; полный GUI
+unit run прерван в XCTest/CoreSymbolication прежнего performance test и не считается успешным.
+Следом — signed sandbox acceptance реального picker/import/export/Watching/relaunch/CLI и widget parity,
+явный optional title-index grant, затем Store profiles/archive/export/upload. Реальный grant/relaunch
+ещё не подтверждён: Computer Use не подключился к изолированному helper picker. ASC app `6812366729`,
+draft macOS 1.0 и отсутствие macOS builds проверены read-only; remote metadata/upload не менялись.
+SM-749 доставлена через #145 (`c5a507b`), README-часть SM-752 — через #146 (`b052e5d`), local main синхронизирован.
+
+**SM-752 — частично доставлена (2026-10-25): performance-блок README по подтверждённым CLI-замерам SM-749; [PR #146](https://github.com/SoundBlaster/SessionMonitor/pull/146) влит squash `b052e5d`.**
 Под главным скриншотом: latest status 180 ms / 31,9 MiB peak RSS, selected/7 days 680 ms / 52,3 MiB,
 quota summary 50 ms / 23 MiB. Указаны Release CLI, M4 Pro/24 GiB/macOS 27, размер корпуса,
 10 fresh-process повторов после инициализации индекса и явная пометка development build.
 Evidence закреплён permalink на документ из commit `8097a8b`; ссылка и численные значения проверены.
-Изменения только README/ROADMAP, сборки повторно не запускались. Ветка актуализирована после merge #145;
-конфликт затронул только текущую точку ROADMAP. Для новой ревизии требуется свежий GitHub CI.
+Изменения только README/ROADMAP, сборки повторно не запускались. После актуализации на #145
+все пять checks новой ревизии прошли; открытых review threads перед auto-merge не было.
 Первоначальный импорт, incremental update, GUI и Mac App Store claims остаются в scope SM-752.
 
 **SM-749 — доставлена (2026-10-25); [PR #145](https://github.com/SoundBlaster/SessionMonitor/pull/145) влит squash `c5a507b`.**
@@ -25,7 +50,7 @@ selected/168h **0,68 с / 52,3 MiB** вместо 7,385 с / 758,8 MiB. Summary 
 Проверки: `make check-core` (277 Swift Testing, 9 XCTest, Python/CLI smoke), SwiftLint/FSD/negative gate;
 full-corpus parity (124 227 snapshots → 167 witnesses, 98 windows), 13-case replay + summary benchmark.
 [Методика, бюджеты, upgrade/storage cost и ограничения](docs/performance/SM-749-bounded-agent-status.md).
-Далее доставка README в #146, затем подготовка Mac App Store (SM-706); SM-755 — отдельный UI follow-up.
+Далее подготовка Mac App Store (SM-706); SM-755 — отдельный UI follow-up.
 GitHub CI после создания PR активно не ожидается.
 
 **SM-754 — доставлена (2026-10-25): панель импорта ниже toolbar; [PR #144](https://github.com/SoundBlaster/SessionMonitor/pull/144) влит squash `aa67b65`.**
@@ -1331,6 +1356,18 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   remote tag и скачанные assets проверены. Актуальный релиз — [v0.1.1](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.1).
   Clean-machine/update/widget acceptance остаётся открытой. Mac App Store — SM-706.
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
+  **2026-10-25: в работе — sandbox configuration, persistent grants и shared app/CLI index.**
+  Реализация — [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), открыт, не влит.
+  Store app требует явного выбора папки `usage.sqlite`, открывает существующую базу на месте и держит
+  read/write grant; source folders — read-only. Settings копирует active CLI command, изменение индекса
+  отложено до restart. Ошибки/revoked grants не создают fallback; metadata/checkpoints/history сохранены.
+  Текущие проверки: `make check-core` (277 tests + CLI smokes), Debug targeted (23 XCTest + 21 Swift Testing),
+  light/dark synthetic UI snapshots, SwiftLint/FSD positive/negative passed; pins неизменны.
+  Старый CI timeout Watching исправлен event-driven ожиданием; CI новой ревизии после push активно не ожидается.
+  Обе Store configurations ранее собраны без подписи; свежий StoreRelease app/widget build — universal arm64/x86_64.
+  Signed grant/relaunch и App Group/widget acceptance не подтверждены; optional title-index grant,
+  Store signing/release-local/version reconciliation/metadata/archive/export/upload остаются впереди.
+  Automatic relocation базы не реализуется: переход на Store открывает прежний индекс после явного выбора.
   **Приоритет владельца (2026-10-24): после performance-проверки SM-746 начать подготовку Mac App Store.**
   Read-only ASC preflight: существующий app `6812366729`, draft 1.0 PREPARE_FOR_SUBMISSION, macOS builds нет;
   validator: 34 errors / 3 warnings (24 errors — age-rating fields), cached web session expired.
@@ -1870,7 +1907,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   reclaimable space. Hunter предоставляет descriptor-anchored metadata/scan primitives;
   product policy, durable action identity, permissions и подтверждённый preview остаются у SessionMonitor. Reference: [codex-session-gc](https://github.com/YuriyKrasilnikov/codex-session-gc).
 - [ ] **SM-752** — Подтверждённые performance claims для README и Mac App Store.
-  **Статус: частично реализована (2026-10-25), README — [PR #146](https://github.com/SoundBlaster/SessionMonitor/pull/146) открыт, не влит.**
+  **Статус: частично доставлена (2026-10-25), README — [PR #146](https://github.com/SoundBlaster/SessionMonitor/pull/146) влит squash `b052e5d`.**
   Добавлен CLI performance-блок под главным скриншотом: 180 ms / 31,9 MiB для latest session,
   680 ms / 52,3 MiB для selected/7 days, 50 ms / 23 MiB для quota summary. Числа mono;
   время — median 10 fresh-process повторов, память — peak CLI RSS. Указаны reference corpus,
@@ -1878,7 +1915,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   [Неизменяемый evidence SM-749](https://github.com/SoundBlaster/SessionMonitor/blob/8097a8b98a8691e85fb2441d4016b9b926320a52/docs/performance/SM-749-bounded-agent-status.md).
   Docs checks: значения сверены с evidence, permalink подтверждён через GitHub API, формат/links/IDs проверены.
   Повторные builds/tests не требуются для README/ROADMAP. Код SM-749 доставлен через #145 (`c5a507b`).
-  После актуализации #146 на этот main нужны проверки новой ревизии; прежний зелёный CI не переносится.
+  После актуализации #146 все пять checks новой ревизии прошли; review threads разрешены.
   Остаток: initial/incremental/no-change import, GUI refresh/pan/zoom и App Store claims; [ ] сохранён.
   Скорость — часть продукта: быстрый human overview и однозначный CLI для агента.
   Измерять отдельно initial import (files/requests/bytes per second), incremental/no-change

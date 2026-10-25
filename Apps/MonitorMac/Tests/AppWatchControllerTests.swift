@@ -63,7 +63,7 @@ final class AppWatchControllerTests: XCTestCase {
         let factory = WatchFactory()
         let controller = AppWatchController { directory in try await factory.make(directory) }
 
-        settings.remember(URL(fileURLWithPath: "/tmp/\(UUID().uuidString)", isDirectory: true))
+        try settings.remember(URL(fileURLWithPath: "/tmp/\(UUID().uuidString)", isDirectory: true))
         await controller.startSaved(settings)
         let missingCallCount = await factory.callCount
         XCTAssertEqual(missingCallCount, 0)
@@ -73,7 +73,7 @@ final class AppWatchControllerTests: XCTestCase {
         let folder = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
-        settings.remember(folder)
+        try settings.remember(folder)
         await controller.startSaved(settings)
         let startedCallCount = await factory.callCount
         XCTAssertEqual(startedCallCount, 1)

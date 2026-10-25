@@ -112,6 +112,7 @@ final class SessionExplorerModel {
     let timelineModel = RequestTimelineModel()
     @ObservationIgnored private let runtimeFactory: @Sendable () async throws -> any SessionExplorerRuntime
     @ObservationIgnored let importedDirectorySettings: ImportedDirectorySettings
+    @ObservationIgnored var importedDirectoryAccessError: String?
     @ObservationIgnored let importOperation: SessionImportOperation
     @ObservationIgnored var runtime: (any SessionExplorerRuntime)?
     @ObservationIgnored private var loadedQuery: UsageQuery?
@@ -127,12 +128,16 @@ final class SessionExplorerModel {
         report = empty
         query = defaultUsageQuery()
         self.importedDirectorySettings = importedDirectorySettings
-        importedDirectory = importedDirectorySettings.directory
         contextProvider = SessionReportContextProvider(
             snapshot: SessionReportSnapshot(report: empty, selectedSessionID: nil)
         )
         self.runtimeFactory = runtimeFactory
         self.importOperation = importOperation
+        do {
+            importedDirectory = try importedDirectorySettings.restore()
+        } catch {
+            importedDirectoryAccessError = error.localizedDescription
+        }
     }
 
     var visibleSessions: [SessionSummary] {
@@ -287,6 +292,7 @@ final class SessionExplorerModel {
             let requestedQuery = query
             let snapshot = try await runtime.snapshot(query: requestedQuery)
             apply(snapshot, expectedQuery: requestedQuery)
+            if let importedDirectoryAccessError { failure = .message(importedDirectoryAccessError) }
         } catch {
             failure = .message("Could not load the report. \(error.localizedDescription)")
         }
