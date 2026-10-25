@@ -1351,9 +1351,9 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   remote tag и скачанные assets проверены. Актуальный релиз — [v0.1.1](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.1).
   Clean-machine/update/widget acceptance остаётся открытой. Mac App Store — SM-706.
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
-  **2026-10-25: в работе — sandbox configuration и persistent folder permissions.** ASC API/app/draft
+  **2026-10-25: в работе — sandbox configuration и persistent folder permissions.**
   Доставка первого этапа — [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), открыт, не влит; CI не опрашивается.
-  проверены заново, macOS builds по-прежнему отсутствуют. Import/Update/Watching должны сохранять
+  ASC API/app/draft проверены заново, macOS builds по-прежнему отсутствуют. Import/Update/Watching должны сохранять
   и восстанавливать security-scoped bookmarks с явным reselect при утрате доступа: реализовано
   в StoreDebug/StoreRelease, read-only grants, сохранение предыдущего выбора при ошибке. Финальный Debug
   targeted run: 42 XCTest + 12 Swift Testing passed; Foundation harness — 8 passed. Обе Store configurations
