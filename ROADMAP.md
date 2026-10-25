@@ -6,8 +6,18 @@
 
 ## Текущая точка
 
-**SM-749 — реализована и локально проверена (2026-10-25); [PR #145](https://github.com/SoundBlaster/SessionMonitor/pull/145) открыт, в main ещё не доставлена.**
-Локальный main синхронизирован с `origin/main` до `3eaa862`; предыдущие #139/#140/#141/#144 влиты.
+**SM-752 — частично реализована (2026-10-25): performance-блок README по подтверждённым CLI-замерам SM-749; [PR #146](https://github.com/SoundBlaster/SessionMonitor/pull/146) открыт, не влит.**
+Под главным скриншотом: latest status 180 ms / 31,9 MiB peak RSS, selected/7 days 680 ms / 52,3 MiB,
+quota summary 50 ms / 23 MiB. Указаны Release CLI, M4 Pro/24 GiB/macOS 27, размер корпуса,
+10 fresh-process повторов после инициализации индекса и явная пометка development build.
+Evidence закреплён permalink на документ из commit `8097a8b`; ссылка и численные значения проверены.
+Изменения только README/ROADMAP, сборки повторно не запускались. Ветка актуализирована после merge #145;
+конфликт затронул только текущую точку ROADMAP. Для новой ревизии требуется свежий GitHub CI.
+Первоначальный импорт, incremental update, GUI и Mac App Store claims остаются в scope SM-752.
+
+**SM-749 — доставлена (2026-10-25); [PR #145](https://github.com/SoundBlaster/SessionMonitor/pull/145) влит squash `c5a507b`.**
+Перед merge все пять GitHub checks прошли на head `8097a8b`, открытых GraphQL review threads не было.
+Локальный main синхронизирован с `origin/main` до `c5a507b`; предыдущие #139/#140/#141/#144 влиты.
 Compact agent status использует session-scoped totals и атомарно поддерживаемую quota projection.
 SpecificationCore policies, attribution, coverage, freshness, reset evidence и raw quota JSON сохранены.
 На том же корпусе Release median: latest/24h **0,18 с / 31,9 MiB** вместо 7,145 с / 724,9 MiB;
@@ -15,7 +25,7 @@ selected/168h **0,68 с / 52,3 MiB** вместо 7,385 с / 758,8 MiB. Summary 
 Проверки: `make check-core` (277 Swift Testing, 9 XCTest, Python/CLI smoke), SwiftLint/FSD/negative gate;
 full-corpus parity (124 227 snapshots → 167 witnesses, 98 windows), 13-case replay + summary benchmark.
 [Методика, бюджеты, upgrade/storage cost и ограничения](docs/performance/SM-749-bounded-agent-status.md).
-Далее review/merge SM-749, затем подготовка Mac App Store (SM-706); SM-755 — отдельный UI follow-up.
+Далее доставка README в #146, затем подготовка Mac App Store (SM-706); SM-755 — отдельный UI follow-up.
 GitHub CI после создания PR активно не ожидается.
 
 **SM-754 — доставлена (2026-10-25): панель импорта ниже toolbar; [PR #144](https://github.com/SoundBlaster/SessionMonitor/pull/144) влит squash `aa67b65`.**
@@ -1860,7 +1870,16 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   reclaimable space. Hunter предоставляет descriptor-anchored metadata/scan primitives;
   product policy, durable action identity, permissions и подтверждённый preview остаются у SessionMonitor. Reference: [codex-session-gc](https://github.com/YuriyKrasilnikov/codex-session-gc).
 - [ ] **SM-752** — Подтверждённые performance claims для README и Mac App Store.
-  **Статус: запланирована; зависит от SM-746/SM-749 и повторных измерений.**
+  **Статус: частично реализована (2026-10-25), README — [PR #146](https://github.com/SoundBlaster/SessionMonitor/pull/146) открыт, не влит.**
+  Добавлен CLI performance-блок под главным скриншотом: 180 ms / 31,9 MiB для latest session,
+  680 ms / 52,3 MiB для selected/7 days, 50 ms / 23 MiB для quota summary. Числа mono;
+  время — median 10 fresh-process повторов, память — peak CLI RSS. Указаны reference corpus,
+  Release/arm64, M4 Pro/24 GiB/macOS 27, after-initialization условия и development build.
+  [Неизменяемый evidence SM-749](https://github.com/SoundBlaster/SessionMonitor/blob/8097a8b98a8691e85fb2441d4016b9b926320a52/docs/performance/SM-749-bounded-agent-status.md).
+  Docs checks: значения сверены с evidence, permalink подтверждён через GitHub API, формат/links/IDs проверены.
+  Повторные builds/tests не требуются для README/ROADMAP. Код SM-749 доставлен через #145 (`c5a507b`).
+  После актуализации #146 на этот main нужны проверки новой ревизии; прежний зелёный CI не переносится.
+  Остаток: initial/incremental/no-change import, GUI refresh/pan/zoom и App Store claims; [ ] сохранён.
   Скорость — часть продукта: быстрый human overview и однозначный CLI для агента.
   Измерять отдельно initial import (files/requests/bytes per second), incremental/no-change
   update, fresh-process CLI median/p95 и peak RSS, chart pan/zoom и refresh latency.
@@ -1941,7 +1960,9 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   Готово при отдельном решении о scope, adapter contract и проверяемых fixtures выбранного клиента.
 
 - [x] **SM-749** — Устранить полный quota-history read в compact agent CLI path.
-  **Статус: реализована и локально проверена (2026-10-25), [PR #145](https://github.com/SoundBlaster/SessionMonitor/pull/145) открыт; не влита.**
+  **Статус: доставлена (2026-10-25), [PR #145](https://github.com/SoundBlaster/SessionMonitor/pull/145) влит squash `c5a507b`.**
+  Все пять GitHub checks на head `8097a8b` успешны, открытых review threads перед merge нет;
+  локальный main синхронизирован после слияния.
   Session-scoped canonical totals/selection/watermark; SQLite projection по account/limit/slot с latest ties
   и точными свидетелями последнего reset transition. Изменённые event identities и их mirrors обновляются
   атомарно с импортом/профилями; unchanged account scope не вызывает rebuild старых quota при append.
@@ -1961,4 +1982,4 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   Первое открытие со schema upgrade + report — 7,88 с / 117,6 MiB; derived index добавляет 297,6 MiB.
   Filtered queries и pending invalidations от older writer используют raw compatibility path.
   Canonical watermark и исходные logs не изменены; broader doctor/schema audit остаётся в SM-746.
-  После review/merge — подготовка SM-706, без автоматической отправки на App Store review.
+  Далее — подготовка SM-706, без автоматической отправки на App Store review.

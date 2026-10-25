@@ -23,6 +23,23 @@
 
 *Real session data, imported on October 23, 2026. Shown in a development build; the latest release may look slightly different.*
 
+## Fast answers for your agent
+
+**`180 ms` to check your session. About `32 MiB` peak RAM.**
+
+*Development build (SM-749). These measurements are not for the latest published release.*
+
+| CLI operation | Median response | Peak CLI memory |
+| --- | ---: | ---: |
+| Latest session status, 24-hour lookback | `180 ms` | `31.9 MiB` |
+| Selected session, 7-day lookback | `680 ms` | `52.3 MiB` |
+| Account quota summary | `50 ms` | `23.0 MiB` |
+
+Measured on October 25, 2026 with the Release arm64 CLI on Apple M4 Pro, 24 GiB RAM,
+macOS 27: **85,000+ source usage records** and **319,000+ raw quota observations**.
+Ten fresh-process repetitions after database initialization; memory is peak process RSS.
+Results depend on hardware and data. [Benchmarks and methodology →](https://github.com/SoundBlaster/SessionMonitor/blob/8097a8b98a8691e85fb2441d4016b9b926320a52/docs/performance/SM-749-bounded-agent-status.md)
+
 ## Keep the big picture. Inspect the details.
 
 A long-running agent can make thousands of requests before you notice a pattern. SessionMonitor
