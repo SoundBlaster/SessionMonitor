@@ -7,6 +7,7 @@
 ## Текущая точка
 
 **SM-706 — в работе (2026-10-26): signed StoreDebug build и первая native sandbox acceptance прошли.**
+Документирование результата — [PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148), открыт, не влит; CI после push не ожидается активно.
 Основа доставлена [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), squash `65fa957`:
 все пять checks зелёные, открытых threads нет, main синхронизирован. Из этого commit через `asc xcode archive`
 собран arm64 StoreDebug archive 0.1.1 (2), подписанный Apple Development. App/widget проходят strict
