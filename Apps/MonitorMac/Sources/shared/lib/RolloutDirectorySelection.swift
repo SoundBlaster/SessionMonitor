@@ -11,12 +11,17 @@ enum RolloutDirectorySelection {
 
     static func initialDirectory(
         preferred: URL?,
-        home: URL = FileManager.default.homeDirectoryForCurrentUser,
+        home: URL = URL(fileURLWithPath: NSHomeDirectoryForUser(NSUserName()) ?? NSHomeDirectory(), isDirectory: true),
         year: Int = directoryYear(),
+        requiresBookmarks: Bool = AppFileAccess.requiresBookmarks,
         fileManager: FileManager = .default
     ) -> URL {
         let codex = home.appending(path: ".codex", directoryHint: .isDirectory)
         let sessions = codex.appending(path: "sessions", directoryHint: .isDirectory)
+        // A sandbox cannot probe the suggested external folder before the person grants access.
+        if requiresBookmarks {
+            return preferred ?? sessions.appending(path: String(year), directoryHint: .isDirectory)
+        }
         let candidates = [preferred, sessions.appending(path: String(year), directoryHint: .isDirectory),
                           sessions, codex, home].compactMap { $0 }
         return candidates.first { candidate in

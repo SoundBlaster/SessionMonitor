@@ -191,7 +191,11 @@ struct SessionExplorerPage: View {
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
         guard panel.runModal() == .OK, let directory = panel.url else { return }
-        model.startImportDirectory(directory) { await reportScope.refreshProfiles() }
+        let lease = SecurityScopedResourceLease(directory, fromPanel: true)
+        model.startImportDirectory(directory) {
+            await reportScope.refreshProfiles()
+            withExtendedLifetime(lease) {}
+        }
     }
 
     private func exportSession(sessionID: String) {
@@ -204,6 +208,7 @@ struct SessionExplorerPage: View {
                 panel.allowedContentTypes = [.json]
                 panel.canCreateDirectories = true
                 guard panel.runModal() == .OK, let destination = panel.url else { return }
+                defer { destination.stopAccessingSecurityScopedResource() }
                 try data.write(to: destination, options: .atomic)
             } catch {
                 model.reportError("Could not export anonymized session JSON. \(error.localizedDescription)")

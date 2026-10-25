@@ -18,8 +18,17 @@ struct FolderBookmarkClient: Sendable {
     var stopAccess: @Sendable (URL) -> Void
 
     static var live: Self {
+        scoped(readOnly: true)
+    }
+
+    static var readWrite: Self {
+        scoped(readOnly: false)
+    }
+
+    private static func scoped(readOnly: Bool) -> Self {
         Self(create: { url in
-            try url.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
+            try url.bookmarkData(options: readOnly
+                                 ? [.withSecurityScope, .securityScopeAllowOnlyReadAccess] : [.withSecurityScope],
                                  includingResourceValuesForKeys: nil, relativeTo: nil)
         }, resolve: { data in
             var stale = false

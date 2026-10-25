@@ -82,6 +82,10 @@ struct AppMenuHost: View {
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
         guard panel.runModal() == .OK, let directory = panel.url else { return }
-        Task { await watch.startSelected(directory) }
+        let lease = SecurityScopedResourceLease(directory, fromPanel: true)
+        Task {
+            await watch.startSelected(directory)
+            withExtendedLifetime(lease) {}
+        }
     }
 }

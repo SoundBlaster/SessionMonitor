@@ -10,6 +10,7 @@ struct SessionMonitorApp: App {
     @State private var menuModel: MenuSummaryModel
     @State private var reportScope: ReportScopeModel
     @State private var watchController: AppWatchController
+    @State private var sharedIndex: SharedIndexLocationModel?
     @State private var cacheHitRateWidgetSettings = CacheHitRateWidgetSettings()
     @State private var cacheAnalytics = CacheAnalyticsPresentation()
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
@@ -21,9 +22,14 @@ struct SessionMonitorApp: App {
             .appending(path: "SessionMonitor-hosted-tests-\(ProcessInfo.processInfo.processIdentifier)/usage.sqlite")
         let loader = SessionMonitorRuntimeLoader(
             databaseURL: isHostedTest ? testDatabase : MonitorRuntime.SessionMonitor.defaultDatabaseURL,
-            publishesWidgets: !isHostedTest
+            publishesWidgets: !isHostedTest,
+            requiresSharedIndex: !isHostedTest && AppFileAccess.requiresBookmarks
         )
         runtimeLoader = loader
+        let index = !isHostedTest && AppFileAccess.requiresBookmarks ? SharedIndexLocationModel(
+            restore: { try await loader.restoreIndex() }, select: { try await loader.selectIndex($0) }
+        ) : nil
+        _sharedIndex = State(initialValue: index)
         let watch = AppWatchController(
             didImport: {
                 if let runtime = try? await loader.load() { await runtime.publishWidgetSnapshotNow() }
@@ -42,18 +48,23 @@ struct SessionMonitorApp: App {
         }))
         appDelegate.shutdown = { await watch.shutdown() }
         // SM-205: resume watching the last chosen folder without user action.
-        if !isHostedTest { Task { await watch.startSaved(WatchLaunchSettings()) } }
+        if !isHostedTest, index == nil { Task { await watch.startSaved(WatchLaunchSettings()) } }
     }
 
     var body: some Scene {
         WindowGroup("SessionMonitor", id: "session-explorer") {
-            SessionMonitorWindow(
-                runtimeLoader: runtimeLoader,
-                watch: watchController,
-                reportScope: reportScope,
-                cacheHitRateWidgetSettings: cacheHitRateWidgetSettings,
-                cacheAnalytics: cacheAnalytics
-            )
+            SharedIndexGate(model: sharedIndex) {
+                SessionMonitorWindow(
+                    runtimeLoader: runtimeLoader,
+                    watch: watchController,
+                    reportScope: reportScope,
+                    cacheHitRateWidgetSettings: cacheHitRateWidgetSettings,
+                    cacheAnalytics: cacheAnalytics
+                )
+            }
+            .task(id: sharedIndex?.isReady) {
+                if sharedIndex?.isReady == true { await watchController.startSaved(WatchLaunchSettings()) }
+            }
         }
         .defaultSize(width: 1120, height: 760)
         .commands { CacheAnalyticsCommands() }
@@ -68,13 +79,15 @@ struct SessionMonitorApp: App {
         .defaultSize(width: 840, height: 720)
         #endif
         MenuBarExtra("SessionMonitor", systemImage: "chart.bar.xaxis", isInserted: $showMenuBarExtra) {
-            AppMenuHost(model: menuModel, watch: watchController, reportScope: reportScope,
-                        runtimeLoader: runtimeLoader)
+            SharedIndexGate(model: sharedIndex) {
+                AppMenuHost(model: menuModel, watch: watchController, reportScope: reportScope,
+                            runtimeLoader: runtimeLoader)
+            }
         }
         .menuBarExtraStyle(.window)
         Settings {
             MonitorSettingsPage(
-                cacheHitRateWidgetSettings: cacheHitRateWidgetSettings
+                cacheHitRateWidgetSettings: cacheHitRateWidgetSettings, sharedIndex: sharedIndex
             )
         }
     }
@@ -137,57 +150,5 @@ private struct SessionMonitorWindow: View {
                     cacheHitRateWidgetSettings.selectPeriod(.last7Days)
                 }
             }
-    }
-}
-
-/// Database setup, like imports and queries, is performed away from MainActor.
-actor SessionMonitorRuntimeLoader {
-    private let databaseURL: URL
-    private let publishesWidgets: Bool
-    private var runtime: SharedReportRuntime?
-    private var databaseRuntime: MonitorRuntime.SessionMonitor?
-    private var watchdog: AlertWatchdog?
-
-    init(databaseURL: URL = MonitorRuntime.SessionMonitor.defaultDatabaseURL, publishesWidgets: Bool = true) {
-        self.databaseURL = databaseURL
-        self.publishesWidgets = publishesWidgets
-    }
-
-    private func database() throws -> MonitorRuntime.SessionMonitor {
-        if let databaseRuntime { return databaseRuntime }
-        let value = try MonitorRuntime.SessionMonitor(databaseURL: databaseURL)
-        databaseRuntime = value
-        return value
-    }
-
-    func watch(_ directory: URL) async throws -> any AppWatchHandle {
-        let watch = try await database().watch(directory)
-        return AlertingWatchHandle(watch: watch, root: directory, watchdog: try await alertWatchdog())
-    }
-
-    /// One watchdog per app process; its center drains the shared alert outbox into macOS notifications.
-    private func alertWatchdog() async throws -> AlertWatchdog {
-        if let watchdog { return watchdog }
-        let monitor = try database()
-        let center = AlertCenter(monitor: monitor, sinks: [UserNotificationAlertSink()])
-        let value = AlertWatchdog(monitor: monitor, center: center)
-        watchdog = value
-        await UserNotificationAlertSink.requestAuthorization()
-        return value
-    }
-
-    func load() async throws -> SharedReportRuntime {
-        if let runtime { return runtime }
-        let databaseRuntime = try database()
-        let runtime = SharedReportRuntime(runtime: databaseRuntime,
-                                          widgetSnapshotStore: publishesWidgets ? .appGroup() : nil)
-        self.runtime = runtime
-        Task { await runtime.publishWidgetSnapshotNow() }
-        return runtime
-    }
-
-    func accountProfiles() async throws -> [AccountProfile] {
-        let runtime = try await load()
-        return try await runtime.accountProfiles()
     }
 }

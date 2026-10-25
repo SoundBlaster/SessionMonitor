@@ -4,7 +4,8 @@
 
 Updated October 25, 2026. CLI performance work SM-749 is delivered in PR #145;
 the README measurements are delivered in PR #146. SM-706 now implements the first
-engineering prerequisite: a separate sandbox configuration and persisted folder grants.
+engineering prerequisites: a separate sandbox configuration, persisted folder grants,
+and an explicit shared app/CLI index connection.
 This document records preparation, not a submitted or approved build.
 The engineering foundation is proposed in [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147);
 it is not delivered to main yet. The remaining acceptance/release gates are listed below.
@@ -48,7 +49,7 @@ Failed bookmark creation preserves the previously saved folder and bookmark.
 
 Import retains access through the complete operation, including stopping an active
 watch. Watching retains its own access until stop/failure/shutdown. Access is released
-only when that operation acquired it. Successful imports remain visible if saving
+for explicit acquisitions; panel grants are released separately after the selected operation. Successful imports remain visible if saving
 the grant fails, with a separate explanation rather than claiming the import failed.
 Hosted unit tests use a temporary index and disable automatic Watching/widget publication.
 
@@ -58,13 +59,19 @@ launch/selection failures. Injected bookmark operations test policy and lifetime
 they do **not** demonstrate a real macOS grant or App Store acceptance.
 
 Local verification on October 25 used Xcode 27.1 (`27A9275`) with build outputs and
-package caches on the verified external build volume. `StoreDebug` and `StoreRelease`
-app/widget compile passed without signing; both StoreRelease executables contain
-arm64 and x86_64. The final ordinary Debug targeted run passed **42 XCTest tests and
-12 Swift Testing tests**, including the cross-distribution selection regression.
-A separate temporary SwiftPM harness compiled unchanged production Foundation sources
-and passed eight bookmark-policy tests. SwiftLint and both positive/negative FSD gates
-passed. Dependency pins are unchanged.
+package caches on the verified external build volume. The current Debug targeted run
+passed **23 XCTest tests and 21 Swift Testing tests**, including shared-index integration,
+grant ownership and synthetic light/dark UI snapshots inspected after rendering.
+`make check-core` passed **277 core tests**, CLI process smoke checks and the synthetic
+performance harness (audit and append/full-rebuild parity). Strict SwiftLint passed on
+300 files, positive/negative FSD gates passed, and dependency pins are unchanged.
+The CI retry-watch test now waits for its recovery event with a whole-test time limit,
+instead of imposing a three-second polling deadline.
+
+Earlier in this PR, unsigned `StoreDebug` and `StoreRelease` app/widget builds passed;
+both StoreRelease executables contained arm64 and x86_64. The current shared-index
+StoreRelease app/widget build also passed unsigned; both executables contain arm64/x86_64. A temporary SwiftPM
+harness from the first stage passed eight bookmark-policy tests; this is baseline evidence.
 
 The Xcode-tools attempt discovered the intended `MonitorMac` scheme, My Mac destination,
 and tests, but was stopped by the changed `SpecificationCoreMacros` trust fingerprint.
@@ -81,6 +88,47 @@ attach to its picker. The helper was stopped; no successful real-grant/relaunch 
 claimed. Repeat this check with the actual signed Store candidate after the index contract
 and profiles are resolved.
 
+## Shared index connection in Store builds
+
+On first launch, choose **Connect Your Session Index → Choose Index Folder**. Select the
+folder containing the existing `usage.sqlite`, normally
+`~/Library/Application Support/SessionMonitor`. The app opens the database **in place**;
+it does not copy history or silently create a separate container index. Selecting an
+empty folder explicitly creates a new index there. Session source folders are chosen
+separately for import and Watching.
+
+The Store app stores a **read/write security-scoped bookmark** for the index folder,
+including SQLite WAL and lock files. It retains access for the lifetime of the opened
+runtime. Missing or revoked access returns to the connection screen; it never falls
+back to an empty private index. A bookmark or initial database-open failure leaves
+previous saved settings unchanged.
+
+In **Settings → Shared Index**, **Copy CLI Command** produces, for example:
+
+```sh
+codex-monitor report --database '/Users/you/Library/Application Support/SessionMonitor/usage.sqlite'
+```
+
+Use the same `--database` option with other CLI commands. The CLI's existing default
+and `SESSIONMONITOR_DATABASE` override remain unchanged. A GUI bookmark does not grant
+permission to the external CLI; that process needs its own normal filesystem access.
+Widgets continue to receive only the aggregate App Group snapshot, not the index.
+
+**Change Folder** saves the next selection and applies it after restart. Reports,
+Watching, and the copied CLI command keep using the currently open index until then.
+The pending path is shown explicitly. Cancelling the picker leaves the connection as is.
+
+Open/save panel grants and explicitly started grants have separate balanced lifetimes.
+The sessions picker suggests the login user's current-year Codex folder without trying
+to prove external-folder access before the system picker grants it.
+
+Regression tests open a populated database through a separate core connection and the
+Store loader, compare canonical reports, profiles and database watermark, then verify
+that an unchanged source still uses its incremental checkpoint. Additional tests cover
+first-launch refusal to create a fallback, revoked access/reselection, failed bookmark
+and database opening, pending restart, shell quoting, and implicit/explicit grant balance.
+These injected tests and synthetic UI previews do not establish signed sandbox acceptance.
+
 ## Engineering work before an App Store candidate
 
 1. **Signed sandbox acceptance.** Build `MonitorMacStore` and exercise the actual system
@@ -92,12 +140,10 @@ and profiles are resolved.
    treating a signed Store candidate as ready. An unsigned successful build only proves compilation.
 2. **Optional title index access.** `session_index.jsonl` can be outside the chosen folder:
    obtain explicit access or show unavailable titles, without silently broadening access.
-3. **Index ownership and app/CLI parity.** The default index uses Application Support in
-   [SessionMonitor.swift](../Sources/MonitorRuntime/SessionMonitor.swift). Sandbox containment
-   changes path resolution. Decide how the app and an agent's external CLI access the same
-   committed index before changing storage: an explicitly supported shared location or a
-   read-only service contract needs verification. Preserve existing history/settings and
-   the widget's aggregate-only App Group snapshot; do not promise transparent migration yet.
+3. **Shared index acceptance.** The explicit folder contract above is implemented in #147.
+   Verify it with the actual signed Store app and external CLI against a synthetic existing
+   index, including quit/relaunch and revoked/moved-folder recovery. Existing history is
+   opened in place; no automatic relocation or container-to-external migration is claimed.
 4. **App Store archive/export.** Verify app/widget sandbox entitlements, App Group profiles,
    App Store distribution identities, installer signature, and package validation. Reconcile
    the existing Store draft `1.0` with GitHub/app version `0.1.1` and choose the next build

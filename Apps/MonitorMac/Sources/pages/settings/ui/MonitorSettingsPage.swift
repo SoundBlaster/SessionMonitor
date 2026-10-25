@@ -8,9 +8,11 @@ struct MonitorSettingsPage: View {
     @AppStorage(UsageChartPaletteSelection.storageKey)
     private var chartPaletteRawValue = UsageChartPaletteSelection.system.rawValue
     @Bindable var cacheHitRateWidgetSettings: CacheHitRateWidgetSettings
+    var sharedIndex: SharedIndexLocationModel?
 
     var body: some View {
         Form {
+            if let sharedIndex { SharedIndexSettingsSection(model: sharedIndex) }
             GeneralSettingsSection(showMenuBarExtra: $showMenuBarExtra, watchOnLaunch: $watchOnLaunch)
             AnalyticsSettingsSection(period: Binding(
                 get: { cacheHitRateWidgetSettings.period },
@@ -19,7 +21,7 @@ struct MonitorSettingsPage: View {
         }
         .formStyle(.grouped)
         .tint(.blue)
-        .frame(width: 580, height: 370)
+        .frame(width: 580, height: sharedIndex == nil ? 370 : 590)
     }
 }
 

@@ -179,3 +179,18 @@ Queries read SQLite and work even while sources are offline or removed. These ar
 last-import observations of known indexed files, **not** a complete disk inventory;
 unimported, externally deleted or inaccessible files are not rediscovered by a report.
 Hunter-backed storage management is a separate planned feature (SM-751).
+
+## Using the same index as the Mac App Store app
+
+In the Store app, connect the folder containing `usage.sqlite`. Under **Settings → Shared
+Index → Copy CLI Command**, copy a command with the active database's absolute path:
+
+```sh
+codex-monitor report --database '/path/to/index/usage.sqlite'
+```
+
+Pass `--database` to other commands, too. The CLI keeps its existing default path and
+`SESSIONMONITOR_DATABASE` override; the Store app's bookmark is not transferred to the
+CLI. Changing the app's index folder takes effect after restart, so the copied command
+always identifies the index that the app currently uses. Existing history is opened
+in place, without an implicit copy. See [Store preparation](mac-app-store-readiness.md).
