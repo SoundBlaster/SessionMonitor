@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-752 — частично реализована (2026-10-25): performance-блок README по подтверждённым CLI-замерам SM-749; docs PR готовится, не влит.**
+**SM-752 — частично реализована (2026-10-25): performance-блок README по подтверждённым CLI-замерам SM-749; [PR #146](https://github.com/SoundBlaster/SessionMonitor/pull/146) открыт, не влит.**
 Под главным скриншотом: latest status 180 ms / 31,9 MiB peak RSS, selected/7 days 680 ms / 52,3 MiB,
 quota summary 50 ms / 23 MiB. Указаны Release CLI, M4 Pro/24 GiB/macOS 27, размер корпуса,
 10 fresh-process повторов после инициализации индекса и явная пометка development build.
@@ -1864,7 +1864,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   reclaimable space. Hunter предоставляет descriptor-anchored metadata/scan primitives;
   product policy, durable action identity, permissions и подтверждённый preview остаются у SessionMonitor. Reference: [codex-session-gc](https://github.com/YuriyKrasilnikov/codex-session-gc).
 - [ ] **SM-752** — Подтверждённые performance claims для README и Mac App Store.
-  **Статус: частично реализована (2026-10-25), README — docs PR готовится, не влит.**
+  **Статус: частично реализована (2026-10-25), README — [PR #146](https://github.com/SoundBlaster/SessionMonitor/pull/146) открыт, не влит.**
   Добавлен CLI performance-блок под главным скриншотом: 180 ms / 31,9 MiB для latest session,
   680 ms / 52,3 MiB для selected/7 days, 50 ms / 23 MiB для quota summary. Числа mono;
   время — median 10 fresh-process повторов, память — peak CLI RSS. Указаны reference corpus,
