@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-756 — реализована (2026-10-26): общая сетка итогов sidebar; PR готовится.**
+**SM-756 — реализована (2026-10-26): общая сетка итогов sidebar; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) открыт, не влит.**
 Requests/Output и Sessions/Input теперь используют общие равные колонки с ведущим
 выравниванием. Маленький SessionSidebarTotals получает только четыре значения;
 value-first порядок, system mono, локаль и accounting сохранены. Длинные числа остаются
@@ -1968,7 +1968,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 ## Product follow-ups и отложенные идеи Tokscale (2026-10-24)
 
 - [x] **SM-756** — Общая сетка итогов sidebar с фиксированными колонками.
-  **Реализовано 2026-10-26; PR готовится, main ещё не содержит правку.**
+  **Реализовано 2026-10-26; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) открыт, main ещё не содержит правку.**
   Sessions/Input и Requests/Output выровнены по двум равным колонкам, независимо
   от длины подписей и чисел. Mono/number formats и totals semantics сохранены.
   Проверки: app/widget Debug build, SwiftLint (301 файл), FSD positive/negative;
