@@ -1,13 +1,25 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-26. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-27. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
 
+**SM-756 — реализована (2026-10-26): общая сетка итогов sidebar; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) открыт, не влит.**
+Общие равные колонки: Sessions/Input выровнены по левому краю,
+Requests/Output — по правому, включая числа и подписи (уточнение владельца 2026-10-26). Маленький SessionSidebarTotals получает только четыре значения;
+value-first порядок, system mono, локаль и accounting сохранены. Длинные числа остаются
+в одну строку с ограниченным уменьшением шрифта. App/widget Debug build прошёл;
+SwiftLint (301 файл), FSD positive/negative — passed. Native SwiftUI renderer собран
+из production component: 12 fixtures (320/420/700 pt, light/dark, zero/large totals),
+репрезентативные narrow/normal/wide результаты просмотрены; без новых окон приложения.
+Xcode MCP build остановился на прежнем macro fingerprint; console build использовал
+разрешённый per-command bypass. Следом review/merge PR, затем оставшиеся gates SM-706;
+native Watching smoke прошёл, #148 влит squash `3f04b78` 2026-10-27 (Europe/Moscow).
+
 **SM-706 — в работе (2026-10-26): native Watching smoke в #148 прошёл.**
-[PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148), открыт, не влит.
+[PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148) влит 2026-10-27 (Europe/Moscow), squash `3f04b78`; все пять checks зелёные, открытых threads не было.
 Signed StoreDebug XCUITest с настоящими Open Panel grants проверил initial import, append 1→2,
 Pause/Resume 2→3, штатный quit/relaunch с восстановлением grants и Watching 3→4, Stop без импорта
 пятого запроса. 1 тест / 0 ошибок / 53 секунды; teardown сбросил только изолированную suite,
@@ -24,7 +36,7 @@ picker только начинает с synthetic directory, настоящий 
 по новому требованию владельца сначала отдельная правка общей сетки итогов sidebar.
 
 **SM-706 — в работе (2026-10-26): signed StoreDebug build и первая native sandbox acceptance прошли.**
-Документирование результата — [PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148), открыт, не влит; CI после push не ожидается активно.
+Документирование результата доставлено [PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148), squash `3f04b78`.
 Основа доставлена [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), squash `65fa957`:
 все пять checks зелёные, открытых threads нет, main синхронизирован. Из этого commit через `asc xcode archive`
 собран arm64 StoreDebug archive 0.1.1 (2), подписанный Apple Development. App/widget проходят strict
@@ -39,7 +51,7 @@ Save Panel создал валидный anonymized JSON; app опубликов
 показал начальный connection screen, тестовый процесс закрыт. Личный индекс/rollouts не менялись.
 Артефакты/backup/logs — вне Git на проверенном TB5; [native evidence](docs/sandbox-acceptance-2026-10-26.md).
 Это development-подпись: не App Store distribution `.pkg`, не upload/processing/approval.
-Далее — native Watching/moved-or-revoked-grant и реальный widget render; StoreRelease archive/export,
+Далее — moved-or-revoked-grant и реальный widget render; StoreRelease archive/export,
 widget distribution profile, согласование Store version 1.0 с app 0.1.1 (2), metadata и ASC workflow.
 
 **SM-752 — частично доставлена (2026-10-25): performance-блок README по подтверждённым CLI-замерам SM-749; [PR #146](https://github.com/SoundBlaster/SessionMonitor/pull/146) влит squash `b052e5d`.**
@@ -1970,6 +1982,15 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   NavigationSplitView/Inspector; не считать установленное приложение проверенным этим probe.
 
 ## Product follow-ups и отложенные идеи Tokscale (2026-10-24)
+
+- [x] **SM-756** — Общая сетка итогов sidebar с фиксированными колонками.
+  **Реализовано 2026-10-26; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) открыт, main ещё не содержит правку.**
+  Sessions/Input выровнены по левому краю, Requests/Output — по правому
+  (числа и подписи); две равные колонки не зависят от длины содержимого. Mono/number formats и totals semantics сохранены.
+  Проверки: app/widget Debug build, SwiftLint (301 файл), FSD positive/negative;
+  12 native SwiftUI renders: 320/420/700 pt × light/dark × zero/large counts.
+  Renderer использует production component без нового окна/личного индекса;
+  повторный запуск полного приложения не выполнялся. Следом review/merge.
 
 - [x] **SM-745** — Зафиксировать Codex-first фокус, красивый обзор для человека и быстрый CLI аналитики для агента.
   Статус: доставлено (2026-10-25): [PR #140](https://github.com/SoundBlaster/SessionMonitor/pull/140)

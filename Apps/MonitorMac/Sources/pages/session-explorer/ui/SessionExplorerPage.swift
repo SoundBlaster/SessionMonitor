@@ -89,16 +89,10 @@ struct SessionExplorerPage: View {
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.middle)
-            HStack {
-                compactTotal("Sessions", value: Int64(model.report.sessions.count))
-                Spacer()
-                compactTotal("Requests", value: model.report.totals.requests)
-            }
-            HStack {
-                compactTotal("Input tokens", value: model.report.totals.inputTokens)
-                Spacer()
-                compactTotal("Output tokens", value: model.report.totals.outputTokens)
-            }
+            SessionSidebarTotals(sessions: Int64(model.report.sessions.count),
+                                 requests: model.report.totals.requests,
+                                 inputTokens: model.report.totals.inputTokens,
+                                 outputTokens: model.report.totals.outputTokens)
             Text("Totals use the selected period. Search only narrows this list.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -169,14 +163,6 @@ struct SessionExplorerPage: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 9)
         .background(.bar)
-    }
-
-    private func compactTotal(_ label: String, value: Int64) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(value, format: .number)
-                .font(.headline.monospaced())
-            Text(label).font(.caption).foregroundStyle(.secondary)
-        }
     }
 
     private func chooseImportDirectory() {
