@@ -139,8 +139,10 @@ These injected tests and synthetic UI previews do not establish signed sandbox a
 1. **Complete signed sandbox acceptance.** The October 26 StoreDebug check passed real
    Open/Save Panels, shared index, GUI/CLI updates, import/export and bookmark restoration
    after full quit/relaunch. Development signing and app-side App Group publication work.
-   Native Watching lifecycle, moved/revoked-folder recovery, picker first-run defaults and
-   actual widget rendering still need verification. This does not establish App Store
+   Native Watching start/append/Pause/Resume/quit/relaunch/Stop passed in #148.
+   Moved/revoked-folder recovery, picker first-run defaults and actual widget rendering
+   still need verification; the October 27 recovery test compiled but XCTest automation
+   failed before execution. See the [dated evidence](sandbox-acceptance-2026-10-26.md). This does not establish App Store
    distribution-profile suitability or TestFlight/App Store behavior.
 2. **Optional title index access.** `session_index.jsonl` can be outside the chosen folder:
    obtain explicit access or show unavailable titles, without silently broadening access.

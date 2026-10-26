@@ -6,7 +6,21 @@
 
 ## Текущая точка
 
-**SM-756 — реализована (2026-10-26): общая сетка итогов sidebar; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) открыт, не влит.**
+**SM-706 — в работе (2026-10-27): recovery smoke подготовлен, native проверка ограничена средой.**
+Добавлен отдельный native сценарий: после quit переместить synthetic index/source, восстановить
+Watching, затем повторно выбрать replacement после исчезновения source/index; fallback не допускается.
+Signed StoreDebug test target скомпилирован, strict/deep подпись прошла; два запуска XCTest остановились
+до тела тестов: `Timed out while enabling automation mode`. Mac разблокирован, competing UI runners
+не было; kickstart testmanagerd запрещён SIP, защитные настройки не менялись. Native recovery остаётся
+неподтверждённой; targeted hosted tests — 24 passed (3 XCTest + 21 Swift Testing), SwiftLint (306 файлов)
+и FSD positive/negative passed. Installed widget 0.1.1 (2) embedded/signed/registered, snapshot существует,
+но от 25 октября; это GitHub host, не Store candidate. Computer Use получил timeout Control Center и
+`windowNotFoundAtPosition`; системный render не подтверждён, пользовательские widgets/data не менялись.
+[Подробные результаты и local artifacts](docs/sandbox-acceptance-2026-10-26.md#october-27-follow-up-folder-recovery-and-installed-widget).
+Draft PR готовится: native сценарий ещё не прошёл. Далее — восстановить XCTest automation и повторить;
+затем system widget на Store candidate. CI после PR не ожидается активно.
+
+**SM-756 — реализована (2026-10-26): общая сетка итогов sidebar; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) влит squash `8779f59` 2026-10-27.**
 Общие равные колонки: Sessions/Input выровнены по левому краю,
 Requests/Output — по правому, включая числа и подписи (уточнение владельца 2026-10-26). Маленький SessionSidebarTotals получает только четыре значения;
 value-first порядок, system mono, локаль и accounting сохранены. Длинные числа остаются
@@ -15,7 +29,7 @@ SwiftLint (301 файл), FSD positive/negative — passed. Native SwiftUI rende
 из production component: 12 fixtures (320/420/700 pt, light/dark, zero/large totals),
 репрезентативные narrow/normal/wide результаты просмотрены; без новых окон приложения.
 Xcode MCP build остановился на прежнем macro fingerprint; console build использовал
-разрешённый per-command bypass. Следом review/merge PR, затем оставшиеся gates SM-706;
+разрешённый per-command bypass. Все пять checks перед merge прошли, открытых threads не было. Далее — gates SM-706;
 native Watching smoke прошёл, #148 влит squash `3f04b78` 2026-10-27 (Europe/Moscow).
 
 **SM-706 — в работе (2026-10-26): native Watching smoke в #148 прошёл.**
@@ -1984,7 +1998,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 ## Product follow-ups и отложенные идеи Tokscale (2026-10-24)
 
 - [x] **SM-756** — Общая сетка итогов sidebar с фиксированными колонками.
-  **Реализовано 2026-10-26; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) открыт, main ещё не содержит правку.**
+  **Реализовано 2026-10-26; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) влит squash `8779f59`.**
   Sessions/Input выровнены по левому краю, Requests/Output — по правому
   (числа и подписи); две равные колонки не зависят от длины содержимого. Mono/number formats и totals semantics сохранены.
   Проверки: app/widget Debug build, SwiftLint (301 файл), FSD positive/negative;

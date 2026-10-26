@@ -87,3 +87,47 @@ used an unlocked desktop without competing UI tests.
 
 No App Store upload, TestFlight distribution or review submission was performed.
 See [Store preparation](mac-app-store-readiness.md) and [ROADMAP](../ROADMAP.md).
+
+## October 27 follow-up: folder recovery and installed widget
+
+The new native folder-recovery scenario was compiled in development-signed StoreDebug;
+`codesign --verify --deep --strict` passed. Both test attempts failed during XCTest
+initialization with `Timed out while enabling automation mode`, before any test body.
+The Mac reported `IOConsoleLocked = false`, Computer Use read normal app windows, and
+no competing Xcode UI runner was present. A user-service kickstart was rejected by SIP;
+no security setting was changed or bypassed. Therefore neither moved-folder nor
+missing-folder recovery is native acceptance evidence yet.
+
+A fresh targeted hosted run passed **24 tests** (3 XCTest + 21 Swift Testing):
+`WatchLaunchSettingsTests`, `SavedFolderAccessTests`, `SharedIndexTests` and
+`SandboxWatchFixtureTests`. Injected bookmark failures/reselection are unit evidence,
+not a substitute for the native scenario. SwiftLint (306 files) and positive/negative
+FSD architecture checks passed.
+
+Read-only installed-widget diagnostics found:
+
+- `/Applications/SessionMonitor.app` is GitHub version 0.1.1 (2), not a sandboxed
+  Store host. Its nested widget has the expected WidgetKit extension point and sandbox.
+- Both signatures passed deep/strict verification and contain
+  `group.ru.egormerkushev.session-monitor` for team `P8T2366K8X`.
+- PlugInKit's non-superseded record points to that installed extension. Other records
+  exist for development builds; they were not removed or manually re-registered.
+- The shared snapshot has schema 1, two usage periods and cache data. Its timestamp is
+  October 25, 2026 at 14:31:47 UTC (17:31:47 Europe/Moscow); this proves neither current
+  freshness nor rendering.
+- Computer Use reached other existing Notification Center widget windows, but could
+  not open Control Center (timeout) or interact with the widget window position
+  (`windowNotFoundAtPosition`). No SessionMonitor gallery/desktop render was observed.
+
+No app was installed/replaced, no user widget was added/removed, and no personal index,
+shared snapshot, clipboard, permission or system widget cache was changed.
+
+Local result bundles under the verified checkout build root on TB5:
+
+- `sm706-recovery-tests/20261026T233938-32746FBF-5345-4D0F-A295-B03BAC93CD1B.xcresult` — initialization failure.
+- `sm706-recovery-tests/20261026T234519-F8ED4F9C-3940-4C87-82A8-7E829288E81E.xcresult` — initialization failure.
+- `sm706-recovery-unit-tests/20261026T235120-5C2E4564-D013-4061-B80A-C86977236489.xcresult` — 24 targeted tests passed.
+
+Next: restore working XCTest automation and run the native recovery scenario, then
+verify the actual system widget from a signed Store candidate. The optional title
+index grant and Store packaging/ASC gates remain open.

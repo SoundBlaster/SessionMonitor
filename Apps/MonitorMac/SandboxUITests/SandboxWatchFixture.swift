@@ -29,7 +29,7 @@ struct SandboxWatchFixture: Sendable {
         try append(request: 1)
     }
 
-    func append(request: Int) throws {
+    func append(request: Int, directory: URL? = nil) throws {
         let event: [String: Any] = [
             "timestamp": ISO8601DateFormatter().string(from: Date()), "type": "token_usage_record",
             "payload": ["thread_id": "smoke", "turn_id": "T", "response_id": "R\(request)",
@@ -38,7 +38,7 @@ struct SandboxWatchFixture: Sendable {
         ]
         var data = try JSONSerialization.data(withJSONObject: event)
         data.append(0x0A)
-        let handle = try FileHandle(forWritingTo: source.appending(path: "rollout.jsonl"))
+        let handle = try FileHandle(forWritingTo: (directory ?? source).appending(path: "rollout.jsonl"))
         defer { try? handle.close() }
         try handle.seekToEnd()
         try handle.write(contentsOf: data)
