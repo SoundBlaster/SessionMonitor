@@ -17,7 +17,7 @@ Signed StoreDebug test target скомпилирован, strict/deep подпи
 но от 25 октября; это GitHub host, не Store candidate. Computer Use получил timeout Control Center и
 `windowNotFoundAtPosition`; системный render не подтверждён, пользовательские widgets/data не менялись.
 [Подробные результаты и local artifacts](docs/sandbox-acceptance-2026-10-26.md#october-27-follow-up-folder-recovery-and-installed-widget).
-Draft PR готовится: native сценарий ещё не прошёл. Далее — восстановить XCTest automation и повторить;
+[Draft PR #150](https://github.com/SoundBlaster/SessionMonitor/pull/150) открыт: native сценарий ещё не прошёл. Далее — восстановить XCTest automation и повторить;
 затем system widget на Store candidate. CI после PR не ожидается активно.
 
 **SM-756 — реализована (2026-10-26): общая сетка итогов sidebar; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) влит squash `8779f59` 2026-10-27.**
