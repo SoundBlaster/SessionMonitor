@@ -7,8 +7,8 @@
 ## Текущая точка
 
 **SM-756 — реализована (2026-10-26): общая сетка итогов sidebar; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) открыт, не влит.**
-Requests/Output и Sessions/Input теперь используют общие равные колонки с ведущим
-выравниванием. Маленький SessionSidebarTotals получает только четыре значения;
+Общие равные колонки: Sessions/Input выровнены по левому краю,
+Requests/Output — по правому, включая числа и подписи (уточнение владельца 2026-10-26). Маленький SessionSidebarTotals получает только четыре значения;
 value-first порядок, system mono, локаль и accounting сохранены. Длинные числа остаются
 в одну строку с ограниченным уменьшением шрифта. App/widget Debug build прошёл;
 SwiftLint (301 файл), FSD positive/negative — passed. Native SwiftUI renderer собран
@@ -1969,8 +1969,8 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 
 - [x] **SM-756** — Общая сетка итогов sidebar с фиксированными колонками.
   **Реализовано 2026-10-26; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) открыт, main ещё не содержит правку.**
-  Sessions/Input и Requests/Output выровнены по двум равным колонкам, независимо
-  от длины подписей и чисел. Mono/number formats и totals semantics сохранены.
+  Sessions/Input выровнены по левому краю, Requests/Output — по правому
+  (числа и подписи); две равные колонки не зависят от длины содержимого. Mono/number formats и totals semantics сохранены.
   Проверки: app/widget Debug build, SwiftLint (301 файл), FSD positive/negative;
   12 native SwiftUI renders: 320/420/700 pt × light/dark × zero/large counts.
   Renderer использует production component без нового окна/личного индекса;

@@ -11,11 +11,13 @@ struct SessionSidebarTotals: View {
         Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
             GridRow {
                 SessionSidebarTotal(title: "Sessions", value: sessions)
-                SessionSidebarTotal(title: "Requests", value: requests)
+                SessionSidebarTotal(title: "Requests", value: requests, alignment: .trailing)
+                    .multilineTextAlignment(.trailing)
             }
             GridRow {
                 SessionSidebarTotal(title: "Input tokens", value: inputTokens)
-                SessionSidebarTotal(title: "Output tokens", value: outputTokens)
+                SessionSidebarTotal(title: "Output tokens", value: outputTokens, alignment: .trailing)
+                    .multilineTextAlignment(.trailing)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -25,9 +27,10 @@ struct SessionSidebarTotals: View {
 private struct SessionSidebarTotal: View {
     let title: LocalizedStringKey
     let value: Int64
+    var alignment: HorizontalAlignment = .leading
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: alignment, spacing: 3) {
             Text(value, format: .number)
                 .font(.headline.monospaced())
                 .lineLimit(1)
@@ -36,7 +39,7 @@ private struct SessionSidebarTotal: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
         .accessibilityElement(children: .combine)
     }
 }
