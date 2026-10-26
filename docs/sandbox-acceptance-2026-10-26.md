@@ -45,6 +45,16 @@ was removed. The test app was then closed; no extra instance was left running.
 
 ## Remaining gates
 
+A subsequent automation change in [PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148)
+adds a [dedicated Watching XCUITest command](sandbox-watch-smoke.md). Its current
+StoreRelease build, signed StoreDebug `build-for-testing` and deep/strict signature
+verification passed, as did 35 targeted unit tests, SwiftLint and positive/negative
+FSD checks. The full interactive lifecycle is not yet a passing
+result: the latest UI runner could not enable automation mode; another project's
+remaining UI runner then prevented an isolated retry. Native index selection and
+opening the Watching panel were reached in earlier attempts. These partial steps
+do not close the Watching gate below.
+
 - Native Watching start/pause/stop/launch-resume and moved/revoked-grant recovery.
 - Actual system widget rendering; app-side publication does not establish extension rendering.
 - Optional explicit access to `session_index.jsonl` outside the session folder.

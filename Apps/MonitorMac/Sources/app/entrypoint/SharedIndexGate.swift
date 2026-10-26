@@ -25,6 +25,7 @@ struct SharedIndexGate<Content: View>: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 420)
                 .padding(24)
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("storage.indexConnection")
             } else {
                 content()

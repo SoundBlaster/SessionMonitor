@@ -9,6 +9,7 @@ actor SessionMonitorRuntimeLoader {
     private let requiresSharedIndex: Bool
     private let preferencesSuite: String?
     private let indexBookmarks: FolderBookmarkClient
+    private let deliversNotifications: Bool
     private var indexLease: SecurityScopedResourceLease?
     private var activeDatabaseURL: URL?
     private var runtime: SharedReportRuntime?
@@ -17,12 +18,13 @@ actor SessionMonitorRuntimeLoader {
 
     init(databaseURL: URL = MonitorRuntime.SessionMonitor.defaultDatabaseURL, publishesWidgets: Bool = true,
          requiresSharedIndex: Bool = AppFileAccess.requiresBookmarks, preferencesSuite: String? = nil,
-         indexBookmarks: FolderBookmarkClient = .readWrite) {
+         indexBookmarks: FolderBookmarkClient = .readWrite, deliversNotifications: Bool = true) {
         self.databaseURL = databaseURL
         self.publishesWidgets = publishesWidgets
         self.requiresSharedIndex = requiresSharedIndex
         self.preferencesSuite = preferencesSuite
         self.indexBookmarks = indexBookmarks
+        self.deliversNotifications = deliversNotifications
     }
 
     private func database() throws -> MonitorRuntime.SessionMonitor {
@@ -82,10 +84,10 @@ actor SessionMonitorRuntimeLoader {
     private func alertWatchdog() async throws -> AlertWatchdog {
         if let watchdog { return watchdog }
         let monitor = try database()
-        let center = AlertCenter(monitor: monitor, sinks: [UserNotificationAlertSink()])
+        let center = AlertCenter(monitor: monitor, sinks: deliversNotifications ? [UserNotificationAlertSink()] : [])
         let value = AlertWatchdog(monitor: monitor, center: center)
         watchdog = value
-        await UserNotificationAlertSink.requestAuthorization()
+        if deliversNotifications { await UserNotificationAlertSink.requestAuthorization() }
         return value
     }
 

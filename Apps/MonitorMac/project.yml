@@ -128,6 +128,17 @@ targets:
         CODE_SIGNING_ALLOWED: YES
     dependencies:
       - target: MonitorMac
+  MonitorMacSandboxUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [SandboxUITests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.SessionMonitor.SandboxUITests
+        TEST_TARGET_NAME: MonitorMac
+        CODE_SIGNING_ALLOWED: YES
+    dependencies:
+      - target: MonitorMac
 
 schemes:
   MonitorMacStore:
@@ -137,6 +148,9 @@ schemes:
         SessionMonitorWidgetExtension: all
     run:
       config: StoreDebug
+    test:
+      config: StoreDebug
+      targets: [MonitorMacSandboxUITests]
     archive:
       config: StoreRelease
   MonitorMac:

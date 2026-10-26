@@ -11,6 +11,8 @@ The engineering foundation is delivered in [PR #147](https://github.com/SoundBla
 squash `65fa957`. A signed StoreDebug archive and the first native sandbox checks passed
 on October 26; see the [bounded acceptance report](sandbox-acceptance-2026-10-26.md).
 The remaining acceptance/release gates are listed below.
+Watching also has a dedicated [local signed UI smoke command](sandbox-watch-smoke.md);
+its interactive result is tracked separately from ordinary CI and the manual baseline.
 
 ## Current App Store Connect state
 

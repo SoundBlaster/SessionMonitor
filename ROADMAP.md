@@ -6,6 +6,18 @@
 
 ## Текущая точка
 
+**SM-706 — в работе (2026-10-26): автоматизация native Watching smoke в #148.**
+Добавлены StoreDebug XCUITest target и [команда `make test-sandbox-watch`](docs/sandbox-watch-smoke.md):
+настоящие Open Panel grants, synthetic index/source, Watching append, Pause/Resume, quit/relaunch
+с resume и Stop. Debug-only preference suite и отключённые test widget/notification sinks
+изолируют пользовательское состояние; accounting, sandbox и bookmarks остаются production.
+Прошли StoreRelease build, signed StoreDebug `build-for-testing` и `codesign --verify --deep --strict`,
+35 targeted tests (13 XCTest + 22 Swift Testing), SwiftLint и FSD positive/negative.
+Полный native lifecycle пока не подтверждён: предыдущий UI runner не включил automation mode,
+повторный запуск блокирует оставшийся UI runner другого проекта. Подключение индекса через
+native picker и открытие Watching panel проверены в предыдущих попытках; это не полный smoke pass.
+`.xcresult` остаются вне Git; обычный CI не выдаёт ad-hoc run за native sandbox acceptance.
+
 **SM-706 — в работе (2026-10-26): signed StoreDebug build и первая native sandbox acceptance прошли.**
 Документирование результата — [PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148), открыт, не влит; CI после push не ожидается активно.
 Основа доставлена [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), squash `65fa957`:

@@ -48,11 +48,11 @@ SIGNING_ARGS += -allowProvisioningUpdates
 endif
 
 .PHONY: help init test-init doctor generate install-hooks guard-package guard-app lint-version resolve build-cli test-core build-mcp
-.PHONY: lint-core lint lint-architecture build-macos test-macos test-widget check-core check archive
+.PHONY: lint-core lint lint-architecture build-macos test-macos test-widget test-sandbox-watch check-core check archive
 .PHONY: ci ci-linux check-linux lint-ci test-hooks test-architecture test-cli build-cli-release benchmark release-local release-github release-github-local github-release
 
 help:
-	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate install-hooks build-macos build-mcp test-macos lint lint-architecture check archive' 'init ci lint-ci test-init test-hooks test-architecture build-cli-release benchmark release-local release-github release-github-local github-release'
+	@printf '%s\n' 'doctor resolve build-cli test-core test-cli lint-core check-core' 'generate install-hooks build-macos build-mcp test-macos test-sandbox-watch lint lint-architecture check archive' 'init ci lint-ci test-init test-hooks test-architecture build-cli-release benchmark release-local release-github release-github-local github-release'
 
 # Idempotent setup and refresh: pinned tools, Git hooks, packages, Xcode project, toolchain check.
 init:
@@ -153,6 +153,16 @@ test-macos: guard-app
 # Bounded GUI fixture/model suite; ImageRenderer PNGs are attached to the xcresult.
 test-widget:
 	$(MAKE) test-macos XCODEBUILD_FLAGS="$(XCODEBUILD_FLAGS) -only-testing:MonitorMacTests/CacheHitRateWidgetTests -only-testing:MonitorMacTests/CacheHitRateWidgetFixtureTests"
+
+# Local, development-signed StoreDebug UI smoke. Requires an unlocked macOS desktop.
+# Keep the sandbox and App Group entitlements enabled; ad-hoc overrides are rejected by the test.
+test-sandbox-watch:
+	@if pgrep -f '/xcodebuild .* (test|test-without-building)( |$$)|/[^/ ]*UITests-Runner\.app/Contents/MacOS/' >/dev/null; then \
+		echo 'Another Xcode test run is using this Mac. Wait for it to finish before running the UI smoke.' >&2; exit 2; fi
+	@if pgrep -f '/SessionMonitor.app/Contents/MacOS/SessionMonitor' >/dev/null; then \
+		echo 'Quit SessionMonitor before running the sandbox smoke test.' >&2; exit 2; fi
+	$(MAKE) test-macos SCHEME=MonitorMacStore CONFIGURATION=StoreDebug \
+		XCODEBUILD_FLAGS="$(XCODEBUILD_FLAGS) -only-testing:MonitorMacSandboxUITests -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 360"
 
 # Explicit ordering also holds under make -j. No automatic source correction.
 check-core:

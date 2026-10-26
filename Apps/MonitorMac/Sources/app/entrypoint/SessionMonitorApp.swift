@@ -7,6 +7,7 @@ import SwiftUI
 struct SessionMonitorApp: App {
     @NSApplicationDelegateAdaptor(AppLifecycleDelegate.self) private var appDelegate
     private let runtimeLoader: SessionMonitorRuntimeLoader
+    private let preferences: AppPreferences
     @State private var menuModel: MenuSummaryModel
     @State private var reportScope: ReportScopeModel
     @State private var watchController: AppWatchController
@@ -16,14 +17,20 @@ struct SessionMonitorApp: App {
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
 
     init() {
-        let isHostedTest = NSClassFromString("XCTestCase") != nil
-            || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        let preferences = AppPreferences()
+        self.preferences = preferences
+        let isHostedTest = !preferences.isUITest && (NSClassFromString("XCTestCase") != nil
+            || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil)
+        _showMenuBarExtra = AppStorage(wrappedValue: true, "showMenuBarExtra", store: preferences.defaults)
+        _cacheHitRateWidgetSettings = State(initialValue: CacheHitRateWidgetSettings(defaults: preferences.defaults))
         let testDatabase = URL.temporaryDirectory
             .appending(path: "SessionMonitor-hosted-tests-\(ProcessInfo.processInfo.processIdentifier)/usage.sqlite")
         let loader = SessionMonitorRuntimeLoader(
             databaseURL: isHostedTest ? testDatabase : MonitorRuntime.SessionMonitor.defaultDatabaseURL,
-            publishesWidgets: !isHostedTest,
-            requiresSharedIndex: !isHostedTest && AppFileAccess.requiresBookmarks
+            publishesWidgets: !isHostedTest && !preferences.isUITest,
+            requiresSharedIndex: !isHostedTest && AppFileAccess.requiresBookmarks,
+            preferencesSuite: preferences.suiteName,
+            deliversNotifications: !isHostedTest && !preferences.isUITest
         )
         runtimeLoader = loader
         let index = !isHostedTest && AppFileAccess.requiresBookmarks ? SharedIndexLocationModel(
@@ -36,7 +43,7 @@ struct SessionMonitorApp: App {
             },
             factory: { directory in try await loader.watch(directory) }
         )
-        let scope = ReportScopeModel(profileProvider: {
+        let scope = ReportScopeModel(defaults: preferences.defaults, profileProvider: {
             let runtime = try await loader.load()
             return try await runtime.accountProfiles()
         })
@@ -48,7 +55,9 @@ struct SessionMonitorApp: App {
         }))
         appDelegate.shutdown = { await watch.shutdown() }
         // SM-205: resume watching the last chosen folder without user action.
-        if !isHostedTest, index == nil { Task { await watch.startSaved(WatchLaunchSettings()) } }
+        if !isHostedTest, index == nil {
+            Task { await watch.startSaved(WatchLaunchSettings(defaults: preferences.defaults)) }
+        }
     }
 
     var body: some Scene {
@@ -59,12 +68,16 @@ struct SessionMonitorApp: App {
                     watch: watchController,
                     reportScope: reportScope,
                     cacheHitRateWidgetSettings: cacheHitRateWidgetSettings,
-                    cacheAnalytics: cacheAnalytics
+                    cacheAnalytics: cacheAnalytics,
+                    defaults: preferences.defaults
                 )
             }
             .task(id: sharedIndex?.isReady) {
-                if sharedIndex?.isReady == true { await watchController.startSaved(WatchLaunchSettings()) }
+                if sharedIndex?.isReady == true {
+                    await watchController.startSaved(WatchLaunchSettings(defaults: preferences.defaults))
+                }
             }
+            .defaultAppStorage(preferences.defaults)
         }
         .defaultSize(width: 1120, height: 760)
         .commands { CacheAnalyticsCommands() }
@@ -78,17 +91,23 @@ struct SessionMonitorApp: App {
         }
         .defaultSize(width: 840, height: 720)
         #endif
-        MenuBarExtra("SessionMonitor", systemImage: "chart.bar.xaxis", isInserted: $showMenuBarExtra) {
+        MenuBarExtra(isInserted: $showMenuBarExtra) {
             SharedIndexGate(model: sharedIndex) {
                 AppMenuHost(model: menuModel, watch: watchController, reportScope: reportScope,
-                            runtimeLoader: runtimeLoader)
+                            runtimeLoader: runtimeLoader, defaults: preferences.defaults)
             }
+            .defaultAppStorage(preferences.defaults)
+        } label: {
+            Image(systemName: "chart.bar.xaxis")
+                .accessibilityLabel("SessionMonitor")
+                .accessibilityIdentifier("sessionMonitor.statusItem")
         }
         .menuBarExtraStyle(.window)
         Settings {
             MonitorSettingsPage(
                 cacheHitRateWidgetSettings: cacheHitRateWidgetSettings, sharedIndex: sharedIndex
             )
+            .defaultAppStorage(preferences.defaults)
         }
     }
 }
@@ -107,7 +126,8 @@ private struct SessionMonitorWindow: View {
         watch: AppWatchController,
         reportScope: ReportScopeModel,
         cacheHitRateWidgetSettings: CacheHitRateWidgetSettings,
-        cacheAnalytics: CacheAnalyticsPresentation
+        cacheAnalytics: CacheAnalyticsPresentation,
+        defaults: UserDefaults
     ) {
         self.reportScope = reportScope
         self.cacheHitRateWidgetSettings = cacheHitRateWidgetSettings
@@ -116,7 +136,8 @@ private struct SessionMonitorWindow: View {
             importOperation: { directory, runtime, progress in
                 try await watch.importManually { try await runtime.importDirectory(directory, progress: progress) }
             },
-            runtimeFactory: { try await runtimeLoader.load() }
+            runtimeFactory: { try await runtimeLoader.load() },
+            importedDirectorySettings: ImportedDirectorySettings(defaults: defaults)
         ))
     }
 
