@@ -1,10 +1,22 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-25. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-26. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
+
+**SM-756 — реализована (2026-10-26): общая сетка итогов sidebar; PR готовится.**
+Requests/Output и Sessions/Input теперь используют общие равные колонки с ведущим
+выравниванием. Маленький SessionSidebarTotals получает только четыре значения;
+value-first порядок, system mono, локаль и accounting сохранены. Длинные числа остаются
+в одну строку с ограниченным уменьшением шрифта. App/widget Debug build прошёл;
+SwiftLint (301 файл), FSD positive/negative — passed. Native SwiftUI renderer собран
+из production component: 12 fixtures (320/420/700 pt, light/dark, zero/large totals),
+репрезентативные narrow/normal/wide результаты просмотрены; без новых окон приложения.
+Xcode MCP build остановился на прежнем macro fingerprint; console build использовал
+разрешённый per-command bypass. Следом review/merge PR, затем оставшиеся gates SM-706;
+native Watching smoke уже прошёл и записан в открытом #148.
 
 **SM-706 — в работе (2026-10-25): sandbox и общий индекс Store app/CLI в [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), открыт, не влит.**
 StoreDebug/StoreRelease и scheme MonitorMacStore сохраняют read-only security-scoped bookmarks для
@@ -1954,6 +1966,15 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   NavigationSplitView/Inspector; не считать установленное приложение проверенным этим probe.
 
 ## Product follow-ups и отложенные идеи Tokscale (2026-10-24)
+
+- [x] **SM-756** — Общая сетка итогов sidebar с фиксированными колонками.
+  **Реализовано 2026-10-26; PR готовится, main ещё не содержит правку.**
+  Sessions/Input и Requests/Output выровнены по двум равным колонкам, независимо
+  от длины подписей и чисел. Mono/number formats и totals semantics сохранены.
+  Проверки: app/widget Debug build, SwiftLint (301 файл), FSD positive/negative;
+  12 native SwiftUI renders: 320/420/700 pt × light/dark × zero/large counts.
+  Renderer использует production component без нового окна/личного индекса;
+  повторный запуск полного приложения не выполнялся. Следом review/merge.
 
 - [x] **SM-745** — Зафиксировать Codex-first фокус, красивый обзор для человека и быстрый CLI аналитики для агента.
   Статус: доставлено (2026-10-25): [PR #140](https://github.com/SoundBlaster/SessionMonitor/pull/140)
