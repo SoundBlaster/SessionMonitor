@@ -19,6 +19,9 @@ struct MenuSummaryPage: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 Label(watch.title, systemImage: watch.symbol)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(watch.title)
+                    .accessibilityIdentifier("watch.status")
                 Text(watch.directory ?? "No folder selected.")
                     .font(.caption).foregroundStyle(.secondary)
                     .lineLimit(2).truncationMode(.middle)
@@ -65,9 +68,12 @@ struct MenuSummaryPage: View {
             HStack {
                 if watch.isRunning {
                     Button(watch.isPaused ? "Resume Watch" : "Pause Watch", action: actions.togglePause)
+                        .accessibilityIdentifier("watch.pauseResume")
                     Button("Stop Watch", action: actions.stopWatch)
+                        .accessibilityIdentifier("watch.stop")
                 } else {
                     Button("Watch Folder…", systemImage: "folder", action: actions.startWatch)
+                        .accessibilityIdentifier("watch.chooseFolder")
                 }
             }
             .disabled(watch.isBusy)

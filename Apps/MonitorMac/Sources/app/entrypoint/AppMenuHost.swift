@@ -7,6 +7,7 @@ struct AppMenuHost: View {
     let watch: AppWatchController
     let reportScope: ReportScopeModel
     let runtimeLoader: SessionMonitorRuntimeLoader
+    var defaults: UserDefaults = .standard
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
 
@@ -73,7 +74,9 @@ struct AppMenuHost: View {
         guard !watch.isBusy, !watch.isImporting, !watch.isRunning, !watch.isShuttingDown else { return }
         let panel = NSOpenPanel()
         panel.title = "Watch JSONL Rollouts"
-        panel.directoryURL = RolloutDirectorySelection.initialDirectory(preferred: WatchLaunchSettings().directory)
+        panel.directoryURL = AppPreferences.uiTestDirectory(.rollouts) ?? RolloutDirectorySelection.initialDirectory(
+            preferred: WatchLaunchSettings(defaults: defaults).directory
+        )
         panel.showsHiddenFiles = true
         panel.message = "The selected folder is imported, then monitored for changes until you stop watch or quit."
         panel.prompt = "Start Watch"
@@ -84,7 +87,7 @@ struct AppMenuHost: View {
         guard panel.runModal() == .OK, let directory = panel.url else { return }
         let lease = SecurityScopedResourceLease(directory, fromPanel: true)
         Task {
-            await watch.startSelected(directory)
+            await watch.startSelected(directory, settings: WatchLaunchSettings(defaults: defaults))
             withExtendedLifetime(lease) {}
         }
     }

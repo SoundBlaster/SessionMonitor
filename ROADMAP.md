@@ -1,6 +1,6 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-26. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-27. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
@@ -16,32 +16,43 @@ SwiftLint (301 файл), FSD positive/negative — passed. Native SwiftUI rende
 репрезентативные narrow/normal/wide результаты просмотрены; без новых окон приложения.
 Xcode MCP build остановился на прежнем macro fingerprint; console build использовал
 разрешённый per-command bypass. Следом review/merge PR, затем оставшиеся gates SM-706;
-native Watching smoke уже прошёл и записан в открытом #148.
+native Watching smoke прошёл, #148 влит squash `3f04b78` 2026-10-27 (Europe/Moscow).
 
-**SM-706 — в работе (2026-10-25): sandbox и общий индекс Store app/CLI в [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), открыт, не влит.**
-StoreDebug/StoreRelease и scheme MonitorMacStore сохраняют read-only security-scoped bookmarks для
-session folders и отдельный read/write bookmark для выбранной папки `usage.sqlite`. Первый запуск без
-выбора индекса не создаёт приватную пустую замену: открытие прежней базы на месте сохраняет историю,
-profiles, watermark и incremental checkpoints. Окно и menu bar используют общий connection state;
-Settings показывает активный/отложенный путь и копирует shell-quoted CLI command с `--database`.
-Смена папки применяется после restart; ошибка bookmark/open не заменяет прежние settings, утрата grant
-ведёт к повторному выбору. Grants от Open/Save Panel и explicit start сбалансированы. Picker предлагает
-реальную домашнюю папку Codex без pre-grant existence probe. Canonical accounting и CLI defaults сохранены.
-Текущая проверка: 277 core tests и полный `make check-core` с CLI process/performance smoke прошли;
-Debug targeted — 23 XCTest + 21 Swift Testing passed. Синтетические connection/Settings snapshots
-визуально проверены в light/dark. SwiftLint — 0 violations в 300 файлах, FSD positive/negative passed,
-pins сохранены. StoreRelease app/widget после интеграции индекса собраны без подписи; оба universal arm64/x86_64.
-Предыдущая ревизия CI #147 упала на timeout прежнего retry test Watching; короткий polling заменён
-ожиданием update stream с общим test time limit. GitHub CI новой ревизии после push активно не ожидается.
-MCP build остановился на изменённом macro trust; console checks — с ранее разрешённым per-command bypass.
-Hosted tests изолированы от пользовательского индекса/Watching/widget publication; ad-hoc test build
-не проверяет Store signing/App Groups. Ранее обе Store configurations собраны без подписи; полный GUI
-unit run прерван в XCTest/CoreSymbolication прежнего performance test и не считается успешным.
-Следом — signed sandbox acceptance реального picker/import/export/Watching/relaunch/CLI и widget parity,
-явный optional title-index grant, затем Store profiles/archive/export/upload. Реальный grant/relaunch
-ещё не подтверждён: Computer Use не подключился к изолированному helper picker. ASC app `6812366729`,
-draft macOS 1.0 и отсутствие macOS builds проверены read-only; remote metadata/upload не менялись.
-SM-749 доставлена через #145 (`c5a507b`), README-часть SM-752 — через #146 (`b052e5d`), local main синхронизирован.
+**SM-706 — в работе (2026-10-26): native Watching smoke в #148 прошёл.**
+[PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148) влит 2026-10-27 (Europe/Moscow), squash `3f04b78`; все пять checks зелёные, открытых threads не было.
+Signed StoreDebug XCUITest с настоящими Open Panel grants проверил initial import, append 1→2,
+Pause/Resume 2→3, штатный quit/relaunch с восстановлением grants и Watching 3→4, Stop без импорта
+пятого запроса. 1 тест / 0 ошибок / 53 секунды; teardown сбросил только изолированную suite,
+удалил synthetic fixture и закрыл приложение. Счётчик проверяется в accessibility summary графика.
+Актуальный signed StoreRelease app/widget build, SwiftLint (305 файлов) и FSD positive/negative прошли.
+Четыре актуальных unit tests проверили suite/папки и fixture через production importer;
+предыдущий baseline — ещё 33 targeted tests (13 XCTest + 20 Swift Testing), до последней правки harness.
+Test controls используют production AppMenuHost в Debug-only pane, без system menu bar item;
+picker только начинает с synthetic directory, настоящий выбор и sandbox grant обязательны.
+Клавиатура, clipboard, личный индекс, widget snapshot и обычные preferences не менялись.
+Команда отклоняет locked desktop/занятый UI runner; пройденный native run — с разблокированным Mac.
+`.xcresult` остаётся вне Git; ordinary CI не выдаётся за native sandbox acceptance.
+Далее — moved/revoked grants, реальный widget render и StoreRelease packaging/ASC;
+по новому требованию владельца сначала отдельная правка общей сетки итогов sidebar.
+
+**SM-706 — в работе (2026-10-26): signed StoreDebug build и первая native sandbox acceptance прошли.**
+Документирование результата доставлено [PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148), squash `3f04b78`.
+Основа доставлена [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), squash `65fa957`:
+все пять checks зелёные, открытых threads нет, main синхронизирован. Из этого commit через `asc xcode archive`
+собран arm64 StoreDebug archive 0.1.1 (2), подписанный Apple Development. App/widget проходят strict
+signature verification и содержат sandbox + общий App Group; app также содержит user-selected read/write
+и persistent bookmarks. Xcode-tools проверен, но build остановлен прежним macro-trust fingerprint;
+console archive использовал разрешённый per-command bypass и существующий ASC Keychain profile.
+Computer Use проверил настоящее системное разрешение: индекс CLI открылся в GUI; quit/relaunch восстановил
+bookmark без picker; внешний CLI append обновил GUI 1→2 requests; GUI Import — 2→3; после второго relaunch
+Update с сохранённым source bookmark — 3→4. Итог GUI/CLI: input 1000, output 100, cached 800.
+Save Panel создал валидный anonymized JSON; app опубликовал synthetic App Group snapshot.
+Настройки и исходный widget snapshot восстановлены и сравнены с backup; последующий cold launch снова
+показал начальный connection screen, тестовый процесс закрыт. Личный индекс/rollouts не менялись.
+Артефакты/backup/logs — вне Git на проверенном TB5; [native evidence](docs/sandbox-acceptance-2026-10-26.md).
+Это development-подпись: не App Store distribution `.pkg`, не upload/processing/approval.
+Далее — moved-or-revoked-grant и реальный widget render; StoreRelease archive/export,
+widget distribution profile, согласование Store version 1.0 с app 0.1.1 (2), metadata и ASC workflow.
 
 **SM-752 — частично доставлена (2026-10-25): performance-блок README по подтверждённым CLI-замерам SM-749; [PR #146](https://github.com/SoundBlaster/SessionMonitor/pull/146) влит squash `b052e5d`.**
 Под главным скриншотом: latest status 180 ms / 31,9 MiB peak RSS, selected/7 days 680 ms / 52,3 MiB,
@@ -1369,15 +1380,20 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   Clean-machine/update/widget acceptance остаётся открытой. Mac App Store — SM-706.
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
   **2026-10-25: в работе — sandbox configuration, persistent grants и shared app/CLI index.**
-  Реализация — [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), открыт, не влит.
+  Основа влита через [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), squash `65fa957`.
   Store app требует явного выбора папки `usage.sqlite`, открывает существующую базу на месте и держит
   read/write grant; source folders — read-only. Settings копирует active CLI command, изменение индекса
   отложено до restart. Ошибки/revoked grants не создают fallback; metadata/checkpoints/history сохранены.
-  Текущие проверки: `make check-core` (277 tests + CLI smokes), Debug targeted (23 XCTest + 21 Swift Testing),
+  Baseline #147: `make check-core` (277 tests + CLI smokes), Debug targeted (23 XCTest + 21 Swift Testing),
   light/dark synthetic UI snapshots, SwiftLint/FSD positive/negative passed; pins неизменны.
-  Старый CI timeout Watching исправлен event-driven ожиданием; CI новой ревизии после push активно не ожидается.
+  Старый CI timeout Watching исправлен event-driven ожиданием; финальный CI #147 перед merge прошёл.
   Обе Store configurations ранее собраны без подписи; свежий StoreRelease app/widget build — universal arm64/x86_64.
-  Signed grant/relaunch и App Group/widget acceptance не подтверждены; optional title-index grant,
+  2026-10-26: signed StoreDebug archive и native index/source grants после relaunch, Import/Update/export и
+  app-side App Group snapshot publication проверены; см. [evidence](docs/sandbox-acceptance-2026-10-26.md).
+  2026-10-26: native Watching start/append/Pause/Resume/quit/relaunch/Stop подтверждён
+  dedicated signed XCUITest (1 тест, 0 ошибок, 53 секунды) в открытом #148; production controls
+  открыты в Debug-only pane, system status item navigation этим тестом не проверяется.
+  Moved/revoked recovery и widget render остаются; optional title-index grant,
   Store signing/release-local/version reconciliation/metadata/archive/export/upload остаются впереди.
   Automatic relocation базы не реализуется: переход на Store открывает прежний индекс после явного выбора.
   **Приоритет владельца (2026-10-24): после performance-проверки SM-746 начать подготовку Mac App Store.**
