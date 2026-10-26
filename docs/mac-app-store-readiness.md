@@ -2,13 +2,17 @@
 
 [← SessionMonitor](../README.md) · [Release workflows](releases.md)
 
-Updated October 25, 2026. CLI performance work SM-749 is delivered in PR #145;
+Updated October 26, 2026. CLI performance work SM-749 is delivered in PR #145;
 the README measurements are delivered in PR #146. SM-706 now implements the first
 engineering prerequisites: a separate sandbox configuration, persisted folder grants,
 and an explicit shared app/CLI index connection.
 This document records preparation, not a submitted or approved build.
-The engineering foundation is proposed in [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147);
-it is not delivered to main yet. The remaining acceptance/release gates are listed below.
+The engineering foundation is delivered in [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147),
+squash `65fa957`. A signed StoreDebug archive and the first native sandbox checks passed
+on October 26; see the [bounded acceptance report](sandbox-acceptance-2026-10-26.md).
+The remaining acceptance/release gates are listed below.
+Watching also has a dedicated [local signed UI smoke command](sandbox-watch-smoke.md);
+its interactive result is tracked separately from ordinary CI and the manual baseline.
 
 ## Current App Store Connect state
 
@@ -85,8 +89,9 @@ full suite or an assertion failure; the final affected suites were rerun success
 A separate helper signed with the installed Apple Development identity attempted a real
 sandbox folder-picker/bookmark check using only a synthetic file. Computer Use could not
 attach to its picker. The helper was stopped; no successful real-grant/relaunch result is
-claimed. Repeat this check with the actual signed Store candidate after the index contract
-and profiles are resolved.
+claimed for that earlier helper attempt. The October 26 checks now exercised the actual
+signed StoreDebug app and verified index/source bookmark recovery, Import/Update/export
+and app-side App Group publication; remaining acceptance gates are listed below.
 
 ## Shared index connection in Store builds
 
@@ -131,18 +136,17 @@ These injected tests and synthetic UI previews do not establish signed sandbox a
 
 ## Engineering work before an App Store candidate
 
-1. **Signed sandbox acceptance.** Build `MonitorMacStore` and exercise the actual system
-   picker, import, export, Update, Watching, quit/relaunch, permission loss, and a moved folder.
-   Verify the picker's first-run default against the real Codex location as well: sandbox
-   home-directory resolution and pre-grant file-existence checks need an acceptance witness.
-   Local inspection found an App Store profile for the app and Developer ID profiles for
-   app/widget, but no local App Store/development profile for the widget. Resolve that before
-   treating a signed Store candidate as ready. An unsigned successful build only proves compilation.
+1. **Complete signed sandbox acceptance.** The October 26 StoreDebug check passed real
+   Open/Save Panels, shared index, GUI/CLI updates, import/export and bookmark restoration
+   after full quit/relaunch. Development signing and app-side App Group publication work.
+   Native Watching lifecycle, moved/revoked-folder recovery, picker first-run defaults and
+   actual widget rendering still need verification. This does not establish App Store
+   distribution-profile suitability or TestFlight/App Store behavior.
 2. **Optional title index access.** `session_index.jsonl` can be outside the chosen folder:
    obtain explicit access or show unavailable titles, without silently broadening access.
 3. **Shared index acceptance.** The explicit folder contract above is implemented in #147.
-   Verify it with the actual signed Store app and external CLI against a synthetic existing
-   index, including quit/relaunch and revoked/moved-folder recovery. Existing history is
+   The signed StoreDebug app and external CLI passed the synthetic existing-index and
+   quit/relaunch checks. Revoked/moved-folder recovery remains unverified. Existing history is
    opened in place; no automatic relocation or container-to-external migration is claimed.
 4. **App Store archive/export.** Verify app/widget sandbox entitlements, App Group profiles,
    App Store distribution identities, installer signature, and package validation. Reconcile
