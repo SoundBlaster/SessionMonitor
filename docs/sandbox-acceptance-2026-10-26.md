@@ -49,11 +49,14 @@ A subsequent automation change in [PR #148](https://github.com/SoundBlaster/Sess
 adds a [dedicated Watching XCUITest command](sandbox-watch-smoke.md). Its current
 StoreRelease build, signed StoreDebug `build-for-testing` and deep/strict signature
 verification passed, as did 35 targeted unit tests, SwiftLint and positive/negative
-FSD checks. The full interactive lifecycle is not yet a passing
-result: the latest UI runner could not enable automation mode; another project's
-remaining UI runner then prevented an isolated retry. Native index selection and
-opening the Watching panel were reached in earlier attempts. These partial steps
-do not close the Watching gate below.
+FSD checks. The full interactive lifecycle is not yet a passing result. The evening
+retry confirmed that the competing BuildHunter runner had exited, but Computer Use
+reported a locked Mac and I/O Registry reported `IOConsoleLocked = true`. Restarting
+the user's test service did not bypass that prerequisite; the task-owned stuck run
+was stopped. The Make command now rejects the locked desktop immediately with an
+unlock instruction; this failure path was verified without launching another runner.
+Native index selection and opening the Watching panel were reached in earlier
+attempts. These partial steps do not close the Watching gate below.
 
 - Native Watching start/pause/stop/launch-resume and moved/revoked-grant recovery.
 - Actual system widget rendering; app-side publication does not establish extension rendering.

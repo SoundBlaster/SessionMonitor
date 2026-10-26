@@ -157,6 +157,9 @@ test-widget:
 # Local, development-signed StoreDebug UI smoke. Requires an unlocked macOS desktop.
 # Keep the sandbox and App Group entitlements enabled; ad-hoc overrides are rejected by the test.
 test-sandbox-watch:
+	@test "$$(uname -s)" = Darwin || { echo 'The signed UI smoke requires macOS.' >&2; exit 2; }
+	@if /usr/sbin/ioreg -n Root -d 1 | /usr/bin/grep -q '"IOConsoleLocked" = Yes'; then \
+		echo 'Unlock this Mac before running the signed UI smoke; XCTest cannot automate the lock screen.' >&2; exit 2; fi
 	@if pgrep -f '/xcodebuild .* (test|test-without-building)( |$$)|/[^/ ]*UITests-Runner\.app/Contents/MacOS/' >/dev/null; then \
 		echo 'Another Xcode test run is using this Mac. Wait for it to finish before running the UI smoke.' >&2; exit 2; fi
 	@if pgrep -f '/SessionMonitor.app/Contents/MacOS/SessionMonitor' >/dev/null; then \

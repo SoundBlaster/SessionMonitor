@@ -13,9 +13,11 @@
 изолируют пользовательское состояние; accounting, sandbox и bookmarks остаются production.
 Прошли StoreRelease build, signed StoreDebug `build-for-testing` и `codesign --verify --deep --strict`,
 35 targeted tests (13 XCTest + 22 Swift Testing), SwiftLint и FSD positive/negative.
-Полный native lifecycle пока не подтверждён: предыдущий UI runner не включил automation mode,
-повторный запуск блокирует оставшийся UI runner другого проекта. Подключение индекса через
-native picker и открытие Watching panel проверены в предыдущих попытках; это не полный smoke pass.
+Полный native lifecycle пока не подтверждён. Вечерняя перепроверка: runner BuildHunter уже завершился;
+Mac заблокирован (Computer Use и `IOConsoleLocked = true`), поэтому XCTest не начинает сценарий.
+Добавлена и проверена ранняя остановка `test-sandbox-watch` с пояснением разблокировать Mac;
+зависший собственный прогон завершён. Подключение индекса через native picker и открытие Watching
+panel проверены в предыдущих попытках; это не полный smoke pass. Далее — разблокировать Mac и повторить.
 `.xcresult` остаются вне Git; обычный CI не выдаёт ad-hoc run за native sandbox acceptance.
 
 **SM-706 — в работе (2026-10-26): signed StoreDebug build и первая native sandbox acceptance прошли.**

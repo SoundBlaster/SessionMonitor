@@ -8,8 +8,11 @@ and a new empty index, never a personal session archive or index.
 
 Use an unlocked macOS desktop with Xcode UI automation enabled. Quit SessionMonitor
 first, and finish other Xcode test runs: UI tests share the desktop, keyboard and
-pointer. The Make target refuses to start when an app instance or another Xcode
-test process is already running. Do not interact with the desktop during the run.
+pointer. The Make target refuses to start when macOS reports a locked console,
+an app instance is open, or another Xcode test process is already running. Do not
+interact with the desktop during the run. A locked desktop can leave XCTest waiting
+for automation mode before the test body and its time limit begin; unlock the Mac
+manually before retrying.
 The standard ABC keyboard input source must be installed. The test selects it for
 typing paths, then restores the previously selected input source in teardown.
 It can also reveal the system's collapsed status area before opening Watching.
