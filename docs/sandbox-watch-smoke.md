@@ -13,9 +13,10 @@ an app instance is open, or another Xcode test process is already running. Do no
 interact with the desktop during the run. A locked desktop can leave XCTest waiting
 for automation mode before the test body and its time limit begin; unlock the Mac
 manually before retrying.
-The standard ABC keyboard input source must be installed. The test selects it for
-typing paths, then restores the previously selected input source in teardown.
-It can also reveal the system's collapsed status area before opening Watching.
+Debug-only test configuration suggests the synthetic folders as the pickers' initial
+locations. The test verifies each displayed folder and confirms it through the real
+system picker; sandbox grants are not bypassed. It does not type paths, change the
+keyboard layout, use the clipboard or manipulate the system status area.
 
 Configure local Apple Development signing as described in [Development](development.md).
 The app and widget must retain their Store sandbox and App Group entitlements.
@@ -37,8 +38,10 @@ it does not change global Xcode trust settings.
 ## What it checks
 
 1. Choose an empty index folder through the native picker.
-2. Start Watching through the menu bar and select a synthetic rollout folder.
-3. Observe the first request, append another request, and observe the updated GUI count.
+2. Use the production Watching controls in a Debug-only test pane beside Session
+   Explorer and select a synthetic rollout folder through the real picker.
+3. Observe the first request, append another request, and observe the updated chart
+   request count through its accessibility summary.
 4. Pause, append a third request, verify that the paused report stays unchanged,
    then Resume and observe the third request.
 5. Quit while Watching, append while the app is closed, then relaunch and verify
@@ -55,6 +58,10 @@ Only Debug builds recognize `SESSIONMONITOR_UI_TEST_SUITE`. Each run uses a uniq
 account scope, imported-folder and Watching settings use that same suite. Widget
 publication and notification delivery are disabled for this test; sandbox, SQLite,
 file watching and bookmark operations remain the normal implementations.
+With this isolated suite, `SESSIONMONITOR_UI_TEST_FIXTURE` may name only an absolute
+`SandboxSmoke-<UUID>` root for picker suggestions. The test pane renders `AppMenuHost`
+unchanged; the system menu bar extra is not inserted in test mode. Ordinary launches
+and Release builds do not enable these test controls.
 
 The sandboxed UI runner creates the small synthetic fixture in its own writable
 temporary directory. Build products, caches and `.xcresult` bundles use the supplied
@@ -69,7 +76,8 @@ other windows. A passing ordinary CI run does not imply this development-signed,
 interactive smoke passed. The test is intentionally separate from the regular
 ad-hoc `MonitorMac` CI suite.
 
-This smoke does not cover moved/revoked grants, actual system widget rendering,
+This smoke does not cover opening/placement of the system menu bar item,
+moved/revoked grants, actual system widget rendering,
 StoreRelease packaging, App Store Connect processing, TestFlight or review.
 See [sandbox acceptance](sandbox-acceptance-2026-10-26.md) for recorded evidence
 and [ROADMAP](../ROADMAP.md) for outstanding gates.

@@ -106,7 +106,7 @@ targets:
   MonitorMacTests:
     type: bundle.unit-test
     platform: macOS
-    sources: [Tests]
+    sources: [Tests, SandboxUITests/SandboxWatchFixture.swift]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ru.egormerkushev.SessionMonitor.Tests

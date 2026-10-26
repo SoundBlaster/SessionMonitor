@@ -74,7 +74,7 @@ struct AppMenuHost: View {
         guard !watch.isBusy, !watch.isImporting, !watch.isRunning, !watch.isShuttingDown else { return }
         let panel = NSOpenPanel()
         panel.title = "Watch JSONL Rollouts"
-        panel.directoryURL = RolloutDirectorySelection.initialDirectory(
+        panel.directoryURL = AppPreferences.uiTestDirectory(.rollouts) ?? RolloutDirectorySelection.initialDirectory(
             preferred: WatchLaunchSettings(defaults: defaults).directory
         )
         panel.showsHiddenFiles = true

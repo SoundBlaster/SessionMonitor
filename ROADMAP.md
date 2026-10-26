@@ -6,19 +6,22 @@
 
 ## Текущая точка
 
-**SM-706 — в работе (2026-10-26): автоматизация native Watching smoke в #148.**
-Добавлены StoreDebug XCUITest target и [команда `make test-sandbox-watch`](docs/sandbox-watch-smoke.md):
-настоящие Open Panel grants, synthetic index/source, Watching append, Pause/Resume, quit/relaunch
-с resume и Stop. Debug-only preference suite и отключённые test widget/notification sinks
-изолируют пользовательское состояние; accounting, sandbox и bookmarks остаются production.
-Прошли StoreRelease build, signed StoreDebug `build-for-testing` и `codesign --verify --deep --strict`,
-35 targeted tests (13 XCTest + 22 Swift Testing), SwiftLint и FSD positive/negative.
-Полный native lifecycle пока не подтверждён. Вечерняя перепроверка: runner BuildHunter уже завершился;
-Mac заблокирован (Computer Use и `IOConsoleLocked = true`), поэтому XCTest не начинает сценарий.
-Добавлена и проверена ранняя остановка `test-sandbox-watch` с пояснением разблокировать Mac;
-зависший собственный прогон завершён. Подключение индекса через native picker и открытие Watching
-panel проверены в предыдущих попытках; это не полный smoke pass. Далее — разблокировать Mac и повторить.
-`.xcresult` остаются вне Git; обычный CI не выдаёт ad-hoc run за native sandbox acceptance.
+**SM-706 — в работе (2026-10-26): native Watching smoke в #148 прошёл.**
+[PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148), открыт, не влит.
+Signed StoreDebug XCUITest с настоящими Open Panel grants проверил initial import, append 1→2,
+Pause/Resume 2→3, штатный quit/relaunch с восстановлением grants и Watching 3→4, Stop без импорта
+пятого запроса. 1 тест / 0 ошибок / 53 секунды; teardown сбросил только изолированную suite,
+удалил synthetic fixture и закрыл приложение. Счётчик проверяется в accessibility summary графика.
+Актуальный signed StoreRelease app/widget build, SwiftLint (305 файлов) и FSD positive/negative прошли.
+Четыре актуальных unit tests проверили suite/папки и fixture через production importer;
+предыдущий baseline — ещё 33 targeted tests (13 XCTest + 20 Swift Testing), до последней правки harness.
+Test controls используют production AppMenuHost в Debug-only pane, без system menu bar item;
+picker только начинает с synthetic directory, настоящий выбор и sandbox grant обязательны.
+Клавиатура, clipboard, личный индекс, widget snapshot и обычные preferences не менялись.
+Команда отклоняет locked desktop/занятый UI runner; пройденный native run — с разблокированным Mac.
+`.xcresult` остаётся вне Git; ordinary CI не выдаётся за native sandbox acceptance.
+Далее — moved/revoked grants, реальный widget render и StoreRelease packaging/ASC;
+по новому требованию владельца сначала отдельная правка общей сетки итогов sidebar.
 
 **SM-706 — в работе (2026-10-26): signed StoreDebug build и первая native sandbox acceptance прошли.**
 Документирование результата — [PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148), открыт, не влит; CI после push не ожидается активно.
@@ -1375,7 +1378,10 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   Обе Store configurations ранее собраны без подписи; свежий StoreRelease app/widget build — universal arm64/x86_64.
   2026-10-26: signed StoreDebug archive и native index/source grants после relaunch, Import/Update/export и
   app-side App Group snapshot publication проверены; см. [evidence](docs/sandbox-acceptance-2026-10-26.md).
-  Native Watching, moved/revoked recovery и widget render остаются; optional title-index grant,
+  2026-10-26: native Watching start/append/Pause/Resume/quit/relaunch/Stop подтверждён
+  dedicated signed XCUITest (1 тест, 0 ошибок, 53 секунды) в открытом #148; production controls
+  открыты в Debug-only pane, system status item navigation этим тестом не проверяется.
+  Moved/revoked recovery и widget render остаются; optional title-index grant,
   Store signing/release-local/version reconciliation/metadata/archive/export/upload остаются впереди.
   Automatic relocation базы не реализуется: переход на Store открывает прежний индекс после явного выбора.
   **Приоритет владельца (2026-10-24): после performance-проверки SM-746 начать подготовку Mac App Store.**

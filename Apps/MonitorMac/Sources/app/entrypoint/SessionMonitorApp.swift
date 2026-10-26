@@ -21,7 +21,8 @@ struct SessionMonitorApp: App {
         self.preferences = preferences
         let isHostedTest = !preferences.isUITest && (NSClassFromString("XCTestCase") != nil
             || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil)
-        _showMenuBarExtra = AppStorage(wrappedValue: true, "showMenuBarExtra", store: preferences.defaults)
+        _showMenuBarExtra = AppStorage(wrappedValue: !preferences.isUITest, "showMenuBarExtra",
+                                      store: preferences.defaults)
         _cacheHitRateWidgetSettings = State(initialValue: CacheHitRateWidgetSettings(defaults: preferences.defaults))
         let testDatabase = URL.temporaryDirectory
             .appending(path: "SessionMonitor-hosted-tests-\(ProcessInfo.processInfo.processIdentifier)/usage.sqlite")
@@ -63,14 +64,24 @@ struct SessionMonitorApp: App {
     var body: some Scene {
         WindowGroup("SessionMonitor", id: "session-explorer") {
             SharedIndexGate(model: sharedIndex) {
-                SessionMonitorWindow(
-                    runtimeLoader: runtimeLoader,
-                    watch: watchController,
-                    reportScope: reportScope,
-                    cacheHitRateWidgetSettings: cacheHitRateWidgetSettings,
-                    cacheAnalytics: cacheAnalytics,
-                    defaults: preferences.defaults
-                )
+                HStack(spacing: 0) {
+                    SessionMonitorWindow(
+                        runtimeLoader: runtimeLoader,
+                        watch: watchController,
+                        reportScope: reportScope,
+                        cacheHitRateWidgetSettings: cacheHitRateWidgetSettings,
+                        cacheAnalytics: cacheAnalytics,
+                        defaults: preferences.defaults
+                    )
+                    #if DEBUG
+                    if preferences.isUITest {
+                        Divider()
+                        // Exercise production Watching controls without depending on status-item placement.
+                        AppMenuHost(model: menuModel, watch: watchController, reportScope: reportScope,
+                                    runtimeLoader: runtimeLoader, defaults: preferences.defaults)
+                    }
+                    #endif
+                }
             }
             .task(id: sharedIndex?.isReady) {
                 if sharedIndex?.isReady == true {

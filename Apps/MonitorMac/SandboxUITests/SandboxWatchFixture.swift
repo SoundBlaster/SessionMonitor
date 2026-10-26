@@ -17,7 +17,8 @@ struct SandboxWatchFixture: Sendable {
         let events: [[String: Any]] = [
             ["timestamp": timestamp, "type": "session_meta", "payload": ["id": "smoke", "timestamp": timestamp]],
             ["timestamp": timestamp, "type": "event_msg",
-             "payload": ["type": "task_started", "turn_id": "T", "started_at": Date().timeIntervalSince1970 - 60]],
+             "payload": ["type": "task_started", "turn_id": "T",
+                         "started_at": Int64(Date().timeIntervalSince1970) - 60]],
             ["timestamp": timestamp, "type": "turn_context", "payload": ["turn_id": "T", "model": "smoke-fixture"]]
         ]
         let data = try events.reduce(into: Data()) { result, event in

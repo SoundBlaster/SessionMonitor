@@ -17,7 +17,8 @@ struct SharedIndexFolderButton: View {
         panel.message = "Choose the folder containing usage.sqlite. An empty folder creates a new index. "
             + "The CLI can use this same file with --database."
         panel.prompt = "Connect"
-        panel.directoryURL = model.connection?.selectedDirectory ?? SharedIndexSettings.suggestedDirectory
+        panel.directoryURL = AppPreferences.uiTestDirectory(.index)
+            ?? model.connection?.selectedDirectory ?? SharedIndexSettings.suggestedDirectory
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false

@@ -10,6 +10,19 @@ struct AppPreferencesTests {
         #expect(preferences.defaults === UserDefaults.standard)
     }
 
+    @Test func uiTestFolderSuggestionsRequireIsolatedSuiteAndSyntheticRoot() {
+        let root = "/tmp/SandboxSmoke-\(UUID())"
+        var environment = ["SESSIONMONITOR_UI_TEST_FIXTURE": root]
+        #expect(AppPreferences.uiTestDirectory(.index, environment: environment) == nil)
+        environment["SESSIONMONITOR_UI_TEST_SUITE"] = "ordinary"
+        #expect(AppPreferences.uiTestDirectory(.index, environment: environment) == nil)
+        environment["SESSIONMONITOR_UI_TEST_SUITE"] = AppPreferences.uiTestSuitePrefix + UUID().uuidString
+        #expect(AppPreferences.uiTestDirectory(.index, environment: environment)?.path == root + "/index")
+        #expect(AppPreferences.uiTestDirectory(.rollouts, environment: environment)?.path == root + "/rollouts")
+        environment["SESSIONMONITOR_UI_TEST_FIXTURE"] = "/tmp/personal-folder"
+        #expect(AppPreferences.uiTestDirectory(.index, environment: environment) == nil)
+    }
+
     @Test func uiTestPreferencesSurviveRelaunchAndResetOnlyTheirSuite() {
         let suite = AppPreferences.uiTestSuitePrefix + UUID().uuidString
         let environment = ["SESSIONMONITOR_UI_TEST_SUITE": suite]

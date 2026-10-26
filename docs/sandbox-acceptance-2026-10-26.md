@@ -45,20 +45,41 @@ was removed. The test app was then closed; no extra instance was left running.
 
 ## Remaining gates
 
-A subsequent automation change in [PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148)
-adds a [dedicated Watching XCUITest command](sandbox-watch-smoke.md). Its current
-StoreRelease build, signed StoreDebug `build-for-testing` and deep/strict signature
-verification passed, as did 35 targeted unit tests, SwiftLint and positive/negative
-FSD checks. The full interactive lifecycle is not yet a passing result. The evening
-retry confirmed that the competing BuildHunter runner had exited, but Computer Use
-reported a locked Mac and I/O Registry reported `IOConsoleLocked = true`. Restarting
-the user's test service did not bypass that prerequisite; the task-owned stuck run
-was stopped. The Make command now rejects the locked desktop immediately with an
-unlock instruction; this failure path was verified without launching another runner.
-Native index selection and opening the Watching panel were reached in earlier
-attempts. These partial steps do not close the Watching gate below.
+The automation in [PR #148](https://github.com/SoundBlaster/SessionMonitor/pull/148)
+adds a [dedicated Watching XCUITest command](sandbox-watch-smoke.md). On the same
+Xcode 27.1/macOS 27 development environment, the signed StoreDebug test passed:
+**1 test, 0 failures, 53.025 seconds**, including teardown.
 
-- Native Watching start/pause/stop/launch-resume and moved/revoked-grant recovery.
+- Native index and source pickers created real sandbox grants.
+- Initial import and append refreshed the chart from one request to two.
+- Pause held at two; Resume imported the third request.
+- Normal Quit, append while closed and relaunch restored grants/Watching and the fourth request.
+- Stop held at four after appending a fifth request (bounded two-second observation).
+- Teardown cleared only the run's unique preference suite, removed its synthetic data,
+  and closed the test app. Personal sessions/preferences and widget data were not selected.
+
+The production `AppMenuHost` controls run in a Debug-only test pane; this proves
+controller/runtime/grant behavior, **not opening or placement of the system menu bar item**.
+Picker suggestions are Debug-only and still require native confirmation. No clipboard
+or keyboard-layout changes are needed. A separate four-test unit run passed preference
+isolation, picker-suggestion guards and fixture accounting through the real importer.
+The earlier 35-test baseline predates the final harness changes; 33 of those tests
+were unchanged, while the preference tests were rerun and expanded.
+
+The final signed StoreRelease app/widget build also passed, as did SwiftLint
+(305 files, zero violations) and positive/negative FSD architecture checks. Existing
+cache-chart compiler warnings remain outside this automation change.
+
+Local evidence, outside Git on the verified build volume:
+
+- `sm706-watch-tests/20261026T192255-C8716CD6-7D67-4CFF-9FBA-DAF2C2FFB8B3.xcresult`
+- `sm706-unit-tests/20261026T191334-43B8CCC3-316F-45A7-B830-2FAED2EA4BB7.xcresult`
+
+Earlier locked-desktop/automation-service failures are not passing evidence. The Make
+command now rejects a locked console before starting XCTest; the successful run above
+used an unlocked desktop without competing UI tests.
+
+- Moved/revoked-grant recovery and normal system menu bar navigation.
 - Actual system widget rendering; app-side publication does not establish extension rendering.
 - Optional explicit access to `session_index.jsonl` outside the session folder.
 - StoreRelease archive, Mac App Store distribution profiles/export and installer validation.
