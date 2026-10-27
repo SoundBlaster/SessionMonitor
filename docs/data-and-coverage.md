@@ -36,8 +36,17 @@ on its next update. Import JSON `ioMetrics` reports bytes read and skipped/resum
 SQLite retains the latest observed snapshot per source path. Missing paths do not delete old
 snapshots; replacing a file at the same path rebuilds that path’s snapshot. This is not a history
 of every file generation. Rotation/copytruncate retains earlier records when the archive is also
-imported. Rename/copy adds source snapshots, while canonical response-ID dedup avoids counting
-the same request twice. Old-path diagnostics retain their last observed state.
+imported. Ordinary filename renames and copies add source snapshots; canonical response IDs deduplicate
+within a comparable account scope. Old-path diagnostics retain their last observed state.
+
+On macOS, moving an unassigned folder can preserve an existing Unknown source's scope and checkpoint.
+The importer requires the same device, inode and birth time, exactly one historical match, an absent
+old path, a changed parent directory, and an unused destination outside mapped account roots. It
+moves records, diagnostics and metadata together in one transaction, then resumes appended bytes.
+Copies, still-present hard links, ambiguous matches and mapped accounts stay separate. New files
+in the moved folder do not inherit an inferred account identity. Previously indexed duplicates are
+not repaired automatically. Without reliable birth-time identity (including on Linux), this recovery
+is unavailable and sources remain separate.
 
 Records, diagnostics, and checkpoints for a file commit atomically. If an import fails, already
 completed files remain saved; the current file keeps its previous checkpoint. A file changing

@@ -130,6 +130,7 @@ public final class UsageStore: Sendable {
         Self.registerSessionTitleMigration(on: &migrator)
         Self.registerSourceStorageMigration(on: &migrator)
         Self.registerQuotaProjectionMigration(on: &migrator)
+        Self.registerSourceRelocationMigration(on: &migrator)
         return migrator
     }
     /// Replaces one complete source snapshot atomically; duplicate IDs remain globally idempotent.
@@ -196,12 +197,19 @@ public final class UsageStore: Sendable {
     }
 
     /// Events, diagnostics and decoder progress commit together. Stale retries cannot overwrite newer data.
-    public func apply(source: String, update: SourceImport, expectedCheckpoint: Data?) throws {
+    public func apply(source: String, update: SourceImport, expectedCheckpoint: Data?,
+                      relocating: SourceRelocation? = nil) throws {
         try database.write { database in
+            if let relocating {
+                try Self.relocate(relocating, to: source, update: update,
+                                  expectedCheckpoint: expectedCheckpoint, database: database)
+            }
             let current = try Self.checkpoint(source: source, database: database)
             guard current == expectedCheckpoint else { throw CheckpointWriteError.staleCheckpoint }
             if update.mode == .unchanged {
-                if try Self.updateSourceStorage(update.rollout.sourceFile, source: source, database: database) {
+                let storageChanged = try Self.updateSourceStorage(update.rollout.sourceFile, source: source,
+                                                                   database: database)
+                if relocating != nil || storageChanged {
                     try Self.advanceWatermark(database)
                 }
                 return

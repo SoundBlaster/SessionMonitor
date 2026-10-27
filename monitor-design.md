@@ -195,6 +195,13 @@ SM-102 уточняет recovery contract. Directory scan выбирает об�
 Rename/copy получает отдельный snapshot по новому path, canonical dedup остаётся
 глобальным. Отсутствующий path не удаляется: его diagnostics описывают последнее
 наблюдение, поэтому старый partial tail после rename может остаться в отчёте.
+SM-757 добавляет узкое исключение для переноса Unknown source в другую папку на macOS:
+единственный match device/inode/birth time, прежний path отсутствует, destination ещё не
+индексирован и не принадлежит mapped root. SpecificationCore policy проверяет eligibility;
+records, diagnostics, provenance, quota, scope и checkpoint меняют source атомарно с импортом.
+Scope key остаётся устойчивым opaque identity; новые файлы не получают inferred account.
+При отсутствии birth time, неоднозначности, живом старом path или существующем destination
+источники остаются отдельными. Ретроактивного объединения ранее созданных duplicates нет.
 Replacement/truncation пересобирает snapshot этого path и сбрасывает ownership/model
 context; без нового metadata/native-turn evidence usage не наследует старую ownership.
 При rotation старое поколение сохраняется через импорт archive. Хранилище не является
