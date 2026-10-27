@@ -139,14 +139,19 @@ These injected tests and synthetic UI previews do not establish signed sandbox a
 1. **Complete signed sandbox acceptance.** The October 26 StoreDebug check passed real
    Open/Save Panels, shared index, GUI/CLI updates, import/export and bookmark restoration
    after full quit/relaunch. Development signing and app-side App Group publication work.
-   Native Watching lifecycle, moved/revoked-folder recovery, picker first-run defaults and
-   actual widget rendering still need verification. This does not establish App Store
+   Native Watching start/append/Pause/Resume/quit/relaunch/Stop passed in #148.
+   On October 27, native moved/missing-folder recovery passed for an explicitly
+   attributed synthetic account (2 native tests, zero failures). Actual permission
+   revocation, picker first-run defaults and system widget rendering remain open.
+   Unidentified source relocation exposed SM-757 and remains separate; see the
+   [dated evidence](sandbox-acceptance-2026-10-26.md). This does not establish App Store
    distribution-profile suitability or TestFlight/App Store behavior.
 2. **Optional title index access.** `session_index.jsonl` can be outside the chosen folder:
    obtain explicit access or show unavailable titles, without silently broadening access.
 3. **Shared index acceptance.** The explicit folder contract above is implemented in #147.
    The signed StoreDebug app and external CLI passed the synthetic existing-index and
-   quit/relaunch checks. Revoked/moved-folder recovery remains unverified. Existing history is
+   quit/relaunch checks. Moved/missing-folder recovery passed with explicit synthetic attribution;
+   actual permission revocation and Unknown/Mixed source relocation (SM-757) remain open. Existing history is
    opened in place; no automatic relocation or container-to-external migration is claimed.
 4. **App Store archive/export.** Verify app/widget sandbox entitlements, App Group profiles,
    App Store distribution identities, installer signature, and package validation. Reconcile

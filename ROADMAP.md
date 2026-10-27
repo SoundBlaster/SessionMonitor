@@ -18,7 +18,24 @@ SwiftLint (313 файлов), FSD positive/negative и app/widget Debug build pa
 на прежнем macro fingerprint; console build прошёл с разрешённым per-command bypass.
 Regression включает перенос с дописанными bytes за один import, restart, missing provenance,
 quota scope/projection, ambiguous identity, mapped destinations, stale checkpoint и rollback после SQL failure.
-#150 остаётся отдельным sandbox acceptance PR; следующий шаг — review и merge обоих после зелёного CI.
+[PR #150](https://github.com/SoundBlaster/SessionMonitor/pull/150) влит squash `c8a0a08` 2026-10-27.
+Следующий шаг — CI/review обновлённого #151, затем оставшиеся gates SM-706.
+
+**SM-706 — в работе (2026-10-27): native recovery прошёл для явно атрибутированных источников.**
+После включения XCTest владельцем полный signed StoreDebug suite прошёл: 2 tests / 0 failures /
+104,517 s. Реальные grants восстановились после переноса index/source; Watching продолжился.
+Исчезновение source показывает ошибку и допускает повторный native выбор; исчезновение index
+возвращает connection gate без fallback, выбор backup восстанавливает историю и Watching.
+Fixture имеет явный synthetic creator_account_id. Предшествующий прогон без attribution выявил
+**SM-757**: после rename Unknown/Mixed scope меняется из-за пути и повторно учитывает R1
+(3 requests / 400 input вместо 2 / 300). Production accounting в #150 не меняется; исправление подготовлено в #151.
+Актуальные 2 fixture unit tests прошли, включая перенос source через production importer;
+baseline до этой правки — ещё 23 targeted tests. SwiftLint (306 файлов), FSD positive/negative — passed.
+[PR #150](https://github.com/SoundBlaster/SessionMonitor/pull/150) влит 2026-10-27 squash `c8a0a08`; CI после push
+не ожидается активно. [Evidence и artifacts](docs/sandbox-acceptance-2026-10-26.md#october-27-retry-after-enabling-xctest-native-recovery-passed).
+Предыдущие XCTest initialization failures и Screenshot interruption — исторические failures.
+Actual permission revocation и system widget render на Store candidate остаются; installed GitHub
+widget/snapshot проверены read-only, системный render не подтверждён. Далее **SM-757**, затем gates SM-706.
 
 **SM-756 — доставлена (2026-10-27): общая сетка итогов sidebar; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) влит squash `8779f59`.**
 Общие равные колонки: Sessions/Input выровнены по левому краю,
@@ -29,7 +46,7 @@ SwiftLint (301 файл), FSD positive/negative — passed. Native SwiftUI rende
 из production component: 12 fixtures (320/420/700 pt, light/dark, zero/large totals),
 репрезентативные narrow/normal/wide результаты просмотрены; без новых окон приложения.
 Xcode MCP build остановился на прежнем macro fingerprint; console build использовал
-разрешённый per-command bypass. Следом review/merge PR, затем оставшиеся gates SM-706;
+разрешённый per-command bypass. Все пять checks перед merge прошли, открытых threads не было. Далее — gates SM-706;
 native Watching smoke прошёл, #148 влит squash `3f04b78` 2026-10-27 (Europe/Moscow).
 
 **SM-706 — в работе (2026-10-26): native Watching smoke в #148 прошёл.**
@@ -1407,7 +1424,10 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   2026-10-26: native Watching start/append/Pause/Resume/quit/relaunch/Stop подтверждён
   dedicated signed XCUITest (1 тест, 0 ошибок, 53 секунды) в открытом #148; production controls
   открыты в Debug-only pane, system status item navigation этим тестом не проверяется.
-  Moved/revoked recovery и widget render остаются; optional title-index grant,
+  2026-10-27: moved/missing index/source recovery с explicit synthetic attribution прошёл
+  signed native suite (2 tests / 0 failures / 104,517 s) в #150, влитом squash `c8a0a08` 2026-10-27. Unknown/Mixed
+  source relocation выявила SM-757; actual permission revocation и widget render остаются.
+  Optional title-index grant,
   Store signing/release-local/version reconciliation/metadata/archive/export/upload остаются впереди.
   Automatic relocation базы не реализуется: переход на Store открывает прежний индекс после явного выбора.
   **Приоритет владельца (2026-10-24): после performance-проверки SM-746 начать подготовку Mac App Store.**
@@ -2017,7 +2037,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   SwiftLint (313 файлов), FSD positive/negative, app/widget Debug build passed. Проверены simultaneous
   move+append, restart, missing provenance, quota projection, stale CAS и SQL-failure rollback.
   User docs: [incremental import contract](docs/data-and-coverage.md#incremental-import-contract).
-  Следующий gate — GitHub CI/review; #150 остаётся отдельным sandbox acceptance PR.
+  Следующий gate — GitHub CI/review обновлённого #151; sandbox acceptance #150 влит squash `c8a0a08`.
 
 - [x] **SM-745** — Зафиксировать Codex-first фокус, красивый обзор для человека и быстрый CLI аналитики для агента.
   Статус: доставлено (2026-10-25): [PR #140](https://github.com/SoundBlaster/SessionMonitor/pull/140)

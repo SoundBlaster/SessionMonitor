@@ -3,6 +3,38 @@ import XCTest
 
 @MainActor
 final class SandboxWatchUITests: XCTestCase {
+    func testMovedAndMissingFoldersRecoverThroughNativePickers() throws {
+        continueAfterFailure = false
+        let product = Bundle.main.bundleURL.deletingLastPathComponent().appending(path: "SessionMonitor.app")
+        try verifySignedSandbox(product)
+        XCTAssertTrue(NSRunningApplication.runningApplications(
+            withBundleIdentifier: "ru.egormerkushev.session-monitor"
+        ).isEmpty, "Quit SessionMonitor before running this isolated smoke")
+        let fixture = try SandboxWatchFixture(parent: .temporaryDirectory)
+        let app = configuredApp(fixture: fixture)
+        app.launch()
+        let connect = app.buttons["storage.chooseIndexFolder"]
+        XCTAssertTrue(connect.waitForExistence(timeout: 15))
+        connect.click()
+        chooseFolder(fixture.index, confirmation: "Connect", app: app)
+        activateWatchControls(app)
+        app.buttons["watch.chooseFolder"].click()
+        chooseFolder(fixture.source, confirmation: "Start Watch", app: app)
+        waitForRequests(1, app: app)
+        quitNormally(app)
+
+        let movedIndex = fixture.root.appending(path: "moved-index", directoryHint: .isDirectory)
+        let movedSource = fixture.root.appending(path: "moved-rollouts", directoryHint: .isDirectory)
+        try FileManager.default.moveItem(at: fixture.index, to: movedIndex)
+        try FileManager.default.moveItem(at: fixture.source, to: movedSource)
+        try fixture.append(request: 2, directory: movedSource)
+        app.launch()
+        waitForRequests(2, app: app)
+        waitForStatus("Watching", app: app)
+        try verifyMissingSource(app, fixture: fixture, movedSource: movedSource)
+        try verifyMissingIndex(app, fixture: fixture, movedIndex: movedIndex)
+    }
+
     func testNativeGrantsWatchPauseResumeAndRelaunch() throws {
         continueAfterFailure = false
         let productDirectory = Bundle.main.bundleURL.deletingLastPathComponent()
@@ -67,6 +99,49 @@ final class SandboxWatchUITests: XCTestCase {
             try FileManager.default.removeItem(at: fixture.root)
         }
         return app
+    }
+
+    private func quitNormally(_ app: XCUIApplication) {
+        app.menuBars.menuBarItems["SessionMonitor"].click()
+        app.menuItems["Quit SessionMonitor"].click()
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 15))
+    }
+
+    private func verifyMissingSource(_ app: XCUIApplication, fixture: SandboxWatchFixture,
+                                     movedSource: URL) throws {
+        quitNormally(app)
+        try FileManager.default.copyItem(at: movedSource, to: fixture.source)
+        try FileManager.default.removeItem(at: movedSource)
+        app.launch()
+        waitForRequests(2, app: app)
+        waitForStatus("Watch not started", app: app)
+        let explanation = app.staticTexts.matching(NSPredicate(
+            format: "label CONTAINS[c] %@ OR value CONTAINS[c] %@", "Choose", "Choose"
+        )).firstMatch
+        XCTAssertTrue(explanation.waitForExistence(timeout: 10), app.debugDescription)
+        app.buttons["watch.chooseFolder"].click()
+        chooseFolder(fixture.source, confirmation: "Start Watch", app: app)
+        try fixture.append(request: 3)
+        waitForRequests(3, app: app)
+        waitForStatus("Watching", app: app)
+    }
+
+    private func verifyMissingIndex(_ app: XCUIApplication, fixture: SandboxWatchFixture,
+                                    movedIndex: URL) throws {
+        quitNormally(app)
+        let backup = fixture.root.appending(path: "backup-index", directoryHint: .isDirectory)
+        try FileManager.default.copyItem(at: movedIndex, to: backup)
+        try FileManager.default.removeItem(at: movedIndex)
+        app.launch()
+        let connect = app.buttons["storage.chooseIndexFolder"]
+        XCTAssertTrue(connect.waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertFalse(app.buttons["sessionExplorer.importFolder"].exists, "No fallback index may open")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: movedIndex.path), "Do not recreate the lost index")
+        try FileManager.default.moveItem(at: backup, to: fixture.index)
+        connect.click()
+        chooseFolder(fixture.index, confirmation: "Connect", app: app)
+        waitForRequests(3, app: app)
+        waitForStatus("Watching", app: app)
     }
 
     private func verifyPauseResume(_ app: XCUIApplication, fixture: SandboxWatchFixture) throws {
