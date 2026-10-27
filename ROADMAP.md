@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-706 — в работе (2026-10-28): denied-access acceptance и реальный system widget.**
+**SM-706 — частично проверена (2026-10-28): [PR #152](https://github.com/SoundBlaster/SessionMonitor/pull/152) открыт; native denied-access прошёл, system widget остаётся.**
 После merge #150 (`c8a0a08`) и #151 (`244ca7f`) подписанный StoreDebug native test прошёл:
 1 test / 0 failures / 55,551 s. Реальный POSIX deny на synthetic source сохраняет историю,
 показывает Watch recovering/permission error; Stop/reselect восстанавливает Watching и второй request.
@@ -16,7 +16,11 @@ Teardown восстанавливает mode, удаляет fixture/suite и з
 Остаётся проверить системный WidgetKit render из подписанного Store candidate. Отказ POSIX/ACL
 не выдавать за отзыв TCC или security-scoped bookmark. Личный индекс/preferences/snapshot сохранить,
 не сбрасывать системные security settings и не запускать одновременно несколько app instances.
-Далее StoreRelease packaging/ASC; обязательный CI не ожидается активно после push PR.
+Xcode MCP folder access одобрен; build остановился на старом macro fingerprint. Console StoreDebug
+использовал разрешённый per-command bypass. SwiftLint (314 файлов), FSD positive/negative passed.
+System widget: PlugInKit выбирает установленный GitHub app; CUA не смог открыть gallery/context menu,
+Fn-N не поддерживается. Требуется ручное открытие gallery и отдельная проверка Store candidate;
+shared snapshot и privacy permissions не менялись. Далее StoreRelease packaging/ASC; CI не ожидается активно.
 
 **SM-757 — доставлена (2026-10-27): [PR #151](https://github.com/SoundBlaster/SessionMonitor/pull/151) влит squash `244ca7f`.**
 Native smoke #150 воспроизвёл 3 requests / 400 input вместо 2 / 300 после rename/restart/append.
