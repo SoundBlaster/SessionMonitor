@@ -51,6 +51,28 @@ it does not change global Xcode trust settings.
 The two unchanged-report assertions have a bounded two-second observation interval.
 They do not establish that no update could ever occur after an arbitrary delay.
 
+## Folder recovery scenario
+
+The same target also contains `testMovedAndMissingFoldersRecoverThroughNativePickers`:
+
+1. Establish real index/source grants and one imported request.
+2. Quit normally, move both synthetic directories on the same volume, append to the
+   moved source, then relaunch expecting the saved bookmarks and Watching to follow them.
+3. Quit, copy the source to a replacement and remove only the original synthetic
+   directory. Relaunch expecting an explicit Watching error while the existing index
+   remains readable; select the replacement through the native picker and append again.
+4. Quit, back up the synthetic index and remove its original directory. Relaunch
+   expecting the connection gate and no recreated/fallback index. Restore the backup
+   to a new directory, select it through the native picker and expect the previous history.
+
+This checks missing folders, not revocation of TCC permissions. It never removes a
+personal directory or changes system security settings. After XCTest was enabled,
+the October 27 signed native run passed **both tests: 2 tests, 0 failures, 104.517 seconds**.
+The fixture declares a synthetic `creator_account_id` so the same attributed account
+can be followed across source paths. An earlier run without identity exposed a separate
+Unknown/Mixed path-scope accounting issue, tracked as SM-757; this passing recovery
+scenario does not close that issue. See the dated acceptance report.
+
 ## Isolation and results
 
 Only Debug builds recognize `SESSIONMONITOR_UI_TEST_SUITE`. Each run uses a unique

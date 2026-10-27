@@ -6,7 +6,23 @@
 
 ## Текущая точка
 
-**SM-756 — реализована (2026-10-26): общая сетка итогов sidebar; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) открыт, не влит.**
+**SM-706 — в работе (2026-10-27): native recovery прошёл для явно атрибутированных источников.**
+После включения XCTest владельцем полный signed StoreDebug suite прошёл: 2 tests / 0 failures /
+104,517 s. Реальные grants восстановились после переноса index/source; Watching продолжился.
+Исчезновение source показывает ошибку и допускает повторный native выбор; исчезновение index
+возвращает connection gate без fallback, выбор backup восстанавливает историю и Watching.
+Fixture имеет явный synthetic creator_account_id. Предшествующий прогон без attribution выявил
+**SM-757**: после rename Unknown/Mixed scope меняется из-за пути и повторно учитывает R1
+(3 requests / 400 input вместо 2 / 300). Production accounting в #150 не меняется; SM-757 открыта.
+Актуальные 2 fixture unit tests прошли, включая перенос source через production importer;
+baseline до этой правки — ещё 23 targeted tests. SwiftLint (306 файлов), FSD positive/negative — passed.
+[PR #150](https://github.com/SoundBlaster/SessionMonitor/pull/150) подготовлен к review; CI после push
+не ожидается активно. [Evidence и artifacts](docs/sandbox-acceptance-2026-10-26.md#october-27-retry-after-enabling-xctest-native-recovery-passed).
+Предыдущие XCTest initialization failures и Screenshot interruption — исторические failures.
+Actual permission revocation и system widget render на Store candidate остаются; installed GitHub
+widget/snapshot проверены read-only, системный render не подтверждён. Далее **SM-757**, затем gates SM-706.
+
+**SM-756 — реализована (2026-10-26): общая сетка итогов sidebar; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) влит squash `8779f59` 2026-10-27.**
 Общие равные колонки: Sessions/Input выровнены по левому краю,
 Requests/Output — по правому, включая числа и подписи (уточнение владельца 2026-10-26). Маленький SessionSidebarTotals получает только четыре значения;
 value-first порядок, system mono, локаль и accounting сохранены. Длинные числа остаются
@@ -15,7 +31,7 @@ SwiftLint (301 файл), FSD positive/negative — passed. Native SwiftUI rende
 из production component: 12 fixtures (320/420/700 pt, light/dark, zero/large totals),
 репрезентативные narrow/normal/wide результаты просмотрены; без новых окон приложения.
 Xcode MCP build остановился на прежнем macro fingerprint; console build использовал
-разрешённый per-command bypass. Следом review/merge PR, затем оставшиеся gates SM-706;
+разрешённый per-command bypass. Все пять checks перед merge прошли, открытых threads не было. Далее — gates SM-706;
 native Watching smoke прошёл, #148 влит squash `3f04b78` 2026-10-27 (Europe/Moscow).
 
 **SM-706 — в работе (2026-10-26): native Watching smoke в #148 прошёл.**
@@ -1393,7 +1409,10 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   2026-10-26: native Watching start/append/Pause/Resume/quit/relaunch/Stop подтверждён
   dedicated signed XCUITest (1 тест, 0 ошибок, 53 секунды) в открытом #148; production controls
   открыты в Debug-only pane, system status item navigation этим тестом не проверяется.
-  Moved/revoked recovery и widget render остаются; optional title-index grant,
+  2026-10-27: moved/missing index/source recovery с explicit synthetic attribution прошёл
+  signed native suite (2 tests / 0 failures / 104,517 s) в открытом #150. Unknown/Mixed
+  source relocation выявила SM-757; actual permission revocation и widget render остаются.
+  Optional title-index grant,
   Store signing/release-local/version reconciliation/metadata/archive/export/upload остаются впереди.
   Automatic relocation базы не реализуется: переход на Store открывает прежний индекс после явного выбора.
   **Приоритет владельца (2026-10-24): после performance-проверки SM-746 начать подготовку Mac App Store.**
@@ -1984,13 +2003,23 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
 ## Product follow-ups и отложенные идеи Tokscale (2026-10-24)
 
 - [x] **SM-756** — Общая сетка итогов sidebar с фиксированными колонками.
-  **Реализовано 2026-10-26; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) открыт, main ещё не содержит правку.**
+  **Реализовано 2026-10-26; [PR #149](https://github.com/SoundBlaster/SessionMonitor/pull/149) влит squash `8779f59`.**
   Sessions/Input выровнены по левому краю, Requests/Output — по правому
   (числа и подписи); две равные колонки не зависят от длины содержимого. Mono/number formats и totals semantics сохранены.
   Проверки: app/widget Debug build, SwiftLint (301 файл), FSD positive/negative;
   12 native SwiftUI renders: 320/420/700 pt × light/dark × zero/large counts.
   Renderer использует production component без нового окна/личного индекса;
   повторный запуск полного приложения не выполнялся. Следом review/merge.
+
+- [ ] **SM-757** — Сохранить Unknown/Mixed accounting при перемещении source folder.
+  **Обнаружено 2026-10-27, native recovery smoke SM-706.** После quit перемещение
+  synthetic source folder и append второго response дают 3 requests / 400 input вместо
+  2 / 300: unknown scope key зависит от directory path, старый R1 остаётся в старом scope.
+  Bookmarks восстанавливаются и Watching запускается. Требуется отдельная policy/storage
+  проверка переноса с доказанной filesystem identity; не объединять неизвестные папки
+  только по response/session ID и не нарушать изоляцию разных accounts.
+  Evidence: local `sm706-recovery-only.log` / соответствующий xcresult; production accounting
+  в PR SM-706 не меняется. Sandbox fixture получает явную synthetic account identity.
 
 - [x] **SM-745** — Зафиксировать Codex-first фокус, красивый обзор для человека и быстрый CLI аналитики для агента.
   Статус: доставлено (2026-10-25): [PR #140](https://github.com/SoundBlaster/SessionMonitor/pull/140)

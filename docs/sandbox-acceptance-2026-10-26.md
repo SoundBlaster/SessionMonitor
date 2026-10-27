@@ -79,7 +79,7 @@ Earlier locked-desktop/automation-service failures are not passing evidence. The
 command now rejects a locked console before starting XCTest; the successful run above
 used an unlocked desktop without competing UI tests.
 
-- Moved/revoked-grant recovery and normal system menu bar navigation.
+- Actual permission revocation, unidentified source relocation (SM-757), and normal system menu bar navigation.
 - Actual system widget rendering; app-side publication does not establish extension rendering.
 - Optional explicit access to `session_index.jsonl` outside the session folder.
 - StoreRelease archive, Mac App Store distribution profiles/export and installer validation.
@@ -87,3 +87,90 @@ used an unlocked desktop without competing UI tests.
 
 No App Store upload, TestFlight distribution or review submission was performed.
 See [Store preparation](mac-app-store-readiness.md) and [ROADMAP](../ROADMAP.md).
+
+## October 27 follow-up: folder recovery and installed widget
+
+The new native folder-recovery scenario was compiled in development-signed StoreDebug;
+`codesign --verify --deep --strict` passed. Both test attempts failed during XCTest
+initialization with `Timed out while enabling automation mode`, before any test body.
+The Mac reported `IOConsoleLocked = false`, Computer Use read normal app windows, and
+no competing Xcode UI runner was present. A user-service kickstart was rejected by SIP;
+no security setting was changed or bypassed. Therefore neither moved-folder nor
+missing-folder recovery is native acceptance evidence yet.
+
+A fresh targeted hosted run passed **24 tests** (3 XCTest + 21 Swift Testing):
+`WatchLaunchSettingsTests`, `SavedFolderAccessTests`, `SharedIndexTests` and
+`SandboxWatchFixtureTests`. Injected bookmark failures/reselection are unit evidence,
+not a substitute for the native scenario. SwiftLint (306 files) and positive/negative
+FSD architecture checks passed.
+
+Read-only installed-widget diagnostics found:
+
+- `/Applications/SessionMonitor.app` is GitHub version 0.1.1 (2), not a sandboxed
+  Store host. Its nested widget has the expected WidgetKit extension point and sandbox.
+- Both signatures passed deep/strict verification and contain
+  `group.ru.egormerkushev.session-monitor` for team `P8T2366K8X`.
+- PlugInKit's non-superseded record points to that installed extension. Other records
+  exist for development builds; they were not removed or manually re-registered.
+- The shared snapshot has schema 1, two usage periods and cache data. Its timestamp is
+  October 25, 2026 at 14:31:47 UTC (17:31:47 Europe/Moscow); this proves neither current
+  freshness nor rendering.
+- Computer Use reached other existing Notification Center widget windows, but could
+  not open Control Center (timeout) or interact with the widget window position
+  (`windowNotFoundAtPosition`). No SessionMonitor gallery/desktop render was observed.
+
+No app was installed/replaced, no user widget was added/removed, and no personal index,
+shared snapshot, clipboard, permission or system widget cache was changed.
+
+Local result bundles under the verified checkout build root on TB5:
+
+- `sm706-recovery-tests/20261026T233938-32746FBF-5345-4D0F-A295-B03BAC93CD1B.xcresult` — initialization failure.
+- `sm706-recovery-tests/20261026T234519-F8ED4F9C-3940-4C87-82A8-7E829288E81E.xcresult` — initialization failure.
+- `sm706-recovery-unit-tests/20261026T235120-5C2E4564-D013-4061-B80A-C86977236489.xcresult` — 24 targeted tests passed.
+
+Next: restore working XCTest automation and run the native recovery scenario, then
+verify the actual system widget from a signed Store candidate. The optional title
+index grant and Store packaging/ASC gates remain open.
+
+## October 27 retry after enabling XCTest: native recovery passed
+
+The owner enabled XCTest and requested another run. The initial attempt then reached
+test bodies: Watching passed, while the first recovery click was interrupted by an
+unrelated Screenshot editor window. The recovery-only retry followed both moved
+bookmarks and resumed Watching, but exposed a separate accounting issue: with no
+account identity, the renamed source received a new path-based Unknown/Mixed scope.
+The report counted the old first response twice: **3 requests / 400 input**, rather
+than **2 / 300**. This remains open as **SM-757**; no production accounting code was
+changed to obtain a passing sandbox result.
+
+The recovery fixture now declares `creator_account_id: sandbox-smoke-account`, making
+its attribution explicit. With that fixture, the complete signed StoreDebug native
+suite passed **2 tests, 0 failures, 104.517 seconds**:
+
+- Recovery: 57.937 seconds. Real grants followed both same-volume folder moves after
+  normal Quit/relaunch. Two requests remained two; Watching resumed.
+- Removing only the original synthetic source produced an explicit error while the
+  index remained readable. Selecting its replacement through the native picker
+  restored Watching and imported the third request.
+- Removing only the original synthetic index returned to the connection gate, without
+  creating a replacement/fallback index. Native selection of the backed-up index
+  restored the three-request history and Watching.
+- The ordinary append/Pause/Resume/Quit/relaunch/Stop scenario passed again in 46.580 seconds.
+- Teardown reset only the isolated suite, removed synthetic fixtures and closed the app.
+
+Local passing evidence:
+`sm706-recovery-tests/20261027T080749-5AE91FD1-BED8-46AF-801E-8F03528E2269.xcresult`.
+The earlier failure/initialization receipts remain historical failure evidence.
+
+The same production importer is exercised by a new focused regression checking two
+attributed requests and input/output totals after moving the source directory.
+The final fixture suite passed **2 Swift Testing tests**; SwiftLint (306 files) and
+positive/negative FSD checks passed. Unit evidence:
+`sm706-recovery-unit-tests/20261027T081011-5E4FB87C-453E-4816-A1DA-738A505ED08A.xcresult`.
+The prior 24-test run is baseline; 23 unchanged cases were not repeated.
+
+The native result covers **explicitly attributed** synthetic sources and missing
+folders, not actual permission revocation, unidentified source-scope relocation or
+system menu bar placement. Installed-widget diagnostics above remain read-only;
+actual system rendering on a Store candidate and the Store packaging/ASC gates are
+still open. Next: SM-757, then the remaining SM-706 gates.
