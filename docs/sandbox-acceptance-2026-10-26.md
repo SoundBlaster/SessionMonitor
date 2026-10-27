@@ -174,3 +174,42 @@ folders, not actual permission revocation, unidentified source-scope relocation 
 system menu bar placement. Installed-widget diagnostics above remain read-only;
 actual system rendering on a Store candidate and the Store packaging/ASC gates are
 still open. Next: SM-757, then the remaining SM-706 gates.
+
+## October 28 follow-up: real denied-directory recovery
+
+SM-706 continuation from `244ca7f` (SM-757 delivered in PR #151); #150 is delivered
+as `c8a0a08`. A new signed StoreDebug test uses the production app, real native
+folder pickers and isolated synthetic source/index directories. After normal Quit,
+the UI driver sets the source directory's POSIX permissions to zero and verifies
+that a directory read fails. On relaunch:
+
+- The existing one-request report remains visible.
+- Watching shows **Watch recovering** and a permission error. Stop remains usable.
+- After restoring the original permissions, a native re-selection starts Watching;
+  appending the second request updates the chart to two.
+- The app then quits; denying the index directory produces the connection gate
+  with no fallback report. Restoring permissions and re-selecting the same index
+  restores the two-request history and Watching.
+
+The targeted test passed **1 test, 0 failures, 55.551 seconds**. The app's sandbox,
+bookmark and signing-team entitlements and deep/strict signature are checked by
+the test. Both denial scopes are restored in registered teardown blocks before
+fixture removal. Teardown resets only the unique test preference suite, removes
+its synthetic files and terminates the app; widget publication remains disabled.
+
+The preceding three-test attempt passed moved/missing-folder recovery (56.928 s)
+and ordinary Watching (45.639 s), but failed the new test because its assertion
+expected `Watch not started`; the actual production behavior is `Watch recovering`
+with retries and an explicit permission error. Only that expectation and the
+following Stop/reselection steps changed for the passing targeted retry.
+
+Current evidence on the checkout's verified TB5 build root:
+
+- `sm706-denied-retry/20261027T215914-CAE7F169-06ED-4BFF-8ABC-AE1D7271A62D.xcresult` — targeted denial scenario passed.
+- `sm706-denied-native-tests/20261027T215400-DBA7D3E9-CA18-40AC-99F3-4670F1300E2D.xcresult` — two existing scenarios passed; new scenario's earlier expectation failed.
+
+This does not establish TCC/bookmark revocation. No system security state or
+personal permissions were reset. Xcode MCP folder access was approved during
+this run; BuildProject then stopped at the old SpecificationCoreMacros trust
+fingerprint. The authorized per-command console bypass built and ran StoreDebug;
+no global bypass or manual trust-database edit was used.

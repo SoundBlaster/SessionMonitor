@@ -142,8 +142,12 @@ These injected tests and synthetic UI previews do not establish signed sandbox a
    Native Watching start/append/Pause/Resume/quit/relaunch/Stop passed in #148.
    On October 27, native moved/missing-folder recovery passed for an explicitly
    attributed synthetic account (2 native tests, zero failures). Actual permission
-   revocation, picker first-run defaults and system widget rendering remain open.
-   Unidentified source relocation exposed SM-757 and remains separate; see the
+   TCC/bookmark revocation, picker first-run defaults and system widget rendering remain open.
+   On October 28, native POSIX-denial recovery passed for both source and index: 1 test,
+   zero failures, 55.551 seconds. History survives, permission errors remain explicit, and
+   Stop/reselection restores Watching; an inaccessible index never opens a fallback database.
+   This is filesystem-permission evidence, not a TCC reset or bookmark revocation.
+   Unidentified source relocation exposed SM-757, delivered separately in PR #151; see the
    [dated evidence](sandbox-acceptance-2026-10-26.md). This does not establish App Store
    distribution-profile suitability or TestFlight/App Store behavior.
 2. **Optional title index access.** `session_index.jsonl` can be outside the chosen folder:
@@ -151,7 +155,8 @@ These injected tests and synthetic UI previews do not establish signed sandbox a
 3. **Shared index acceptance.** The explicit folder contract above is implemented in #147.
    The signed StoreDebug app and external CLI passed the synthetic existing-index and
    quit/relaunch checks. Moved/missing-folder recovery passed with explicit synthetic attribution;
-   actual permission revocation and Unknown/Mixed source relocation (SM-757) remain open. Existing history is
+   actual TCC/bookmark revocation remains open. Unknown source relocation (SM-757) is delivered
+   in PR #151 (`244ca7f`); native index/source POSIX-denial recovery also passed on October 28. Existing history is
    opened in place; no automatic relocation or container-to-external migration is claimed.
 4. **App Store archive/export.** Verify app/widget sandbox entitlements, App Group profiles,
    App Store distribution identities, installer signature, and package validation. Reconcile

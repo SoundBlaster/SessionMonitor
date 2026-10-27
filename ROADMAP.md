@@ -1,12 +1,24 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-27. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-10-28. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
 
-**SM-757 — реализована (2026-10-27): [PR #151](https://github.com/SoundBlaster/SessionMonitor/pull/151) открыт, не влит.**
+**SM-706 — в работе (2026-10-28): denied-access acceptance и реальный system widget.**
+После merge #150 (`c8a0a08`) и #151 (`244ca7f`) подписанный StoreDebug native test прошёл:
+1 test / 0 failures / 55,551 s. Реальный POSIX deny на synthetic source сохраняет историю,
+показывает Watch recovering/permission error; Stop/reselect восстанавливает Watching и второй request.
+Deny на index возвращает connection gate без fallback, повторный picker открывает прежнюю историю.
+Teardown восстанавливает mode, удаляет fixture/suite и закрывает app. Два прежних native scenarios
+прошли в предшествующем run (56,928 / 45,639 s); новая проверка тогда ожидала неверный status.
+Остаётся проверить системный WidgetKit render из подписанного Store candidate. Отказ POSIX/ACL
+не выдавать за отзыв TCC или security-scoped bookmark. Личный индекс/preferences/snapshot сохранить,
+не сбрасывать системные security settings и не запускать одновременно несколько app instances.
+Далее StoreRelease packaging/ASC; обязательный CI не ожидается активно после push PR.
+
+**SM-757 — доставлена (2026-10-27): [PR #151](https://github.com/SoundBlaster/SessionMonitor/pull/151) влит squash `244ca7f`.**
 Native smoke #150 воспроизвёл 3 requests / 400 input вместо 2 / 300 после rename/restart/append.
 Importer сохраняет scope/checkpoint по единственному match device/inode/birth time при отсутствующем
 старом пути и новом unmapped destination; SpecificationCore policy задаёт условия переноса.
@@ -19,7 +31,7 @@ SwiftLint (313 файлов), FSD positive/negative и app/widget Debug build pa
 Regression включает перенос с дописанными bytes за один import, restart, missing provenance,
 quota scope/projection, ambiguous identity, mapped destinations, stale checkpoint и rollback после SQL failure.
 [PR #150](https://github.com/SoundBlaster/SessionMonitor/pull/150) влит squash `c8a0a08` 2026-10-27.
-Следующий шаг — CI/review обновлённого #151, затем оставшиеся gates SM-706.
+Все пять checks перед merge прошли; далее оставшиеся gates SM-706.
 
 **SM-706 — в работе (2026-10-27): native recovery прошёл для явно атрибутированных источников.**
 После включения XCTest владельцем полный signed StoreDebug suite прошёл: 2 tests / 0 failures /
@@ -2027,7 +2039,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   повторный запуск полного приложения не выполнялся. PR #149 влит 2026-10-27, squash `8779f59`.
 
 - [x] **SM-757** — Сохранить Unknown/Mixed accounting при переносе source folder.
-  **Реализовано 2026-10-27; [PR #151](https://github.com/SoundBlaster/SessionMonitor/pull/151) открыт, ещё не в main.** Исправлена регрессия
+  **Доставлено 2026-10-27; [PR #151](https://github.com/SoundBlaster/SessionMonitor/pull/151) влит squash `244ca7f`.** Исправлена регрессия
   native smoke #150: 3 / 400 вместо 2 / 300 после rename/restart/append.
   SpecificationCore policy требует unique device/inode/birth-time match, отсутствующий old path,
   другой parent и unused unmapped destination. Source records/checkpoint/metadata/quota переносятся
@@ -2037,7 +2049,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   SwiftLint (313 файлов), FSD positive/negative, app/widget Debug build passed. Проверены simultaneous
   move+append, restart, missing provenance, quota projection, stale CAS и SQL-failure rollback.
   User docs: [incremental import contract](docs/data-and-coverage.md#incremental-import-contract).
-  Следующий gate — GitHub CI/review обновлённого #151; sandbox acceptance #150 влит squash `c8a0a08`.
+  CI/review перед merge #151 прошли; sandbox acceptance #150 влит squash `c8a0a08`.
 
 - [x] **SM-745** — Зафиксировать Codex-first фокус, красивый обзор для человека и быстрый CLI аналитики для агента.
   Статус: доставлено (2026-10-25): [PR #140](https://github.com/SoundBlaster/SessionMonitor/pull/140)
