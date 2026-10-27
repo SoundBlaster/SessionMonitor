@@ -6,7 +6,7 @@
 
 ## Текущая точка
 
-**SM-757 — реализована, готовится отдельный PR (2026-10-27): перенос Unknown source без повторного учёта.**
+**SM-757 — реализована (2026-10-27): [PR #151](https://github.com/SoundBlaster/SessionMonitor/pull/151) открыт, не влит.**
 Native smoke #150 воспроизвёл 3 requests / 400 input вместо 2 / 300 после rename/restart/append.
 Importer сохраняет scope/checkpoint по единственному match device/inode/birth time при отсутствующем
 старом пути и новом unmapped destination; SpecificationCore policy задаёт условия переноса.
@@ -2007,7 +2007,7 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   повторный запуск полного приложения не выполнялся. PR #149 влит 2026-10-27, squash `8779f59`.
 
 - [x] **SM-757** — Сохранить Unknown/Mixed accounting при переносе source folder.
-  **Реализовано 2026-10-27; готовится отдельный PR, ещё не в main.** Исправлена регрессия
+  **Реализовано 2026-10-27; [PR #151](https://github.com/SoundBlaster/SessionMonitor/pull/151) открыт, ещё не в main.** Исправлена регрессия
   native smoke #150: 3 / 400 вместо 2 / 300 после rename/restart/append.
   SpecificationCore policy требует unique device/inode/birth-time match, отсутствующий old path,
   другой parent и unused unmapped destination. Source records/checkpoint/metadata/quota переносятся
