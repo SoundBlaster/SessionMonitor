@@ -205,7 +205,11 @@ extension UsageStore {
             }
             return
         }
-        let key = identityKey.map(identityScopeKey) ?? unknownScopeKey(source)
+        // A proven relocation preserves unknown provenance; a new path alone must not create a new account.
+        let previousUnknownKey = try String.fetchOne(database, sql: """
+            SELECT scope_key FROM source_account_scope WHERE source = ? AND state = 'unknown' AND profile_id IS NULL
+            """, arguments: [source])
+        let key = identityKey.map(identityScopeKey) ?? previousUnknownKey ?? unknownScopeKey(source)
         try upsertAccountScope(
             source: source,
             binding: AccountSourceScopeBinding(

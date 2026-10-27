@@ -205,7 +205,7 @@ struct SourceRecoveryTests {
     }
 }
 
-private struct RecoveryFixture {
+struct RecoveryFixture {
     let directory: URL
     var active: URL { url("m-active.jsonl") }
     var database: URL { url("usage.sqlite") }

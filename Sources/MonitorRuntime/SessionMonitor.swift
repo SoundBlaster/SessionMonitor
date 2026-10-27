@@ -71,15 +71,20 @@ public actor SessionMonitor {
                                      currentFileName: fileName, currentFileSize: fileSize))
             let source = path.resolvingSymlinksInPath().path
             let previousCheckpoint = try store.checkpoint(source: source)
+            let relocation = try relocationCandidate(path: path, source: source, checkpoint: previousCheckpoint)
+            let relocationNeedsBackfill = try relocation.map { try store.needsProvenanceBackfill(source: $0.source) }
+                ?? false
             let progressContext = SourceReadProgressContext(
                 completedFiles: completedFiles, totalFiles: paths.count, report: reportFileProgress
             )
-            let result = try readSource(path, source: source, checkpoint: previousCheckpoint,
-                                        rescan: rescan, progress: progressContext)
+            let result = try readSource(path, source: relocation?.source ?? source,
+                                        checkpoint: relocation?.checkpoint ?? previousCheckpoint,
+                                        rescan: rescan || relocationNeedsBackfill, progress: progressContext)
             ioMetrics.bytesRead += result.metadataBytesRead
             let update = result.update
             try Task.checkCancellation()
-            try store.apply(source: source, update: update, expectedCheckpoint: result.checkpoint)
+            try store.apply(source: source, update: update, expectedCheckpoint: result.checkpoint,
+                            relocating: relocation)
             try titleImport.update(path: path, source: source)
             records += update.rollout.records.count
             for (key, count) in update.rollout.diagnostics { diagnostics[key, default: 0] += count }
@@ -93,41 +98,6 @@ public actor SessionMonitor {
                                      currentFileName: nil))
         }
         return ImportSummary(files: paths.count, records: records, diagnostics: diagnostics, ioMetrics: ioMetrics)
-    }
-
-    private func readSource(
-        _ path: URL, source: String, checkpoint: Data?, rescan: Bool,
-        progress: SourceReadProgressContext
-    ) throws -> SourceReadResult {
-        let decoder = RolloutDecoder()
-        var metadataBytesRead: UInt64 = 0
-        if !rescan, let checkpoint, try store.needsProvenanceBackfill(source: source) {
-            do {
-                if let metadata = try decoder.parseMetadata(
-                    path, matching: checkpoint, onProgress: progress.report
-                ) {
-                    metadataBytesRead = metadata.bytesRead
-                    _ = try store.backfillProvenance(source: source, update: metadata,
-                                                     expectedCheckpoint: checkpoint)
-                }
-            } catch RolloutReadError.sourceChanged {
-                throw ImportSourceError.changedWhileReading(fileName: path.lastPathComponent,
-                                                            completedFiles: progress.completedFiles,
-                                                            totalFiles: progress.totalFiles)
-            }
-        }
-        let currentCheckpoint = try store.checkpoint(source: source)
-        do {
-            let update = try decoder.parseIncrementally(
-                path, checkpoint: rescan ? nil : currentCheckpoint, onProgress: progress.report
-            )
-            return SourceReadResult(update: update, checkpoint: currentCheckpoint,
-                                    metadataBytesRead: metadataBytesRead)
-        } catch RolloutReadError.sourceChanged {
-            throw ImportSourceError.changedWhileReading(fileName: path.lastPathComponent,
-                                                        completedFiles: progress.completedFiles,
-                                                        totalFiles: progress.totalFiles)
-        }
     }
 
     public func report(since: Date? = nil, until: Date? = nil) throws -> UsageReport {
@@ -291,18 +261,6 @@ public actor SessionMonitor {
         let path = databaseURL.resolvingSymlinksInPath().standardizedFileURL.path
         return [path, path + "-wal", path + "-shm", path + ".import-lock", path + ".setup-lock"]
     }
-}
-
-private struct SourceReadProgressContext {
-    let completedFiles: Int
-    let totalFiles: Int
-    let report: @Sendable (UInt64, UInt64) -> Void
-}
-
-private struct SourceReadResult {
-    let update: SourceImport
-    let checkpoint: Data?
-    let metadataBytesRead: UInt64
 }
 
 public enum WidgetSharedSnapshotBuildError: Error, Equatable {
