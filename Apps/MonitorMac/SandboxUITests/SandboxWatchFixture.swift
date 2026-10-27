@@ -15,7 +15,8 @@ struct SandboxWatchFixture: Sendable {
         }
         let timestamp = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-60))
         let events: [[String: Any]] = [
-            ["timestamp": timestamp, "type": "session_meta", "payload": ["id": "smoke", "timestamp": timestamp]],
+            ["timestamp": timestamp, "type": "session_meta",
+             "payload": ["id": "smoke", "timestamp": timestamp, "creator_account_id": "sandbox-smoke-account"]],
             ["timestamp": timestamp, "type": "event_msg",
              "payload": ["type": "task_started", "turn_id": "T",
                          "started_at": Int64(Date().timeIntervalSince1970) - 60]],

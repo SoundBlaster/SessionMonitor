@@ -66,10 +66,12 @@ The same target also contains `testMovedAndMissingFoldersRecoverThroughNativePic
    to a new directory, select it through the native picker and expect the previous history.
 
 This checks missing folders, not revocation of TCC permissions. It never removes a
-personal directory or changes system security settings. As of October 27, this new
-scenario compiles but has **not executed successfully**: two attempts stopped before
-any test body with `Timed out while enabling automation mode`. The earlier passing
-Watching-only smoke remains separate evidence. See the dated acceptance report.
+personal directory or changes system security settings. After XCTest was enabled,
+the October 27 signed native run passed **both tests: 2 tests, 0 failures, 104.517 seconds**.
+The fixture declares a synthetic `creator_account_id` so the same attributed account
+can be followed across source paths. An earlier run without identity exposed a separate
+Unknown/Mixed path-scope accounting issue, tracked as SM-757; this passing recovery
+scenario does not close that issue. See the dated acceptance report.
 
 ## Isolation and results
 
