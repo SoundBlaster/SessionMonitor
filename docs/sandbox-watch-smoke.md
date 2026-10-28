@@ -73,6 +73,29 @@ can be followed across source paths. An earlier run without identity exposed a s
 Unknown/Mixed path-scope accounting issue, tracked as SM-757; this passing recovery
 scenario does not close that issue. See the dated acceptance report.
 
+## Denied filesystem access scenario
+
+`testDeniedSourceAndIndexRecoverWithoutLosingHistory` uses real native picker grants,
+then quits the app and removes POSIX permissions only from its synthetic directories:
+
+1. Denying reads of the source preserves the imported request and shows **Watch recovering**
+   with an explicit permission error. The watch can be stopped normally.
+2. Restoring permissions and selecting the same source through the native picker resumes
+   Watching; appending a request updates the chart from one request to two.
+3. Denying access to the index returns to the connection gate instead of opening an empty
+   fallback database. Restoring permissions and selecting the index recovers both requests
+   and Watching.
+
+The driver first verifies that directory reads actually fail. It registers permission
+restoration before testing the denial, so teardown restores the original modes even if
+an assertion fails. Ordinary preferences, personal folders and widget publication stay
+isolated as in the other scenarios. No system permission database or TCC setting changes.
+
+The October 28 signed StoreDebug targeted run passed **1 test, 0 failures, 55.551 seconds**.
+This is native filesystem-denial evidence, **not revocation of a TCC permission or a
+security-scoped bookmark**. Existing moved/missing-folder and Watching scenarios also passed
+in the preceding run, before correcting the new test's expected `Watch recovering` status.
+
 ## Isolation and results
 
 Only Debug builds recognize `SESSIONMONITOR_UI_TEST_SUITE`. Each run uses a unique
@@ -99,7 +122,7 @@ interactive smoke passed. The test is intentionally separate from the regular
 ad-hoc `MonitorMac` CI suite.
 
 This smoke does not cover opening/placement of the system menu bar item,
-moved/revoked grants, actual system widget rendering,
+TCC/bookmark revocation, actual system widget rendering,
 StoreRelease packaging, App Store Connect processing, TestFlight or review.
 See [sandbox acceptance](sandbox-acceptance-2026-10-26.md) for recorded evidence
 and [ROADMAP](../ROADMAP.md) for outstanding gates.
