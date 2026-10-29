@@ -10,7 +10,8 @@
 По пользовательскому скриншоту дробные подписи переносятся и перекрываются в узкой колонке.
 Дополнительно по скриншоту проверить обрезание заголовка и footer, а также заполнение доступной высоты графиком.
 График адаптирован к доступной высоте, уменьшен compact header; app/widget build, SwiftLint и FSD прошли.
-Визуальная проверка small/medium/large остаётся; system widget Store-кандидата и gates SM-706 следуют далее.
+На интеграции с #154 проверены ImageRenderer fixtures small/medium/large с полями 0 и 16 pt;
+фактический WidgetKit render и system widget Store-кандидата остаются, затем gates SM-706.
 
 **SM-706 — частично проверена (2026-10-28): [PR #152](https://github.com/SoundBlaster/SessionMonitor/pull/152) влит (`6139853`); native denied-access прошёл, system widget Store-кандидата остаётся.**
 После merge #150 (`c8a0a08`) и #151 (`244ca7f`) подписанный StoreDebug native test прошёл:

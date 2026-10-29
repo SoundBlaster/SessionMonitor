@@ -78,17 +78,32 @@ private struct CacheWidgetHeader: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: WidgetDesignTokens.chartSpacing) {
-            WidgetTitle(title: family == .systemSmall ? "Cache hit" : "Cache Hit Rate",
-                        subtitle: family == .systemSmall ? nil : "Last 7 days")
+            if family == .systemSmall {
+                Text("Cache").font(.caption2.weight(.semibold)).fixedSize()
+            } else if family == .systemMedium {
+                Text("Cache Hit Rate").font(.caption.weight(.semibold)).lineLimit(1)
+            } else {
+                WidgetTitle(title: "Cache Hit Rate", subtitle: "Last 7 days")
+            }
             Spacer(minLength: 2)
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(WidgetFormatting.percentage(cache.hitRate))
-                    .font(family == .systemSmall ? .headline : .title.weight(.semibold))
-                    .monospaced()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.65)
-                if let delta = cache.comparisonDeltaPercentagePoints {
-                    CacheWidgetDelta(value: delta, isCompact: family == .systemSmall)
+            if family == .systemMedium {
+                HStack(spacing: 4) {
+                    Text(WidgetFormatting.percentage(cache.hitRate))
+                        .font(.headline.monospaced()).lineLimit(1).minimumScaleFactor(0.7)
+                    if let delta = cache.comparisonDeltaPercentagePoints {
+                        CacheWidgetDelta(value: delta, isCompact: true)
+                    }
+                }
+            } else {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(WidgetFormatting.percentage(cache.hitRate))
+                        .font(family == .systemSmall ? .subheadline.weight(.semibold) : .title3.weight(.semibold))
+                        .monospaced()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                    if let delta = cache.comparisonDeltaPercentagePoints {
+                        CacheWidgetDelta(value: delta, isCompact: family == .systemSmall)
+                    }
                 }
             }
         }
@@ -108,6 +123,8 @@ private struct CacheWidgetDelta: View {
                 .rotationEffect(value < 0 ? .degrees(180) : .zero)
             Text("\(value > 0 ? "+" : "")\(value.formatted(.number.precision(.fractionLength(1)))) pp")
                 .font((isCompact ? Font.caption2 : Font.caption).weight(.semibold).monospaced())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .foregroundStyle(color)
         .accessibilityLabel(accessibilityLabel)
@@ -174,12 +191,13 @@ private struct CacheWidgetRangeChart: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let axisWidth = showsAxis ? WidgetDesignTokens.axisLabelWidth : 0
-            let gutter = showsAxis ? WidgetDesignTokens.axisGutterSpacing : 0
-            let plotWidth = max(0, geometry.size.width - axisWidth - gutter)
             let plotHeight = max(0, geometry.size.height - WidgetDesignTokens.chartLabelHeight(for: family))
+            let showLabels = showsAxis && plotHeight >= 36
+            let axisWidth = showLabels ? WidgetDesignTokens.axisLabelWidth : 0
+            let gutter = showLabels ? WidgetDesignTokens.axisGutterSpacing : 0
+            let plotWidth = max(0, geometry.size.width - axisWidth - gutter)
             HStack(alignment: .top, spacing: WidgetDesignTokens.axisGutterSpacing) {
-                if showsAxis {
+                if showLabels {
                     axisLabels(height: plotHeight).frame(width: axisWidth, height: geometry.size.height)
                 }
                 plot(width: plotWidth, height: geometry.size.height, plotHeight: plotHeight)
