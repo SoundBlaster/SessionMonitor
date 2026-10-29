@@ -181,7 +181,8 @@ private struct CacheWidgetRangeChart: View {
     var body: some View {
         GeometryReader { geometry in
             let axisWidth = showsAxis ? WidgetDesignTokens.axisLabelWidth : 0
-            let plotWidth = max(0, geometry.size.width - axisWidth)
+            let gutter = showsAxis ? WidgetDesignTokens.axisGutterSpacing : 0
+            let plotWidth = max(0, geometry.size.width - axisWidth - gutter)
             let plotHeight = max(0, geometry.size.height - WidgetDesignTokens.chartLabelHeight(for: family))
             HStack(alignment: .top, spacing: WidgetDesignTokens.axisGutterSpacing) {
                 if showsAxis {
@@ -198,9 +199,10 @@ private struct CacheWidgetRangeChart: View {
     private func axisLabels(height: CGFloat) -> some View {
         GeometryReader { geometry in
             ForEach(WidgetDesignTokens.chartAxisTicks, id: \.self) { value in
-                Text("\(value)")
+                Text(value.formatted(.number.precision(.fractionLength(0))))
                     .font(.system(size: WidgetDesignTokens.axisFontSize, weight: .regular, design: .monospaced))
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: true, vertical: false)
                     .position(x: geometry.size.width / 2, y: axisPosition(for: value, height: height))
             }
         }

@@ -6,7 +6,12 @@
 
 ## Текущая точка
 
-**SM-706 — частично проверена (2026-10-28): [PR #152](https://github.com/SoundBlaster/SessionMonitor/pull/152) открыт; native denied-access прошёл, system widget остаётся.**
+**SM-758 — частично проверена (2026-10-29): исправить подписи вертикальной шкалы Cache Hit Rate в системном виджете.**
+По пользовательскому скриншоту дробные подписи переносятся и перекрываются в узкой колонке.
+Целые однострочные подписи и ширина графика с учётом отступа; app/widget Debug build, SwiftLint и FSD прошли.
+Визуальная проверка исправления в medium/large системном виджете остаётся; system widget Store-кандидата и gates SM-706 следуют далее.
+
+**SM-706 — частично проверена (2026-10-28): [PR #152](https://github.com/SoundBlaster/SessionMonitor/pull/152) влит (`6139853`); native denied-access прошёл, system widget Store-кандидата остаётся.**
 После merge #150 (`c8a0a08`) и #151 (`244ca7f`) подписанный StoreDebug native test прошёл:
 1 test / 0 failures / 55,551 s. Реальный POSIX deny на synthetic source сохраняет историю,
 показывает Watch recovering/permission error; Stop/reselect восстанавливает Watching и второй request.
@@ -2041,6 +2046,10 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   12 native SwiftUI renders: 320/420/700 pt × light/dark × zero/large counts.
   Renderer использует production component без нового окна/личного индекса;
   повторный запуск полного приложения не выполнялся. PR #149 влит 2026-10-27, squash `8779f59`.
+
+- [ ] **SM-758** — Исправить перенос и наложение подписей оси Cache Hit Rate в системных виджетах.
+  **Статус: частично проверена.** Формат и ширина исправлены, сборка и lint прошли;
+  проверить реальный medium/large WidgetKit render на macOS до закрытия задачи.
 
 - [x] **SM-757** — Сохранить Unknown/Mixed accounting при переносе source folder.
   **Доставлено 2026-10-27; [PR #151](https://github.com/SoundBlaster/SessionMonitor/pull/151) влит squash `244ca7f`.** Исправлена регрессия
