@@ -43,11 +43,12 @@ struct CacheWidgetContent: View {
     let family: WidgetFamily
 
     var body: some View {
-        VStack(alignment: .leading, spacing: WidgetDesignTokens.sectionSpacing) {
+        VStack(alignment: .leading, spacing: family == .systemSmall ? 4 : 6) {
             CacheWidgetHeader(cache: cache, family: family)
+                .layoutPriority(1)
             if showsBucketChart {
                 CacheWidgetRangeChart(buckets: cache.buckets, family: family)
-                    .frame(height: chartHeight)
+                    .frame(maxHeight: .infinity)
                 if cache.availability == .partial {
                     Label("Partial observations", systemImage: "exclamationmark.circle")
                         .font(.caption2)
@@ -60,18 +61,10 @@ struct CacheWidgetContent: View {
             if family == .systemLarge {
                 CacheWidgetLegend(sessionCount: cache.sessionCount)
             }
-            Spacer(minLength: 0)
             WidgetUpdatedLabel(entry: entry)
+                .layoutPriority(1)
         }
         .accessibilityElement(children: .contain)
-    }
-
-    private var chartHeight: CGFloat {
-        switch family {
-        case .systemSmall: WidgetDesignTokens.compactChartHeight
-        case .systemLarge: WidgetDesignTokens.largeChartHeight
-        default: WidgetDesignTokens.mediumChartHeight
-        }
     }
 
     private var showsBucketChart: Bool {
@@ -85,16 +78,32 @@ private struct CacheWidgetHeader: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: WidgetDesignTokens.chartSpacing) {
-            WidgetTitle(title: "Cache Hit Rate", subtitle: family == .systemSmall ? nil : "Last 7 days")
+            if family == .systemSmall {
+                Text("Cache").font(.caption2.weight(.semibold)).fixedSize()
+            } else if family == .systemMedium {
+                Text("Cache Hit Rate").font(.caption.weight(.semibold)).lineLimit(1)
+            } else {
+                WidgetTitle(title: "Cache Hit Rate", subtitle: "Last 7 days")
+            }
             Spacer(minLength: 2)
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(WidgetFormatting.percentage(cache.hitRate))
-                    .font(family == .systemSmall ? .title2 : .title.weight(.semibold))
-                    .monospaced()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.65)
-                if let delta = cache.comparisonDeltaPercentagePoints {
-                    CacheWidgetDelta(value: delta, isCompact: family == .systemSmall)
+            if family == .systemMedium {
+                HStack(spacing: 4) {
+                    Text(WidgetFormatting.percentage(cache.hitRate))
+                        .font(.headline.monospaced()).lineLimit(1).minimumScaleFactor(0.7)
+                    if let delta = cache.comparisonDeltaPercentagePoints {
+                        CacheWidgetDelta(value: delta, isCompact: true)
+                    }
+                }
+            } else {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(WidgetFormatting.percentage(cache.hitRate))
+                        .font(family == .systemSmall ? .subheadline.weight(.semibold) : .title3.weight(.semibold))
+                        .monospaced()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                    if let delta = cache.comparisonDeltaPercentagePoints {
+                        CacheWidgetDelta(value: delta, isCompact: family == .systemSmall)
+                    }
                 }
             }
         }
@@ -114,6 +123,8 @@ private struct CacheWidgetDelta: View {
                 .rotationEffect(value < 0 ? .degrees(180) : .zero)
             Text("\(value > 0 ? "+" : "")\(value.formatted(.number.precision(.fractionLength(1)))) pp")
                 .font((isCompact ? Font.caption2 : Font.caption).weight(.semibold).monospaced())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .foregroundStyle(color)
         .accessibilityLabel(accessibilityLabel)
@@ -180,11 +191,13 @@ private struct CacheWidgetRangeChart: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let axisWidth = showsAxis ? WidgetDesignTokens.axisLabelWidth : 0
-            let plotWidth = max(0, geometry.size.width - axisWidth)
             let plotHeight = max(0, geometry.size.height - WidgetDesignTokens.chartLabelHeight(for: family))
+            let showLabels = showsAxis && plotHeight >= 36
+            let axisWidth = showLabels ? WidgetDesignTokens.axisLabelWidth : 0
+            let gutter = showLabels ? WidgetDesignTokens.axisGutterSpacing : 0
+            let plotWidth = max(0, geometry.size.width - axisWidth - gutter)
             HStack(alignment: .top, spacing: WidgetDesignTokens.axisGutterSpacing) {
-                if showsAxis {
+                if showLabels {
                     axisLabels(height: plotHeight).frame(width: axisWidth, height: geometry.size.height)
                 }
                 plot(width: plotWidth, height: geometry.size.height, plotHeight: plotHeight)
@@ -197,10 +210,12 @@ private struct CacheWidgetRangeChart: View {
 
     private func axisLabels(height: CGFloat) -> some View {
         GeometryReader { geometry in
-            ForEach(WidgetDesignTokens.chartAxisTicks, id: \.self) { value in
-                Text("\(value)")
+            ForEach(family == .systemMedium ? [100.0, 90.0, 75.0] : WidgetDesignTokens.chartAxisTicks,
+                    id: \.self) { value in
+                Text(value.formatted(.number.precision(.fractionLength(0))))
                     .font(.system(size: WidgetDesignTokens.axisFontSize, weight: .regular, design: .monospaced))
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: true, vertical: false)
                     .position(x: geometry.size.width / 2, y: axisPosition(for: value, height: height))
             }
         }
@@ -266,12 +281,13 @@ private struct CacheWidgetBucketMark: View {
 
     var body: some View {
         GeometryReader { geometry in
+            let plotHeight = max(0, geometry.size.height - labelHeight)
             ZStack(alignment: .top) {
                 Capsule()
                     .fill(rangeGradient)
-                    .frame(width: barWidth, height: barHeight)
+                    .frame(width: barWidth, height: barHeight(plotHeight: plotHeight))
                     .position(x: geometry.size.width / 2,
-                              y: barMidpoint)
+                              y: barMidpoint(plotHeight: plotHeight))
                 Rectangle()
                     .fill(WidgetDesignTokens.averageMarker)
                     .frame(width: markerWidth, height: WidgetDesignTokens.averageMarkerHeight)
@@ -294,7 +310,6 @@ private struct CacheWidgetBucketMark: View {
     }
 
     private var labelHeight: CGFloat { WidgetDesignTokens.chartLabelHeight(for: family) }
-    private var plotHeight: CGFloat { max(0, WidgetDesignTokens.chartHeight(for: family) - labelHeight) }
     private var rangeGradient: LinearGradient {
         LinearGradient(
             colors: [WidgetDesignTokens.accent.opacity(0.78), WidgetDesignTokens.accent],
@@ -303,13 +318,13 @@ private struct CacheWidgetBucketMark: View {
         )
     }
 
-    private var barHeight: CGFloat {
+    private func barHeight(plotHeight: CGFloat) -> CGFloat {
         let lower = yPosition(bucket.lower, height: plotHeight)
         let upper = yPosition(bucket.upper, height: plotHeight)
         return max(WidgetDesignTokens.minimumRangeHeight, lower - upper)
     }
 
-    private var barMidpoint: CGFloat {
+    private func barMidpoint(plotHeight: CGFloat) -> CGFloat {
         let upper = yPosition(bucket.upper, height: plotHeight)
         let lower = yPosition(bucket.lower, height: plotHeight)
         return (upper + lower) / 2
@@ -371,14 +386,6 @@ private struct CacheWidgetOutlierMark: View {
 }
 
 extension WidgetDesignTokens {
-    static func chartHeight(for family: WidgetFamily) -> CGFloat {
-        switch family {
-        case .systemSmall: compactChartHeight
-        case .systemLarge: largeChartHeight
-        default: mediumChartHeight
-        }
-    }
-
     static func chartLabelHeight(for family: WidgetFamily) -> CGFloat {
         family == .systemSmall ? compactBucketLabelHeight : bucketLabelHeight
     }
