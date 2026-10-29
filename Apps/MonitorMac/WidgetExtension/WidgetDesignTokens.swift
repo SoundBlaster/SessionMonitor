@@ -5,9 +5,6 @@ enum WidgetDesignTokens {
     static let compactInset: CGFloat = 12
     static let sectionSpacing: CGFloat = 10
     static let chartSpacing: CGFloat = 6
-    static let compactChartHeight: CGFloat = 62
-    static let mediumChartHeight: CGFloat = 92
-    static let largeChartHeight: CGFloat = 126
     static let axisLabelWidth: CGFloat = 24
     static let barWidth: CGFloat = 14
     static let compactBarWidth: CGFloat = 10
