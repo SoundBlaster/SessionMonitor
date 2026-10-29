@@ -13,6 +13,7 @@ struct SessionMonitorCacheHitRateWidget: Widget {
         .configurationDisplayName("Cache Hit Rate")
         .description("Cache hit rate, typical range, and anonymous outliers for the last seven days.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .contentMarginsDisabled()
     }
 }
 
@@ -154,7 +155,6 @@ private struct CacheWidgetStatus: View {
         case .noData: ("No cache data", "SessionMonitor has not recorded cache observations yet.")
         }
     }
-
     var body: some View {
         WidgetUnavailableState(title: message.0, detail: message.1)
     }
@@ -186,9 +186,12 @@ private struct CacheWidgetRangeChart: View {
 
     private var showsAxis: Bool { family != .systemSmall }
     private var barWidth: CGFloat {
-        family == .systemSmall ? WidgetDesignTokens.compactBarWidth : WidgetDesignTokens.barWidth
+        switch family {
+        case .systemSmall: 5
+        case .systemMedium: 7
+        default: WidgetDesignTokens.barWidth
+        }
     }
-
     var body: some View {
         GeometryReader { geometry in
             let plotHeight = max(0, geometry.size.height - WidgetDesignTokens.chartLabelHeight(for: family))
@@ -261,7 +264,8 @@ private struct CacheWidgetRangeChart: View {
     private func yPosition(_ value: Double, height: CGFloat) -> CGFloat {
         let normalized = (value - WidgetDesignTokens.chartMinimum)
             / (WidgetDesignTokens.chartMaximum - WidgetDesignTokens.chartMinimum)
-        return height * CGFloat(1 - normalized)
+        let inset = min(WidgetDesignTokens.chartAxisInset, height / 2)
+        return inset + (height - 2 * inset) * CGFloat(1 - min(1, max(0, normalized)))
     }
 
     private var chartAccessibilityLabel: String {
@@ -276,7 +280,11 @@ private struct CacheWidgetBucketMark: View {
     let barWidth: CGFloat
 
     private var markerWidth: CGFloat {
-        family == .systemLarge ? WidgetDesignTokens.largeAverageMarkerWidth : WidgetDesignTokens.averageMarkerWidth
+        switch family {
+        case .systemSmall: 9
+        case .systemMedium: 12
+        default: WidgetDesignTokens.largeAverageMarkerWidth
+        }
     }
 
     var body: some View {
@@ -321,9 +329,8 @@ private struct CacheWidgetBucketMark: View {
     private func barHeight(plotHeight: CGFloat) -> CGFloat {
         let lower = yPosition(bucket.lower, height: plotHeight)
         let upper = yPosition(bucket.upper, height: plotHeight)
-        return max(WidgetDesignTokens.minimumRangeHeight, lower - upper)
+        return max(2, lower - upper)
     }
-
     private func barMidpoint(plotHeight: CGFloat) -> CGFloat {
         let upper = yPosition(bucket.upper, height: plotHeight)
         let lower = yPosition(bucket.lower, height: plotHeight)
@@ -340,7 +347,8 @@ private struct CacheWidgetBucketMark: View {
     private func yPosition(_ value: Double, height: CGFloat) -> CGFloat {
         let normalized = (value - WidgetDesignTokens.chartMinimum)
             / (WidgetDesignTokens.chartMaximum - WidgetDesignTokens.chartMinimum)
-        return height * CGFloat(1 - min(1, max(0, normalized)))
+        let inset = min(WidgetDesignTokens.chartAxisInset, height / 2)
+        return inset + (height - 2 * inset) * CGFloat(1 - min(1, max(0, normalized)))
     }
 
     private var accessibilityLabel: String {
