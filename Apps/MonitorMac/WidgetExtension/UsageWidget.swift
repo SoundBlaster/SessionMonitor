@@ -16,9 +16,12 @@ struct SessionMonitorUsageWidget: Widget {
     }
 }
 
-private struct SessionMonitorUsageWidgetView: View {
-    @Environment(\.widgetFamily) private var family
+struct SessionMonitorUsageWidgetView: View {
+    @Environment(\.widgetFamily) private var systemFamily
     let entry: SessionMonitorWidgetEntry
+    var familyOverride: WidgetFamily?
+
+    private var family: WidgetFamily { familyOverride ?? systemFamily }
 
     private var today: WidgetUsagePeriodSnapshot? {
         entry.snapshot?.usage.first { $0.period == .today }

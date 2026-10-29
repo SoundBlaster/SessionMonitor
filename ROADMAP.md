@@ -6,6 +6,12 @@
 
 ## Текущая точка
 
+**SM-759 — частично проверена (2026-10-29): debug lab для системных виджетов.**
+Production layout WidgetKit с синтетическими данными для small, medium и large; отдельно обозначено,
+что система может отрисовывать иначе. Debug и неподписанный Release build, SwiftLint и FSD прошли;
+визуальная проверка остаётся. Подписанный Release остановился на старом неподписанном test bundle в DerivedData.
+Затем визуально проверить SM-758 и продолжить SM-706.
+
 **SM-706 — частично проверена (2026-10-28): [PR #152](https://github.com/SoundBlaster/SessionMonitor/pull/152) открыт; native denied-access прошёл, system widget остаётся.**
 После merge #150 (`c8a0a08`) и #151 (`244ca7f`) подписанный StoreDebug native test прошёл:
 1 test / 0 failures / 55,551 s. Реальный POSIX deny на synthetic source сохраняет историю,
@@ -2041,6 +2047,10 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   12 native SwiftUI renders: 320/420/700 pt × light/dark × zero/large counts.
   Renderer использует production component без нового окна/личного индекса;
   повторный запуск полного приложения не выполнялся. PR #149 влит 2026-10-27, squash `8779f59`.
+
+- [ ] **SM-759** — Debug-лаборатория системных виджетов с общим production layout.
+  **Статус: частично проверена.** Debug и неподписанный Release build, SwiftLint и FSD прошли;
+  требуется проверить экран в приложении.
 
 - [x] **SM-757** — Сохранить Unknown/Mixed accounting при переносе source folder.
   **Доставлено 2026-10-27; [PR #151](https://github.com/SoundBlaster/SessionMonitor/pull/151) влит squash `244ca7f`.** Исправлена регрессия

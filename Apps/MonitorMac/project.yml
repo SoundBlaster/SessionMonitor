@@ -47,6 +47,12 @@ targets:
               - sessionmonitor
     sources:
       - path: Sources
+      - path: WidgetExtension/SystemCacheHitRateWidget.swift
+      - path: WidgetExtension/UsageWidget.swift
+      - path: WidgetExtension/WidgetDesignTokens.swift
+      - path: WidgetExtension/WidgetSharedComponents.swift
+      - path: WidgetExtension/WidgetTimeline.swift
+      - path: WidgetExtension/WidgetPreviewData.swift
       - path: SessionMonitor.icon
         type: file
         buildPhase: resources
@@ -61,6 +67,8 @@ targets:
         ENABLE_APP_SANDBOX: NO
         CODE_SIGN_ENTITLEMENTS: Config/AppGroups.entitlements
       configs:
+        Release:
+          EXCLUDED_SOURCE_FILE_NAMES: "SystemCacheHitRateWidget.swift UsageWidget.swift WidgetDesignTokens.swift WidgetSharedComponents.swift WidgetTimeline.swift WidgetPreviewData.swift"
         StoreDebug:
           ENABLE_APP_SANDBOX: YES
           CODE_SIGN_ENTITLEMENTS: Config/Store.entitlements
@@ -69,6 +77,7 @@ targets:
           ENABLE_APP_SANDBOX: YES
           CODE_SIGN_ENTITLEMENTS: Config/Store.entitlements
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
+          EXCLUDED_SOURCE_FILE_NAMES: "SystemCacheHitRateWidget.swift UsageWidget.swift WidgetDesignTokens.swift WidgetSharedComponents.swift WidgetTimeline.swift WidgetPreviewData.swift"
     dependencies:
       - target: SessionMonitorWidgetExtension
         embed: true
