@@ -98,7 +98,7 @@ struct SessionMonitorApp: App {
         .defaultSize(width: 960, height: 640)
         #if DEBUG
         Window("Widget Lab", id: "cache-widget-lab") {
-            CacheWidgetLabPage()
+            WidgetLabPage()
         }
         .defaultSize(width: 840, height: 720)
         #endif

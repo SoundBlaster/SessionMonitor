@@ -38,7 +38,7 @@ private struct SessionMonitorCacheHitRateWidgetView: View {
     }
 }
 
-private struct CacheWidgetContent: View {
+struct CacheWidgetContent: View {
     let cache: WidgetCachePeriodSnapshot
     let entry: SessionMonitorWidgetEntry
     let family: WidgetFamily
