@@ -95,6 +95,7 @@ targets:
     info:
       path: Config/WidgetExtension-Info.plist
       properties:
+        CFBundleDisplayName: SessionMonitor
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
