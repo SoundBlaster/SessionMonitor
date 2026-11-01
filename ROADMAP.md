@@ -6,6 +6,15 @@
 
 ## Текущая точка
 
+**SM-706 — частично проверена (2026-10-31): Store build 1.0 (3) загружен и VALID.**
+Build 2 отклонён Apple: 90360 (нет CFBundleDisplayName widget) и 90255 (mode 600: ASC auth helper
+наследует umask 077). Добавлен display name; build 3 собран через временный helper с umask 022,
+пакет и code signatures проверены, нет файлов без world-read; upload processed VALID. TestFlight
+контакт и What to Test заполнены. После аудита CryptoKit/SHA-256, системного SQLite и
+зависимостей для build 3 выставлено usesNonExemptEncryption=false; статус READY_FOR_BETA_TESTING,
+build назначен internal group. Группа пуста; tester access и реальная установка остаются.
+
+
 **SM-759 — частично проверена (2026-10-29): debug lab для системных виджетов.**
 Production layout WidgetKit с синтетическими данными для small, medium и large; отдельно обозначено,
 что система может отрисовывать иначе. Debug и неподписанный Release build, SwiftLint и FSD прошли;
