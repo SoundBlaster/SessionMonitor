@@ -7,11 +7,13 @@ import Testing
 
 @MainActor
 struct SharedIndexTests {
-    @Test func firstStoreLaunchDoesNotCreateFallbackIndex() async throws {
+    @Test func firstStoreLaunchCreatesPrivateIndex() async throws {
         let fixture = try SharedIndexFixture()
         defer { fixture.remove() }
-        await #expect(throws: SharedIndexError.self) { try await fixture.loader().load() }
-        #expect(!FileManager.default.fileExists(atPath: fixture.fallback.path))
+        let loader = fixture.loader()
+        #expect(try await loader.restoreIndex().databaseURL == fixture.fallback)
+        #expect(FileManager.default.fileExists(atPath: fixture.fallback.path))
+        #expect(try await fixture.loader().restoreIndex().databaseURL == fixture.fallback)
     }
 
     @Test func existingIndexRetainsHistoryWatermarkAndIncrementalCheckpoint() async throws {

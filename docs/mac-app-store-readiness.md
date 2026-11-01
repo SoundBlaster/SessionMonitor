@@ -95,12 +95,7 @@ and app-side App Group publication; remaining acceptance gates are listed below.
 
 ## Shared index connection in Store builds
 
-On first launch, choose **Connect Your Session Index → Choose Index Folder**. Select the
-folder containing the existing `usage.sqlite`, normally
-`~/Library/Application Support/SessionMonitor`. The app opens the database **in place**;
-it does not copy history or silently create a separate container index. Selecting an
-empty folder explicitly creates a new index there. Session source folders are chosen
-separately for import and Watching.
+On first launch, the Store app creates its index in its app container without asking for an index folder. To share an existing `usage.sqlite` with the CLI, select its folder in **Settings → Session Index**; the change applies after restart. The app opens that database in place and does not copy history. Existing external selections remain active. Session source folders are chosen separately for import and Watching.
 
 The Store app stores a **read/write security-scoped bookmark** for the index folder,
 including SQLite WAL and lock files. It retains access for the lifetime of the opened
@@ -130,7 +125,7 @@ to prove external-folder access before the system picker grants it.
 Regression tests open a populated database through a separate core connection and the
 Store loader, compare canonical reports, profiles and database watermark, then verify
 that an unchanged source still uses its incremental checkpoint. Additional tests cover
-first-launch refusal to create a fallback, revoked access/reselection, failed bookmark
+private index on first launch, revoked access/reselection, failed bookmark
 and database opening, pending restart, shell quoting, and implicit/explicit grant balance.
 These injected tests and synthetic UI previews do not establish signed sandbox acceptance.
 

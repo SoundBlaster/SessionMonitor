@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The app and menu share one connection. Neither can open a private fallback index.
+/// The app and menu share one connection, including the private default index.
 struct SharedIndexGate<Content: View>: View {
     let model: SharedIndexLocationModel?
     @ViewBuilder let content: () -> Content

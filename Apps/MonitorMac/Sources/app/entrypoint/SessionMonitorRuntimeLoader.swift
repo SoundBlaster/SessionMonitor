@@ -30,8 +30,7 @@ actor SessionMonitorRuntimeLoader {
     private func database() throws -> MonitorRuntime.SessionMonitor {
         if let databaseRuntime { return databaseRuntime }
         if requiresSharedIndex {
-            guard let directory = try indexSettings.restore() else { throw SharedIndexError.selectionRequired }
-            return try openIndex(directory)
+            if let directory = try indexSettings.restore() { return try openIndex(directory) }
         }
         let value = try MonitorRuntime.SessionMonitor(databaseURL: databaseURL)
         databaseRuntime = value
