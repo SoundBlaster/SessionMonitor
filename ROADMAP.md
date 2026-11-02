@@ -6,13 +6,16 @@
 
 ## Текущая точка
 
+**SM-760 — в работе: внутренний индекс по умолчанию для новых Store-установок.**
+Новый Store index создаётся в контейнере; сохранённые внешние индексы и ошибки восстановления не переключаются на пустую базу. Targeted SharedIndexTests: 8 passed; native Store acceptance остаётся.
+
 **SM-706 — частично проверена (2026-10-31): Store build 1.0 (3) загружен и VALID.**
 Build 2 отклонён Apple: 90360 (нет CFBundleDisplayName widget) и 90255 (mode 600: ASC auth helper
 наследует umask 077). Добавлен display name; build 3 собран через временный helper с umask 022,
 пакет и code signatures проверены, нет файлов без world-read; upload processed VALID. TestFlight
 контакт и What to Test заполнены. После аудита CryptoKit/SHA-256, системного SQLite и
 зависимостей для build 3 выставлено usesNonExemptEncryption=false; статус READY_FOR_BETA_TESTING,
-build назначен internal group. Группа пуста; tester access и реальная установка остаются.
+build назначен internal group. Владелец подтвердил установку на MacBook и импорт 152 файлов.
 
 
 **SM-759 — частично проверена (2026-10-29): debug lab для системных виджетов.**

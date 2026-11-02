@@ -35,9 +35,10 @@ struct SharedIndexSettingsSection: View {
                 Text(error).font(.callout).foregroundStyle(.red)
             }
         } header: {
-            Text("Shared Index")
+            Text("Session Index")
         } footer: {
-            Text("The app opens usage.sqlite in place. Folder changes apply after restart; "
+            Text("By default, the index is stored in the app container. "
+                 + "To share an index with the CLI, choose a folder. Folder changes apply after restart; "
                  + "the copied CLI command always uses the active index. Session folders are selected separately.")
         }
         .task { await model.restoreIfNeeded() }
