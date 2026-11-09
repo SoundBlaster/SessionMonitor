@@ -1,13 +1,45 @@
 # SessionMonitor Roadmap
 
-Обновлено: 2026-10-28. Это основной файл приоритетов, задач и статусов проекта.
+Обновлено: 2026-11-09. Это основной файл приоритетов, задач и статусов проекта.
 Архитектура и ограничения — в [monitor-design.md](monitor-design.md), правила
 работы — в [CONTRIBUTING.md](CONTRIBUTING.md), инструкции агентам — в [AGENTS.md](AGENTS.md).
 
 ## Текущая точка
 
-**SM-760 — в работе: внутренний индекс по умолчанию для новых Store-установок.**
-Новый Store index создаётся в контейнере; сохранённые внешние индексы и ошибки восстановления не переключаются на пустую базу. Targeted SharedIndexTests: 8 passed; native Store acceptance остаётся.
+**Аудит доставки (2026-11-09): PR #141–#156 сверены с GitHub и этим файлом.**
+Все 16 PR влиты squash в `main`; на финальной ревизии каждого все GitHub checks, включая required `CI`,
+зелёные, открытых review threads нет. `main` — `954a9b9`, push-CI зелёный (run на `567c1ad` отменён
+concurrency следующим merge того же дня; run на `7e1497f` поверх него прошёл). GitHub issues в репозитории
+не ведутся (0 issues), задачи — только в этом файле. Исправлены расхождения: SM-760 (#156), SM-758 (#153),
+SM-759 (#154) и упаковка SM-706 (#155) были влиты, но не отмечены; SM-760 не имела записи в списке задач;
+запись SM-706 называла #148 открытым, а раздел SM-745 — #140. Замечания процесса: пункт шаблона
+«Required GitHub check `CI` passed» не отмечен ни в одном из 16 PR, хотя CI проходил; в #153/#154 не отмечен
+«Relevant local checks passed» при описанных в теле проверках.
+Открыты после этих PR: SM-706, SM-760, SM-758, SM-759 (ручные проверки подписанного Store-кандидата и
+системного WidgetKit render), SM-755, остатки SM-752 и SM-746. Изменение только ROADMAP; сборки не запускались.
+
+**Новые проблемы по итогам аудита (2026-11-09), внесены по указанию владельца:**
+
+- **SM-762** — Store-сборка не воспроизводится из репозитория: `release-local.sh` собирает `Release`, а не
+  `StoreRelease`, и не задаёт umask; build 3 собран временным локальным helper. Риск повторить отказ 90255.
+- **SM-763** — чек-лист шаблона PR не отражает факт: «CI passed» не отмечен в 16 из 16 PR.
+- **SM-764** — push-CI на `main` отменяется следующим merge (`cancel-in-progress`); так отменён run на `567c1ad`.
+- **SM-765** — дубли запросов, проиндексированные до SM-757 после переноса папки, не чинятся и не диагностируются.
+- **SM-761** — Xcode MCP останавливается на macro trust; проверки идут через console build с bypass.
+- В существующих задачах: `doctor` за неделю — 12,81 с и после SM-749 (SM-746);
+  [mac-app-store-readiness.md](docs/mac-app-store-readiness.md) не отражает build 3 и TestFlight (SM-706);
+  подписанный Release остановился на старом test bundle в DerivedData (SM-759).
+
+**Ожидают согласования владельца (2026-11-09); до решения реализация не начинается:**
+
+1. SM-761: выдать trust макросу в Xcode или закрепить console build с bypass как принятый путь в AGENTS.md.
+2. SM-763: убрать пункт «CI passed» из шаблона (его проверяет required check) или отмечать его перед merge.
+3. SM-764: оставить `cancel-in-progress` только для pull request, чтобы каждый commit `main` получал свой run.
+4. SM-765: нужен ли repair path для уже проиндексированных дублей и диагностика в `doctor`.
+5. SM-762: порядок — до следующего Store upload или вместе с ним.
+
+**SM-760 — код доставлен (2026-11-02): [PR #156](https://github.com/SoundBlaster/SessionMonitor/pull/156) влит squash `954a9b9`; внутренний индекс по умолчанию для новых Store-установок.**
+Новый Store index создаётся в контейнере; сохранённые внешние индексы и ошибки восстановления не переключаются на пустую базу. Targeted SharedIndexTests: 8 passed; native Store acceptance остаётся, `[ ]` сохранён.
 
 **SM-706 — частично проверена (2026-10-31): Store build 1.0 (3) загружен и VALID.**
 Build 2 отклонён Apple: 90360 (нет CFBundleDisplayName widget) и 90255 (mode 600: ASC auth helper
@@ -16,16 +48,18 @@ Build 2 отклонён Apple: 90360 (нет CFBundleDisplayName widget) и 902
 контакт и What to Test заполнены. После аудита CryptoKit/SHA-256, системного SQLite и
 зависимостей для build 3 выставлено usesNonExemptEncryption=false; статус READY_FOR_BETA_TESTING,
 build назначен internal group. Владелец подтвердил установку на MacBook и импорт 152 файлов.
+Display name виджета и запись диагноза доставлены через [PR #155](https://github.com/SoundBlaster/SessionMonitor/pull/155), squash `2f4b165` (2026-11-01).
+Исправление umask сделано во временном локальном helper и в репозитории не закреплено.
 
 
-**SM-759 — частично проверена (2026-10-29): debug lab для системных виджетов.**
+**SM-759 — частично проверена (2026-10-29): debug lab для системных виджетов; [PR #154](https://github.com/SoundBlaster/SessionMonitor/pull/154) влит squash `7e1497f` (2026-10-30).**
 Production layout WidgetKit с синтетическими данными для small, medium и large; отдельно обозначено,
 что система может отрисовывать иначе. Debug и неподписанный Release build, SwiftLint и FSD прошли;
 шесть ImageRenderer fixtures проверяют small/medium/large и отступы 0/16 pt. Системная галерея остаётся.
 Подписанный Release остановился на старом неподписанном test bundle в DerivedData.
 Затем визуально проверить SM-758 и продолжить SM-706.
 
-**SM-758 — в работе (2026-10-29): исправить layout Cache Hit Rate в системном виджете.**
+**SM-758 — код доставлен, частично проверена: [PR #153](https://github.com/SoundBlaster/SessionMonitor/pull/153) влит squash `567c1ad` (2026-10-30); layout Cache Hit Rate в системном виджете.**
 По пользовательскому скриншоту дробные подписи переносятся и перекрываются в узкой колонке.
 Дополнительно по скриншоту проверить обрезание заголовка и footer, а также заполнение доступной высоты графиком.
 График адаптирован к доступной высоте, уменьшен compact header; app/widget build, SwiftLint и FSD прошли.
@@ -567,7 +601,7 @@ deliverable — WidgetKit extension с App Group в SM-401.
 
 ### Фокус продукта — решение владельца от 2026-10-24 (SM-745)
 
-**Статус: документация подготовлена и проверена; открытый PR [#140](https://github.com/SoundBlaster/SessionMonitor/pull/140) актуализирован к main `a20cf7b`, требуется свежий CI и merge.**
+**Статус: доставлено (2026-10-25); PR [#140](https://github.com/SoundBlaster/SessionMonitor/pull/140) влит merge-коммитом `18216c5` (см. SM-745 ниже).**
 SessionMonitor ориентирован прежде всего на **Codex** и два взаимодополняющих интерфейса:
 
 - **Для человека:** красивый, наглядный native macOS обзор сессий; ясная иерархия,
@@ -1452,6 +1486,14 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   remote tag и скачанные assets проверены. Актуальный релиз — [v0.1.1](https://github.com/SoundBlaster/SessionMonitor/releases/tag/v0.1.1).
   Clean-machine/update/widget acceptance остаётся открытой. Mac App Store — SM-706.
 - [ ] **SM-706** — Локальная загрузка macOS package в App Store Connect.
+  **Статус на 2026-11-09: в работе. Store build 1.0 (3) — в TestFlight (READY_FOR_BETA_TESTING), установка
+  подтверждена владельцем; #147, #148, #150, #152 и #155 влиты.** По этому файлу и PR не закрыты: системный
+  WidgetKit render подписанного Store-кандидата (SM-758/SM-759); signed first-launch и upgrade acceptance
+  (SM-760); отзыв TCC/security-scoped bookmark (POSIX deny его не заменяет); навигация через системный
+  status item; optional title-index grant; исправление umask в release tooling (сейчас временный локальный
+  helper, иначе следующий upload может повторить 90255 — SM-762); записей о заполнении Store metadata (validator
+  2026-10-24: 34 errors / 3 warnings) и об отправке на review нет;
+  [mac-app-store-readiness.md](docs/mac-app-store-readiness.md) не отражает builds 2–3 и статус TestFlight.
   **2026-10-25: в работе — sandbox configuration, persistent grants и shared app/CLI index.**
   Основа влита через [PR #147](https://github.com/SoundBlaster/SessionMonitor/pull/147), squash `65fa957`.
   Store app требует явного выбора папки `usage.sqlite`, открывает существующую базу на месте и держит
@@ -1464,13 +1506,19 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   2026-10-26: signed StoreDebug archive и native index/source grants после relaunch, Import/Update/export и
   app-side App Group snapshot publication проверены; см. [evidence](docs/sandbox-acceptance-2026-10-26.md).
   2026-10-26: native Watching start/append/Pause/Resume/quit/relaunch/Stop подтверждён
-  dedicated signed XCUITest (1 тест, 0 ошибок, 53 секунды) в открытом #148; production controls
+  dedicated signed XCUITest (1 тест, 0 ошибок, 53 секунды) в #148, влитом squash `3f04b78` 2026-10-26; production controls
   открыты в Debug-only pane, system status item navigation этим тестом не проверяется.
   2026-10-27: moved/missing index/source recovery с explicit synthetic attribution прошёл
   signed native suite (2 tests / 0 failures / 104,517 s) в #150, влитом squash `c8a0a08` 2026-10-27. Unknown/Mixed
-  source relocation выявила SM-757; actual permission revocation и widget render остаются.
-  Optional title-index grant,
-  Store signing/release-local/version reconciliation/metadata/archive/export/upload остаются впереди.
+  source relocation выявила SM-757 (доставлена в #151, `244ca7f`); actual permission revocation и widget render остаются.
+  2026-10-28: POSIX denied-access recovery для source и index прошёл signed native test
+  (1 test / 0 failures / 55,551 s) в [#152](https://github.com/SoundBlaster/SessionMonitor/pull/152), влитом squash `6139853`; это не отзыв TCC или bookmark.
+  2026-10-31: Apple отклонила build 2 (90360 — нет CFBundleDisplayName виджета; 90255 — файлы mode 600 из-за
+  umask 077 ASC auth helper). Build 1.0 (3) с display name обработан VALID, READY_FOR_BETA_TESTING, назначен
+  internal group; владелец подтвердил установку на MacBook и импорт 152 файлов. Display name доставлен через
+  [#155](https://github.com/SoundBlaster/SessionMonitor/pull/155), squash `2f4b165` (2026-11-01).
+  Optional title-index grant и Store metadata остаются впереди; signing/archive/export/upload выполнены для
+  build 3, но release-local wiring и version reconciliation этим файлом не подтверждены.
   Automatic relocation базы не реализуется: переход на Store открывает прежний индекс после явного выбора.
   **Приоритет владельца (2026-10-24): после performance-проверки SM-746 начать подготовку Mac App Store.**
   Read-only ASC preflight: существующий app `6812366729`, draft 1.0 PREPARE_FOR_SUBMISSION, macOS builds нет;
@@ -1609,6 +1657,40 @@ App build, 17/17 cache chart tests, SwiftLint/FSD passed; UI визуально 
   `Workflow lint`), `make -n generate`. Остаток: на Mac проверить подсказку после `make generate` и что заданный
   `DEVELOPMENT_TEAM` в `Local.xcconfig` переживает pull. Готово, когда новая и существующая конфигурация подписи ведут себя как
   описано, подсказка не появляется при заданном `DEVELOPMENT_TEAM`, а тест выполняется в GitHub CI.
+- [ ] **SM-761** — Macro trust для `SpecificationCoreMacros` в Xcode MCP.
+  **Статус: внесена по итогам аудита и указанию владельца (2026-11-09); выбор варианта ожидает согласования.** В #151–#154 и #156 (и в более
+  ранних записях этого файла) сборка через Xcode MCP останавливалась на macro trust fingerprint, проверки шли
+  через console `xcodebuild` с per-command `-skipMacroValidation`; в #154 из-за этого недоступен Xcode Preview.
+  Bypass описан в [docs/development.md](docs/development.md) и задан в Makefile, но AGENTS.md называет
+  Xcode MCP основным интерфейсом. Доверие к макросу — действие владельца в Xcode; агент security-настройки
+  не меняет. Готово, когда build/test через Xcode MCP проходят в открытом GUI-проекте без bypass, либо
+  AGENTS.md/CONTRIBUTING.md явно фиксируют console build с bypass как принятый путь при заблокированном MCP.
+- [ ] **SM-762** — Воспроизводимая Store-сборка из `make release-local`: `StoreRelease` и umask.
+  **Статус: проблема зафиксирована аудитом (2026-11-09); не начата, порядок ожидает согласования.**
+  [release-local.sh](scripts/release-local.sh) архивирует схему `MonitorMac` в конфигурации `Release` и не
+  задаёт umask; [mac-app-store-readiness.md](docs/mac-app-store-readiness.md) (шаг 4) прямо называет wiring
+  `StoreRelease` невыполненным. Build 2 отклонён Apple с 90255: ASC auth helper наследует umask 077 и файлы
+  пакета получают mode 600. Build 1.0 (3) собран временным локальным helper с umask 022, которого в
+  репозитории нет (#155 доставил только display name виджета). Следующий upload штатным скриптом может
+  повторить отказ или собрать не Store-конфигурацию. Готово, когда `make release-local` собирает Store
+  scheme/configuration с umask 022, до upload проверяет отсутствие файлов без world-read и
+  `CFBundleDisplayName` виджета (причины 90255/90360), а проверка покрыта тестом скрипта или dry-run evidence.
+- [ ] **SM-763** — Чек-лист шаблона PR должен отражать фактическое состояние.
+  **Статус: проблема зафиксирована аудитом (2026-11-09); ожидает согласования варианта.** Пункт
+  «Required GitHub check `CI` passed for the current PR revision» не отмечен ни в одном из #141–#156, хотя
+  CI проходил: PR создаётся до завершения CI, а описание потом не обновляется. В #153/#154 не отмечен и
+  «Relevant local checks passed» при описанных в теле проверках. Неотмеченный пункт во влитом PR читается как
+  невыполненная проверка. Варианты: убрать пункт про CI (его гарантирует required check в ruleset) либо
+  отмечать его перед merge вместе с проверкой threads. Готово, когда выбранный вариант записан в
+  [шаблоне](.github/PULL_REQUEST_TEMPLATE.md) и CONTRIBUTING.md, а следующий влитый PR ему соответствует.
+- [ ] **SM-764** — Не отменять push-CI на `main` следующим merge.
+  **Статус: проблема зафиксирована аудитом (2026-11-09); ожидает согласования.** В
+  [ci.yml](.github/workflows/ci.yml) concurrency group строится по `github.ref` c `cancel-in-progress: true`,
+  поэтому push в `main` отменяет ещё идущий run предыдущего merge. 2026-10-30 run на `567c1ad` (#153) отменён
+  после merge #154; run на `7e1497f` поверх него прошёл, но отдельного зелёного результата для `567c1ad` нет.
+  Если упадёт более поздний run, первый виновный commit не определяется по истории CI. Вариант: отменять
+  незавершённые runs только для события `pull_request`. Готово, когда два близких merge дают два завершённых
+  run на `main`, `make lint-ci` проходит, а отмена устаревших runs в PR сохранена.
 - [x] **SM-714** — Сортировка списка сессий в Sidebar выпадающим селектором.
   **Статус: выполнено (2026-10-08). Доставлено в `main` (PR #99, 4481432, `CI` зелёный); пользователь проверил на Mac: сортировки работают.** Добавлено по запросу пользователя.
   Сделано: `SessionSummary.firstRequestAt`/`lastRequestAt` (необязательные, из `confirmed` по всей истории сессии, `UsageStore.sessionSpans`),
@@ -2068,11 +2150,22 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   Renderer использует production component без нового окна/личного индекса;
   повторный запуск полного приложения не выполнялся. PR #149 влит 2026-10-27, squash `8779f59`.
 
+- [ ] **SM-760** — Внутренний индекс по умолчанию при первом запуске Store-версии.
+  **Статус: код доставлен (2026-11-02), [PR #156](https://github.com/SoundBlaster/SessionMonitor/pull/156) влит squash `954a9b9`; acceptance остаётся.**
+  Без настроенного внешнего индекса Store app открывает индекс в своём контейнере, без выбора папки при
+  первом запуске. Сохранённые выборы внешнего индекса не меняются; если доступ к ним не восстановлен,
+  приложение сообщает об ошибке и не переключается на пустую базу. Settings объясняет необязательный общий
+  индекс; обновлены [заметки подготовки](docs/mac-app-store-readiness.md). Миграции базы нет.
+  Проверки #156: SharedIndexTests — 8 passed (console build с разрешённым per-command macro-validation bypass),
+  SwiftLint и FSD passed; GitHub checks финальной ревизии зелёные. Signed Store first-launch и upgrade
+  acceptance не проверены; `[ ]` до этой проверки.
 - [ ] **SM-759** — Debug-лаборатория системных виджетов с общим production layout.
-  **Статус: частично проверена.** Debug и неподписанный Release build, SwiftLint и FSD прошли;
+  **Статус: частично проверена; код доставлен через [PR #154](https://github.com/SoundBlaster/SessionMonitor/pull/154), squash `7e1497f` (2026-10-30).** Debug и неподписанный Release build, SwiftLint и FSD прошли;
   ImageRenderer fixtures прошли; требуется проверить экран в приложении и системную галерею.
+  Аудит 2026-11-09: подписанный Release build остановился на старом неподписанном test bundle в DerivedData
+  и после этого не перепроверялся.
 - [ ] **SM-758** — Исправить перенос и наложение подписей оси Cache Hit Rate в системных виджетах.
-  **Статус: частично проверена.** Формат и ширина исправлены, сборка и lint прошли;
+  **Статус: частично проверена; код доставлен через [PR #153](https://github.com/SoundBlaster/SessionMonitor/pull/153), squash `567c1ad` (2026-10-30).** Формат и ширина исправлены, сборка и lint прошли;
   проверить реальный medium/large WidgetKit render на macOS до закрытия задачи.
 
 - [x] **SM-757** — Сохранить Unknown/Mixed accounting при переносе source folder.
@@ -2087,6 +2180,15 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   move+append, restart, missing provenance, quota projection, stale CAS и SQL-failure rollback.
   User docs: [incremental import contract](docs/data-and-coverage.md#incremental-import-contract).
   CI/review перед merge #151 прошли; sandbox acceptance #150 влит squash `c8a0a08`.
+- [ ] **SM-765** — Дубли запросов, проиндексированные до SM-757 после переноса source folder.
+  **Статус: проблема зафиксирована аудитом (2026-11-09); ожидает решения владельца о repair path.** SM-757
+  исправила импорт после переноса папки, но не трогает уже записанные дубли: это ограничение названо в #151 и в
+  [incremental import contract](docs/data-and-coverage.md#incremental-import-contract). Индекс, в котором
+  папка Unknown/Mixed переносилась до исправления, может завышать requests/input (в native smoke #150 —
+  3 / 400 вместо 2 / 300). Сейчас нет ни диагностики, ни описанного способа восстановления; масштаб на реальных
+  индексах не измерялся. Нельзя объединять записи разных аккаунтов только по response/session ID. Готово,
+  когда решено, нужен ли repair (например, через явный rescan) и finding в `doctor`, а выбранное поведение
+  покрыто fixture с переносом папки до исправления и описано в docs.
 
 - [x] **SM-745** — Зафиксировать Codex-first фокус, красивый обзор для человека и быстрый CLI аналитики для агента.
   Статус: доставлено (2026-10-25): [PR #140](https://github.com/SoundBlaster/SessionMonitor/pull/140)
@@ -2105,6 +2207,8 @@ SM-717) решён объединением — `DISTINCT` по scope и hashed 
   snapshot watermark проверены; 3 harness tests passed. OS cache uncontrolled, это не cold-disk и не GUI FPS.
   [Методика, результаты и воспроизведение](docs/performance/SM-746-cli-baseline.md). Полный schema/backward-compatibility
   audit и оптимизация ещё не выполнены; после проверки узкого места — подготовка Mac App Store (SM-706).
+  Аудит 2026-11-09: SM-749 ускорила agent status, но не `doctor` — за неделю 12,81 с median на том же корпусе
+  ([результаты](docs/performance/SM-749-bounded-agent-status.md)); bounded summary для `doctor` остаётся в этом scope.
   Остаток полного scope: завершить инвентаризацию
   имеющихся commands и regression tests, сохраняя работающие contracts. Проверить явные account/session
   scope, period/timezone, units, coverage/freshness/evidence и значения unknown/not_applicable;
